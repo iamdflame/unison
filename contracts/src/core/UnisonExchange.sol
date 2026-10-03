@@ -39,6 +39,8 @@ contract UnisonExchange is
     bytes32 public constant HALT_ROLE = keccak256("HALT_ROLE");
     /// @notice Trusted order gateways (signed orders, session keys, passkeys) acting for an account.
     bytes32 public constant GATEWAY_ROLE = keccak256("GATEWAY_ROLE");
+    /// @notice Writes daily TSV volume caps (percent of ADV), e.g. the CRE ADV workflow.
+    bytes32 public constant CAP_ROLE = keccak256("CAP_ROLE");
 
     // ------------------------------------------------------------------ init / admin
 
@@ -54,6 +56,7 @@ contract UnisonExchange is
         _grantRole(OPERATOR_ROLE, admin);
         _grantRole(GUARDIAN_ROLE, admin);
         _grantRole(HALT_ROLE, admin);
+        _grantRole(CAP_ROLE, admin);
     }
 
     function _authorizeUpgrade(address) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
@@ -169,6 +172,35 @@ contract UnisonExchange is
         g.discHorizonSec = discHorizonSec;
         g.discCadence = discCadence;
         emit RegimeSet(marketId, g);
+    }
+
+    /// @notice Sets the daily volume cap of a market in base units (0 = none). Written daily from ADV.
+    function setDailyCap(uint256 marketId, uint128 dailyCap) external onlyRole(CAP_ROLE) {
+        _market(marketId);
+        _s().caps[marketId].dailyCap = dailyCap;
+        emit DailyCapSet(marketId, dailyCap, msg.sender);
+    }
+
+    /// @notice Assigns a LULD tier (1 or 2, 0 = none), enforcing the per-tier symbol limits (75 / 250).
+    function setTier(uint256 marketId, uint8 tier) external onlyRole(OPERATOR_ROLE) {
+        _market(marketId);
+        if (tier > 2) revert InvalidParams();
+        MainStorage storage $ = _s();
+        uint8 old = $.caps[marketId].tier;
+        if (old == tier) return;
+        if (old != 0) $.tierCounts[old] -= 1;
+        if (tier != 0) {
+            uint256 limit = tier == 1 ? TIER1_SYMBOL_LIMIT : TIER2_SYMBOL_LIMIT;
+            if ($.tierCounts[tier] >= limit) revert TierFull();
+            $.tierCounts[tier] += 1;
+        }
+        $.caps[marketId].tier = tier;
+        emit TierSet(marketId, tier);
+    }
+
+    /// @notice Publishes the hash (and location) of a public disclosure / notice for a market (0 = venue-wide).
+    function postNotice(uint256 marketId, bytes32 docHash, string calldata uri) external onlyRole(OPERATOR_ROLE) {
+        emit NoticePosted(marketId, docHash, uri);
     }
 
     /// @notice Registers a curve source (LiquidityVault, Designated Maker) merged into every auction.
@@ -570,6 +602,16 @@ contract UnisonExchange is
 
     function jobOf(uint256 marketId) external view returns (Job memory) {
         return _s().jobs[marketId];
+    }
+
+    /// @notice TSV cap state and what the market may still trade today.
+    function capsOf(uint256 marketId) external view returns (Caps memory caps, uint256 remainingToday) {
+        caps = _s().caps[marketId];
+        remainingToday = _capRemaining(marketId);
+    }
+
+    function tierCount(uint8 tier) external view returns (uint256) {
+        return _s().tierCounts[tier];
     }
 
     function sourcesOf(uint256 marketId) external view returns (address[] memory) {

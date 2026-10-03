@@ -21,6 +21,8 @@ export interface ClearingInput {
   bids: readonly bigint[];
   /** asks[i] = ask liquidity with limit exactly lo + i */
   asks: readonly bigint[];
+  /** regulatory volume cap (0 / undefined = none); t* stays the uncapped max-volume price */
+  maxVolume?: bigint;
 }
 
 export interface ClearingResult {
@@ -93,12 +95,14 @@ export function compute(x: ClearingInput): ClearingResult {
   }
   if (!found) return { ...NO_TRADE };
 
-  const [bidMarginal, bidRatio, bidMarginalFill] = allocate(x.bidAbove, n, bestE, (j) => x.bids[n - j]!);
-  const [askMarginal, askRatio, askMarginalFill] = allocate(x.askBelow, n, bestE, (j) => x.asks[j - 1]!);
+  const cap = x.maxVolume ?? 0n;
+  const v = cap !== 0n && cap < bestE ? cap : bestE;
+  const [bidMarginal, bidRatio, bidMarginalFill] = allocate(x.bidAbove, n, v, (j) => x.bids[n - j]!);
+  const [askMarginal, askRatio, askMarginalFill] = allocate(x.askBelow, n, v, (j) => x.asks[j - 1]!);
   return {
     traded: true,
     tick: x.lo + BigInt(bestIdx),
-    volume: bestE,
+    volume: v,
     bidMarginal,
     bidRatio,
     bidMarginalFill,

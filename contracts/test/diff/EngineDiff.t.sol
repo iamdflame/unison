@@ -40,10 +40,11 @@ contract EngineDiffTest is Test {
         }
         if ((seed >> 40) % 3 == 0) x.bidAbove = (seed >> 48) % 1e21;
         if ((seed >> 120) % 3 == 0) x.askBelow = (seed >> 128) % 1e21;
+        if ((seed >> 200) % 3 == 0) x.maxVolume = 1 + ((seed >> 208) % 1e21); // regulatory cap
 
         Clearing.Result memory r = Clearing.compute(x);
         bytes memory out =
-            _ffi("clear", abi.encode(x.lo, x.hi, x.refTick, x.bidAbove, x.askBelow, x.bids, x.asks));
+            _ffi("clear", abi.encode(x.lo, x.hi, x.refTick, x.bidAbove, x.askBelow, x.bids, x.asks, x.maxVolume));
         (
             bool traded,
             uint256 tick,

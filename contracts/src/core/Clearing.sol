@@ -24,6 +24,8 @@ library Clearing {
         uint256 askBelow; // ask liquidity with limit tick < lo (willing at every band price)
         uint256[] bids; // bids[i] = bid liquidity with limit exactly lo + i
         uint256[] asks; // asks[i] = ask liquidity with limit exactly lo + i
+        uint256 maxVolume; // regulatory volume cap for this auction (0 = none). t* is still the uncapped
+            // max-volume price; only the executed volume is capped (SPEC §8.2).
     }
 
     struct Result {
@@ -94,11 +96,12 @@ library Clearing {
         if (!found) return r; // no crossing liquidity inside the band
 
         r.traded = true;
-        r.volume = bestE;
+        uint256 v = x.maxVolume != 0 && x.maxVolume < bestE ? x.maxVolume : bestE;
+        r.volume = v;
         r.tick = x.lo + bestIdx;
 
-        (r.bidMarginal, r.bidRatio, r.bidMarginalFill) = _allocateBids(x, n, bestE);
-        (r.askMarginal, r.askRatio, r.askMarginalFill) = _allocateAsks(x, n, bestE);
+        (r.bidMarginal, r.bidRatio, r.bidMarginalFill) = _allocateBids(x, n, v);
+        (r.askMarginal, r.askRatio, r.askMarginalFill) = _allocateAsks(x, n, v);
     }
 
     /// @dev Walks bid levels from the best (ABOVE) downward until V is exhausted.

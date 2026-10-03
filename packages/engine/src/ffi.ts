@@ -14,8 +14,11 @@ const u = { type: "uint256" } as const;
 const ua = { type: "uint256[]" } as const;
 
 function clear(input: Hex): Hex {
-  const [lo, hi, refTick, bidAbove, askBelow, bids, asks] = decodeAbiParameters([u, u, u, u, u, ua, ua], input);
-  const r = compute({ lo, hi, refTick, bidAbove, askBelow, bids, asks });
+  const [lo, hi, refTick, bidAbove, askBelow, bids, asks, maxVolume] = decodeAbiParameters(
+    [u, u, u, u, u, ua, ua, u],
+    input,
+  );
+  const r = compute({ lo, hi, refTick, bidAbove, askBelow, bids, asks, maxVolume });
   return encodeAbiParameters(
     [{ type: "bool" }, u, u, u, u, u, u, u, u],
     [

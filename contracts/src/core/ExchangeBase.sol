@@ -23,6 +23,8 @@ abstract contract ExchangeBase {
     /// @dev Gas cap for calls into curve sources (a misbehaving source can never block clearing).
     uint256 internal constant CURVE_GAS = 150_000;
     uint256 internal constant MAX_SOURCES = 4;
+    uint256 internal constant TIER1_SYMBOL_LIMIT = 75;
+    uint256 internal constant TIER2_SYMBOL_LIMIT = 250;
 
     uint8 internal constant PHASE_IDLE = 0;
     uint8 internal constant PHASE_MERGE = 1;
@@ -121,6 +123,16 @@ abstract contract ExchangeBase {
         uint64 lastDiscoveryBatch; // newest batch of the last DISCOVERY auction (cadence)
     }
 
+    /// @notice Tokenized-Securities-Venue caps (SEC Release 34-106402 conditions; SPEC §8.2): symbols are
+    ///         assigned a LULD tier with a symbol limit, and each symbol trades at most `dailyCap` base units per
+    ///         UTC day (a percentage of ADV per tier, written daily by the CRE workflow / operator).
+    struct Caps {
+        uint8 tier; // 1 or 2 (0 = untiered)
+        uint64 day; // UTC day `traded` refers to
+        uint128 traded; // base units executed on `day`
+        uint128 dailyCap; // base units per UTC day (0 = no cap)
+    }
+
     /// @custom:storage-location erc7201:unison.exchange.main
     struct MainStorage {
         address[] tokens;
@@ -132,6 +144,8 @@ abstract contract ExchangeBase {
         mapping(uint256 => Job) jobs;
         mapping(uint256 => Regime) regimes;
         mapping(uint256 => address[]) sources; // curve sources per market (ICurveSource)
+        mapping(uint256 => Caps) caps;
+        uint16[3] tierCounts; // symbols per LULD tier (index 1, 2)
     }
 
     // keccak256(abi.encode(uint256(keccak256("unison.exchange.main")) - 1)) & ~bytes32(uint256(0xff))
@@ -188,6 +202,9 @@ abstract contract ExchangeBase {
     event KeeperPaid(uint256 indexed marketId, address indexed keeper, uint256 amount);
     event RegimeSet(uint256 indexed marketId, Regime regime);
     event SourceSet(uint256 indexed marketId, address indexed source, bool added);
+    event DailyCapSet(uint256 indexed marketId, uint256 dailyCap, address by);
+    event TierSet(uint256 indexed marketId, uint8 tier);
+    event NoticePosted(uint256 indexed marketId, bytes32 indexed docHash, string uri);
     event CurveFilled(
         uint256 indexed marketId,
         address indexed source,
@@ -221,6 +238,7 @@ abstract contract ExchangeBase {
     error ClearingMismatch();
     error TooEarly();
     error TooManySources();
+    error TierFull();
 
     // ------------------------------------------------------------------ ledger primitives
 

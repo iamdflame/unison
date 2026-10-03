@@ -84,6 +84,14 @@ abstract contract ExchangeClearing is ExchangeBase {
         j.status = uint8(st);
     }
 
+    /// @dev Base units the market may still trade today (type(uint256).max = uncapped).
+    function _capRemaining(uint256 marketId) internal view returns (uint256) {
+        Caps storage cp = _s().caps[marketId];
+        if (cp.dailyCap == 0) return type(uint256).max;
+        uint256 traded = cp.day == block.timestamp / 1 days ? cp.traded : 0;
+        return traded >= cp.dailyCap ? 0 : cp.dailyCap - traded;
+    }
+
     /// @dev Registration timestamp of the newest pending batch <= upTo (0 if none).
     function _newestPendingTs(uint256 marketId, Market storage m, uint256 upTo) private view returns (uint256) {
         uint256 tail = m.pendingTail;
@@ -196,7 +204,11 @@ abstract contract ExchangeClearing is ExchangeBase {
         j.lo = uint32(lo);
         j.hi = uint32(hi);
 
+        // TSV daily volume cap: an exhausted cap means no auction until the next UTC day
+        uint256 capLeft = _capRemaining(marketId);
+        if (capLeft == 0) return;
         Clearing.Input memory x = _buildInput(marketId, m, lo, hi, refTick);
+        if (capLeft != type(uint256).max) x.maxVolume = capLeft;
         CurveSlot[] memory cs = _loadCurves(marketId, m, j, refTick, x);
         Clearing.Result memory r = Clearing.compute(x);
         if (!r.traded) return;
@@ -495,6 +507,13 @@ abstract contract ExchangeClearing is ExchangeBase {
         if (volume > 0) {
             m.auctions += 1;
             m.lastPrintTick = uint64(tick);
+            Caps storage cp = _s().caps[marketId];
+            uint64 today = uint64(block.timestamp / 1 days);
+            if (cp.day != today) {
+                cp.day = today;
+                cp.traded = 0;
+            }
+            cp.traded += uint128(volume);
         }
         bytes32 r = keccak256(
             abi.encode(m.receiptHash, marketId, j.upTo, tick, volume, j.refPrice, j.refTimeMs, j.status, block.timestamp)
