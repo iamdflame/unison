@@ -1,0 +1,34 @@
+{
+  "schedule": "*/30 * * * * *",
+  "chainSelectorName": "monad-mainnet",
+  "isTestnet": false,
+  "operatorReference": "0x0000000000000000000000000000000000000000",
+  "receiver": "0x0000000000000000000000000000000000000000",
+  "gasLimit": "600000",
+  "quoteDecimals": 6,
+  "maxDeviationBps": 75,
+  "markets": [
+    { "marketId": 0, "symbol": "NVDA", "signerId": 0 },
+    { "marketId": 1, "symbol": "SPY", "signerId": 0 },
+    { "marketId": 2, "symbol": "QQQ", "signerId": 0 },
+    { "marketId": 3, "symbol": "AAPL", "signerId": 0 },
+    { "marketId": 4, "symbol": "TSLA", "signerId": 0 },
+    { "marketId": 5, "symbol": "COIN", "signerId": 0 },
+    { "marketId": 6, "symbol": "MSTR", "signerId": 0 },
+    { "marketId": 7, "symbol": "GLD", "signerId": 0 }
+  ],
+  "sources": [
+    {
+      "name": "alpaca-iex",
+      "url": "https://data.alpaca.markets/v2/stocks/{SYMBOL}/trades/latest?feed=iex",
+      "path": "trade.p",
+      "headers": { "APCA-API-KEY-ID": "{SECRET:ALPACA_KEY_ID}", "APCA-API-SECRET-KEY": "{SECRET:ALPACA_SECRET_KEY}" }
+    },
+    {
+      "name": "finnhub",
+      "url": "https://finnhub.io/api/v1/quote?symbol={SYMBOL}",
+      "path": "c",
+      "headers": { "X-Finnhub-Token": "{SECRET:FINNHUB_TOKEN}" }
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+# Chainlink CRE project settings for the Unison workflows (see unison/workflows/*/workflow.yaml).
+# `simulation-settings` targets a local anvil with Monad testnet's chain id (10143) running the Unison devnet.
+simulation-settings:
+  rpcs:
+    - chain-name: monad-testnet
+      url: http://127.0.0.1:8547
+staging-settings:
+  rpcs:
+    - chain-name: monad-testnet
+      url: https://testnet-rpc.monad.xyz
+production-settings:
+  rpcs:
+    - chain-name: monad-mainnet
+      url: https://rpc.monad.xyz

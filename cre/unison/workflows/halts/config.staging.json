@@ -1,0 +1,19 @@
+{
+  "schedule": "0 * * * * *",
+  "chainSelectorName": "monad-testnet",
+  "isTestnet": true,
+  "exchange": "0x0000000000000000000000000000000000000000",
+  "receiver": "0x0000000000000000000000000000000000000000",
+  "gasLimit": "300000",
+  "haltsUrl": "https://www.nasdaqtrader.com/rss.aspx?feed=tradehalts",
+  "markets": [
+    { "marketId": 0, "symbol": "NVDA" },
+    { "marketId": 1, "symbol": "SPY" },
+    { "marketId": 2, "symbol": "QQQ" },
+    { "marketId": 3, "symbol": "AAPL" },
+    { "marketId": 4, "symbol": "TSLA" },
+    { "marketId": 5, "symbol": "COIN" },
+    { "marketId": 6, "symbol": "MSTR" },
+    { "marketId": 7, "symbol": "GLD" }
+  ]
+}

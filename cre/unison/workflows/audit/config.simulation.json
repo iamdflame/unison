@@ -1,0 +1,19 @@
+{
+  "schedule": "*/30 * * * * *",
+  "chainSelectorName": "monad-testnet",
+  "isTestnet": true,
+  "operatorReference": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+  "receiver": "0x00000000000000000000000000000000000c0de1",
+  "gasLimit": "600000",
+  "quoteDecimals": 6,
+  "maxDeviationBps": 75,
+  "markets": [{ "marketId": 0, "symbol": "NVDA", "signerId": 0 }],
+  "sources": [
+    {
+      "name": "yahoo",
+      "url": "https://query1.finance.yahoo.com/v8/finance/chart/{SYMBOL}?interval=1d&range=1d",
+      "path": "chart.result.0.meta.regularMarketPrice",
+      "headers": { "User-Agent": "Mozilla/5.0 unison-cre-audit" }
+    }
+  ]
+}

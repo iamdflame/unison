@@ -1,0 +1,23 @@
+{
+  "name": "@unison/cre",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chainlink CRE workflows for Unison: reference audit (halt + slash on deviation), daily ADV volume caps, primary-market halt mirroring.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "compile": "bun x cre-compile workflows/audit/main.ts dist/audit.wasm && bun x cre-compile workflows/caps/main.ts dist/caps.wasm && bun x cre-compile workflows/halts/main.ts dist/halts.wasm"
+  },
+  "dependencies": {
+    "@chainlink/cre-sdk": "^1.23.0",
+    "viem": "^2.37.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}
