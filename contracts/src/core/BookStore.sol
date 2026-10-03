@@ -101,6 +101,14 @@ library BookStore {
         return Pages.load(_totalSlot(k));
     }
 
+    function bucketTotal(Key memory k, uint256 bucket) internal view returns (uint256) {
+        return Pages.load(_bucketSlot(k, bucket));
+    }
+
+    function superTotal(Key memory k, uint256 sup) internal view returns (uint256) {
+        return Pages.load(_superSlot(k, sup));
+    }
+
     function _addTotals(Key memory k, uint256 tick, uint256 q) private {
         uint256 b = tick >> 7;
         uint256 s = tick >> 14;
