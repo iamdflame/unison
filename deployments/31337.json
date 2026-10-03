@@ -12,6 +12,7 @@
   },
   "chainId": 31337,
   "exchange": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+  "gateway": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
   "markets": {
     "aNVDA/AUSD": {
       "base": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
@@ -20,7 +21,7 @@
       "reference": "operator",
       "seedPrice": 180000000,
       "symbol": "aNVDA/AUSD",
-      "vault": "0x9A676e781A523b5d0C0e43731313A708CB607508"
+      "vault": "0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1"
     },
     "aSPY/AUSD": {
       "base": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
@@ -29,7 +30,7 @@
       "reference": "operator",
       "seedPrice": 660000000,
       "symbol": "aSPY/AUSD",
-      "vault": "0x0B306BF915C4d645ff596e518fAf3F9669b97016"
+      "vault": "0x9A9f2CCfdE556A7E9Ff0848998Aa4a0CFD8863AE"
     }
   },
   "operatorReference": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"
