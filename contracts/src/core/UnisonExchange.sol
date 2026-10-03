@@ -37,6 +37,8 @@ contract UnisonExchange is
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
     /// @notice May force a market into HALTED (guardian, CRE audit receiver, halt-mirroring workflow).
     bytes32 public constant HALT_ROLE = keccak256("HALT_ROLE");
+    /// @notice Trusted order gateways (signed orders, session keys, passkeys) acting for an account.
+    bytes32 public constant GATEWAY_ROLE = keccak256("GATEWAY_ROLE");
 
     // ------------------------------------------------------------------ init / admin
 
@@ -256,11 +258,24 @@ contract UnisonExchange is
     }
 
     function withdraw(address token, uint256 amount, address to) external nonReentrant {
+        _withdraw(msg.sender, token, amount, to);
+    }
+
+    /// @notice Gateway-authorized withdrawal (the gateway verified `account`'s signature).
+    function withdrawFor(address account, address token, uint256 amount, address to)
+        external
+        nonReentrant
+        onlyRole(GATEWAY_ROLE)
+    {
+        _withdraw(account, token, amount, to);
+    }
+
+    function _withdraw(address account, address token, uint256 amount, address to) private {
         uint256 idx = _tokenIdx(token);
-        if (_s().restricted[token]) _requireEligible(msg.sender);
-        _debit(msg.sender, idx, amount);
+        if (_s().restricted[token]) _requireEligible(account);
+        _debit(account, idx, amount);
         IERC20(token).safeTransfer(to, amount);
-        emit Withdrawn(msg.sender, token, amount, to);
+        emit Withdrawn(account, token, amount, to);
     }
 
     function _deposit(address account, address token, uint256 amount) private {
@@ -286,25 +301,43 @@ contract UnisonExchange is
         nonReentrant
         returns (uint256 slotIdx)
     {
+        return _placeOrder(msg.sender, marketId, side, tick, qty, flags);
+    }
+
+    /// @notice Gateway-authorized order entry (the gateway verified `account`'s signature / session key).
+    function placeOrderFor(address account, uint256 marketId, uint256 side, uint256 tick, uint256 qty, uint256 flags)
+        external
+        whenNotPaused
+        nonReentrant
+        onlyRole(GATEWAY_ROLE)
+        returns (uint256 slotIdx)
+    {
+        return _placeOrder(account, marketId, side, tick, qty, flags);
+    }
+
+    function _placeOrder(address account, uint256 marketId, uint256 side, uint256 tick, uint256 qty, uint256 flags)
+        private
+        returns (uint256 slotIdx)
+    {
         Market storage m = _market(marketId);
         if (!m.active) revert MarketInactive();
         if (side > 1) revert InvalidParams();
         if (tick < m.minTick || tick > m.maxTick) revert InvalidTick();
         if (qty == 0 || qty > type(uint96).max) revert InvalidQty();
-        if (m.permissioned) _requireEligible(msg.sender);
+        if (m.permissioned) _requireEligible(account);
 
         if (side == SIDE_BID) {
-            _debit(msg.sender, m.quoteIdx, OrderMath.buyLock(qty, tick * m.tickSize, m.maxFeeBps, m.baseUnit));
+            _debit(account, m.quoteIdx, OrderMath.buyLock(qty, tick * m.tickSize, m.maxFeeBps, m.baseUnit));
         } else {
-            _debit(msg.sender, m.baseIdx, qty);
+            _debit(account, m.baseIdx, qty);
         }
 
-        uint256 shard = uint256(uint160(msg.sender)) % m.shards;
+        uint256 shard = uint256(uint160(account)) % m.shards;
         uint256 ioc = flags & L.FLAG_IOC;
         uint256 batch = block.number;
         _addPending(marketId, m, batch, side, shard, ioc, tick, qty);
 
-        slotIdx = _allocOrderSlot(msg.sender);
+        slotIdx = _allocOrderSlot(account);
         L.OrderRec memory o;
         o.qty = qty;
         o.tick = tick;
@@ -316,13 +349,22 @@ contract UnisonExchange is
         o.batch = batch;
         o.feeBps = m.feeBps;
         o.maxFeeBps = m.maxFeeBps;
-        _writeOrder(msg.sender, slotIdx, o);
-        emit OrderPlaced(marketId, msg.sender, slotIdx, side, tick, qty, ioc, batch);
+        _writeOrder(account, slotIdx, o);
+        emit OrderPlaced(marketId, account, slotIdx, side, tick, qty, ioc, batch);
     }
 
     /// @notice Cancels an order. Fills that already happened are settled first.
     function cancelOrder(uint256 slotIdx) external nonReentrant {
-        L.OrderRec memory o = _readOrder(msg.sender, slotIdx);
+        _cancelOrder(msg.sender, slotIdx);
+    }
+
+    /// @notice Gateway-authorized cancel.
+    function cancelOrderFor(address account, uint256 slotIdx) external nonReentrant onlyRole(GATEWAY_ROLE) {
+        _cancelOrder(account, slotIdx);
+    }
+
+    function _cancelOrder(address account, uint256 slotIdx) private {
+        L.OrderRec memory o = _readOrder(account, slotIdx);
         if (o.state == L.STATE_EMPTY) revert EmptySlot();
         Market storage m = _market(o.market);
         Job storage j = _s().jobs[o.market];
@@ -333,18 +375,18 @@ contract UnisonExchange is
             _subPending(o.market, o.batch, o.side, o.shard, o.flags & L.FLAG_IOC, o.tick, o.qty);
             if (o.side == SIDE_BID) {
                 _credit(
-                    msg.sender, m.quoteIdx, OrderMath.buyLock(o.qty, o.tick * m.tickSize, o.maxFeeBps, m.baseUnit)
+                    account, m.quoteIdx, OrderMath.buyLock(o.qty, o.tick * m.tickSize, o.maxFeeBps, m.baseUnit)
                 );
             } else {
-                _credit(msg.sender, m.baseIdx, o.qty);
+                _credit(account, m.baseIdx, o.qty);
             }
-            _freeOrderSlot(msg.sender, slotIdx);
-            emit OrderCancelled(o.market, msg.sender, slotIdx, o.qty);
+            _freeOrderSlot(account, slotIdx);
+            emit OrderCancelled(o.market, account, slotIdx, o.qty);
             return;
         }
         // Leaving a level the running job may still fill would break the auction's volume.
         if (j.phase == PHASE_APPLY || j.phase == PHASE_CLOSE_IOC) revert ClearInProgress();
-        _settle(msg.sender, slotIdx, o, m, true);
+        _settle(account, slotIdx, o, m, true);
     }
 
     /// @notice Settles fills of `account`'s orders. Permissionless: proceeds always go to `account`.
@@ -518,6 +560,12 @@ contract UnisonExchange is
 
     function market(uint256 marketId) external view returns (Market memory) {
         return _market(marketId);
+    }
+
+    /// @notice Price scale of a market: price = tick * tickSize quote units per `baseUnit` base units.
+    function marketPricing(uint256 marketId) external view returns (uint256 tickSize, uint256 baseUnit) {
+        Market storage m = _market(marketId);
+        return (m.tickSize, m.baseUnit);
     }
 
     function jobOf(uint256 marketId) external view returns (Job memory) {
