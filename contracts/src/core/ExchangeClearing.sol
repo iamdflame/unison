@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Pages} from "../libraries/Pages.sol";
 import {Clearing} from "./Clearing.sol";
 import {BookStore} from "./BookStore.sol";
@@ -28,16 +29,10 @@ abstract contract ExchangeClearing is ExchangeBase {
     {
         Market storage m = _market(marketId);
         Job memory j = _s().jobs[marketId];
-        if (j.phase == PHASE_IDLE) {
-            if (!m.active) revert MarketInactive();
-            uint256 upTo = block.number - 1;
-            if (upTo <= m.lastCleared) revert NothingToClear();
-            j.phase = PHASE_MERGE;
-            j.upTo = uint64(upTo);
-        }
+        if (j.phase == PHASE_IDLE) _openJob(marketId, m, j, payload);
         if (j.phase == PHASE_MERGE) {
             if (!_mergeStep(marketId, m, j)) return _pauseJob(marketId, j);
-            _startAuction(marketId, m, j, payload);
+            _startAuction(marketId, m, j);
         }
         if (j.phase == PHASE_APPLY) {
             if (!_applyStep(marketId, m, j)) return _pauseJob(marketId, j);
@@ -57,6 +52,89 @@ abstract contract ExchangeClearing is ExchangeBase {
         _s().jobs[marketId] = j;
         emit ClearProgress(marketId, j.upTo, j.phase, j.work);
         return (0, 0, false);
+    }
+
+    /// @dev Opens a job: binds the reference (published after the newest covered batch closed, SPEC §7),
+    ///      applies the halt override and the DISCOVERY call-auction cadence.
+    function _openJob(uint256 marketId, Market storage m, Job memory j, bytes calldata payload) private {
+        if (!m.active) revert MarketInactive();
+        uint256 upTo = block.number - 1;
+        if (upTo <= m.lastCleared) revert NothingToClear();
+        (uint256 px, uint256 pubMs, IReferenceAdapter.Status st) =
+            IReferenceAdapter(m.refAdapter).read(marketId, upTo, payload);
+        if (px == 0) revert StaleReference();
+        uint256 newestTs = _newestPendingTs(marketId, m, upTo);
+        if (newestTs != 0 && pubMs < (newestTs + (m.strictAfterClose ? 1 : 0)) * 1000) revert StaleReference();
+        Regime storage g = _s().regimes[marketId];
+        if (g.halted) st = IReferenceAdapter.Status.HALTED;
+        if (
+            st == IReferenceAdapter.Status.CLOSED && g.discCadence > 1 && g.lastDiscoveryBatch != 0
+                && upTo < uint256(g.lastDiscoveryBatch) + g.discCadence
+        ) revert TooEarly();
+        j.phase = PHASE_MERGE;
+        j.upTo = uint64(upTo);
+        j.refPrice = px;
+        j.refTimeMs = uint64(pubMs);
+        j.status = uint8(st);
+    }
+
+    /// @dev Registration timestamp of the newest pending batch <= upTo (0 if none).
+    function _newestPendingTs(uint256 marketId, Market storage m, uint256 upTo) private view returns (uint256) {
+        uint256 tail = m.pendingTail;
+        uint256 head = m.pendingHead;
+        while (tail > head) {
+            uint256 b = Pages.load(_plistSlot(marketId, tail - 1));
+            if (b <= upTo) return Pages.load(L.groupPage(marketId, b, 0)) >> 96;
+            --tail;
+        }
+        return 0;
+    }
+
+    /// @dev Band centred on the reference tick: [ref - hw, ref + hw] ∩ [minTick, maxTick] (SPEC §5.1, §6).
+    function _band(uint256 marketId, Market storage m, uint256 px, IReferenceAdapter.Status st)
+        internal
+        view
+        returns (uint256 refTick, uint256 lo, uint256 hi, uint256 bps)
+    {
+        refTick = (px + m.tickSize / 2) / m.tickSize;
+        if (refTick < m.minTick) refTick = m.minTick;
+        if (refTick > m.maxTick) refTick = m.maxTick;
+        bps = _regimeBandBps(marketId, m, st);
+        uint256 hw = (refTick * bps) / BPS;
+        if (hw == 0) hw = 1;
+        uint256 maxHw = (uint256(m.maxBandTicks) - 1) / 2;
+        if (hw > maxHw) hw = maxHw;
+        lo = refTick > m.minTick + hw ? refTick - hw : m.minTick;
+        hi = refTick + hw < m.maxTick ? refTick + hw : m.maxTick;
+    }
+
+    /// @dev Band half-width in bps for the job's regime (SPEC §6).
+    function _regimeBandBps(uint256 marketId, Market storage m, IReferenceAdapter.Status st)
+        private
+        view
+        returns (uint256 bps)
+    {
+        Regime storage g = _s().regimes[marketId];
+        if (st == IReferenceAdapter.Status.CLOSED) {
+            // DISCOVERY: the band around the last close widens with √(time closed)
+            uint256 since = g.closedSince == 0 ? block.timestamp : g.closedSince;
+            uint256 e = block.timestamp > since ? block.timestamp - since : 0;
+            uint256 h = g.discHorizonSec;
+            if (h == 0) {
+                bps = g.discCapBps;
+            } else {
+                if (e > h) e = h;
+                bps = (uint256(g.discCapBps) * Math.sqrt((e * 1e18) / h)) / 1e9;
+            }
+            if (bps < g.discFloorBps) bps = g.discFloorBps;
+        } else {
+            uint8 last = m.lastStatus;
+            bool reopening =
+                last == uint8(IReferenceAdapter.Status.CLOSED) || last == uint8(IReferenceAdapter.Status.HALTED);
+            if (reopening) bps = g.reopenBandBps;
+            else bps = st == IReferenceAdapter.Status.EXTENDED ? g.extBandBps : m.bandBps;
+        }
+        if (bps == 0) bps = m.bandBps;
     }
 
     // ------------------------------------------------------------------ MERGE
@@ -93,30 +171,11 @@ abstract contract ExchangeClearing is ExchangeBase {
 
     // ------------------------------------------------------------------ auction
 
-    function _startAuction(uint256 marketId, Market storage m, Job memory j, bytes calldata payload) private {
-        // Reference must be published after the newest merged batch closed (SPEC §7).
-        (uint256 px, uint256 pubMs, IReferenceAdapter.Status st) =
-            IReferenceAdapter(m.refAdapter).read(marketId, payload);
-        if (px == 0) revert StaleReference();
-        if (j.newestTs != 0 && pubMs < (uint256(j.newestTs) + (m.strictAfterClose ? 1 : 0)) * 1000) {
-            revert StaleReference();
-        }
-        j.refPrice = px;
-        j.refTimeMs = uint64(pubMs);
-        j.status = uint8(st);
+    function _startAuction(uint256 marketId, Market storage m, Job memory j) private view {
         j.phase = PHASE_CLOSE_IOC;
+        IReferenceAdapter.Status st = IReferenceAdapter.Status(j.status);
         if (st == IReferenceAdapter.Status.HALTED) return; // no auction while the primary market is halted
-
-        // Band centred on the reference tick: [ref - hw, ref + hw] ∩ [minTick, maxTick] (SPEC §5.1).
-        uint256 refTick = (px + m.tickSize / 2) / m.tickSize;
-        if (refTick < m.minTick) refTick = m.minTick;
-        if (refTick > m.maxTick) refTick = m.maxTick;
-        uint256 hw = (refTick * m.bandBps) / BPS;
-        if (hw == 0) hw = 1;
-        uint256 maxHw = (uint256(m.maxBandTicks) - 1) / 2;
-        if (hw > maxHw) hw = maxHw;
-        uint256 lo = refTick > m.minTick + hw ? refTick - hw : m.minTick;
-        uint256 hi = refTick + hw < m.maxTick ? refTick + hw : m.maxTick;
+        (uint256 refTick, uint256 lo, uint256 hi,) = _band(marketId, m, j.refPrice, st);
         j.lo = uint32(lo);
         j.hi = uint32(hi);
 
@@ -303,6 +362,13 @@ abstract contract ExchangeClearing is ExchangeBase {
     {
         tick = j.tick;
         volume = j.volume;
+        Regime storage g = _s().regimes[marketId];
+        if (j.status == uint8(IReferenceAdapter.Status.CLOSED)) {
+            if (g.closedSince == 0) g.closedSince = uint64(j.refTimeMs / 1000);
+            g.lastDiscoveryBatch = j.upTo;
+        } else if (j.status != uint8(IReferenceAdapter.Status.HALTED)) {
+            g.closedSince = 0;
+        }
         m.lastCleared = j.upTo;
         m.lastRefPrice = j.refPrice;
         m.lastRefTimeMs = j.refTimeMs;

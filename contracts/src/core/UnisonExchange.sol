@@ -15,6 +15,7 @@ import {BookStore} from "./BookStore.sol";
 import {OrderMath} from "./OrderMath.sol";
 import {ExchangeLayout as L} from "./ExchangeLayout.sol";
 import {ExchangeClearing} from "./ExchangeClearing.sol";
+import {IReferenceAdapter} from "../interfaces/IReferenceAdapter.sol";
 
 /// @title UnisonExchange — per-block frequent batch auctions for tokenized assets on Monad
 /// @notice Orders placed in block b enter a pending ring for batch b. A permissionless, resumable `clear()`
@@ -34,6 +35,8 @@ contract UnisonExchange is
 
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
+    /// @notice May force a market into HALTED (guardian, CRE audit receiver, halt-mirroring workflow).
+    bytes32 public constant HALT_ROLE = keccak256("HALT_ROLE");
 
     // ------------------------------------------------------------------ init / admin
 
@@ -48,6 +51,7 @@ contract UnisonExchange is
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(OPERATOR_ROLE, admin);
         _grantRole(GUARDIAN_ROLE, admin);
+        _grantRole(HALT_ROLE, admin);
     }
 
     function _authorizeUpgrade(address) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
@@ -124,7 +128,54 @@ contract UnisonExchange is
         // Batches start at the creation block: orders placed in this very block must be clearable.
         m.lastCleared = uint64(block.number - 1);
         marketId = $.markets.length - 1;
+        // Conservative regime defaults; operators calibrate per asset (research/: weekend gap quantiles).
+        Regime storage g = $.regimes[marketId];
+        g.extBandBps = _capBps(uint256(p.bandBps) * 2);
+        g.reopenBandBps = _capBps(uint256(p.bandBps) * 5);
+        g.discFloorBps = p.bandBps;
+        g.discCapBps = _capBps(uint256(p.bandBps) * 5);
+        g.discHorizonSec = 235_800; // Fri 16:00 → Mon 09:30 ET
+        g.discCadence = 10; // ~3 s call auctions while the reference market is closed
         emit MarketCreated(marketId, p.base, p.quote, p.tickSize, p.refAdapter);
+        emit RegimeSet(marketId, g);
+    }
+
+    function _capBps(uint256 bps) private pure returns (uint16) {
+        return uint16(bps > 5_000 ? 5_000 : bps);
+    }
+
+    /// @notice Sets the regime parameters of a market (state fields are preserved).
+    function setRegime(
+        uint256 marketId,
+        uint16 extBandBps,
+        uint16 reopenBandBps,
+        uint16 discFloorBps,
+        uint16 discCapBps,
+        uint32 discHorizonSec,
+        uint32 discCadence
+    ) external onlyRole(OPERATOR_ROLE) {
+        _market(marketId);
+        if (
+            extBandBps == 0 || reopenBandBps == 0 || discFloorBps == 0 || discCapBps < discFloorBps
+                || discCapBps > 5_000 || reopenBandBps > 5_000 || extBandBps > 5_000 || discCadence == 0
+        ) revert InvalidParams();
+        Regime storage g = _s().regimes[marketId];
+        g.extBandBps = extBandBps;
+        g.reopenBandBps = reopenBandBps;
+        g.discFloorBps = discFloorBps;
+        g.discCapBps = discCapBps;
+        g.discHorizonSec = discHorizonSec;
+        g.discCadence = discCadence;
+        emit RegimeSet(marketId, g);
+    }
+
+    /// @notice Forces (or lifts) a trading halt on a market — e.g. mirroring a primary-market halt, or an
+    ///         automatic halt raised by the CRE reference audit. Orders keep accumulating while halted; the
+    ///         first auction after the halt is a reopening auction.
+    function setHalt(uint256 marketId, bool halted) external onlyRole(HALT_ROLE) {
+        _market(marketId);
+        _s().regimes[marketId].halted = halted;
+        emit HaltSet(marketId, halted, msg.sender);
     }
 
     function setMarketParams(uint256 marketId, uint16 bandBps, uint16 feeBps, uint32 maxBandTicks, bool active)
@@ -435,6 +486,19 @@ contract UnisonExchange is
 
     function jobOf(uint256 marketId) external view returns (Job memory) {
         return _s().jobs[marketId];
+    }
+
+    function regimeOf(uint256 marketId) external view returns (Regime memory) {
+        return _s().regimes[marketId];
+    }
+
+    /// @notice The auction band a clear would use right now for `refPrice` under `status` (UI / keepers).
+    function previewBand(uint256 marketId, uint256 refPrice, IReferenceAdapter.Status status)
+        external
+        view
+        returns (uint256 refTick, uint256 lo, uint256 hi, uint256 bandBps)
+    {
+        return _band(marketId, _market(marketId), refPrice, status);
     }
 
     function balanceOf(address account, address token) external view returns (uint256) {

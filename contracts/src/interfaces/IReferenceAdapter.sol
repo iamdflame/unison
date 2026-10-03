@@ -13,11 +13,13 @@ interface IReferenceAdapter {
 
     /// @notice Reads (and, for pull/signed adapters, verifies) the reference for `marketId`.
     /// @param marketId  Unison market id
+    /// @param batch     newest batch (block number) the clear job covers; signed adapters bind to it so a
+    ///                  keeper can never choose among several valid prices for the same auction
     /// @param payload   adapter-specific data (e.g. an operator signature); may be empty for push feeds
     /// @return price        quote units per one whole base token (10^baseDecimals base units)
     /// @return publishTimeMs publication time of the price, unix milliseconds
     /// @return status       session status of the reference market
-    function read(uint256 marketId, bytes calldata payload)
+    function read(uint256 marketId, uint256 batch, bytes calldata payload)
         external
         returns (uint256 price, uint256 publishTimeMs, Status status);
 }

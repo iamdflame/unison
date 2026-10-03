@@ -24,7 +24,7 @@ contract ManualReference is IReferenceAdapter, Ownable2Step {
         emit ReferencePosted(marketId, price, publishTimeMs, status);
     }
 
-    function read(uint256 marketId, bytes calldata) external view returns (uint256, uint256, Status) {
+    function read(uint256 marketId, uint256, bytes calldata) external view returns (uint256, uint256, Status) {
         Ref memory r = refs[marketId];
         return (r.price, r.publishTimeMs, r.status);
     }

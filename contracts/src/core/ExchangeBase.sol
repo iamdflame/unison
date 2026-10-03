@@ -97,6 +97,23 @@ abstract contract ExchangeBase {
         uint256 filledAsk;
     }
 
+    /// @notice Regime configuration and state of a market (SPEC §6). The reference status selects the regime:
+    ///         OPEN → LIVE (bandBps), EXTENDED (extBandBps), CLOSED → DISCOVERY (call auctions every
+    ///         `discCadence` blocks, band widening with √(time closed) from `discFloorBps` to `discCapBps`
+    ///         over `discHorizonSec`), first OPEN/EXTENDED auction after CLOSED/HALTED → REOPENING
+    ///         (`reopenBandBps`, the opening cross), HALTED → no auction.
+    struct Regime {
+        uint16 extBandBps;
+        uint16 reopenBandBps;
+        uint16 discFloorBps;
+        uint16 discCapBps;
+        uint32 discHorizonSec;
+        uint32 discCadence;
+        bool halted; // guardian / CRE halt override: forces HALTED whatever the adapter says
+        uint64 closedSince; // unix seconds the current CLOSED period started (0 = not closed)
+        uint64 lastDiscoveryBatch; // newest batch of the last DISCOVERY auction (cadence)
+    }
+
     /// @custom:storage-location erc7201:unison.exchange.main
     struct MainStorage {
         address[] tokens;
@@ -106,6 +123,7 @@ abstract contract ExchangeBase {
         uint256 keeperReward; // quote units per completed clear job (paid from the protocol balance)
         address eligibility;
         mapping(uint256 => Job) jobs;
+        mapping(uint256 => Regime) regimes;
     }
 
     // keccak256(abi.encode(uint256(keccak256("unison.exchange.main")) - 1)) & ~bytes32(uint256(0xff))
@@ -160,6 +178,8 @@ abstract contract ExchangeBase {
     );
     event ClearProgress(uint256 indexed marketId, uint256 indexed upToBlock, uint8 phase, uint256 work);
     event KeeperPaid(uint256 indexed marketId, address indexed keeper, uint256 amount);
+    event RegimeSet(uint256 indexed marketId, Regime regime);
+    event HaltSet(uint256 indexed marketId, bool halted, address by);
 
     // ------------------------------------------------------------------ errors
 
@@ -181,6 +201,7 @@ abstract contract ExchangeBase {
     error MissingSnapshot();
     error ClearInProgress();
     error ClearingMismatch();
+    error TooEarly();
 
     // ------------------------------------------------------------------ ledger primitives
 

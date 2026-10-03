@@ -34,9 +34,9 @@ contract EngineDiffTest is Test {
         x.bids = new uint256[](n);
         x.asks = new uint256[](n);
         for (uint256 i = 0; i < n; ++i) {
-            uint256 r = uint256(keccak256(abi.encode(seed, i)));
-            if (r % 3 != 0) x.bids[i] = (r >> 8) % 1e21;
-            if ((r >> 4) % 3 != 0) x.asks[i] = (r >> 96) % 1e21;
+            uint256 rr = uint256(keccak256(abi.encode(seed, i)));
+            if (rr % 3 != 0) x.bids[i] = (rr >> 8) % 1e21;
+            if ((rr >> 4) % 3 != 0) x.asks[i] = (rr >> 96) % 1e21;
         }
         if ((seed >> 40) % 3 == 0) x.bidAbove = (seed >> 48) % 1e21;
         if ((seed >> 120) % 3 == 0) x.askBelow = (seed >> 128) % 1e21;
