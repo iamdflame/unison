@@ -1,4 +1,4 @@
-# Unison Protocol Specification — v0.2 (core engine)
+# Unison Protocol Specification — v0.3
 
 > Status: normative draft for P1–P2. The Solidity contracts, the TypeScript reference clearing (`packages/clearing-ref`), the SDK, and the indexer MUST agree with this document. When code and spec disagree, the code has a bug or the spec gets amended. Never silently diverge.
 
@@ -81,15 +81,35 @@ The invariant suite enforces SOLV, plus "dust ≤ bound after a full settlement"
 
 ## 4. Liquidity sources merged at clearing
 
-1. **Book levels.** Absolute limit ticks.
-2. **Pegged levels.** Offsets in ticks relative to the clearing reference tick, `ref`.
-   - Bids sit at `ref − k`; asks at `ref + k`, for `k ∈ [1, L]`.
-   - Each level uses the same lazy accounting as §3.1, keyed by offset.
-3. **Curve liquidity.**
-   - Sources: the `LiquidityVault` and each Designated Maker.
-   - **Shape:** quantity per tick is `depthPerTick` for ticks in `[ref + spread, ref + spread + width)` (asks) and the mirror below `ref` (bids). The spread is skewed by inventory.
-   - **Capped** by available inventory and the per-batch loss cap.
-   - **Settled immediately** at clearing, at the clearing price, against the curve owner's ledger account.
+1. **Book levels.** Absolute limit ticks in the main books (GTC) and the IOC books (§3, §5.6).
+2. **Curve sources** (`ICurveSource`: the `LiquidityVault`, Designated Makers). Per auction, each source returns `bidTop, bidTicks, bidPerTick, askBottom, askTicks, askPerTick`. The venue then:
+   - calls the source with a 150k gas cap inside try/catch, so a failing source simply quotes nothing;
+   - clips the curve to the band;
+   - caps it by the source's own ledger inventory. Asks are capped by base balance; bids by quote balance at the worst-case cost of `ceil(ticks·q·price(top)/B)`;
+   - merges it into the clearing input;
+   - settles it **atomically at the auction price** when the auction starts. Ticks strictly better than the marginal tick fill in full. At the marginal tick, sources are apportioned first, and the books continue the same cumulative apportionment from `bidBefore0` / `askBefore0`.
+
+   Curve sources pay no fee, and receive `onAuction(...)` (gas-capped) for accounting.
+3. **Pegged levels** (roadmap). Offsets relative to the reference tick, with the same lazy accounting keyed by offset.
+
+### 4.1 LiquidityVault
+
+The vault's curve:
+- half-spread = `spreadBps × {1, extMult, closedMult}[status]`;
+- inventory skew = `(w − 50%) · maxSkewTicks / 50%`, where `w` is the base share of NAV;
+- depth per tick = `depthBps · NAV`, capped per side at `maxAuctionBps · NAV / width`;
+- no quotes while HALTED.
+
+**Flows** are ERC-7540 style:
+- `requestDeposit` (quote) and `requestRedeem` (escrowed shares) execute in `process()` only at a venue reference with `publishTimeMs > request time`, and never while a clear job is running;
+- deposits mint `assets·(supply + 1e6)/(NAV + 1)` shares;
+- redemptions are paid pro-rata in kind;
+- a `swingBps` fee applies while the last status is CLOSED or HALTED.
+
+**Attribution:**
+- `spreadPnl += (ref − p)·bought + (p − ref)·sold`;
+- `inventoryPnl += Δref · inventory`, marked at each auction and each `process()`;
+- `NAV change = spreadPnl + inventoryPnl` (tested exactly).
 
 ## 5. Clearing algorithm (per market, per batch)
 
@@ -143,60 +163,78 @@ All fills execute at `price(t*)`. When the job finishes, it checks `Σ bid fills
 
 ## 6. Regimes
 
-| Regime | Trigger | Clearing |
-|---|---|---|
-| LIVE | Reference status OPEN and fresh | Every block. Band = `ref ± bandLive`. |
-| EXTENDED | Status EXTENDED (pre/post market) | Every block. Band = `ref ± bandExt`. Curve caps ×0.5. |
-| DISCOVERY | Status CLOSED, or reference stale beyond `staleAfter` | Call auctions every `N` blocks. Center = last discovery print (initially last ref). Half-width = `min(p99 × sqrt(t / Tclosed), cap)`. Curve caps ×0.25. |
-| REOPENING | First fresh OPEN reference after DISCOVERY | Collection window of `W` blocks, with indicative price and imbalance published each block. Then a single clear within `ref ± bandReopen`. Then LIVE. |
-| HALTED | Mirrored primary halt, CRE deviation, LULD pause, or guardian | No clearing. Cancels allowed. |
+The reference status selects the regime. The band half-width in bps is `_regimeBandBps`.
 
-**LULD:**
-- `luldRef` updates every 200 blocks (~1 min).
-- A print outside `luldRef × (1 ± luldPct)` enters LIMIT for 50 blocks (~15 s). Only prices inside the band can execute during LIMIT.
-- If the limit state is unresolved, HALTED for 1,000 blocks (~5 min).
+| Regime | Trigger | Band | Cadence |
+|---|---|---|---|
+| LIVE | status OPEN | `bandBps` | Every batch |
+| EXTENDED | status EXTENDED (pre/post market) | `extBandBps` | Every batch |
+| DISCOVERY | status CLOSED (calendar or stale feed) | Around the last close: `max(discFloorBps, discCapBps·√(min(t, H)/H))`, where `t` is the time since the CLOSED period began (`closedSince`, set from the first CLOSED reference) | Call auctions: a job may open only if `upTo ≥ lastDiscoveryBatch + discCadence` (`TooEarly` otherwise). Orders accumulate between auctions. |
+| REOPENING | First OPEN/EXTENDED auction after CLOSED or HALTED | `reopenBandBps` (the opening cross) | Once, then LIVE |
+| HALTED | Status HALTED, or the `HALT_ROLE` override (guardian / CRE) | — | No auction. IOC orders are refunded; GTC orders rest. |
+
+Every auction can print only inside its band (LULD-like price limits per batch).
+
+**Defaults at market creation:** `ext = 2×band`, `reopen = 5×band`, `floor = band`, `cap = 5×band`, `H = 235,800 s` (Fri 16:00 → Mon 09:30 ET), `cadence = 10` blocks. Operators calibrate per asset; for example NVDA's cap is the weekend-gap p99 of 726 bps.
+
+**Roadmap:** the LULD limit state (a five-minute reference with limit and pause stages), and an indicative opening price plus imbalance publication during collection.
 
 ## 7. Reference prices
 
-- `IReferenceAdapter.read(marketId, batchTs, payload) → (price, publishTimeMs, status)`.
-- **Published-after-close rule:** a batch with block timestamp `bt` seconds only accepts references with `publishTimeMs ≥ bt × 1000`.
-- **Adapters:**
-  - **OperatorSigned:** a bonded signer; P256 or secp256k1; monotonic sequence.
-  - **Chainlink** push feeds.
-  - **Pyth** push/pull.
-  - **DataStreams:** the licensed path.
-  - **CREAudit:** consensus reports. If `|operator − cre| > maxDevBps`, the market goes HALTED and the operator bond is slashable.
+- **Interface.** `IReferenceAdapter.read(marketId, batch, payload) → (price, publishTimeMs, status)`. `batch` is the newest batch the job covers. A job binds its reference once, at open.
+- **Published-after-close rule.** With `newestTs` the registration timestamp of the newest pending batch ≤ `upTo`, the reference must satisfy `publishTimeMs ≥ (newestTs + strict) × 1000`.
+- **`clearUpTo(marketId, upTo, payload)`** covers exactly the batches ≤ `upTo` (where `upTo < block.number`). A signed reference therefore stays valid whichever later block the keeper's transaction lands in. `clear(marketId, payload)` uses `block.number − 1`.
 
-## 8. Compliance (TSV module; SEC Release 34-106402)
+**Adapters**
 
-- **Tiers and symbol guard:** a market's tier follows its LULD tier. Max symbols: 75 for Tier 1, 250 for Tier 2.
-- **Daily volume cap:** `capNotional[day] = capBps × ADV`, written daily by CRE. Clearing truncates `V` so the cumulative day notional never exceeds the cap. When the cap is reached, the market goes HALTED for the rest of the day.
-- **Eligibility:** for markets flagged `permissioned`, the account must hold a valid eligibility record (attested after Cleanverse A-Pass verification). It is checked at deposit of the asset, at order placement, and at withdrawal.
-- **Books and records:** per-batch receipt hash `R_b = keccak(R_{b−1}, batchId, t*, V, refPx, regime, bt)`, plus events. The indexer builds the full machine-readable tape.
+| Adapter | Behaviour |
+|---|---|
+| `OperatorSignedReference` | EIP-712 `Reference(venue, marketId, batch, price, publishTimeMs, status)`. k-of-n quorum over secp256k1 (`ecrecover`) and P-256 (`0x0100` precompile) signers. Freshness window `maxAgeMs`; no more than 2 s in the future; monotonic per market. Only the venue may consume. Bonded signers, a 7-day unbond delay, and `slash` by `SLASHER_ROLE` (the CRE audit). |
+| `ChainlinkReference` | Base/USD ÷ quote/USD (separate max ages). OPEN inside the weekly UTC session while fresh, otherwise CLOSED. The reference time is the clear time (push feeds are public). |
+| `PythReference` | Pull updates passed as the payload (the fee is paid from the adapter; venue-only). Returns Pyth's publish time, so a stale price fails the after-close rule. A confidence gate sets CLOSED. |
+| `ManualReference` | Tests and replays only. |
+| CRE audit (roadmap receiver) | Consensus reports compared with the operator's reference; on a deviation, `setHalt` plus `slash`. |
+
+## 8. Compliance (TSV conditions; SEC Release 34-106402)
+
+| Control | Rule |
+|---|---|
+| Tiers and symbol guard | `setTier(market, 1 or 2)`. At most 75 tier-1 and 250 tier-2 symbols (`TierFull`). |
+| Daily volume cap | `setDailyCap(market, baseUnits)` (`CAP_ROLE`: the CRE ADV workflow / operator). `Clearing.Input.maxVolume = cap − traded(today UTC)`. `t*` is the uncapped max-volume price; only the executed volume is capped. An exhausted cap means no auction until the next UTC day. |
+| Eligibility | `IEligibility` checked at: deposits and withdrawals of `restricted` tokens; order entry on `permissioned` markets; gateway-relayed actions, against the real account. `EligibilityRouter` = AND over sources: `AttestationEligibility` (KYC outcome: jurisdiction, class, expiry, attester ref) and `IssuerDenylistEligibility` (mirrors issuer denylists, e.g. Anchored's `COMPLIANCE()`). |
+| Books and records | Per-batch receipt chain `R = keccak(R_prev, market, upTo, t*, V, ref, refTimeMs, status, timestamp)`, plus events. |
+| Notices | `postNotice(market, docHash, uri)`. |
 
 ## 9. Storage-layout conventions
 
-- **Namespaced (ERC-7201)** root struct for configuration.
-- **Page base** for a key: `pageBase(ns, key) = uint256(keccak256(abi.encode(ns, key))) & ~uint256(127)`.
-- **Per-account page** (`ns = ACCOUNT`):
-
-  | Slots | Contents |
-  |---|---|
-  | 0–15 | Balances, one per token index |
-  | 16 | Eligibility cache |
-  | 17 | Order bitmap |
-  | 18–127 | Orders, 2 slots each (55 orders) |
-
-  Overflow pages use `key = (account, pageNo)`.
-- **Book arrays:** `pageBase(BOOK, (market, side, shard, bucket))`. A bucket's 128 ticks sit in one page.
+- **Namespaced (ERC-7201)** root struct `unison.exchange.main` for configuration, markets, jobs, regimes, sources and caps.
+- **Page base** for a key: `pageBase(ns, key…) = keccak256(abi.encode(ns, key…)) & ~127`.
+- **Per-account page:** slots 0–15 balances, 16 eligibility cache (reserved), 17 order bitmap, 18–127 orders (two slots each, 55 orders).
+- **Order record.** Slot A packs `qty96 | tick24 | market24 | side8 | shard8 | flags8 | state8 | batch48 | feeBps16 | maxFeeBps16`. Slot B is `credited128` (bids: base received; asks: gross quote received). The entry snapshot lives in the group's merge record `keccak(NS_MERGE, market, batch, side, bookShard, tick) & ~1`.
+- **Book words.** Three parallel page-aligned arrays per `(market, side, shard)` (`LEVEL`, `STATE`, `ACC`; 128 ticks per page), plus `final[epoch][scale]` and `archive[epoch]`. Hierarchy totals: bucket (128 ticks), super (16,384 ticks), total.
 
 ## 10. Events (tape)
 
 | Event | Fields |
 |---|---|
-| `OrderPlaced` | market, account, orderRef, side, tick, qty, flags |
-| `OrderCancelled` | orderRef, remainingQty |
-| `BatchCleared` | market, batchId, tick, price, volume, refPrice, regime, bandLo, bandHi, receiptHash |
-| `Claimed` | orderRef, filledBase, quoteAmt, fee |
-| `CurveFilled` | market, batchId, curveOwner, side, qty, price |
-| `RegimeChanged` | market, from, to, reason |
+| `OrderPlaced` | marketId, account, slot, side, tick, qty, flags, batch |
+| `OrderCancelled` | marketId, account, slot, releasedQty |
+| `Claimed` | marketId, account, slot, side, baseAmount, quoteAmount, fee, done |
+| `BatchCleared` | marketId, upToBlock, tick, price, volume, refPrice, refTimeMs, status, bandLo, bandHi, receiptHash |
+| `CurveFilled` | marketId, source, upToBlock, boughtBase, paidQuote, soldBase, receivedQuote |
+| `ClearProgress` | marketId, upToBlock, phase, work (a job paused mid-way) |
+| Configuration | `MarketCreated`, `MarketParamsSet`, `RegimeSet`, `HaltSet`, `SourceSet`, `DailyCapSet`, `TierSet`, `NoticePosted`, `KeeperPaid` |
+
+## 11. Order gateway
+
+`OrderGateway` relays EIP-712 `Order`, `Cancel`, `Withdraw` and `Session` messages to the venue's `*For` entrypoints (`GATEWAY_ROLE`).
+
+**Signatures** are `abi.encode(kind, data)`:
+
+| Kind | Signer | Allowed actions |
+|---|---|---|
+| `0` | The account: ECDSA or ERC-1271 | Everything |
+| `1` | Session key granted by the account | Place and cancel only. Caps: market mask, `maxQty`, `maxNotional` (`qty·tick·tickSize/baseUnit`), expiry. Never withdraw. |
+| `2` | WebAuthn assertion from the account's P-256 passkey | Everything. The account address is `address(keccak("unison.passkey", qx, qy))`. Checks: `type = webauthn.get`; challenge = base64url(digest); UP and UV flags; low-s; P-256 over `sha256(authData ‖ sha256(clientDataJSON))`. |
+
+**Replay protection:** unordered nonces (a 256-bit bitmap per word) and deadlines. `placeBatch` skips failing orders and emits `RelayFailed(index)`.
