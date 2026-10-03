@@ -11,6 +11,7 @@ import {PythReference} from "../src/pricing/PythReference.sol";
 import {IPyth} from "../src/interfaces/external/IPyth.sol";
 import {AggregatorV3Interface} from "../src/interfaces/external/AggregatorV3Interface.sol";
 import {LiquidityVault, IUnisonVenue} from "../src/liquidity/LiquidityVault.sol";
+import {OrderGateway, IGatewayVenue} from "../src/access/OrderGateway.sol";
 
 /// @notice Config-driven production deployment (deploy/<network>.json → deployments/<label>.json).
 ///
@@ -25,6 +26,7 @@ contract Deploy is Script {
         OperatorSignedReference osr;
         ChainlinkReference cl;
         PythReference py;
+        OrderGateway gateway;
         address deployer;
         address admin;
         address guardian;
@@ -73,6 +75,8 @@ contract Deploy is Script {
         address[] memory signers = vm.parseJsonAddressArray(json, ".relaySigners");
         for (uint256 i = 0; i < signers.length; ++i) c.osr.addEcdsaSigner(signers[i]);
         c.cl = new ChainlinkReference(c.deployer);
+        c.gateway = new OrderGateway(IGatewayVenue(address(c.ex)));
+        c.ex.grantRole(c.ex.GATEWAY_ROLE(), address(c.gateway));
         address pyth = _addrOr(".pyth", address(0));
         if (pyth != address(0)) c.py = new PythReference(c.deployer, IPyth(pyth), address(c.ex));
         uint256 reward = vm.parseJsonUint(json, ".keeperReward");
@@ -210,6 +214,7 @@ contract Deploy is Script {
         vm.serializeAddress(root, "exchange", address(c.ex));
         vm.serializeAddress(root, "operatorReference", address(c.osr));
         vm.serializeAddress(root, "chainlinkReference", address(c.cl));
+        vm.serializeAddress(root, "gateway", address(c.gateway));
         if (address(c.py) != address(0)) vm.serializeAddress(root, "pythReference", address(c.py));
         vm.serializeAddress(root, "admin", c.admin);
         vm.serializeAddress(root, "guardian", c.guardian);

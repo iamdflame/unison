@@ -6,3 +6,4 @@ export * from "./calendar.ts";
 export * from "./client.ts";
 export * from "./deployments.ts";
 export * as engine from "@unison/engine";
+export * from "./gateway.ts";

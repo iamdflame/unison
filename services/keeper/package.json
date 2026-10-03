@@ -19,6 +19,7 @@
     "@types/node": "^24.0.0",
     "typescript": "^5.9.0",
     "vitest": "^3.2.0",
-    "@unison/relay": "workspace:*"
+    "@unison/relay": "workspace:*",
+    "@unison/relayer": "workspace:*"
   }
 }

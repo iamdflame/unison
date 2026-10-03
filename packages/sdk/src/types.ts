@@ -92,6 +92,7 @@ export interface Deployment {
   chainId: number;
   exchange: Address;
   operatorReference?: Address;
+  gateway?: Address;
   chainlinkReference?: Address;
   pythReference?: Address;
   markets: Record<string, MarketDeployment>;

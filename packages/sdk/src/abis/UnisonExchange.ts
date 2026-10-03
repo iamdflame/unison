@@ -33,6 +33,19 @@ export const unisonExchangeAbi = [
   },
   {
     "type": "function",
+    "name": "GATEWAY_ROLE",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "GUARDIAN_ROLE",
     "inputs": [],
     "outputs": [
@@ -179,6 +192,24 @@ export const unisonExchangeAbi = [
     "type": "function",
     "name": "cancelOrder",
     "inputs": [
+      {
+        "name": "slotIdx",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "cancelOrderFor",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      },
       {
         "name": "slotIdx",
         "type": "uint256",
@@ -565,6 +596,16 @@ export const unisonExchangeAbi = [
           },
           {
             "name": "traded",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "bidOutside",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "askOutside",
             "type": "bool",
             "internalType": "bool"
           },
@@ -981,6 +1022,30 @@ export const unisonExchangeAbi = [
   },
   {
     "type": "function",
+    "name": "marketPricing",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "tickSize",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "baseUnit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "openOrderBitmap",
     "inputs": [
       {
@@ -1103,6 +1168,50 @@ export const unisonExchangeAbi = [
     "type": "function",
     "name": "placeOrder",
     "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "side",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "tick",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "qty",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "flags",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "slotIdx",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "placeOrderFor",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      },
       {
         "name": "marketId",
         "type": "uint256",
@@ -1577,6 +1686,34 @@ export const unisonExchangeAbi = [
     "type": "function",
     "name": "withdraw",
     "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "withdrawFor",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      },
       {
         "name": "token",
         "type": "address",

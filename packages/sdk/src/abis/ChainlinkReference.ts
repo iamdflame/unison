@@ -60,6 +60,11 @@ export const chainlinkReferenceAbi = [
         "internalType": "uint32"
       },
       {
+        "name": "quoteMaxAgeSec",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
         "name": "openSec",
         "type": "uint32",
         "internalType": "uint32"
@@ -175,6 +180,11 @@ export const chainlinkReferenceAbi = [
       },
       {
         "name": "maxAgeSec",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "quoteMaxAgeSec",
         "type": "uint32",
         "internalType": "uint32"
       },

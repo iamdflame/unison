@@ -220,6 +220,9 @@ importers:
       '@unison/relay':
         specifier: workspace:*
         version: link:../relay
+      '@unison/relayer':
+        specifier: workspace:*
+        version: link:../relayer
       typescript:
         specifier: ^5.9.0
         version: 5.9.3
@@ -228,6 +231,25 @@ importers:
         version: 3.2.7(@types/node@24.19.1)
 
   services/relay:
+    dependencies:
+      '@unison/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+      viem:
+        specifier: ^2.37.0
+        version: 2.57.2(typescript@5.9.3)
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.19.1
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.0
+        version: 3.2.7(@types/node@24.19.1)
+
+  services/relayer:
     dependencies:
       '@unison/sdk':
         specifier: workspace:*

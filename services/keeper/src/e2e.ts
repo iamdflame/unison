@@ -7,8 +7,12 @@
 import { createPublicClient, createWalletClient, http, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import {
+  buildOrder,
   devnet,
   formatUnitsExact,
+  orderGatewayAbi,
+  orderToJson,
+  signAsSession,
   loadDeploymentFile,
   Side,
   tickOfPrice,
@@ -22,6 +26,9 @@ const KEYS = {
   keeper: "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a",
   trader1: "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6",
   trader2: "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a",
+  trader3: "0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba",
+  relayer: "0x92db14e403b83dfe3df233f83dfa3a0d7096f21ca9b0d6d6b8d88b2b4ec1564e",
+  agent: "0x4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356",
 } as const;
 
 const deploymentPath = process.env.DEPLOYMENT ?? "../../deployments/31337.json";
@@ -30,6 +37,7 @@ process.env.RELAY_PRIVATE_KEY = KEYS.relay;
 process.env.SESSION_OVERRIDE = process.env.SESSION_OVERRIDE ?? "OPEN";
 process.env.PROVIDER = "sim";
 process.env.PORT = process.env.PORT ?? "8787";
+process.env.RELAYER_PRIVATE_KEY = KEYS.relayer;
 
 const fail = (msg: string): never => {
   console.error(`E2E FAILED: ${msg}`);
@@ -124,6 +132,56 @@ async function main() {
     return b > b0 ? b - b0 : undefined;
   });
   console.log(`trader1 received ${formatUnitsExact(got, 18)} aNVDA`);
+
+  // 5. gasless + agent: trader3 grants a capped session key; the AGENT signs, the RELAYER pays gas
+  const { startRelayer } = await import("@unison/relayer");
+  process.env.PORT = "8788";
+  const relayer = await startRelayer();
+  const gateway = deployment.gateway ?? fail("gateway missing");
+  const t3 = mk(KEYS.trader3);
+  const trader3 = t3.walletClient!.account.address;
+  const agent = privateKeyToAccount(KEYS.agent);
+  await publicClient.waitForTransactionReceipt({
+    hash: await t3.walletClient!.writeContract({
+      address: gateway,
+      abi: orderGatewayAbi,
+      functionName: "grantSession",
+      args: [agent.address, BigInt(Math.floor(Date.now() / 1000) + 3600), 5n * 10n ** 18n, 2_000_000_000n, 1n << marketId],
+      chain: devnet,
+    }),
+  });
+  const ref2 = BigInt(
+    ((await (await fetch(`http://127.0.0.1:8787/prices`)).json()) as Record<string, { price: string }>)["aNVDA/AUSD"]!
+      .price,
+  );
+  const agentOrder = buildOrder({
+    account: trader3,
+    marketId,
+    side: Side.ASK, // the vault's bid curve buys it
+    tick: tickOfPrice(ref2, m.tickSize) - 40n,
+    qty: 10n ** 18n,
+  });
+  const sig = await signAsSession(agent, devnet.id, gateway, agentOrder);
+  const post = await fetch("http://127.0.0.1:8788/v1/orders", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(orderToJson(agentOrder, sig)),
+  });
+  const { id, error } = (await post.json()) as { id?: string; error?: string };
+  if (!id) fail(`relayer rejected the agent order: ${error}`);
+  const placed = await waitFor("relayer placed the agent order", 30_000, async () => {
+    const j = (await (await fetch(`http://127.0.0.1:8788/v1/orders/${id}`)).json()) as { status: string; tx?: string };
+    if (j.status === "failed") fail(`relay failed: ${JSON.stringify(j)}`);
+    return j.status === "placed" ? j : undefined;
+  });
+  console.log(`agent order relayed gaslessly for trader3 (tx ${placed.tx})`);
+  const q3 = await t3.balanceOf(trader3, nvda.quote);
+  const got3 = await waitFor("trader3's agent order filled by the vault", 30_000, async () => {
+    const b = await t3.balanceOf(trader3, nvda.quote);
+    return b > q3 ? b - q3 : undefined;
+  });
+  console.log(`trader3 received ${formatUnitsExact(got3, 6)} AUSD (agent session key, relayer paid gas, vault bought)`);
+  relayer.stop();
 
   unwatchBlocks();
   unwatchPlaced();

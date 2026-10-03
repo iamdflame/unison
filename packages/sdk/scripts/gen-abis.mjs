@@ -13,6 +13,7 @@ const contracts = [
   ["ChainlinkReference", "chainlinkReferenceAbi"],
   ["PythReference", "pythReferenceAbi"],
   ["ManualReference", "manualReferenceAbi"],
+  ["OrderGateway", "orderGatewayAbi"],
 ];
 const index = [];
 for (const [name, ident] of contracts) {

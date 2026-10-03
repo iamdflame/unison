@@ -7,6 +7,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {UnisonExchange} from "../src/core/UnisonExchange.sol";
 import {OperatorSignedReference} from "../src/pricing/OperatorSignedReference.sol";
 import {LiquidityVault, IUnisonVenue} from "../src/liquidity/LiquidityVault.sol";
+import {OrderGateway, IGatewayVenue} from "../src/access/OrderGateway.sol";
 import {MockERC20} from "../test/mocks/MockERC20.sol";
 
 /// @notice Full local devnet: mock tokens, exchange, operator-signed reference (relay = anvil account 1),
@@ -36,6 +37,7 @@ contract DevNet is Script {
         uint256 spyMkt;
         LiquidityVault nvdaVault;
         LiquidityVault spyVault;
+        OrderGateway gateway;
     }
 
     function run() external {
@@ -52,6 +54,8 @@ contract DevNet is Script {
         );
         d.osr = new OperatorSignedReference(deployer, address(d.ex), IERC20(address(d.ausd)), 1, 30_000);
         d.osr.addEcdsaSigner(vm.addr(PK_RELAY));
+        d.gateway = new OrderGateway(IGatewayVenue(address(d.ex)));
+        d.ex.grantRole(d.ex.GATEWAY_ROLE(), address(d.gateway));
 
         d.ex.listToken(address(d.ausd), false);
         d.ex.listToken(address(d.nvda), false);
@@ -177,6 +181,7 @@ contract DevNet is Script {
         vm.serializeUint(root, "chainId", block.chainid);
         vm.serializeAddress(root, "exchange", address(d.ex));
         vm.serializeAddress(root, "operatorReference", address(d.osr));
+        vm.serializeAddress(root, "gateway", address(d.gateway));
         vm.serializeAddress(root, "AUSD", address(d.ausd));
         vm.serializeAddress(root, "aNVDA", address(d.nvda));
         vm.serializeAddress(root, "aSPY", address(d.spy));
