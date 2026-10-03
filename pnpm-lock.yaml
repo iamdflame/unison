@@ -205,6 +205,19 @@ importers:
         specifier: ^3.2.0
         version: 3.2.7(@types/node@24.19.1)
 
+  research/sniper-bench:
+    dependencies:
+      '@unison/engine':
+        specifier: workspace:*
+        version: link:../../packages/engine
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.19.1
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
+
   services/keeper:
     dependencies:
       '@unison/sdk':

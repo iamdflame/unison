@@ -3,6 +3,7 @@ packages:
   - "services/*"
   - "bots"
   - "cre/*"
+  - "research/*"
 
 # Dependencies allowed to run install scripts (vitest's bundler).
 allowBuilds:

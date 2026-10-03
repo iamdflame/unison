@@ -1,0 +1,11 @@
+
+1,000,000 blocks (83.3 h), σ=45%/yr, 24 news jumps/day of 40 bp, LP capital $2,000,000
+
+| Venue | Sniper P&L / day | LP or maker P&L / day | Noise trader cost | Sniper trades / day |
+|---|---:|---:|---:|---:|
+| xy=k AMM (fee 30 bp) |  $6,171 |  $13,459 | 69.1 bp | 12,563 |
+| push-oracle AMM (±10 bp, 50 bp deviation) |  $473 |  $2,175 | 9.3 bp | 63 |
+| CLOB + makers (±2 bp, sniper wins 50% of races) |  $487 |  $84 | 2.0 bp | 5 |
+| Unison FBA (vault ±10 bp, fee 3 bp) |  $0 |  $2,858 | 13.0 bp | 0 |
+| Unison FBA (vault ±2 bp, fee 1 bp) |  $0 |  $646 | 3.3 bp | 0 |
+| Unison with a STALE reference (rule broken on purpose) |  $1,000 |  $1,740 | 13.0 bp | 8 |

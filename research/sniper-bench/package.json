@@ -1,0 +1,19 @@
+{
+  "name": "@unison/sniper-bench",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Latency-sniper benchmark: xy=k AMM vs push-oracle AMM vs CLOB vs Unison FBA, same price path.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "bench": "node --conditions=development src/bench.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@unison/engine": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}
