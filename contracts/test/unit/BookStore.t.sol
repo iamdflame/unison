@@ -3,25 +3,86 @@ pragma solidity ^0.8.30;
 
 import {Test} from "forge-std/Test.sol";
 import {BookStore} from "../../src/core/BookStore.sol";
-import {OrderMath} from "../../src/core/OrderMath.sol";
 
-/// @dev Exposes one book shard and records order snapshots like the exchange will.
+/// @dev Exposes one book (one side) and tracks orders the way the exchange does.
 contract BookHarness {
-    BookStore.Key internal key = BookStore.Key({market: 1, side: 0, shard: 0});
+    BookStore.Key internal key;
     uint256 internal constant B = 1e18;
 
-    OrderMath.Snapshot[] public orders;
-    uint256[] public orderTick;
-
-    function add(uint256 tick, uint256 qty) external returns (uint256 id) {
-        (uint256 e, uint256 s, uint256 a) = BookStore.add(key, tick, qty);
-        orders.push(OrderMath.Snapshot({qty: qty, epoch: e, survival: s, acc: a}));
-        orderTick.push(tick);
-        return orders.length - 1;
+    struct Ord {
+        uint256 qty;
+        uint256 tick;
+        BookStore.Snap snap;
+        uint256 credited; // bids: base drawn; asks: gross quote drawn
+        bool open;
     }
 
-    function fill(uint256 tick, uint256 ratio, uint256 price) external returns (uint256) {
-        return BookStore.fill(key, tick, ratio, price);
+    Ord[] internal ords;
+
+    constructor(uint256 side) {
+        key = BookStore.Key({market: 1, side: side, shard: 0});
+    }
+
+    function isBid() public view returns (bool) {
+        return key.side == 0;
+    }
+
+    function count() external view returns (uint256) {
+        return ords.length;
+    }
+
+    function isOpen(uint256 id) external view returns (bool) {
+        return ords[id].open;
+    }
+
+    function credited(uint256 id) external view returns (uint256) {
+        return ords[id].credited;
+    }
+
+    function add(uint256 tick, uint256 qty) external returns (uint256) {
+        BookStore.Snap memory s = BookStore.add(key, tick, qty);
+        ords.push(Ord({qty: qty, tick: tick, snap: s, credited: 0, open: true}));
+        return ords.length - 1;
+    }
+
+    function fill(uint256 tick, uint256 f, uint256 price) external returns (bool) {
+        return BookStore.fill(key, tick, f, price, B, isBid());
+    }
+
+    function value(uint256 id) public view returns (BookStore.Valuation memory) {
+        Ord storage o = ords[id];
+        return BookStore.value(key, o.tick, o.snap, o.qty, isBid(), B);
+    }
+
+    /// Draws what the order is owed so far (bids: base filled, asks: gross quote).
+    function drawFor(uint256 id) external returns (uint256 got) {
+        Ord storage o = ords[id];
+        BookStore.Valuation memory v = value(id);
+        uint256 target = isBid() ? o.qty - v.remainder : v.quote;
+        if (target > o.credited) {
+            got = BookStore.draw(key, o.tick, o.snap.epoch, target - o.credited, BookStore.POT);
+            o.credited += got;
+        }
+    }
+
+    function leave(uint256 id) external returns (uint256 removed) {
+        Ord storage o = ords[id];
+        BookStore.Valuation memory v = value(id);
+        removed = BookStore.leave(key, o.tick, o.snap.epoch, v.remainder);
+        o.open = false;
+    }
+
+    function forceClose(uint256 tick) external returns (uint256) {
+        return BookStore.forceClose(key, tick, isBid());
+    }
+
+    function drawRet(uint256 id) external returns (uint256) {
+        Ord storage o = ords[id];
+        return BookStore.draw(key, o.tick, o.snap.epoch, value(id).remainder, BookStore.RET);
+    }
+
+    function level(uint256 tick) external view returns (BookStore.Level memory) {
+        return BookStore.readLevel(key, tick);
     }
 
     function remaining(uint256 tick) external view returns (uint256) {
@@ -40,124 +101,209 @@ contract BookHarness {
         return BookStore.sumBelow(key, tick);
     }
 
-    function cancel(uint256 tick, uint256 qty) external returns (uint256) {
-        return BookStore.remove(key, tick, qty);
-    }
-
-    function valueOf(uint256 id) external view returns (OrderMath.Valuation memory) {
-        OrderMath.Snapshot memory o = orders[id];
-        BookStore.Level memory l = BookStore.readLevel(key, orderTick[id]);
-        uint256 fin = l.epoch != o.epoch ? BookStore.epochFinal(key, orderTick[id], o.epoch) : 0;
-        return OrderMath.value(o, l.epoch, l.survival, l.acc, fin, B);
+    function nextNonEmpty(uint256 from, uint256 to) external view returns (uint256) {
+        return BookStore.nextNonEmpty(key, from, to);
     }
 }
 
 contract BookStoreTest is Test {
-    BookHarness internal h;
     uint256 internal constant B = 1e18;
     uint256 internal constant P = 180_000000; // $180.00 in 6-dec quote units per whole token
+    uint256 internal constant T = 18_000;
+
+    BookHarness internal bids;
+    BookHarness internal asks;
 
     function setUp() public {
-        h = new BookHarness();
+        bids = new BookHarness(0);
+        asks = new BookHarness(1);
     }
 
-    function test_singleOrder_partialThenFull() public {
-        uint256 id = h.add(18_000, 10e18);
-        assertEq(h.total(), 10e18);
-
-        // 30% partial fill at $180
-        uint256 f1 = h.fill(18_000, 0.3e18, P);
-        assertEq(f1, 3e18);
-        OrderMath.Valuation memory v = h.valueOf(id);
-        assertApproxEqAbs(v.filledFloor, 3e18, 1);
-        assertApproxEqAbs(v.quoteFloor, 540_000000, 1); // 3 * $180
+    function test_bid_partialThenFull() public {
+        uint256 id = bids.add(T, 10e18);
+        bids.fill(T, 3e18, P);
+        BookStore.Valuation memory v = bids.value(id);
+        assertEq(v.remainder, 7e18);
+        assertEq(v.quote, 540_000000);
         assertFalse(v.closed);
+        assertEq(bids.drawFor(id), 3e18, "base drawn = fill");
 
-        // remaining 7 fully filled at $181
-        uint256 f2 = h.fill(18_000, 1e18, 181_000000);
-        assertEq(f2, 7e18);
-        v = h.valueOf(id);
+        assertTrue(bids.fill(T, 7e18, 181_000000), "closes");
+        v = bids.value(id);
         assertTrue(v.closed);
-        assertEq(v.filledFloor, 10e18);
-        // quote = 3*180 + 7*181 = 1807
-        assertApproxEqAbs(v.quoteFloor, 1807_000000, 2);
-        assertEq(h.total(), 0);
+        assertEq(v.remainder, 0);
+        assertEq(v.quote, 540_000000 + 1267_000000);
+        assertEq(bids.drawFor(id), 7e18);
+        assertEq(bids.total(), 0);
+        assertEq(bids.remaining(T), 0);
     }
 
-    function test_proRata_lateJoinerOnlySharesLaterFills() public {
-        uint256 a = h.add(18_000, 10e18);
-        h.fill(18_000, 0.5e18, P); // A gets 5 filled
-        uint256 b = h.add(18_000, 5e18); // level now 5 (A) + 5 (B) = 10
-        h.fill(18_000, 0.2e18, P); // 2 filled pro-rata: A 1, B 1
-
-        OrderMath.Valuation memory va = h.valueOf(a);
-        OrderMath.Valuation memory vb = h.valueOf(b);
-        assertApproxEqAbs(va.filledFloor, 6e18, 2);
-        assertApproxEqAbs(vb.filledFloor, 1e18, 2);
-        assertApproxEqAbs(va.quoteFloor, 6 * P, 2);
-        assertApproxEqAbs(vb.quoteFloor, 1 * P, 2);
-        assertEq(h.remaining(18_000), 8e18);
+    function test_ask_proRata() public {
+        uint256 a = asks.add(T, 6e18);
+        uint256 b = asks.add(T, 4e18);
+        asks.fill(T, 5e18, P);
+        assertEq(asks.value(a).remainder, 3e18);
+        assertEq(asks.value(b).remainder, 2e18);
+        assertEq(asks.value(a).quote, 540_000000);
+        assertEq(asks.value(b).quote, 360_000000);
+        assertEq(asks.drawFor(a) + asks.drawFor(b), 900_000000, "pot = f*p exactly");
+        assertEq(asks.leave(a), 3e18);
+        assertEq(asks.leave(b), 2e18);
+        assertEq(asks.total(), 0, "book empties exactly");
     }
 
-    function test_hierarchySums() public {
-        h.add(100, 1e18);
-        h.add(300, 2e18); // different bucket
-        h.add(20_000, 3e18); // different super
-        h.add(20_001, 4e18);
-        assertEq(h.sumAbove(100), 9e18);
-        assertEq(h.sumAbove(300), 7e18);
-        assertEq(h.sumAbove(20_000), 4e18);
-        assertEq(h.sumBelow(20_001), 6e18);
-        assertEq(h.sumBelow(300), 1e18);
-        assertEq(h.sumBelow(100), 0);
-        assertEq(h.total(), 10e18);
+    function test_laterJoiner_onlySharesLaterFills() public {
+        uint256 a = bids.add(T, 10e18);
+        bids.fill(T, 5e18, P);
+        uint256 b = bids.add(T, 10e18);
+        bids.fill(T, 3e18, P); // 3 of 15 = 20%
+        assertEq(bids.value(a).remainder, 4e18);
+        assertEq(bids.value(b).remainder, 8e18);
+        assertEq(bids.drawFor(a), 6e18);
+        assertEq(bids.drawFor(b), 2e18);
     }
 
-    function test_cancelClampsToAggregate() public {
-        h.add(500, 5e18);
-        uint256 removed = h.cancel(500, 7e18);
-        assertEq(removed, 5e18);
-        assertEq(h.total(), 0);
-    }
-
-    /// Fuzz: random partial fills; lazy per-order valuation must match exact pro-rata bookkeeping.
-    function testFuzz_lazyMatchesExact(uint256 seed) public {
-        uint256 tick = 18_000;
-        uint256 nOrders = 1 + (seed % 5);
-        uint256[] memory ids = new uint256[](nOrders);
-        uint256[] memory exactRemaining = new uint256[](nOrders);
-        uint256[] memory exactFilled = new uint256[](nOrders);
-        uint256[] memory exactQuote = new uint256[](nOrders);
-
-        for (uint256 i = 0; i < nOrders; i++) {
-            uint256 q = 1e18 + (uint256(keccak256(abi.encode(seed, i))) % 1e21);
-            ids[i] = h.add(tick, q);
-            exactRemaining[i] = q;
+    function test_rescale_manyDeepFills() public {
+        uint256 a = asks.add(T, 1e24);
+        uint256 filled;
+        uint256 proceeds; // Σ floor(f·p/B)
+        for (uint256 i = 0; i < 9; ++i) {
+            uint256 rem = asks.remaining(T);
+            uint256 f = (rem * 99) / 100;
+            asks.fill(T, f, P + i);
+            filled += f;
+            proceeds += (f * (P + i)) / B;
         }
+        BookStore.Level memory l = asks.level(T);
+        assertGt(l.scale, 0, "rescaled");
+        uint256 b = asks.add(T, 5e18); // joins in a later scale
+        uint256 rem2 = asks.remaining(T);
+        asks.fill(T, rem2 / 2, P);
+        filled += rem2 / 2;
+        proceeds += ((rem2 / 2) * P) / B;
 
-        uint256 rounds = 1 + ((seed >> 8) % 6);
-        for (uint256 r = 0; r < rounds; r++) {
-            uint256 ratio = 1e15 + (uint256(keccak256(abi.encode(seed, "r", r))) % (0.9e18));
-            uint256 price = 100_000000 + (uint256(keccak256(abi.encode(seed, "p", r))) % 100_000000);
-            h.fill(tick, ratio, price);
-            for (uint256 i = 0; i < nOrders; i++) {
-                uint256 f = (exactRemaining[i] * ratio) / 1e18;
-                exactRemaining[i] -= f;
-                exactFilled[i] += f;
-                exactQuote[i] += (f * price) / B;
+        // lazy remainders never undercount the real quantity
+        BookStore.Valuation memory va = asks.value(a);
+        BookStore.Valuation memory vb = asks.value(b);
+        assertGe(va.remainder + vb.remainder, asks.remaining(T));
+        // quote shares stay within the pot and distribute (almost) all of it
+        uint256 got = asks.drawFor(a) + asks.drawFor(b);
+        assertLe(got, proceeds);
+        assertGe(got + 4, proceeds);
+        // everyone leaves: the book empties exactly, base is conserved
+        uint256 back = asks.leave(a) + asks.leave(b);
+        assertEq(back + filled, 1e24 + 5e18, "base conserved");
+        assertEq(asks.total(), 0);
+    }
+
+    function test_closeInPlace_thenArchiveOnReuse() public {
+        uint256 a = bids.add(T, 2e18);
+        bids.fill(T, 2e18, P); // closed in place
+        assertTrue(bids.level(T).closed);
+        uint256 b = bids.add(T, 3e18); // archives epoch 0, opens epoch 1
+        assertEq(bids.level(T).epoch, 1);
+        bids.fill(T, 1e18, P);
+        BookStore.Valuation memory va = bids.value(a);
+        assertTrue(va.closed);
+        assertEq(va.quote, 360_000000);
+        assertEq(bids.drawFor(a), 2e18, "drawn from the archived pot");
+        // 1/3 of S is not exact: the lazy remainder rounds UP (never undercounts the book)
+        assertApproxEqAbs(bids.value(b).remainder, 2e18, 1);
+        assertGe(bids.value(b).remainder, 2e18);
+        assertApproxEqAbs(bids.drawFor(b), 1e18, 1);
+    }
+
+    function test_forceClose_iocAsk_returnsRemainder() public {
+        uint256 a = asks.add(T, 6e18);
+        uint256 b = asks.add(T, 4e18);
+        asks.fill(T, 4e18, P);
+        assertEq(asks.forceClose(T), 6e18);
+        assertEq(asks.total(), 0);
+        BookStore.Valuation memory va = asks.value(a);
+        assertTrue(va.closed);
+        assertEq(va.remainder, 3.6e18);
+        assertEq(asks.drawRet(a) + asks.drawRet(b), 6e18, "return pot = remainder");
+        assertEq(asks.drawFor(a) + asks.drawFor(b), 720_000000);
+    }
+
+    function test_hierarchy_sumsAndScan() public {
+        bids.add(100, 1);
+        bids.add(200, 2); // other bucket
+        bids.add(20_000, 4); // other super
+        assertEq(bids.sumAbove(99), 7);
+        assertEq(bids.sumAbove(100), 6);
+        assertEq(bids.sumAbove(200), 4);
+        assertEq(bids.sumBelow(201), 3);
+        assertEq(bids.sumBelow(20_001), 7);
+        assertEq(bids.nextNonEmpty(1, 1_000_000), 100);
+        assertEq(bids.nextNonEmpty(101, 1_000_000), 200);
+        assertEq(bids.nextNonEmpty(201, 1_000_000), 20_000);
+        assertEq(bids.nextNonEmpty(20_001, 1_000_000), type(uint256).max);
+        assertEq(bids.nextNonEmpty(101, 199), type(uint256).max);
+    }
+
+    struct Acc {
+        uint256 added;
+        uint256 filled;
+        uint256 removed;
+        uint256 owedQuoteX; // Σ f·p (exact, scaled by B)
+        uint256 potQuote; // Σ floor(f·p/B)
+    }
+
+    /// Random adds / exact fills / leaves / draws on one level, then everyone leaves.
+    function testFuzz_conservation(uint256 seed, bool bidSide) public {
+        BookHarness h = bidSide ? bids : asks;
+        Acc memory acc;
+        uint256[] memory paid = new uint256[](64); // bids: quote owed by each order when it ended
+        for (uint256 i = 0; i < 48; ++i) {
+            uint256 r = uint256(keccak256(abi.encode(seed, i)));
+            uint256 op = r % 10;
+            uint256 n = h.count();
+            if (op < 3 || n == 0) {
+                if (n >= 60) continue;
+                uint256 q = 1 + ((r >> 8) % 50e18);
+                h.add(T, q);
+                acc.added += q;
+            } else if (op < 7) {
+                uint256 rem = h.remaining(T);
+                if (rem == 0) continue;
+                uint256 f = (r >> 8) % 4 == 0 ? rem : 1 + ((r >> 16) % rem);
+                uint256 p = 100e6 + ((r >> 128) % 200e6);
+                h.fill(T, f, p);
+                acc.filled += f;
+                acc.owedQuoteX += f * p;
+                acc.potQuote += (f * p) / B;
+            } else if (op < 9) {
+                uint256 id = (r >> 8) % n;
+                if (!h.isOpen(id)) continue;
+                h.drawFor(id);
+                if (bidSide) paid[id] = h.value(id).quote;
+                acc.removed += h.leave(id);
+            } else {
+                h.drawFor((r >> 8) % n);
             }
         }
-
-        for (uint256 i = 0; i < nOrders; i++) {
-            OrderMath.Valuation memory v = h.valueOf(ids[i]);
-            // Lazy fixed-point vs per-round integer bookkeeping. The reference floors once per round,
-            // so it drifts by up to `rounds` units by itself; plus a 1e-15 relative fixed-point bound.
-            uint256 tolBase = exactFilled[i] / 1e15 + rounds + 3;
-            uint256 tolQuote = exactQuote[i] / 1e15 + rounds + 3;
-            assertApproxEqAbs(v.filledFloor, exactFilled[i], tolBase, "filled");
-            assertApproxEqAbs(v.quoteFloor, exactQuote[i], tolQuote, "quote");
-            assertLe(v.filledFloor, v.filledCeil);
-            assertLe(v.quoteFloor, v.quoteCeil);
+        // everyone leaves and draws what is owed
+        uint256 drawn;
+        for (uint256 id = 0; id < h.count(); ++id) {
+            if (h.isOpen(id)) {
+                h.drawFor(id);
+                if (bidSide) paid[id] = h.value(id).quote;
+                acc.removed += h.leave(id);
+            } else {
+                h.drawFor(id);
+            }
+            drawn += h.credited(id);
+        }
+        assertEq(h.total(), 0, "book empties exactly");
+        assertEq(acc.added, acc.filled + acc.removed, "base conserved through the book");
+        if (bidSide) {
+            assertLe(drawn, acc.filled, "buyers never receive more base than was filled");
+            uint256 totalPaid;
+            for (uint256 id = 0; id < h.count(); ++id) totalPaid += paid[id];
+            assertGe(totalPaid * B, acc.owedQuoteX, "buyers pay at least the exact fill cost");
+        } else {
+            assertLe(drawn, acc.potQuote, "sellers never receive more quote than the fills");
         }
     }
 }

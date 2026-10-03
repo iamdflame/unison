@@ -12,6 +12,8 @@ via_ir = true
 bytecode_hash = "none"
 cbor_metadata = false
 gas_reports = ["*"]
+# long simulations exceed the default 2^30 test gas; Monad itself caps a tx at 30M (tests use per-call caps)
+gas_limit = "18446744073709551615"
 fs_permissions = [{ access = "read", path = "./" }]
 
 [profile.default.fuzz]

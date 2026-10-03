@@ -1,4 +1,4 @@
-# Unison Protocol Specification — v0.1 (core engine)
+# Unison Protocol Specification — v0.2 (core engine)
 
 > Status: normative draft for P1–P2. The Solidity contracts, the TypeScript reference clearing (`packages/clearing-ref`), the SDK, and the indexer MUST agree with this document. When code and spec disagree, the code has a bug or the spec gets amended. Never silently diverge.
 
@@ -22,47 +22,62 @@ Example (aNVDA): `tickSize = 10_000` ($0.01 in AUSD units), so the tick range co
 
 ## 3. Books
 
-Each market has two sides (BID, ASK). Each side is split into `S` **shards** (default 4), with shard = `uint160(account) % S`. Shards make orders from different accounts in the same block touch disjoint storage pages, which keeps Monad's optimistic parallel execution conflict-free on the order path.
+Each market has two sides (BID, ASK). Each side has `S` **main books** (default 4, max 8) and `S` **IOC books**. An order goes to shard `uint160(account) % S` (the IOC book of that shard for IOC orders, at book index `8 + shard`). Accounts in different shards touch disjoint storage pages, which keeps Monad's optimistic parallel execution conflict-free on the order path.
 
-Each `(market, side, shard)` holds:
+Each book `(market, side, shard)` holds:
 
 | Structure | Contents |
 |---|---|
-| **Levels** `level[tick]` | `remaining` (uint128), `epoch` (uint32), `survival` S (uint128, scale `1e36`), `acc` A (uint128, scale `1e18 × price`) |
-| **Epoch finals** `final[tick][epoch]` | A at the moment the epoch closed |
-| **Hierarchy totals** | `bucket[tick >> 7]`, `super[tick >> 14]`, side `total` (uint128 sums of `remaining`); used for O(1)-page prefix queries |
-| **Non-empty bitmaps** | Per bucket (128 bits); lets clearing skip empty ticks |
-
-All arrays are **page-aligned** (128 consecutive slots = one MIP-8 page). A whole bucket of ticks sits in one page.
+| **Level words** (three page-aligned arrays, 128 ticks per page) | `LEVEL` = `remaining` u128, `epoch` u64, `scale` u32, `closed` bit. `STATE` = survival `S` u128, `pot` u128. `ACC` = accumulator `A` u256. |
+| **Scale finals** `final[tick][epoch][scale]` | `A` at the end of a scale closed by a rescale |
+| **Archives** `archive[tick][epoch]` | The three words of a closed epoch, copied when the tick is reused |
+| **Hierarchy totals** | `bucket[tick >> 7]`, `super[tick >> 14]`, book `total`; give O(pages) prefix sums and empty-range skipping |
 
 ### 3.1 Lazy pro-rata accounting
 
-Resting orders at a level share fills **pro-rata**, with lazy accounting:
+A level holds the **real** resting quantity `remaining`, plus lazy state that lets any number of orders share fills pro-rata in O(1).
 
-- **Partial fill**, ratio `r` (fraction of the level's remaining filled, scale `1e18`) at price `p`:
-  - `A += S × r × p / 1e36`
-  - `S = S × (1e18 − r) / 1e18`
-  - `remaining -= filledAgg`
-- **Full fill** (`r = 1e18`) at price `p`:
-  - `A += S × p / 1e18`
-  - store `final[epoch] = A`
-  - `epoch++`, `S = 1e36`, `A = 0`, `remaining = 0`
-- **Precision guard:** if `S < 1e12` after a partial fill, the level is force-closed as a full fill. The protocol dust reserve is the counterparty for the residual dust.
+- **Survival `S`** is a Liquity-style product with precision `S_SCALE = 1e38`. When `S` falls below `S_MIN = 1e29`, it is multiplied by `K = 1e9` and `scale++`. The `A` of the closed scale is stored in `final`.
+- **Accumulator `A`** for each `(epoch, scale)` is `Σ S·ρ·p`, where `ρ = f/remaining` and `p` is quote units per whole base token.
+- **Partial fill** of exactly `f < remaining`:
+  - `A += S·p·f/remaining` (bids round up, asks round down);
+  - `S ← ⌈S·(remaining − f)/remaining⌉` (both sides round up), rescaled if needed;
+  - `remaining −= f`.
+- **Full fill** (`f = remaining`):
+  - `A_last = A + S·p` (exact);
+  - the level is **closed in place** (`closed = 1`, `S = 0`).
+  - When the next order group joins the tick, the closed words are archived and `epoch + 1` opens.
 
-An order stores `(qty, tick, epochE, SE, AE)` at entry (or at its last claim):
+**Order groups.** All orders of one `(batch, side, book, tick)` join the level together at merge. They share one **merge snapshot** `(epoch, scale, S₀, A₀)`. An order record never stores its own snapshot: it keeps its original `qty` and one `credited` counter.
 
-| Case | `fairFilled` | `fairQuote` |
-|---|---|---|
-| `epochE == epochNow` | `qty × (SE − Snow) / SE` | `qty × (Anow − AE) / SE` |
-| `epochE < epochNow` | `qty` | `qty × (final[epochE] − AE) / SE` |
+**Valuation** of `qty` that joined with snapshot `(e, s₀, S₀, A₀)`. Let `(S_end, s_end, A_end)` be the level's current state, or the archived state if epoch `e` is closed.
 
-### 3.2 Rounding rule (solvency)
+- `remainder = ⌈qty · S_end / (S₀ · K^(s_end − s₀))⌉`, which is 0 when `S_end = 0` (fully filled). It is 1 if more than 4 scales were crossed, since the exact value is then below 1.
+- `quote = qty · Σ_j ΔA_j / K^j / (S₀ · baseUnit)`, summed over the scales walked (at most 4), where `ΔA_0 = A(s₀) − A₀` and `ΔA_j = A(s₀ + j)`. Bids round up and add 1 if deeper scales exist, which together are worth less than one unit. Asks round down.
 
-**User receipts round DOWN; user payments round UP.** The protocol keeps the difference in a dust reserve.
+### 3.2 Pots
 
-- **Buyer:** receives `floor(fairFilled)` base; pays `ceil(fairQuote)` quote. It stays within the order's locked quote because clearing price ≤ limit.
-- **Seller:** delivers `ceil(fairFilled)` base, capped at the order's locked base; receives `floor(fairQuote)` quote.
-- **Invariant SOLV:** for each token, `token.balanceOf(exchange) ≥ Σ freeBalances + Σ lockedEscrow(outstanding) + Σ curveInventories`, after every external call.
+Lazy math only decides **how** a level's proceeds are shared. **Receipts are always drawn from a pot that holds exactly what was filled.**
+
+- **Bid level pot** (base): `+= f` on every fill. A buyer draws `min(filled − credited, pot)`.
+- **Ask level pot** (quote): `+= ⌊f·p/baseUnit⌋` on every fill. A seller draws `min(quote − credited, pot)`. The fee is charged on the cumulative gross amount, `fee(x) = ⌈x·feeBps/1e4⌉`, so the net is monotone.
+- **Return pot** (IOC asks only): when an IOC level is force-closed, its unfilled `remaining` becomes the return pot that its sellers draw from.
+
+### 3.3 Conservation argument
+
+1. Rounding `S` up means the lazy remainders of a level's orders always sum to at least `remaining`, written `L ≥ R`.
+   - Each fill keeps it: `S' ≥ S·R'/R`, so `L' ≥ L·R'/R ≥ R'`.
+   - An add keeps it: both sides grow by `qty`.
+   - A removal keeps it: `leave` removes `min(⌈lazy⌉, R)`.
+   - **Removals are clamped to `R`.** So the book empties exactly when the last order leaves, and nobody takes out more than exists.
+2. **Base, asks.** Sellers' locked base is returned only through clamped removals, or the return pot. So `Σ delivered = Σ fills` exactly once the level empties.
+3. **Base, bids.** Buyers' receipts are capped by the base pot, so `Σ received ≤ Σ fills`.
+4. **Quote, bids.** Buyers pay `Σ quote ≥ L·f·p/R ≥ f·p`, which is at least what the ask pots receive (`⌊f·p⌋`). A buyer's total spend (`quote + fee`) is provably at most its lock: `buyLock = ⌈notional at limit⌉ + ⌈maxFee⌉ + 4`. The proof uses `qty < 2^96` and `baseUnit ≥ 1e6`, and markets enforce `baseDecimals ∈ [6, 18]`.
+5. **Quote, asks.** Sellers' receipts are capped by the quote pot.
+
+**Invariant SOLV:** for each token, `balanceOf(exchange) ≥ Σ free ledger balances` after every call. Once every order is settled, the difference is bounded rounding dust.
+
+The invariant suite enforces SOLV, plus "dust ≤ bound after a full settlement". A 3,000-step simulation checks the same properties, and so does a book-level fuzz on both sides that asserts these exact inequalities.
 
 ## 4. Liquidity sources merged at clearing
 
@@ -99,12 +114,32 @@ An order stores `(qty, tick, epochE, SE, AE)` at entry (or at its last claim):
 If `E(t*) = 0`, there is no trade.
 
 **Allocation** (both sides, executed volume `V = E(t*)`):
-1. Walk the side's levels in priority order.
-2. Every level fully covered by `V` is fully filled.
-3. The first level not fully covered is the **marginal level**. It gets the rest of `V`, applied as ratio `r = (V − before) / levelQty` (scale `1e18`, floor).
-4. All later levels get nothing.
+1. Walk the side's classes in priority order: `ABOVE`/`BELOW`, then in-band ticks.
+2. Every class fully covered by `V` is fully filled.
+3. The first class not fully covered is the **marginal class**. It gets `need = V − before`, spread over the levels of that class (all books, main and IOC) by **exact cumulative apportionment**:
+   - `share_i = ⌊need·(Q_<i + q_i)/Q⌋ − ⌊need·Q_<i/Q⌋`;
+   - shares sum to exactly `need`, each is at most `q_i`, and each is within one unit of pro-rata.
+4. All later classes get nothing.
 
-All fills execute at `price(t*)`.
+All fills execute at `price(t*)`. When the job finishes, it checks `Σ bid fills = Σ ask fills = V` and reverts otherwise.
+
+### 5.6 The resumable clear job
+
+`clear()` runs a **job** with four phases. Each phase stops starting new work once `gasleft() < 300k` and continues in the next call, so no number of resting orders can make clearing impossible.
+
+| Phase | Work |
+|---|---|
+| MERGE | Pending batches up to `upTo = block.number − 1` join the books. GTC orders go to the main books and IOC orders to the IOC books. Each group stores its merge snapshot. |
+| auction | Read the reference, which must be published after the newest merged batch closed. Build the band, run `Clearing.compute`, store the result. Skipped while HALTED. |
+| APPLY | Cursor over side → stage (`OUTSIDE`, `INBAND`, `MARGINAL`) → book → tick. Fills are applied level by level. |
+| CLOSE_IOC | Every IOC level is force-closed. Its unfilled remainder leaves the book. |
+
+**While a job runs:**
+- cancels of orders in batches it covers are refused (`ClearInProgress`);
+- cancels of any merged order are refused during APPLY and CLOSE_IOC;
+- new orders and claims are unaffected.
+
+**Determinism.** A chunked run produces byte-identical balances to a single-call run. This is checked by `ClearJobTest.test_chunkedClearEqualsSingleShot`.
 
 ## 6. Regimes
 

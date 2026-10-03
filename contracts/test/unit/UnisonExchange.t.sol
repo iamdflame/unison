@@ -4,6 +4,7 @@ pragma solidity ^0.8.30;
 import {Test} from "forge-std/Test.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {UnisonExchange} from "../../src/core/UnisonExchange.sol";
+import {ExchangeBase} from "../../src/core/ExchangeBase.sol";
 import {ManualReference} from "../../src/pricing/ManualReference.sol";
 import {IReferenceAdapter} from "../../src/interfaces/IReferenceAdapter.sol";
 import {ExchangeLayout as L} from "../../src/core/ExchangeLayout.sol";
@@ -142,7 +143,10 @@ contract UnisonExchangeTest is Test {
         assertApproxEqAbs(ex.balanceOf(alice, address(nvda)), 5e18, 2);
         assertApproxEqAbs(ex.balanceOf(carol, address(nvda)) - 1_000e18, 5e18, 2);
         // the remaining 5 each still rest in the book
-        assertEq(ex.orderOf(alice, a).qty, 5e18 - 0);
+        (, uint256 filledA, uint256 restA,,) = ex.previewOrder(alice, a);
+        assertEq(filledA, 5e18);
+        assertEq(restA, 5e18);
+        assertEq(ex.orderOf(alice, a).qty, 10e18, "order keeps its original size");
     }
 
     function test_laterBlockOrdersCannotJoinEarlierAuction() public {
@@ -155,7 +159,7 @@ contract UnisonExchangeTest is Test {
         ref.post(mkt, 180e6, block.timestamp * 1000, IReferenceAdapter.Status.OPEN);
         (, uint256 vol) = _clear(); // clears only batches <= N
         assertEq(vol, 0, "alice's batch N+1 order did not participate");
-        assertEq(ex.orderOf(alice, a).state, L.STATE_PENDING);
+        assertEq(ex.orderOf(alice, a).state, L.STATE_OPEN);
 
         _nextBlockAndRef(180e6, IReferenceAdapter.Status.OPEN);
         (, vol) = _clear();
@@ -176,7 +180,8 @@ contract UnisonExchangeTest is Test {
         _claim(alice, a);
         _claim(bob, b);
         assertApproxEqAbs(ex.balanceOf(alice, address(nvda)), 4e18, 2);
-        assertEq(ex.orderOf(alice, a).qty, 6e18, "remaining 6 still resting");
+        (,, uint256 rest,,) = ex.previewOrder(alice, a);
+        assertEq(rest, 6e18, "remaining 6 still resting");
     }
 
     function test_ioc_remainderCancelledAfterFirstAuction() public {
@@ -238,12 +243,12 @@ contract UnisonExchangeTest is Test {
         vm.warp(block.timestamp + 1);
         // published before the batch's block timestamp -> rejected
         ref.post(mkt, 180e6, (block.timestamp - 2) * 1000, IReferenceAdapter.Status.OPEN);
-        vm.expectRevert(UnisonExchange.StaleReference.selector);
+        vm.expectRevert(ExchangeBase.StaleReference.selector);
         ex.clear(mkt, "");
     }
 
     function test_nothingToClear_sameBlock() public {
-        vm.expectRevert(UnisonExchange.NothingToClear.selector);
+        vm.expectRevert(ExchangeBase.NothingToClear.selector);
         ex.clear(mkt, "");
     }
 
