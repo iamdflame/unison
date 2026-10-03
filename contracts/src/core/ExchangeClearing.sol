@@ -24,13 +24,14 @@ abstract contract ExchangeClearing is ExchangeBase {
     /// @return tick clearing tick (0 if no trade)
     /// @return volume executed base volume
     /// @return done whether the job completed in this call
-    function _clear(uint256 marketId, bytes calldata payload)
+    /// @param upTo newest batch the job covers (0 = block.number - 1). Ignored while a job is running.
+    function _clear(uint256 marketId, uint256 upTo, bytes calldata payload)
         internal
         returns (uint256 tick, uint256 volume, bool done)
     {
         Market storage m = _market(marketId);
         Job memory j = _s().jobs[marketId];
-        if (j.phase == PHASE_IDLE) _openJob(marketId, m, j, payload);
+        if (j.phase == PHASE_IDLE) _openJob(marketId, m, j, upTo == 0 ? block.number - 1 : upTo, payload);
         if (j.phase == PHASE_MERGE) {
             if (!_mergeStep(marketId, m, j)) return _pauseJob(marketId, j);
             _startAuction(marketId, m, j);
@@ -57,9 +58,11 @@ abstract contract ExchangeClearing is ExchangeBase {
 
     /// @dev Opens a job: binds the reference (published after the newest covered batch closed, SPEC §7),
     ///      applies the halt override and the DISCOVERY call-auction cadence.
-    function _openJob(uint256 marketId, Market storage m, Job memory j, bytes calldata payload) private {
+    function _openJob(uint256 marketId, Market storage m, Job memory j, uint256 upTo, bytes calldata payload)
+        private
+    {
         if (!m.active) revert MarketInactive();
-        uint256 upTo = block.number - 1;
+        if (upTo >= block.number) revert InvalidParams(); // the batch of the current block is still open
         if (upTo <= m.lastCleared) revert NothingToClear();
         (uint256 px, uint256 pubMs, IReferenceAdapter.Status st) =
             IReferenceAdapter(m.refAdapter).read(marketId, upTo, payload);
@@ -205,6 +208,8 @@ abstract contract ExchangeClearing is ExchangeBase {
         j.askMarginal = uint32(r.askMarginal);
         j.bidNeed = r.bidMarginalFill;
         j.askNeed = r.askMarginalFill;
+        j.bidOutside = x.bidAbove != 0;
+        j.askOutside = x.askBelow != 0;
         j.bidClassQ = r.bidMarginal == 0 ? x.bidAbove : x.bids[n - r.bidMarginal];
         j.askClassQ = r.askMarginal == 0 ? x.askBelow : x.asks[r.askMarginal - 1];
         j.phase = PHASE_APPLY;
@@ -421,6 +426,7 @@ abstract contract ExchangeClearing is ExchangeBase {
         uint256 lo = j.lo;
         uint256 hi = j.hi;
         if (j.stage == STAGE_OUTSIDE) {
+            if (!(isBid ? j.bidOutside : j.askOutside)) return (1, 0, false); // nothing beyond the band
             split = marg == 0;
             if (isBid) return (hi + 1, BookStore.MAX_TICK, split);
             return (1, lo - 1, split); // lo >= minTick >= 1

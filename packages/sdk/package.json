@@ -1,7 +1,7 @@
 {
-  "name": "@unison/engine",
+  "name": "@unison/sdk",
   "version": "0.1.0",
-  "description": "Bit-exact TypeScript reference of Unison's clearing, apportionment and lazy book accounting.",
+  "description": "TypeScript SDK for Unison \u2014 per-block batch auctions for tokenized assets on Monad.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -18,16 +18,18 @@
     "src"
   ],
   "scripts": {
+    "abis": "node scripts/gen-abis.mjs",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
+    "@unison/engine": "workspace:*",
     "viem": "^2.37.0"
   },
   "devDependencies": {
+    "@types/node": "^24.0.0",
     "typescript": "^5.9.0",
-    "vitest": "^3.2.0",
-    "@types/node": "^24.0.0"
+    "vitest": "^3.2.0"
   }
 }

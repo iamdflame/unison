@@ -77,6 +77,8 @@ abstract contract ExchangeBase {
         uint8 keyIdx; // cursor: book index (main 0..S-1, IOC S..2S-1)
         uint8 status; // reference status of this job's auction
         bool traded;
+        bool bidOutside; // the auction saw bid liquidity above the band (else the OUTSIDE stage is skipped)
+        bool askOutside; // ... ask liquidity below the band
         uint32 cursor; // cursor: next tick to examine (0 = start of range)
         uint32 groupCursor; // merge: next group of the head batch
         uint32 tick;

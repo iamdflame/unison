@@ -14,7 +14,13 @@ cbor_metadata = false
 gas_reports = ["*"]
 # long simulations exceed the default 2^30 test gas; Monad itself caps a tx at 30M (tests use per-call caps)
 gas_limit = "18446744073709551615"
-fs_permissions = [{ access = "read", path = "./" }]
+# Monad allows 128 KB contracts (EIP-170's 24 KB does not apply); anvil: --code-size-limit 131072
+code_size_limit = 131072
+fs_permissions = [
+    { access = "read", path = "./" },
+    { access = "read", path = "../deploy" },
+    { access = "read-write", path = "../deployments" },
+]
 # differential tests need FFI + node: run them with FOUNDRY_PROFILE=diff
 no_match_path = "test/diff/*"
 

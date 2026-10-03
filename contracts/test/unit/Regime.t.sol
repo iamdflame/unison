@@ -77,7 +77,7 @@ contract RegimeTest is Test {
         return ex.clear(mkt, "");
     }
 
-    function test_bandPerRegime() public {
+    function test_bandPerRegime() public view {
         (, uint256 lo, uint256 hi, uint256 bps) = ex.previewBand(mkt, 180e6, OPEN);
         assertEq(bps, 100);
         assertEq(hi - lo, 360); // ±1% of 18_000 ticks

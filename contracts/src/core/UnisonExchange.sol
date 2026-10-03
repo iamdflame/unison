@@ -366,7 +366,18 @@ contract UnisonExchange is
         nonReentrant
         returns (uint256 tick, uint256 volume)
     {
-        (tick, volume,) = _clear(marketId, payload);
+        (tick, volume,) = _clear(marketId, 0, payload);
+    }
+
+    /// @notice Like `clear`, but covering exactly the batches <= `upTo` (the batch a signed reference was
+    ///         issued for), so a keeper's transaction may land in any later block without invalidating it.
+    function clearUpTo(uint256 marketId, uint256 upTo, bytes calldata payload)
+        external
+        whenNotPaused
+        nonReentrant
+        returns (uint256 tick, uint256 volume)
+    {
+        (tick, volume,) = _clear(marketId, upTo, payload);
     }
 
     // ------------------------------------------------------------------ settlement
@@ -574,6 +585,28 @@ contract UnisonExchange is
         returns (BookStore.Level memory)
     {
         return BookStore.readLevel(BookStore.Key(marketId, side, shard), tick);
+    }
+
+    /// @notice Resting quantity per tick in [lo, hi] for one side, summed over every book (UI depth ladder).
+    function depth(uint256 marketId, uint256 side, uint256 lo, uint256 hi)
+        external
+        view
+        returns (uint256[] memory qty)
+    {
+        if (hi < lo || hi - lo > 4_096) revert InvalidParams();
+        uint256 shards = _market(marketId).shards;
+        qty = new uint256[](hi - lo + 1);
+        for (uint256 i = 0; i < 2 * shards; ++i) {
+            BookStore.Key memory k = _bookKey(marketId, side, i, shards);
+            if (BookStore.total(k) == 0) continue;
+            uint256 t = lo;
+            while (t <= hi) {
+                t = BookStore.nextNonEmpty(k, t, hi);
+                if (t == NONE) break;
+                qty[t - lo] += BookStore.remainingAt(k, t);
+                ++t;
+            }
+        }
     }
 
     /// @notice Total resting quantity of one side across all books (main + IOC).

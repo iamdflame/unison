@@ -152,6 +152,22 @@ contract OperatorSignedReferenceTest is Test {
         ex.clear(mkt, wrong);
     }
 
+    function test_clearUpTo_signedBatchSurvivesLateInclusion() public {
+        _crossAndNextBlock();
+        uint256 b = block.number - 1; // the relay signs for batch b
+        bytes memory p = _payload(b, 180e6, _nowMs(), 0, _one(idEcdsa));
+        // a later order lands in batch b+1, and the keeper's tx is only mined two blocks later
+        vm.prank(alice);
+        ex.placeOrder(mkt, 0, 18_020, 1e18, 0);
+        vm.roll(block.number + 2);
+        vm.expectRevert(OperatorSignedReference.BadSignature.selector);
+        ex.clear(mkt, p); // binds batch head-1 ≠ b
+        (, uint256 vol) = ex.clearUpTo(mkt, b, p);
+        assertEq(vol, 2e18);
+        assertEq(ex.market(mkt).lastCleared, b, "batch b+1 stays pending for the next job");
+        assertGt(ex.market(mkt).pendingTail, ex.market(mkt).pendingHead);
+    }
+
     function test_rejects_stale_future_backwards_tampered() public {
         _crossAndNextBlock();
         uint256 b = block.number - 1;
