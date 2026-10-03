@@ -169,6 +169,31 @@ contract UnisonExchange is
         emit RegimeSet(marketId, g);
     }
 
+    /// @notice Registers a curve source (LiquidityVault, Designated Maker) merged into every auction.
+    function addSource(uint256 marketId, address source) external onlyRole(OPERATOR_ROLE) {
+        _market(marketId);
+        address[] storage a = _s().sources[marketId];
+        if (a.length >= MAX_SOURCES) revert TooManySources();
+        for (uint256 i = 0; i < a.length; ++i) {
+            if (a[i] == source) revert InvalidParams();
+        }
+        a.push(source);
+        emit SourceSet(marketId, source, true);
+    }
+
+    function removeSource(uint256 marketId, address source) external onlyRole(OPERATOR_ROLE) {
+        address[] storage a = _s().sources[marketId];
+        for (uint256 i = 0; i < a.length; ++i) {
+            if (a[i] == source) {
+                a[i] = a[a.length - 1];
+                a.pop();
+                emit SourceSet(marketId, source, false);
+                return;
+            }
+        }
+        revert InvalidParams();
+    }
+
     /// @notice Forces (or lifts) a trading halt on a market — e.g. mirroring a primary-market halt, or an
     ///         automatic halt raised by the CRE reference audit. Orders keep accumulating while halted; the
     ///         first auction after the halt is a reopening auction.
@@ -486,6 +511,15 @@ contract UnisonExchange is
 
     function jobOf(uint256 marketId) external view returns (Job memory) {
         return _s().jobs[marketId];
+    }
+
+    function sourcesOf(uint256 marketId) external view returns (address[] memory) {
+        return _s().sources[marketId];
+    }
+
+    /// @notice Phase of the market's clear job (0 = idle).
+    function jobPhase(uint256 marketId) external view returns (uint8) {
+        return _s().jobs[marketId].phase;
     }
 
     function regimeOf(uint256 marketId) external view returns (Regime memory) {

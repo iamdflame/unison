@@ -8,6 +8,7 @@ import {UnisonExchange} from "../../src/core/UnisonExchange.sol";
 import {ManualReference} from "../../src/pricing/ManualReference.sol";
 import {IReferenceAdapter} from "../../src/interfaces/IReferenceAdapter.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
+import {LiquidityVault, IUnisonVenue} from "../../src/liquidity/LiquidityVault.sol";
 
 /// @dev Drives random sequences of exchange operations. `settleAndCheck` cancels/claims everything
 ///      and asserts strong solvency: real token balance covers every ledger balance, and the
@@ -19,6 +20,7 @@ contract ExchangeHandler is Test {
     MockERC20 public ausd;
     uint256 public mkt;
     address[] public actors;
+    address[] public extraAccounts; // curve sources holding venue balances
 
     uint256 public trades; // ghost: number of non-empty auctions
     uint256 public settles;
@@ -146,10 +148,21 @@ contract ExchangeHandler is Test {
         settles++;
     }
 
+    function addExtraAccount(address a) external {
+        extraAccounts.push(a);
+    }
+
+    function extraCount() external view returns (uint256) {
+        return extraAccounts.length;
+    }
+
     function _checkToken(address token, uint256 dustPerCycle) internal view {
         uint256 ledger = ex.balanceOf(address(ex), token);
         for (uint256 u = 0; u < actors.length; u++) {
             ledger += ex.balanceOf(actors[u], token);
+        }
+        for (uint256 u = 0; u < extraAccounts.length; u++) {
+            ledger += ex.balanceOf(extraAccounts[u], token);
         }
         uint256 physical = MockERC20(token).balanceOf(address(ex));
         assertGe(physical, ledger, "solvency: tokens cover every ledger balance");
@@ -168,6 +181,7 @@ contract ExchangeInvariantTest is StdInvariant, Test {
     MockERC20 internal ausd;
     ExchangeHandler internal handler;
     uint256 internal deposited;
+    address internal vaultAddr;
 
     function setUp() public {
         nvda = new MockERC20("Anchored NVDA", "aNVDA", 18);
@@ -196,7 +210,38 @@ contract ExchangeInvariantTest is StdInvariant, Test {
                 strictAfterClose: false
             })
         );
+        // a LiquidityVault quotes into every auction the fuzzer runs
+        LiquidityVault vault = new LiquidityVault(
+            address(this),
+            IUnisonVenue(address(ex)),
+            mkt,
+            "LP",
+            "LP",
+            LiquidityVault.Params({
+                spreadBps: 15,
+                depthBps: 50,
+                widthTicks: 8,
+                maxSkewTicks: 12,
+                maxAuctionBps: 1_000,
+                swingBps: 30,
+                extMult: 2,
+                closedMult: 4,
+                paused: false
+            })
+        );
+        ex.addSource(mkt, address(vault));
+        ausd.mint(address(this), 2_000_000e6);
+        ausd.approve(address(vault), type(uint256).max);
+        vault.requestDeposit(2_000_000e6);
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 1);
+        ref.post(mkt, 180e6, block.timestamp * 1000, IReferenceAdapter.Status.OPEN);
+        ex.clear(mkt, "");
+        vault.process();
+        vaultAddr = address(vault);
+
         handler = new ExchangeHandler(ex, ref, nvda, ausd, mkt);
+        handler.addExtraAccount(address(vault));
         ref.transferOwnership(address(handler));
         vm.prank(address(handler));
         ref.acceptOwnership();
@@ -215,14 +260,14 @@ contract ExchangeInvariantTest is StdInvariant, Test {
     /// Tokens only leave via withdrawals (none in this run), so physical balances are constant.
     function invariant_physicalBalancesConserved() public view {
         assertEq(nvda.balanceOf(address(ex)), 4 * 10_000e18);
-        assertEq(ausd.balanceOf(address(ex)), 4 * 5_000_000e6);
+        assertEq(ausd.balanceOf(address(ex)), 4 * 5_000_000e6 + 2_000_000e6);
     }
 
     /// Free ledger balances can never exceed physical holdings (locks and dust are on top).
     function invariant_freeBalancesCovered() public view {
         uint256 n = handler.actorCount();
-        uint256 sumN = ex.balanceOf(address(ex), address(nvda));
-        uint256 sumQ = ex.balanceOf(address(ex), address(ausd));
+        uint256 sumN = ex.balanceOf(address(ex), address(nvda)) + ex.balanceOf(vaultAddr, address(nvda));
+        uint256 sumQ = ex.balanceOf(address(ex), address(ausd)) + ex.balanceOf(vaultAddr, address(ausd));
         for (uint256 i = 0; i < n; i++) {
             sumN += ex.balanceOf(handler.actors(i), address(nvda));
             sumQ += ex.balanceOf(handler.actors(i), address(ausd));

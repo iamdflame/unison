@@ -9,6 +9,7 @@ import {OrderMath} from "./OrderMath.sol";
 import {ExchangeLayout as L} from "./ExchangeLayout.sol";
 import {ExchangeBase} from "./ExchangeBase.sol";
 import {IReferenceAdapter} from "../interfaces/IReferenceAdapter.sol";
+import {ICurveSource} from "../interfaces/ICurveSource.sol";
 
 /// @title ExchangeClearing — the resumable batch-auction job (SPEC §5)
 /// @notice A clear job has four phases, each of which can pause on low gas and resume in the next call:
@@ -171,7 +172,18 @@ abstract contract ExchangeClearing is ExchangeBase {
 
     // ------------------------------------------------------------------ auction
 
-    function _startAuction(uint256 marketId, Market storage m, Job memory j) private view {
+    /// @dev Capped, band-clipped curve of one source for this auction.
+    struct CurveSlot {
+        address src;
+        uint256 bidLo;
+        uint256 bidHi;
+        uint256 bidQ;
+        uint256 askLo;
+        uint256 askHi;
+        uint256 askQ;
+    }
+
+    function _startAuction(uint256 marketId, Market storage m, Job memory j) private {
         j.phase = PHASE_CLOSE_IOC;
         IReferenceAdapter.Status st = IReferenceAdapter.Status(j.status);
         if (st == IReferenceAdapter.Status.HALTED) return; // no auction while the primary market is halted
@@ -180,6 +192,7 @@ abstract contract ExchangeClearing is ExchangeBase {
         j.hi = uint32(hi);
 
         Clearing.Input memory x = _buildInput(marketId, m, lo, hi, refTick);
+        CurveSlot[] memory cs = _loadCurves(marketId, m, j, refTick, x);
         Clearing.Result memory r = Clearing.compute(x);
         if (!r.traded) return;
 
@@ -200,6 +213,104 @@ abstract contract ExchangeClearing is ExchangeBase {
         j.keyIdx = 0;
         j.cursor = 0;
         j.before = 0;
+        if (cs.length != 0) _settleCurves(marketId, m, j, cs);
+    }
+
+    /// @dev Reads every curve source (gas-capped), clips it to the band, caps it by the source's ledger
+    ///      inventory (bids: worst-case cost at the top bid tick) and merges it into the clearing input.
+    function _loadCurves(uint256 marketId, Market storage m, Job memory j, uint256 refTick, Clearing.Input memory x)
+        private
+        view
+        returns (CurveSlot[] memory cs)
+    {
+        address[] storage srcs = _s().sources[marketId];
+        cs = new CurveSlot[](srcs.length);
+        uint256 lo = x.lo;
+        uint256 hi = x.hi;
+        for (uint256 i = 0; i < srcs.length; ++i) {
+            CurveSlot memory c = cs[i];
+            c.src = srcs[i];
+            try ICurveSource(c.src).curve{gas: CURVE_GAS}(marketId, j.refPrice, j.status, refTick, lo, hi) returns (
+                ICurveSource.Curve memory cv
+            ) {
+                if (cv.bidTop != 0 && cv.bidTicks != 0 && cv.bidPerTick != 0) {
+                    uint256 top = cv.bidTop > hi ? hi : cv.bidTop;
+                    uint256 bot = uint256(cv.bidTop) + 1 > cv.bidTicks ? uint256(cv.bidTop) + 1 - cv.bidTicks : 1;
+                    if (bot < lo) bot = lo;
+                    if (bot <= top) {
+                        uint256 ticks = top - bot + 1;
+                        uint256 bal = Pages.load(L.balanceSlot(c.src, m.quoteIdx));
+                        // cost <= ceil(ticks * q * price(top) / B) must fit the quote balance
+                        uint256 cap = bal == 0 ? 0 : Math.mulDiv(bal - 1, m.baseUnit, top * m.tickSize * ticks);
+                        uint256 q = cv.bidPerTick < cap ? cv.bidPerTick : cap;
+                        if (q != 0) {
+                            (c.bidLo, c.bidHi, c.bidQ) = (bot, top, q);
+                            for (uint256 t = bot; t <= top; ++t) x.bids[t - lo] += q;
+                        }
+                    }
+                }
+                if (cv.askBottom != 0 && cv.askTicks != 0 && cv.askPerTick != 0) {
+                    uint256 bot = cv.askBottom < lo ? lo : cv.askBottom;
+                    uint256 top = uint256(cv.askBottom) + cv.askTicks - 1;
+                    if (top > hi) top = hi;
+                    if (bot <= top) {
+                        uint256 ticks = top - bot + 1;
+                        uint256 cap = Pages.load(L.balanceSlot(c.src, m.baseIdx)) / ticks;
+                        uint256 q = cv.askPerTick < cap ? cv.askPerTick : cap;
+                        if (q != 0) {
+                            (c.askLo, c.askHi, c.askQ) = (bot, top, q);
+                            for (uint256 t = bot; t <= top; ++t) x.asks[t - lo] += q;
+                        }
+                    }
+                }
+            } catch {}
+        }
+    }
+
+    /// @dev Settles every curve source atomically at the auction price. Ticks strictly better than the marginal
+    ///      tick fill in full; at the marginal tick the sources are apportioned first (cumulative, exact), and the
+    ///      books continue the same apportionment from `bidBefore0` / `askBefore0` during APPLY.
+    function _settleCurves(uint256 marketId, Market storage m, Job memory j, CurveSlot[] memory cs) private {
+        uint256 tmB = j.bidMarginal == 0 ? 0 : Clearing.bidLevelTick(j.hi, j.bidMarginal);
+        uint256 tmA = j.askMarginal == 0 ? 0 : Clearing.askLevelTick(j.lo, j.askMarginal);
+        for (uint256 i = 0; i < cs.length; ++i) {
+            CurveSlot memory c = cs[i];
+            uint256 fb;
+            uint256 fa;
+            if (c.bidQ != 0 && tmB != 0) {
+                uint256 from = c.bidLo > tmB ? c.bidLo : tmB + 1;
+                if (from <= c.bidHi) fb = (c.bidHi - from + 1) * c.bidQ;
+                if (tmB >= c.bidLo && tmB <= c.bidHi) {
+                    fb += OrderMath.apportion(j.bidNeed, j.bidBefore0, c.bidQ, j.bidClassQ);
+                    j.bidBefore0 += c.bidQ;
+                }
+            }
+            if (c.askQ != 0 && tmA != 0) {
+                uint256 to = c.askHi < tmA ? c.askHi : tmA - 1;
+                if (c.askLo <= to) fa = (to - c.askLo + 1) * c.askQ;
+                if (tmA >= c.askLo && tmA <= c.askHi) {
+                    fa += OrderMath.apportion(j.askNeed, j.askBefore0, c.askQ, j.askClassQ);
+                    j.askBefore0 += c.askQ;
+                }
+            }
+            if (fb == 0 && fa == 0) continue;
+            uint256 pay = fb == 0 ? 0 : Math.mulDiv(fb, j.price, m.baseUnit, Math.Rounding.Ceil);
+            uint256 get = fa == 0 ? 0 : Math.mulDiv(fa, j.price, m.baseUnit);
+            if (fb != 0) {
+                _debit(c.src, m.quoteIdx, pay);
+                _credit(c.src, m.baseIdx, fb);
+            }
+            if (fa != 0) {
+                _debit(c.src, m.baseIdx, fa);
+                _credit(c.src, m.quoteIdx, get);
+            }
+            j.filledBid += fb;
+            j.filledAsk += fa;
+            j.work += 1;
+            emit CurveFilled(marketId, c.src, j.upTo, fb, pay, fa, get);
+            try ICurveSource(c.src).onAuction{gas: CURVE_GAS}(marketId, j.upTo, j.price, j.refPrice, fb, pay, fa, get) {}
+                catch {}
+        }
     }
 
     function _buildInput(uint256 marketId, Market storage m, uint256 lo, uint256 hi, uint256 refTick)
@@ -295,7 +406,7 @@ abstract contract ExchangeClearing is ExchangeBase {
             j.stage += 1;
             j.keyIdx = 0;
             j.cursor = 0;
-            j.before = 0;
+            j.before = j.stage == STAGE_MARGINAL ? (isBid ? j.bidBefore0 : j.askBefore0) : 0;
         }
         // Self-check: both sides executed exactly the auction volume.
         if (j.filledBid != j.volume || j.filledAsk != j.volume) revert ClearingMismatch();

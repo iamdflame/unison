@@ -20,6 +20,9 @@ abstract contract ExchangeBase {
 
     /// @dev A clear call stops starting new work once gas left falls below this (resumable job, SPEC §5.6).
     uint256 internal constant GAS_RESERVE = 300_000;
+    /// @dev Gas cap for calls into curve sources (a misbehaving source can never block clearing).
+    uint256 internal constant CURVE_GAS = 150_000;
+    uint256 internal constant MAX_SOURCES = 4;
 
     uint8 internal constant PHASE_IDLE = 0;
     uint8 internal constant PHASE_MERGE = 1;
@@ -95,6 +98,8 @@ abstract contract ExchangeBase {
         uint256 before; // apportionment: class quantity visited so far
         uint256 filledBid;
         uint256 filledAsk;
+        uint256 bidBefore0; // curve-source quantity apportioned ahead of the books at the marginal bid tick
+        uint256 askBefore0;
     }
 
     /// @notice Regime configuration and state of a market (SPEC §6). The reference status selects the regime:
@@ -124,6 +129,7 @@ abstract contract ExchangeBase {
         address eligibility;
         mapping(uint256 => Job) jobs;
         mapping(uint256 => Regime) regimes;
+        mapping(uint256 => address[]) sources; // curve sources per market (ICurveSource)
     }
 
     // keccak256(abi.encode(uint256(keccak256("unison.exchange.main")) - 1)) & ~bytes32(uint256(0xff))
@@ -179,6 +185,16 @@ abstract contract ExchangeBase {
     event ClearProgress(uint256 indexed marketId, uint256 indexed upToBlock, uint8 phase, uint256 work);
     event KeeperPaid(uint256 indexed marketId, address indexed keeper, uint256 amount);
     event RegimeSet(uint256 indexed marketId, Regime regime);
+    event SourceSet(uint256 indexed marketId, address indexed source, bool added);
+    event CurveFilled(
+        uint256 indexed marketId,
+        address indexed source,
+        uint256 indexed upToBlock,
+        uint256 boughtBase,
+        uint256 paidQuote,
+        uint256 soldBase,
+        uint256 receivedQuote
+    );
     event HaltSet(uint256 indexed marketId, bool halted, address by);
 
     // ------------------------------------------------------------------ errors
@@ -202,6 +218,7 @@ abstract contract ExchangeBase {
     error ClearInProgress();
     error ClearingMismatch();
     error TooEarly();
+    error TooManySources();
 
     // ------------------------------------------------------------------ ledger primitives
 
