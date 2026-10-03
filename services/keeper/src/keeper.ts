@@ -18,6 +18,8 @@ export interface KeeperConfig {
   marketIds: bigint[];
   clearGas: bigint;
   repriceEvery: bigint;
+  /** pending batches older than this many blocks are merged even if the auction would not trade */
+  maxPendingAge: bigint;
   autoClaim: boolean;
   log?: (msg: Record<string, unknown>) => void;
 }
@@ -95,7 +97,9 @@ export class Keeper {
         const upTo = head - 1n;
         if (upTo <= m.lastCleared) return 0;
         const pending = m.pendingTail > m.pendingHead;
-        if (!pending && upTo - m.lastCleared < this.cfg.repriceEvery) return 0;
+        const age = upTo - m.lastCleared;
+        const vaultWaiting = await this.vaultWaiting(marketId);
+        if (!pending && !vaultWaiting && age < this.cfg.repriceEvery) return 0;
         const { payload, status } = await this.fetchPayload(marketId, upTo);
         if (status === Status.CLOSED) {
           const g = await c.regime(marketId);
@@ -103,6 +107,11 @@ export class Keeper {
             return 0; // DISCOVERY call auctions run every `discCadence` blocks
           }
         }
+        // Monad charges the gas limit: only pay for a clear that trades, merges stale pending orders,
+        // or gives a waiting vault queue its post-request reference.
+        const sim = await c.simulateClearUpTo(marketId, upTo, payload);
+        const mustMerge = pending && age >= this.cfg.maxPendingAge;
+        if (sim.volume === 0n && !mustMerge && !vaultWaiting) return 0;
         await this.send(c.clearUpTo(marketId, upTo, payload, this.cfg.clearGas), {
           marketId,
           action: "clear.open",
@@ -119,6 +128,12 @@ export class Keeper {
       this.log({ level: "warn", marketId: marketId.toString(), error: (e as Error).message.split("\n")[0] });
     }
     return sent;
+  }
+
+  private async vaultWaiting(marketId: bigint): Promise<boolean> {
+    const dep = Object.values(this.cfg.client.deployment.markets).find((x) => BigInt(x.id) === marketId);
+    if (!dep?.vault) return false;
+    return (await this.cfg.client.vault(dep.vault)).pendingRequests > 0n;
   }
 
   private async processVault(marketId: bigint): Promise<number> {

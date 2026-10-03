@@ -27,6 +27,7 @@ export async function startKeeper() {
     marketIds: Object.values(deployment.markets).map((m) => BigInt(m.id)),
     clearGas: BigInt(env("CLEAR_GAS", "8000000")),
     repriceEvery: BigInt(env("REPRICE_EVERY", "5")),
+    maxPendingAge: BigInt(env("MAX_PENDING_AGE", "10")),
     autoClaim: env("AUTO_CLAIM", "1") === "1",
   });
   const unwatchLogs = publicClient.watchContractEvent({

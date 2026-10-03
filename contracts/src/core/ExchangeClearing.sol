@@ -31,7 +31,8 @@ abstract contract ExchangeClearing is ExchangeBase {
     {
         Market storage m = _market(marketId);
         Job memory j = _s().jobs[marketId];
-        if (j.phase == PHASE_IDLE) _openJob(marketId, m, j, upTo == 0 ? block.number - 1 : upTo, payload);
+        bool persisted = j.phase != PHASE_IDLE; // a paused job lives in storage and must be deleted at the end
+        if (!persisted) _openJob(marketId, m, j, upTo == 0 ? block.number - 1 : upTo, payload);
         if (j.phase == PHASE_MERGE) {
             if (!_mergeStep(marketId, m, j)) return _pauseJob(marketId, j);
             _startAuction(marketId, m, j);
@@ -47,6 +48,7 @@ abstract contract ExchangeClearing is ExchangeBase {
             if (!_closeIocStep(marketId, m, j)) return _pauseJob(marketId, j);
         }
         (tick, volume) = _finalize(marketId, m, j);
+        if (persisted) delete _s().jobs[marketId];
         done = true;
     }
 
@@ -499,7 +501,6 @@ abstract contract ExchangeClearing is ExchangeBase {
         );
         m.receiptHash = r;
         emit BatchCleared(marketId, j.upTo, tick, j.price, volume, j.refPrice, j.refTimeMs, j.status, j.lo, j.hi, r);
-        delete _s().jobs[marketId];
         if (j.work > 0) _payKeeper(marketId, m);
     }
 

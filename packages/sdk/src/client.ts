@@ -249,6 +249,19 @@ export class UnisonClient {
     });
   }
 
+  /** Simulates `clearUpTo` (eth_call): the auction's outcome without sending a transaction. */
+  async simulateClearUpTo(marketId: bigint, upTo: bigint, payload: Hex = "0x"): Promise<{ tick: bigint; volume: bigint }> {
+    const { result } = await this.publicClient.simulateContract({
+      address: this.exchange,
+      abi: unisonExchangeAbi,
+      functionName: "clearUpTo",
+      args: [marketId, upTo, payload],
+      account: this.wallet().account,
+    });
+    const [tick, volume] = result as readonly [bigint, bigint];
+    return { tick, volume };
+  }
+
   processVault(vault: Address): Promise<Hex> {
     return this.write(vault, liquidityVaultAbi, "process", []);
   }

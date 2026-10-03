@@ -70,6 +70,7 @@ async function main() {
     marketIds: [marketId],
     clearGas: 8_000_000n,
     repriceEvery: 3n,
+    maxPendingAge: 5n,
     autoClaim: true,
     log: (m) => console.log("  keeper", JSON.stringify(m)),
   });
