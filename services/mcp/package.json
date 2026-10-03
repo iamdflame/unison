@@ -1,0 +1,23 @@
+{
+  "name": "@unison/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Model Context Protocol server: lets AI agents read and trade Unison within the session-key caps their human granted.",
+  "license": "MIT",
+  "type": "module",
+  "bin": { "unison-mcp": "src/main.ts" },
+  "scripts": {
+    "start": "node --conditions=development src/main.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.18.0",
+    "@unison/sdk": "workspace:*",
+    "viem": "^2.37.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}

@@ -20,6 +20,19 @@ export const unisonExchangeAbi = [
   },
   {
     "type": "function",
+    "name": "CAP_ROLE",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "DEFAULT_ADMIN_ROLE",
     "inputs": [],
     "outputs": [
@@ -218,6 +231,52 @@ export const unisonExchangeAbi = [
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "capsOf",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "caps",
+        "type": "tuple",
+        "internalType": "struct ExchangeBase.Caps",
+        "components": [
+          {
+            "name": "tier",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "day",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "traded",
+            "type": "uint128",
+            "internalType": "uint128"
+          },
+          {
+            "name": "dailyCap",
+            "type": "uint128",
+            "internalType": "uint128"
+          }
+        ]
+      },
+      {
+        "name": "remainingToday",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -1249,6 +1308,29 @@ export const unisonExchangeAbi = [
   },
   {
     "type": "function",
+    "name": "postNotice",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "docHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "uri",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "previewBand",
     "inputs": [
       {
@@ -1470,6 +1552,24 @@ export const unisonExchangeAbi = [
   },
   {
     "type": "function",
+    "name": "setDailyCap",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "dailyCap",
+        "type": "uint128",
+        "internalType": "uint128"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "setEligibility",
     "inputs": [
       {
@@ -1608,6 +1708,24 @@ export const unisonExchangeAbi = [
   },
   {
     "type": "function",
+    "name": "setTier",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "tier",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "sourcesOf",
     "inputs": [
       {
@@ -1640,6 +1758,25 @@ export const unisonExchangeAbi = [
         "name": "",
         "type": "bool",
         "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "tierCount",
+    "inputs": [
+      {
+        "name": "tier",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -1966,6 +2103,31 @@ export const unisonExchangeAbi = [
   },
   {
     "type": "event",
+    "name": "DailyCapSet",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "dailyCap",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "by",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "Deposited",
     "inputs": [
       {
@@ -2128,6 +2290,31 @@ export const unisonExchangeAbi = [
         "type": "bool",
         "indexed": false,
         "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "NoticePosted",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "docHash",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "uri",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
       }
     ],
     "anonymous": false
@@ -2393,6 +2580,25 @@ export const unisonExchangeAbi = [
         "type": "bool",
         "indexed": false,
         "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "TierSet",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "tier",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
       }
     ],
     "anonymous": false
@@ -2676,6 +2882,11 @@ export const unisonExchangeAbi = [
   {
     "type": "error",
     "name": "TickOutOfRange",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TierFull",
     "inputs": []
   },
   {
