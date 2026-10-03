@@ -19,7 +19,8 @@ contract ChainlinkReference is IReferenceAdapter, Ownable2Step {
         uint8 baseDecimals;
         uint8 quoteFeedDecimals;
         uint8 quoteTokenDecimals;
-        uint32 maxAgeSec;
+        uint32 maxAgeSec; // base feed
+        uint32 quoteMaxAgeSec; // quote feed (stablecoin feeds often have a 24 h heartbeat)
         uint32 openSec;
         uint32 closeSec;
         bool set;
@@ -42,6 +43,7 @@ contract ChainlinkReference is IReferenceAdapter, Ownable2Step {
         AggregatorV3Interface quote,
         uint8 quoteTokenDecimals,
         uint32 maxAgeSec,
+        uint32 quoteMaxAgeSec,
         uint32 openSec,
         uint32 closeSec
     ) external onlyOwner {
@@ -52,6 +54,7 @@ contract ChainlinkReference is IReferenceAdapter, Ownable2Step {
         f.quoteFeedDecimals = address(quote) == address(0) ? 0 : quote.decimals();
         f.quoteTokenDecimals = quoteTokenDecimals;
         f.maxAgeSec = maxAgeSec;
+        f.quoteMaxAgeSec = quoteMaxAgeSec;
         f.openSec = openSec;
         f.closeSec = closeSec;
         f.set = true;
@@ -72,7 +75,7 @@ contract ChainlinkReference is IReferenceAdapter, Ownable2Step {
             price = Math.mulDiv(b, 10 ** f.quoteTokenDecimals, 10 ** f.baseDecimals);
         } else {
             (uint256 q, uint256 qAt) = _answer(f.quote);
-            fresh = fresh && block.timestamp - qAt <= f.maxAgeSec;
+            fresh = fresh && block.timestamp - qAt <= f.quoteMaxAgeSec;
             // (b / 10^bd) / (q / 10^qfd) · 10^qd
             price = Math.mulDiv(b * 10 ** f.quoteTokenDecimals, 10 ** f.quoteFeedDecimals, q * 10 ** f.baseDecimals);
         }

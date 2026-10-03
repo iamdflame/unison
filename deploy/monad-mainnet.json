@@ -1,0 +1,87 @@
+{
+  "label": "monad-mainnet",
+  "_notes": [
+    "All addresses verified on Monad mainnet (chain 143) by RPC on 2026-10-03.",
+    "regime = [extBandBps, reopenBandBps, discFloorBps, discCapBps, discHorizonSec, discCadenceBlocks]; discCap = 5y weekend-gap p99 (research/weekend_gaps).",
+    "vault = [spreadBps, depthBps, widthTicks, maxSkewTicks, maxAuctionBps, swingBps, extMult, closedMult]; [] = no vault.",
+    "admin / guardian = 0x0 → deployer keeps the roles. relaySigners must be filled with the relay key(s) before deploying."
+  ],
+  "admin": "0x0000000000000000000000000000000000000000",
+  "guardian": "0x0000000000000000000000000000000000000000",
+  "relaySigners": [],
+  "referenceQuorum": 1,
+  "referenceMaxAgeMs": 15000,
+  "bondToken": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+  "pyth": "0x2880aB155794e7179c9eE2e38200202908C17B43",
+  "keeperReward": 0,
+  "tokens": [
+    "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+    "0x701193374879131f923532987c7Ef363a91a80eB",
+    "0x4716Cfb68C73BfF797Eea4f94ffAD8d198aEfC4B",
+    "0x1446501E886c7f830DB9b494A1890cBCCC072f57",
+    "0x17683e492d0C8910F7c0157D04af31Cb7A23Ad71",
+    "0x10FAD4A60Adb421F8F5Ca6f9f2eAf2DbC110E146",
+    "0xD8c1DAe1c55B2fA349F78Ce34553E075AAD6b8A2",
+    "0x294F40996134D067B56dcbACBf6a36396BBBeA7a",
+    "0x3e4A2f26Fc4F92d92D7CD1e49ddaDe32869D00A4",
+    "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A",
+    "0x39bb4E0a204412bB98e821d25e7d955e69d40Fd1"
+  ],
+  "restricted": [false, true, true, true, true, true, true, true, true, false, false],
+  "markets": [
+    {
+      "symbol": "aNVDA/AUSD", "base": "0x701193374879131f923532987c7Ef363a91a80eB", "quote": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "reference": "operator", "tickSize": 10000, "maxBandTicks": 4001, "bandBps": 100, "feeBps": 3, "maxFeeBps": 10, "shards": 4,
+      "permissioned": false, "regime": [200, 726, 100, 726, 235800, 10], "vault": [10, 40, 10, 15, 1000, 30, 2, 4], "seedPrice": 180000000
+    },
+    {
+      "symbol": "aSPY/AUSD", "base": "0x4716Cfb68C73BfF797Eea4f94ffAD8d198aEfC4B", "quote": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "reference": "operator", "tickSize": 10000, "maxBandTicks": 4001, "bandBps": 50, "feeBps": 3, "maxFeeBps": 10, "shards": 4,
+      "permissioned": false, "regime": [100, 255, 50, 255, 235800, 10], "vault": [5, 40, 10, 15, 1000, 20, 2, 4], "seedPrice": 660000000
+    },
+    {
+      "symbol": "aQQQ/AUSD", "base": "0x1446501E886c7f830DB9b494A1890cBCCC072f57", "quote": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "reference": "operator", "tickSize": 10000, "maxBandTicks": 4801, "bandBps": 60, "feeBps": 3, "maxFeeBps": 10, "shards": 4,
+      "permissioned": false, "regime": [120, 331, 60, 331, 235800, 10], "vault": [6, 40, 10, 15, 1000, 20, 2, 4], "seedPrice": 600000000
+    },
+    {
+      "symbol": "aAAPL/AUSD", "base": "0x17683e492d0C8910F7c0157D04af31Cb7A23Ad71", "quote": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "reference": "operator", "tickSize": 10000, "maxBandTicks": 4001, "bandBps": 80, "feeBps": 3, "maxFeeBps": 10, "shards": 4,
+      "permissioned": false, "regime": [160, 593, 80, 593, 235800, 10], "vault": [8, 40, 10, 15, 1000, 25, 2, 4], "seedPrice": 250000000
+    },
+    {
+      "symbol": "aTSLA/AUSD", "base": "0x10FAD4A60Adb421F8F5Ca6f9f2eAf2DbC110E146", "quote": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "reference": "operator", "tickSize": 10000, "maxBandTicks": 8001, "bandBps": 120, "feeBps": 3, "maxFeeBps": 10, "shards": 4,
+      "permissioned": false, "regime": [240, 796, 120, 796, 235800, 10], "vault": [12, 40, 10, 15, 1000, 30, 2, 4], "seedPrice": 430000000
+    },
+    {
+      "symbol": "aCOIN/AUSD", "base": "0xD8c1DAe1c55B2fA349F78Ce34553E075AAD6b8A2", "quote": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "reference": "operator", "tickSize": 10000, "maxBandTicks": 8001, "bandBps": 150, "feeBps": 3, "maxFeeBps": 10, "shards": 4,
+      "permissioned": false, "regime": [300, 979, 150, 979, 235800, 10], "vault": [15, 40, 10, 15, 1000, 40, 2, 4], "seedPrice": 320000000
+    },
+    {
+      "symbol": "aMSTR/AUSD", "base": "0x294F40996134D067B56dcbACBf6a36396BBBeA7a", "quote": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "reference": "operator", "tickSize": 10000, "maxBandTicks": 12001, "bandBps": 200, "feeBps": 3, "maxFeeBps": 10, "shards": 4,
+      "permissioned": false, "regime": [400, 1477, 200, 1477, 235800, 10], "vault": [20, 40, 10, 15, 1000, 50, 2, 4], "seedPrice": 330000000
+    },
+    {
+      "symbol": "aGLD/AUSD", "base": "0x3e4A2f26Fc4F92d92D7CD1e49ddaDe32869D00A4", "quote": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "reference": "operator", "tickSize": 10000, "maxBandTicks": 4001, "bandBps": 60, "feeBps": 3, "maxFeeBps": 10, "shards": 4,
+      "permissioned": false, "regime": [120, 314, 60, 314, 235800, 10], "vault": [6, 40, 10, 15, 1000, 20, 2, 4], "seedPrice": 380000000
+    },
+    {
+      "symbol": "WMON/AUSD", "base": "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A", "quote": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "reference": "chainlink", "feed": "0xBcD78f76005B7515837af6b50c7C52BCf73822fb", "quoteFeed": "0xE20751C7B5867bCBef815ffc1b284c3f412a9e13",
+      "quoteDecimals": 6, "feedMaxAgeSec": 3600, "quoteFeedMaxAgeSec": 90000, "session": [0, 0],
+      "tickSize": 1, "maxBandTicks": 12001, "bandBps": 200, "feeBps": 3, "maxFeeBps": 10, "shards": 4,
+      "permissioned": false, "regime": [400, 1000, 200, 1000, 86400, 10], "vault": [20, 50, 10, 20, 1000, 0, 1, 2], "seedPrice": 33702
+    },
+    {
+      "symbol": "GBPm/AUSD", "base": "0x39bb4E0a204412bB98e821d25e7d955e69d40Fd1", "quote": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "reference": "chainlink", "feed": "0x1ffC8B75a16FFfbd7879F042B580F7607Dcf5C30", "quoteFeed": "0xE20751C7B5867bCBef815ffc1b284c3f412a9e13",
+      "quoteDecimals": 6, "feedMaxAgeSec": 90000, "quoteFeedMaxAgeSec": 90000, "session": [597600, 424800],
+      "tickSize": 100, "maxBandTicks": 801, "bandBps": 50, "feeBps": 2, "maxFeeBps": 10, "shards": 4,
+      "permissioned": false, "regime": [100, 150, 50, 150, 172800, 10], "vault": [5, 40, 10, 10, 1000, 20, 2, 4], "seedPrice": 1324250
+    }
+  ]
+}

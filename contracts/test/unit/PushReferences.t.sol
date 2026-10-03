@@ -85,6 +85,7 @@ contract PushReferencesTest is Test {
             AggregatorV3Interface(address(ausd)),
             6,
             86_400,
+            86_400,
             Session.FX_OPEN,
             Session.FX_CLOSE
         );
@@ -105,7 +106,7 @@ contract PushReferencesTest is Test {
         MockAggregator mon = new MockAggregator(8);
         mon.set(0.032e8, block.timestamp - 2 hours);
         ChainlinkReference cl = new ChainlinkReference(address(this));
-        cl.setFeed(1, AggregatorV3Interface(address(mon)), AggregatorV3Interface(address(0)), 6, 3_600, 0, 0);
+        cl.setFeed(1, AggregatorV3Interface(address(mon)), AggregatorV3Interface(address(0)), 6, 3_600, 3_600, 0, 0);
         (uint256 px,, IReferenceAdapter.Status st) = cl.read(1, 0, "");
         assertEq(px, 32_000);
         assertEq(uint8(st), uint8(IReferenceAdapter.Status.CLOSED));
