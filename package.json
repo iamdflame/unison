@@ -1,7 +1,7 @@
 {
   "name": "unison",
   "private": true,
-  "description": "Unison — the stock market that never closes, and can't be front-run. Per-block frequent batch auctions for tokenized assets on Monad.",
+  "description": "Unison \u2014 the stock market that never closes, and can't be front-run. Per-block frequent batch auctions for tokenized assets on Monad.",
   "license": "MIT",
   "packageManager": "pnpm@12.8.1",
   "engines": {
@@ -14,7 +14,8 @@
     "lint": "pnpm -r --if-present lint",
     "contracts:build": "cd contracts && forge build",
     "contracts:test": "cd contracts && forge test",
-    "verify": "pnpm contracts:build && pnpm contracts:test && pnpm -r --if-present typecheck && pnpm -r --if-present test"
+    "verify": "pnpm contracts:build && pnpm contracts:test && pnpm -r --if-present typecheck && pnpm -r --if-present test && pnpm contracts:diff",
+    "contracts:diff": "cd contracts && FOUNDRY_PROFILE=diff forge test"
   },
   "devDependencies": {
     "typescript": "^5.9.0"
