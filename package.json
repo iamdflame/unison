@@ -15,7 +15,7 @@
     "contracts:build": "cd contracts && forge build",
     "contracts:test": "cd contracts && forge test",
     "verify": "pnpm contracts:build && pnpm contracts:test && pnpm -r --if-present typecheck && pnpm -r --if-present test && pnpm contracts:diff",
-    "contracts:diff": "cd contracts && FOUNDRY_PROFILE=diff forge test"
+    "contracts:diff": "node scripts/forge-diff.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.0"
