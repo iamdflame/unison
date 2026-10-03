@@ -1,0 +1,49 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# builds
+dist/
+build/
+out/
+cache/
+*.tsbuildinfo
+coverage/
+.turbo/
+
+# foundry
+contracts/out/
+contracts/cache/
+contracts/broadcast/*/31337/
+contracts/broadcast/**/dry-run/
+
+# python
+__pycache__/
+.venv/
+*.pyc
+.ipynb_checkpoints/
+
+# envio
+services/indexer/generated/
+services/indexer/.envio/
+
+# secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+keystore/
+
+# os / editors
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# personal Claude Code workspace (skills, memory, settings) — not part of the product
+.claude/
+
+# private strategy ledger (research, crowd map, pitch). Ask before publishing.
+.outlier/
