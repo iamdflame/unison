@@ -34,10 +34,10 @@ const tape = new TapeClient(TAPE_URL);
 
 // one uniform price per batch, as it clears
 tape.stream(["prints:0"], {
-  print: (p) => console.log(p.upTo, p.price, p.deviationBps, p.receiptHash),
+  print: (p) => console.log(p.upTo, p.price, p.receiptHash),
 });
 
-// or ask: last prints, candles, fairness, an account's orders and fills
+// or ask: prints, candles, fairness, an account's fills
 const fairness = await tape.fairness(0, { window: "24h" });`;
 
 const TRADE = `import { buildOrder, RelayerClient, Side, signAsSession, tickOfPrice } from "@unison/sdk";

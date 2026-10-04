@@ -10,7 +10,29 @@ import { liveClients } from "@/lib/venue/live";
 interface Line {
   id: number;
   event: "head" | "print";
-  data: string;
+  /** what a person reads: block, price and size in their units */
+  text: string;
+  /** the exact JSON a client receives, one hover away */
+  raw: string;
+}
+
+type PrintData = { marketId: number; upTo: number; price: string; volume: string; refPrice: string; regime: string; receiptHash?: string };
+const usd = (q: string) => `$${(Number(q) / 1e6).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const shares = (v: string) => (Number(BigInt(v) / 10n ** 12n) / 1e6).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/** One event as a person reads it; the raw JSON stays on the line for anyone who hovers. */
+function readable(event: Line["event"], data: unknown, tickerOf: (id: number) => string): string {
+  if (event === "head") {
+    const h = data as { block: number; ts: number };
+    return `block ${h.block.toLocaleString("en-US")} · ${new Date(h.ts).toISOString().slice(11, 19)} UTC`;
+  }
+  const p = data as PrintData;
+  const t = tickerOf(p.marketId);
+  // an auction that ran and found no cross still prints, with nothing traded
+  if (p.volume === "0") return [`block ${p.upTo.toLocaleString("en-US")}`, `${t} no trade`, `ref ${usd(p.refPrice)}`, p.regime.toLowerCase()].join(" · ");
+  return [`block ${p.upTo.toLocaleString("en-US")}`, `${t} ${usd(p.price)}`, `${shares(p.volume)} ${t}`, `ref ${usd(p.refPrice)}`, p.regime.toLowerCase(), p.receiptHash ?? ""]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 /** lines the console holds: its height (22.5rem) at 11.5/18.4 px, so it is always full */
@@ -30,8 +52,10 @@ export function TapeConsole() {
 
   useEffect(() => {
     if (!v.ready) return;
+    const ids = live ? v.net!.deployment.markets : {};
+    const tickerOf = (id: number) => Object.entries(ids).find(([, m]) => m.id === id)?.[0].split("/")[0] ?? (live ? `market ${id}` : "aNVDA");
     const push = (event: Line["event"], data: unknown) =>
-      setLines((l) => [...l.slice(-(MAX - 1)), { id: ++seq.current, event, data: JSON.stringify(data) }]);
+      setLines((l) => [...l.slice(-(MAX - 1)), { id: ++seq.current, event, text: readable(event, data, tickerOf), raw: JSON.stringify(data) }]);
     if (live) {
       const { tape } = liveClients(v.net!);
       const firstId = v.net!.deployment.markets[marketByTicker("aNVDA")!.symbol]?.id ?? 0;
@@ -106,14 +130,15 @@ export function TapeConsole() {
           {live ? "Live" : "Simulation"}
         </span>
       </figcaption>
-      <div className="flex h-[22.5rem] flex-col justify-end overflow-hidden p-4 font-mono text-[11.5px] leading-[1.6]" aria-live="off">
+      <div className="flex h-[22.5rem] flex-col justify-end overflow-hidden p-4 font-mono text-[11.5px] leading-[1.6] [font-variant-ligatures:none]" aria-live="off">
         {lines.map((l) => (
-          <div key={l.id} className="truncate motion-safe:animate-[fade-in_240ms_ease-out]">
-            <span className={l.event === "print" ? "text-accent" : "text-ink-3"}>event: {l.event}</span>{" "}
-            <span className={l.event === "print" ? "text-ink" : "text-ink-3"}>{l.data}</span>
+          <div key={l.id} title={l.raw} className="truncate motion-safe:animate-[fade-in_240ms_ease-out]">
+            <span className={`inline-block w-[6ch] ${l.event === "print" ? "text-accent" : "text-ink-3"}`}>{l.event}</span>
+            <span className={l.event === "print" ? "text-ink" : "text-ink-3"}>{l.text}</span>
           </div>
         ))}
       </div>
+      <p className="border-t border-line px-4 py-2 text-[11px] text-ink-3">Formatted for reading; hover a line for the JSON a client receives.</p>
     </figure>
   );
 }

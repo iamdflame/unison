@@ -109,16 +109,25 @@ export function FairnessLive() {
 
 function Chain({ links, spec }: { links: ChainLink[]; spec: MarketSpec }) {
   const { fmt } = priceFormat(spec);
+  // As many whole cards as fit, led by a note that the chain goes on: never a card cut by a fade.
+  const [ref, size] = useSize<HTMLDivElement>();
+  const fit = size.width > 0 ? Math.max(1, Math.floor((size.width - 112) / 208)) : 0;
+  const shown = links.slice(-fit);
   return (
-    <div className="relative mt-10 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_14%)]" aria-label={`The last ${links.length} batches of ${spec.ticker} and their receipt hashes`} role="list">
+    <div ref={ref} className="relative mt-10" aria-label={`The last ${shown.length} batches of ${spec.ticker} and their receipt hashes`} role="list">
       <div className="flex min-h-[188px] items-stretch justify-end">
-        {links.map((l, i) => (
+        {shown.length ? (
+          <div className="flex shrink-0 items-center" aria-hidden>
+            <span className="text-xs text-ink-3">earlier</span>
+            <span className="ml-3 h-px w-14 bg-gradient-to-r from-transparent to-champagne" />
+          </div>
+        ) : null}
+        {shown.map((l) => (
           <div key={l.upTo} role="listitem" className="flex shrink-0 items-center motion-safe:animate-[link-in_420ms_cubic-bezier(0.23,1,0.32,1)]">
-            {i > 0 ? (
-              <span className="flex w-7 items-center" aria-hidden>
-                <span className={`h-px flex-1 ${l.ok ? "bg-champagne" : "bg-halt"}`} />
-              </span>
-            ) : null}
+            {/* every card hangs from the chain: the one before it, or the earlier ones */}
+            <span className="flex w-7 items-center" aria-hidden>
+              <span className={`h-px flex-1 ${l.ok ? "bg-champagne" : "bg-halt"}`} />
+            </span>
             <div className="w-[180px] rounded-[var(--radius-lg)] bg-raised p-4 shadow-panel">
               <div className="flex items-center justify-between">
                 <span className="dial-label text-ink-3">Batch</span>
