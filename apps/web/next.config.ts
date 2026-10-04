@@ -31,6 +31,9 @@ const config: NextConfig = {
     root,
     resolveAlias: {
       "@unison/sdk": "./../../packages/sdk/src/index.ts",
+      // light entry points, so pages that only need the market calendar don't pull viem in through the barrel
+      "@unison/sdk/calendar": "./../../packages/sdk/src/calendar.ts",
+      "@unison/sdk/types": "./../../packages/sdk/src/types.ts",
       "@unison/engine": "./../../packages/engine/src/index.ts",
     },
   },

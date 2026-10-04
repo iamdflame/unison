@@ -8,7 +8,10 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
     <>
       <SmoothScroll />
       <Nav />
-      <main id="main">{children}</main>
+      {/* clip, not hidden: no scroll container, so pinned chapters stay sticky; 3D plates can't widen the page */}
+      <main id="main" className="overflow-x-clip">
+        {children}
+      </main>
       <Footer />
     </>
   );

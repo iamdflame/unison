@@ -1,4 +1,4 @@
-import { NYSE_EARLY_CLOSES, NYSE_HOLIDAYS } from "@unison/sdk";
+import { NYSE_EARLY_CLOSES, NYSE_HOLIDAYS } from "@unison/sdk/calendar";
 import { PALETTE_KEY, THEME_COLOR, THEME_KEY } from "./theme.ts";
 
 /**

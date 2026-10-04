@@ -4,6 +4,7 @@
   "description": "TypeScript SDK for Unison — per-block batch auctions for tokenized assets on Monad.",
   "license": "MIT",
   "type": "module",
+  "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -31,6 +32,16 @@
       "development": "./src/relayer.ts",
       "types": "./dist/relayer.d.ts",
       "import": "./dist/relayer.js"
+    },
+    "./calendar": {
+      "development": "./src/calendar.ts",
+      "types": "./dist/calendar.d.ts",
+      "import": "./dist/calendar.js"
+    },
+    "./types": {
+      "development": "./src/types.ts",
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js"
     }
   },
   "files": [

@@ -1,4 +1,5 @@
-import { NYSE_HOLIDAYS, Status, usEquitySession, type StatusCode } from "@unison/sdk";
+import { NYSE_HOLIDAYS, usEquitySession } from "@unison/sdk/calendar";
+import { Status, type StatusCode } from "@unison/sdk/types";
 
 /**
  * Where Wall Street is in its week, and what that means for Unison: the light of the site, the hero's copy,

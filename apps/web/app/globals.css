@@ -222,14 +222,23 @@
 }
 
 /* ---------------------------------------------------------------- utilities */
+/* Tabular figures, for numbers that change or align in columns. Mona Sans draws its tabular zero slashed (and so
+   does ss08); standalone money uses `figures`, whose zero is open. */
 @utility tnum {
   font-variant-numeric: tabular-nums lining-nums;
   font-feature-settings: "tnum" 1, "lnum" 1;
 }
+@utility figures {
+  font-variant-numeric: proportional-nums lining-nums;
+  font-feature-settings: "pnum" 1, "lnum" 1;
+}
 
 @utility text-display-xxl {
   font-family: var(--font-display);
-  font-variation-settings: "opsz" 96;
+  font-optical-sizing: auto;
+  @media (max-resolution: 1.5dppx) {
+    font-variation-settings: "opsz" 40;
+  }
   font-weight: 400;
   font-size: clamp(3.5rem, 9vw, 9.5rem);
   line-height: 0.92;
@@ -237,7 +246,10 @@
 }
 @utility text-display-xl {
   font-family: var(--font-display);
-  font-variation-settings: "opsz" 96;
+  font-optical-sizing: auto;
+  @media (max-resolution: 1.5dppx) {
+    font-variation-settings: "opsz" 36;
+  }
   font-weight: 400;
   font-size: clamp(2.75rem, 6vw, 6rem);
   line-height: 0.95;
@@ -245,7 +257,10 @@
 }
 @utility text-display-l {
   font-family: var(--font-display);
-  font-variation-settings: "opsz" 72;
+  font-optical-sizing: auto;
+  @media (max-resolution: 1.5dppx) {
+    font-variation-settings: "opsz" 30;
+  }
   font-weight: 400;
   font-size: clamp(2.25rem, 4.2vw, 4rem);
   line-height: 1;
@@ -253,7 +268,10 @@
 }
 @utility text-display-m {
   font-family: var(--font-display);
-  font-variation-settings: "opsz" 48;
+  font-optical-sizing: auto;
+  @media (max-resolution: 1.5dppx) {
+    font-variation-settings: "opsz" 24;
+  }
   font-weight: 400;
   font-size: clamp(1.75rem, 2.6vw, 2.5rem);
   line-height: 1.05;
@@ -264,6 +282,9 @@
   line-height: 1.55;
   letter-spacing: -0.003em;
 }
+/* Display type takes the optical size of its rendered size (Bodoni Moda's opsz axis, 6–96): a fixed 96 drew
+   hairlines meant for 96 pt type at 28–60 px, and they vanished on standard-density screens, which also get a
+   sturdier cut below. */
 /* Figures set in Bodoni at mid sizes need a sturdier optical cut: at opsz 48+ the hairlines of 4 and 7 vanish. */
 @utility numerals {
   font-family: var(--font-display);

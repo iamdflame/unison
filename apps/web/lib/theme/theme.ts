@@ -1,4 +1,5 @@
-import { Status, usEquitySession, type StatusCode } from "@unison/sdk";
+import { usEquitySession } from "@unison/sdk/calendar";
+import { Status, type StatusCode } from "@unison/sdk/types";
 import { marketMoment } from "../time/market.ts";
 
 /** What the visitor chose. "market" (default) lets the light follow the US equity session. */

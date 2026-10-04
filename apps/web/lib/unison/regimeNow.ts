@@ -1,5 +1,5 @@
 import { deriveRegime, regimeBandBps, type RegimeName } from "@unison/engine";
-import { usEquitySession } from "@unison/sdk";
+import { usEquitySession } from "@unison/sdk/calendar";
 import type { MarketSpec } from "../content/markets.ts";
 import { lastClose } from "../time/market.ts";
 
