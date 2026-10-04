@@ -55,7 +55,8 @@ function fakeClient(s: FakeState) {
       s.pending = false;
       return "0x01" as Hex;
     }),
-    clear: vi.fn(async () => {
+    clear: vi.fn(async (_m: bigint, _p: string, g?: bigint) => {
+      gas.push(g);
       sent.push("continue");
       s.phase = 0;
       return "0x02" as Hex;
@@ -181,6 +182,39 @@ describe("CLEAR_GAS", () => {
     const { client, gas } = fakeClient({ ...base, pending: true, simVolume: 5n, lastCleared: 196n, estimate: 2_000_000n });
     await keeper(client, "auto").tick(200n);
     expect(gas).toEqual([2_400_000n]);
+  });
+
+  it("auto: a paused job continues with the full budget, never an estimate (it would settle on pausing)", async () => {
+    const { client, gas } = fakeClient({ ...base, phase: 2, estimate: 64_000n });
+    await keeper(client, "auto").tick(200n);
+    expect(gas).toEqual([25_000_000n]);
+  });
+
+  it("auto: an opening estimate is clamped to the floor and the budget", async () => {
+    const low = fakeClient({ ...base, pending: true, simVolume: 5n, lastCleared: 196n, estimate: 60_000n });
+    await keeper(low.client, "auto").tick(200n);
+    expect(low.gas).toEqual([2_000_000n]);
+    const high = fakeClient({ ...base, pending: true, simVolume: 5n, lastCleared: 196n, estimate: 40_000_000n });
+    await keeper(high.client, "auto").tick(200n);
+    expect(high.gas).toEqual([25_000_000n]);
+  });
+
+  it("auto: the attempt after a reverted clear gets the full budget", async () => {
+    const state = { ...base, pending: true, simVolume: 5n, lastCleared: 196n, estimate: 3_000_000n };
+    const { client, gas } = fakeClient(state);
+    const receipts = (client.publicClient as unknown as { waitForTransactionReceipt: ReturnType<typeof vi.fn> }).waitForTransactionReceipt;
+    receipts.mockResolvedValueOnce({ status: "reverted", gasUsed: 2_953_125n });
+    const k = keeper(client, "auto");
+    await k.tick(200n);
+    state.pending = true;
+    state.lastCleared = 196n;
+    await k.tick(201n);
+    expect(gas).toEqual([3_600_000n, 25_000_000n]);
+    // and once one goes through, estimates resume
+    state.pending = true;
+    state.lastCleared = 197n;
+    await k.tick(202n);
+    expect(gas.at(-1)).toBe(3_600_000n);
   });
 
   it("a fixed limit is passed through untouched", async () => {

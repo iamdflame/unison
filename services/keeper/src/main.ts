@@ -1,6 +1,7 @@
 /**
  * Keeper process. Env: RPC_URL, DEPLOYMENT, KEEPER_PRIVATE_KEY, RELAY_URL (http://127.0.0.1:8787),
- * CLEAR_GAS (8000000, or "auto" = estimateGas × 1.2), REPRICE_EVERY (5 blocks), AUTO_CLAIM (1), POLL_MS (250)
+ * CLEAR_GAS (8000000, or "auto" = estimateGas × 1.2 for an opening clear), MIN_CLEAR_GAS (2000000) and MAX_CLEAR_GAS
+ * (25000000: auto mode's continuations and retries), REPRICE_EVERY (5 blocks), AUTO_CLAIM (1), POLL_MS (250)
  */
 import { createPublicClient, createWalletClient, http, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -28,6 +29,8 @@ export async function startKeeper() {
     relayUrl: env("RELAY_URL", "http://127.0.0.1:8787"),
     marketIds: Object.values(deployment.markets).map((m) => BigInt(m.id)),
     clearGas: parseClearGas(env("CLEAR_GAS", "8000000")),
+    minClearGas: BigInt(env("MIN_CLEAR_GAS", "2000000")),
+    maxClearGas: BigInt(env("MAX_CLEAR_GAS", "25000000")),
     repriceEvery: BigInt(env("REPRICE_EVERY", "5")),
     maxPendingAge: BigInt(env("MAX_PENDING_AGE", "10")),
     autoClaim: env("AUTO_CLAIM", "1") === "1",

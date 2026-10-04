@@ -9,7 +9,10 @@
  *   3. after a completed job       → process the market's vault queue if requests wait
  *   4. optionally                  → claim orders whose level closed (frees slots, credits balances)
  * Monad charges the gas LIMIT: clear calls use a fixed, explicit limit (the job pauses itself well before it), or
- * with `clearGas: "auto"` the call's estimate × 1.2.
+ * with `clearGas: "auto"` the call's estimate × 1.2, clamped to [minClearGas, maxClearGas]. A job pauses itself
+ * once gas runs low, so an estimator can always "succeed" by pausing again at once, settling on a limit that makes
+ * no progress. Auto mode therefore never estimates a continuation: a paused job (and the attempt after a failed
+ * clear) gets the full maxClearGas, which must cover the auction's one non-yielding step.
  */
 import { decodeEventLog, parseAbi, type Address, type Hex } from "viem";
 import { JobPhase, Status, unisonExchangeAbi, type MarketState, type UnisonClient } from "@unison/sdk";
@@ -23,8 +26,12 @@ export interface KeeperConfig {
   client: UnisonClient;
   relayUrl: string;
   marketIds: bigint[];
-  /** explicit gas limit for clear calls, or "auto" = estimateGas × 1.2 */
+  /** explicit gas limit for clear calls, or "auto" = estimateGas × 1.2 within [minClearGas, maxClearGas] */
   clearGas: bigint | "auto";
+  /** auto: floor for an opening clear (default 2,000,000) */
+  minClearGas?: bigint;
+  /** auto: continuations and retries after a failed clear (default 25,000,000) */
+  maxClearGas?: bigint;
   repriceEvery: bigint;
   /** pending batches older than this many blocks are merged even if the auction would not trade */
   maxPendingAge: bigint;
@@ -95,18 +102,24 @@ export class Keeper {
     }
   }
 
-  /** Gas limit for a clear call: the configured one, or the estimate × 1.2. */
-  async clearGasFor(functionName: "clear" | "clearUpTo", args: readonly unknown[]): Promise<bigint> {
+  /** markets whose last clear attempt reverted: the next one gets the full budget */
+  private failed = new Set<bigint>();
+
+  /**
+   * Gas limit for a clear call: the configured one; or, in auto mode, the estimate × 1.2 for an opening clear
+   * (clamped), and the full budget for a continuation or a retry, where an estimate would settle on pausing.
+   */
+  async clearGasFor(functionName: "clear" | "clearUpTo", args: readonly unknown[], marketId?: bigint): Promise<bigint> {
     if (this.cfg.clearGas !== "auto") return this.cfg.clearGas;
+    const min = this.cfg.minClearGas ?? 2_000_000n;
+    const max = this.cfg.maxClearGas ?? 25_000_000n;
+    if (functionName === "clear" || (marketId !== undefined && this.failed.has(marketId))) return max;
     const c = this.cfg.client;
-    const est = await c.publicClient.estimateContractGas({
-      address: c.exchange,
-      abi: unisonExchangeAbi,
-      functionName,
-      args: args as never,
-      account: c.walletClient!.account,
-    });
-    return (est * 12n + 9n) / 10n;
+    const est = await c.publicClient
+      .estimateContractGas({ address: c.exchange, abi: unisonExchangeAbi, functionName, args: args as never, account: c.walletClient!.account })
+      .catch(() => max);
+    const g = (est * 12n + 9n) / 10n;
+    return g < min ? min : g > max ? max : g;
   }
 
   async fetchPayload(marketId: bigint, batch: bigint): Promise<{ payload: Hex; status: number }> {
@@ -139,8 +152,8 @@ export class Keeper {
     try {
       const phase = await c.jobPhase(marketId);
       if (phase !== JobPhase.IDLE) {
-        const gas = await this.clearGasFor("clear", [marketId, "0x"]);
-        await this.send(c.clear(marketId, "0x", gas), { marketId, action: "clear.continue" });
+        const gas = await this.clearGasFor("clear", [marketId, "0x"], marketId);
+        await this.sendClear(marketId, c.clear(marketId, "0x", gas), { marketId, action: "clear.continue" });
         sent++;
       } else {
         const m = await c.market(marketId);
@@ -162,8 +175,8 @@ export class Keeper {
         const sim = await c.simulateClearUpTo(marketId, upTo, payload);
         const mustMerge = pending && age >= this.cfg.maxPendingAge;
         if (sim.volume === 0n && !mustMerge && !vaultWaiting) return 0;
-        const gas = await this.clearGasFor("clearUpTo", [marketId, upTo, payload]);
-        await this.send(c.clearUpTo(marketId, upTo, payload, gas), {
+        const gas = await this.clearGasFor("clearUpTo", [marketId, upTo, payload], marketId);
+        await this.sendClear(marketId, c.clearUpTo(marketId, upTo, payload, gas), {
           marketId,
           action: "clear.open",
           upTo,
@@ -220,6 +233,17 @@ export class Keeper {
       sent++;
     }
     return sent;
+  }
+
+  /** A clear, remembering whether it went through so a failed one is retried with the full budget. */
+  private async sendClear(marketId: bigint, p: Promise<Hex>, ctx: Record<string, unknown>) {
+    try {
+      await this.send(p, ctx);
+      this.failed.delete(marketId);
+    } catch (e) {
+      this.failed.add(marketId);
+      throw e;
+    }
   }
 
   private async send(p: Promise<Hex>, ctx: Record<string, unknown>) {

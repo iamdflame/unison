@@ -121,7 +121,7 @@ Keep both services' `CORS_ORIGINS` in step with the web app's origins.
 
 `CLEAR_GAS` defaults to a fixed limit (`8000000`). `CLEAR_GAS=auto` sends the clear's `eth_estimateGas` × 1.2 instead, and Monad charges the limit, so it is usually much cheaper. On anvil it sized every e2e clear at 1.22–1.41× the gas used and each job finished in one call (0.46M–2.9M against 8M).
 
-Check it on the target RPC before switching: a clear pauses itself once gas runs below its reserve, so an estimator that settled on a pausing gas level would spread one job over several `clear` calls. Watch for `clear.continue` lines in the keeper log.
+A clear pauses itself once gas runs below its reserve, so an estimator can always "succeed" by pausing again at once. On the devnet that happened: a paused job was continued with 77k-gas calls that made no progress, indefinitely. Auto mode therefore estimates only an opening clear (clamped to `MIN_CLEAR_GAS`, default 2M, and `MAX_CLEAR_GAS`, default 25M), and gives a continuation, or the attempt after a failed clear, the full `MAX_CLEAR_GAS`. That budget must cover the auction's one non-yielding step (building the batch's curve), which grows with the number of non-empty book shards and buckets in the band. Keep it at or under the network's per-transaction gas limit, and watch for `clear.continue` lines in the keeper log.
 
 ## Local stack
 
