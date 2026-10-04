@@ -126,8 +126,8 @@ contract CurveDiffTest is Test {
             depthBps: uint16(_r(seed, 101) % 6 == 0 ? _r(seed, 102) % 10_001 : _r(seed, 102) % 200),
             widthTicks: uint16(1 + _r(seed, 103) % 40),
             maxSkewTicks: uint16(_r(seed, 104) % 60),
-            maxAuctionBps: uint16(_r(seed, 105) % 6 == 0 ? _r(seed, 106) % 10_001 : _r(seed, 106) % 2_000),
-            swingBps: uint16(_r(seed, 107) % 1_001),
+            maxAuctionBps: uint16(_r(seed, 105) % 6 == 0 ? _r(seed, 106) % 10_001 : _r(seed, 106) % 2000),
+            swingBps: uint16(_r(seed, 107) % 1001),
             extMult: uint8(1 + _r(seed, 108) % 6),
             closedMult: uint8(1 + _r(seed, 109) % 8),
             paused: _r(seed, 110) % 20 == 0
@@ -176,7 +176,7 @@ contract CurveDiffTest is Test {
         if (mode == 4) q = _r(seed, 4) >> (_r(seed, 5) % 64);
         uint256 tickMode = _r(seed, 8) % 8;
         uint256 refTick = tickMode == 0
-            ? (1 << 32) - 64 + _r(seed, 9) % 128 // bidTop / askBottom straddle the uint32 cast
+            ? (1 << 32) - 64 + _r(seed, 9) % 128  // bidTop / askBottom straddle the uint32 cast
             : tickMode == 1 ? _r(seed, 9) >> (_r(seed, 10) % 32) : 1 + _r(seed, 9) % ((1 << 21) - 1);
         uint8 status = uint8(_r(seed, 11) % 5);
         venue.setBalance(address(vault), address(nvda), b);
@@ -213,8 +213,8 @@ contract CurveDiffTest is Test {
     }
 
     function _createMarket(uint256 seed, Auction memory a) internal {
-        a.tickSize = [uint256(1_000), 10_000, 100_000, 10_000][_r(seed, 1) % 4];
-        uint256 target = 200 + _r(seed, 2) % 1_500_000 / (a.tickSize / 1_000); // refTick
+        a.tickSize = [uint256(1000), 10_000, 100_000, 10_000][_r(seed, 1) % 4];
+        uint256 target = 200 + _r(seed, 2) % 1_500_000 / (a.tickSize / 1000); // refTick
         a.px = target * a.tickSize + _r(seed, 3) % a.tickSize;
         a.mkt = ex.createMarket(
             UnisonExchange.MarketParams({
@@ -224,7 +224,7 @@ contract CurveDiffTest is Test {
                 tickSize: uint64(a.tickSize),
                 minTick: 1,
                 maxTick: uint32((1 << 21) - 1),
-                maxBandTicks: uint32(1 + _r(seed, 4) % 4_001),
+                maxBandTicks: uint32(1 + _r(seed, 4) % 4001),
                 bandBps: uint16(1 + _r(seed, 5) % 400),
                 feeBps: 3,
                 maxFeeBps: 10,
@@ -235,7 +235,7 @@ contract CurveDiffTest is Test {
         );
         if (_r(seed, 6) % 2 == 0) {
             uint16 floor = uint16(1 + _r(seed, 7) % 300);
-            ex.setRegime(a.mkt, uint16(1 + _r(seed, 8) % 800), uint16(1 + _r(seed, 9) % 2_000), floor, floor, 0, 10);
+            ex.setRegime(a.mkt, uint16(1 + _r(seed, 8) % 800), uint16(1 + _r(seed, 9) % 2000), floor, floor, 0, 10);
         }
         a.status = _r(seed, 10) % 4;
     }
@@ -249,7 +249,7 @@ contract CurveDiffTest is Test {
         uint256 vq = _r(seed, 22) % 4 == 0 ? 0 : _r(seed, 23) % 1e13;
         uint256 k = _r(seed, 20) % 4;
         // base worth 0-3x the quote at the reference most of the time: inventory skews of both signs
-        uint256 vb = k == 0 ? 0 : k == 1 ? _r(seed, 21) % 5_000e18 : vq * (_r(seed, 21) % 30_000) * B / (10_000 * a.px);
+        uint256 vb = k == 0 ? 0 : k == 1 ? _r(seed, 21) % 5000e18 : vq * (_r(seed, 21) % 30_000) * B / (10_000 * a.px);
         _fund(address(a.vault), vb, vq);
         (w[o], w[o + 10], w[o + 11]) = (0, vb, vq);
         o += 12;
@@ -288,7 +288,7 @@ contract CurveDiffTest is Test {
     function _orders(uint256 seed, Auction memory a, uint256[] memory w, uint256 o) internal {
         uint256 ref = a.px / a.tickSize;
         for (uint256 i = 0; i < a.nOrders; ++i) {
-            uint256 rr = _r(seed, 1_000 + i);
+            uint256 rr = _r(seed, 1000 + i);
             uint256 side = rr % 2;
             uint256 spread = 1 + (rr >> 8) % 300;
             uint256 tick = (rr >> 24) % 2 == 0 ? ref + (rr >> 32) % spread : ref - (rr >> 32) % spread;
@@ -318,7 +318,7 @@ contract CurveDiffTest is Test {
         w[5] = ex.market(a.mkt).bandBps;
         (w[6], w[7], w[8], w[9]) = (B, a.status, 0, a.t);
         (w[10], w[11], w[12], w[13], w[14]) =
-            (g.extBandBps, g.reopenBandBps, g.discFloorBps, g.discCapBps, g.discHorizonSec);
+        (g.extBandBps, g.reopenBandBps, g.discFloorBps, g.discCapBps, g.discHorizonSec);
         (w[15], w[16], w[17], w[18]) = (g.discCadence, g.halted ? 1 : 0, g.closedSince, g.lastDiscoveryBatch);
         (w[19], w[20]) = (a.nSources, a.nOrders);
 

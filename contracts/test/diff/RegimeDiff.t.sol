@@ -97,13 +97,13 @@ contract RegimeDiffTest is Test {
         uint256 ts = k == 0 ? 1 : k == 1 ? 100 : k == 2 ? 10_000 : 1 + _r(seed, 1) % 1e6;
         uint256 minTick = 1 + _r(seed, 2) % 50;
         uint256 maxTick = _r(seed, 3) % 3 == 0 ? minTick + 1 + _r(seed, 4) % 100_000 : (1 << 21) - 1;
-        uint256 px = (_r(seed, 5) % (maxTick + 2_000)) * ts + _r(seed, 6) % ts; // refTick below, inside, above
+        uint256 px = (_r(seed, 5) % (maxTick + 2000)) * ts + _r(seed, 6) % ts; // refTick below, inside, above
         if (px == 0) px = 1;
-        uint256 upTo = 1_000 + _r(seed, 7) % 1_000;
+        uint256 upTo = 1000 + _r(seed, 7) % 1000;
         m.refAdapter = address(ref);
         m.active = true;
         m.shards = 4;
-        m.bandBps = uint16(1 + _r(seed, 8) % 5_000);
+        m.bandBps = uint16(1 + _r(seed, 8) % 5000);
         m.minTick = uint32(minTick);
         m.maxTick = uint32(maxTick);
         m.maxBandTicks = uint32(1 + _r(seed, 9) % 12_001);
@@ -126,10 +126,10 @@ contract RegimeDiffTest is Test {
     }
 
     function _regime(uint256 seed, uint256[] memory w) internal pure returns (ExchangeBase.Regime memory g) {
-        g.extBandBps = uint16(_r(seed, 20) % 5 == 0 ? 0 : _r(seed, 21) % 5_001);
-        g.reopenBandBps = uint16(_r(seed, 22) % 5 == 0 ? 0 : _r(seed, 23) % 5_001);
-        g.discFloorBps = uint16(_r(seed, 24) % 3_000);
-        g.discCapBps = uint16(_r(seed, 25) % 5_001);
+        g.extBandBps = uint16(_r(seed, 20) % 5 == 0 ? 0 : _r(seed, 21) % 5001);
+        g.reopenBandBps = uint16(_r(seed, 22) % 5 == 0 ? 0 : _r(seed, 23) % 5001);
+        g.discFloorBps = uint16(_r(seed, 24) % 3000);
+        g.discCapBps = uint16(_r(seed, 25) % 5001);
         g.discHorizonSec = uint32(_r(seed, 26) % 4 == 0 ? 0 : _r(seed, 27) % 500_000);
         g.discCadence = uint32(_r(seed, 28) % 20);
         g.halted = _r(seed, 29) % 4 == 0;
