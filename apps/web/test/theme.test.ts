@@ -29,7 +29,8 @@ describe("pre-paint theme script", () => {
       }
     }
     expect(checked).toBe(35_040);
-  });
+    // 35,040 instants: seconds alone, longer beside the other suites on a busy runner
+  }, 30_000);
 
   it.each<[ThemeMode, boolean, string]>([
     ["light", true, "day"],
