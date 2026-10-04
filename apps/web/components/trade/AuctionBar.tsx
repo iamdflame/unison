@@ -50,6 +50,26 @@ export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick:
   const vaultAsk = m.vault.reduce((a, o) => (o.side === "sell" && o.qty > 0 && (a === null || o.tick < a) ? o.tick : a), null as number | null);
   const closedWho = stock ? "Wall Street is closed" : m.spec.kind === "fx" ? "The currency market is closed" : "Its reference is closed";
 
+  // the vault's quote and the last trade: in the strip on wide screens, behind "Details" on a phone
+  const details = (
+    <>
+      {vaultBid !== null && vaultAsk !== null ? (
+        <p className="figures text-sm text-ink-2">
+          Vault <span className="text-ink">{fmt(vaultBid)}</span> × <span className="text-ink">{fmt(vaultAsk)}</span>
+        </p>
+      ) : null}
+      <p className="figures text-sm text-ink-2">
+        {last ? (
+          <>
+            Last trade <span className="text-ink">{fmt(last.tick)}</span> · {qty(last.volume)} {unit} · {ago}
+          </>
+        ) : (
+          "No trades yet"
+        )}
+      </p>
+    </>
+  );
+
   return (
     <section aria-label="Auctions" className="mt-5 rounded-[var(--radius-xl)] bg-raised px-5 py-3.5 shadow-panel">
       <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
@@ -85,35 +105,34 @@ export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick:
           {indicative ? (
             <>
               Clears now <span className="font-medium text-ink">{fmt(indicative.tick)}</span> · {qty(indicative.volume)} {unit}
-              {Math.abs(indicative.imbalance) >= 0.01
-                ? ` · ${indicative.imbalance > 0 ? "buyers" : "sellers"} left with ${qty(Math.abs(indicative.imbalance))} ${unit}`
-                : " · balanced"}
+              <span className="hidden sm:inline">
+                {Math.abs(indicative.imbalance) >= 0.01
+                  ? ` · ${indicative.imbalance > 0 ? "buyers" : "sellers"} left with ${qty(Math.abs(indicative.imbalance))} ${unit}`
+                  : " · balanced"}
+              </span>
             </>
           ) : (
             "No cross yet: buyers and sellers don't meet inside the band"
           )}
         </p>
-        {vaultBid !== null && vaultAsk !== null ? (
-          <p className="figures text-sm text-ink-2">
-            Vault <span className="text-ink">{fmt(vaultBid)}</span> × <span className="text-ink">{fmt(vaultAsk)}</span>
-          </p>
-        ) : null}
-        <p className="figures text-sm text-ink-2">
-          {last ? (
-            <>
-              Last trade <span className="text-ink">{fmt(last.tick)}</span> · {qty(last.volume)} {unit} · {ago}
-            </>
-          ) : (
-            "No trades yet"
-          )}
-        </p>
+        <div className="hidden sm:contents">{details}</div>
       </div>
-      {discovery ? (
-        <p className="mt-2 text-xs leading-relaxed text-ink-3 sm:hidden">
-          {closedWho}: a call auction every {(cadence * BEAT_MS) / 1000} s, around the last close.
-          {reopens ? ` Reopening cross ${reopens}.` : ""}
-        </p>
-      ) : null}
+      {/* phones read two lines (when, and where it clears now); the rest waits behind one disclosure */}
+      <details className="group mt-2 sm:hidden">
+        <summary className="flex min-h-9 cursor-pointer list-none items-center gap-1.5 text-xs font-medium text-ink-2 [&::-webkit-details-marker]:hidden">
+          Details
+          <span aria-hidden className="transition-transform duration-150 group-open:rotate-90">›</span>
+        </summary>
+        <div className="space-y-1.5 pb-1">
+          {details}
+          {discovery ? (
+            <p className="text-xs leading-relaxed text-ink-3">
+              {closedWho}: a call auction every {(cadence * BEAT_MS) / 1000} s, around the last close.
+              {reopens ? ` Reopening cross ${reopens}.` : ""}
+            </p>
+          ) : null}
+        </div>
+      </details>
       {discovery ? (
         // one idea a sentence: why, how often, around what, and when it ends
         <p className="mt-2 hidden text-xs leading-relaxed text-ink-3 sm:block">

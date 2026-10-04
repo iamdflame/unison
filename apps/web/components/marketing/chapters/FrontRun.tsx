@@ -4,20 +4,21 @@ import NumberFlow from "@number-flow/react";
 import { useEffect, useRef, useState } from "react";
 import { Emblem, type EmblemHandle } from "@/components/brand/Emblem";
 import { useInView } from "@/components/motion/useInView";
-import { facts } from "@/lib/content/facts";
+import { facts, shipped } from "@/lib/content/facts";
 import { site } from "@/lib/content/site";
 
 /**
- * Chapter 2: speed buys nothing. The benchmark as an instrument: what a latency sniper takes per day from each
+ * Chapter 2: speed buys no better price. The benchmark as an instrument: what a latency sniper takes per day from each
  * kind of venue, on the same simulated price path. Linear scale, so the gap is honest. Unison's column is a
- * hairline at zero with the ball resting on it. Beneath the two venues that quote the same ±2 bp, a second reading:
- * what that liquidity keeps once snipers have taken their cut, so the copy's 7.7× is on the figure, not only in it.
+ * hairline at zero with the ball resting on it. Beneath the order book and Unison, a second reading: what liquidity
+ * keeps once snipers have taken their cut, at the vault's shipped setting. The benchmark covers market hours only,
+ * and the chapter says so.
  */
 const VENUES = [
   { name: "Constant-product AMM", note: "fee 30 bp", value: facts.sniper.xyk },
-  { name: "Order book", note: "makers ±2 bp", value: facts.sniper.clob, lp: facts.lp.clobMakers },
+  { name: "Order book", note: "makers ±2 bp", value: facts.sniper.clob, lp: shipped.clob.lp },
   { name: "Oracle AMM", note: "push oracle", value: facts.sniper.pushOracleAmm },
-  { name: "Unison", note: "batch + late reference", value: facts.sniper.unison, us: true, lp: facts.lp.unisonVault },
+  { name: "Unison", note: "in session, vault ±10 bp", value: facts.sniper.unison, us: true, lp: shipped.vault.lp },
 ] as const;
 
 /** The share of the plot the largest bar fills; the rest is headroom for its figure. */
@@ -43,22 +44,27 @@ export function FrontRun() {
       <div className="grid grid-cols-1 gap-x-12 gap-y-14 lg:grid-cols-12">
         <div className="lg:col-span-5">
           <h2 id="front-run-title" className="text-display-l text-ink">
-            Speed buys nothing.
+            Speed buys no better price.
           </h2>
           <p className="text-lede mt-6 text-ink-2">
             On most venues, whoever sees the price move first trades against everyone else&apos;s stale quotes. Inside a
-            Unison batch, every order gets one price, so arriving first buys nothing. In session, that price is checked
-            against a reference published after the batch closes, so there is nothing left to race for.
+            Unison batch, every order gets one price, so arriving first buys no better one. In session, that price is
+            checked against a reference published after the batch closes, so there is nothing left to race for.
           </p>
           <p className="text-lede mt-6 text-ink-2">
-            Snipers take from whoever quotes. Where two venues quote the same ±{facts.lp.spreadBps}&nbsp;bp, liquidity on
-            Unison keeps <span className="text-ink">{facts.lp.multiple} times as much</span>. The trade-off: a taker pays{" "}
-            {facts.noiseCostBps.unison}&nbsp;bp here, against {facts.noiseCostBps.clob}&nbsp;bp on that order book.
+            Snipers take from whoever quotes. At the vault&apos;s shipped setting, liquidity keeps{" "}
+            <span className="text-ink">${shipped.vault.lp.toLocaleString("en-US")} a day</span>, against ${shipped.clob.lp} for order-book
+            makers. Takers pay for that width: {shipped.vault.noiseBps.toFixed(1)}&nbsp;bp here, against{" "}
+            {shipped.clob.noiseBps.toFixed(1)}&nbsp;bp on the book.
+          </p>
+          <p className="mt-4 text-sm text-ink-3">
+            Quoting as tight as the book (±{facts.lp.spreadBps}&nbsp;bp, a setting no live vault runs yet), the vault would
+            keep {facts.lp.multiple} times as much and takers would pay {facts.noiseCostBps.unison}&nbsp;bp.
           </p>
           {/* the claim's limits, stated where it is made */}
           <p className="mt-6 text-sm text-ink-3">
-            At night there is no later reference. The auction forming is public, as in an exchange&apos;s opening cross,
-            and the vault quotes wider and caps what it trades in each auction.
+            The benchmark covers market hours. At night there is no later reference: the auction forming is public, as
+            in an exchange&apos;s opening cross, and the vault quotes wider and caps what it trades in each auction.
           </p>
         </div>
 

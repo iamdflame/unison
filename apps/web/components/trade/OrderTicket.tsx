@@ -117,7 +117,7 @@ export function OrderTicket({
   const fillNote = !withYou
     ? "Buyers and sellers don't meet inside the band yet."
     : withYou.filled <= 0
-      ? `Clears at ${fmt(withYou.tick)}, ${side === "buy" ? "above" : "below"} your ${fmt(limit)} limit.`
+      ? `With your order it clears at ${fmt(withYou.tick)}, ${side === "buy" ? "above" : "below"} your ${fmt(limit)} limit.`
       : full
         ? withYou.tick === limit
           ? // at the margin: the last price that clears is yours, and anyone else who arrives there shares it with you
@@ -215,8 +215,8 @@ export function OrderTicket({
               className={`press rounded-[var(--radius-sm)] py-2.5 text-sm font-semibold capitalize transition-colors duration-150 ${
                 side === s
                   ? s === "buy"
-                    ? "bg-buy-fill text-bg shadow-sm"
-                    : "bg-sell-fill text-bg shadow-sm"
+                    ? "bg-raised text-buy shadow-sm"
+                    : "bg-raised text-sell shadow-sm"
                   : "text-ink-2 hover-fine:text-ink"
               }`}
             >
@@ -404,7 +404,7 @@ export function OrderTicket({
           onPointerEnter={needsSignIn ? preloadSignIn : undefined}
           onFocus={needsSignIn ? preloadSignIn : undefined}
           disabled={!needsSignIn && (qty <= 0 || !affordable)}
-          className={`press w-full rounded-[var(--radius-sm)] py-3.5 text-[15px] font-semibold text-bg transition-opacity disabled:opacity-40 ${side === "buy" ? "bg-buy-fill" : "bg-sell-fill"}`}
+          className={`press w-full rounded-[var(--radius-sm)] py-3.5 text-[15px] font-semibold text-on-fill transition-opacity disabled:opacity-40 ${side === "buy" ? "bg-buy-fill" : "bg-sell-fill"}`}
         >
           {needsSignIn
             ? "Sign in to trade"

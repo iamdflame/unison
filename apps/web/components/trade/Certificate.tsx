@@ -197,7 +197,7 @@ export function CertificateDialog() {
                     ))}
                   </g>
                 </svg>
-                <div className="absolute inset-x-[10%] top-[7%] bottom-[5.5%] flex flex-col sm:inset-x-[7%] sm:top-[8%] sm:bottom-[6.5%]">
+                <div className="absolute inset-x-[10%] top-[7%] bottom-[7%] flex flex-col sm:inset-x-[7%] sm:top-[8%] sm:bottom-[8.5%]">
                   <div className="flex flex-col items-start gap-2.5 sm:flex-row sm:items-center sm:justify-between">
                     <Lockup capHeight={11} />
                     <Dialog.Title className="dial-label text-ink-3">Certificate of execution</Dialog.Title>
@@ -209,7 +209,8 @@ export function CertificateDialog() {
                     </p>
                     <Dialog.Description className="mt-3 text-[clamp(0.78rem,1.6vw,0.95rem)] text-ink-2">
                       The same price as {data.participants > 1 ? `all ${data.participants} orders that traded` : "every order that traded"} in
-                      block {data.block.toLocaleString("en-US")}. {data.name}, quoted in AUSD.
+                      {" "}
+                      {data.receipt ? "block" : "simulated block"} {data.block.toLocaleString("en-US")}. {data.name}, quoted in AUSD.
                     </Dialog.Description>
                     {/* the two figures a trader reads first, larger than the record beneath them */}
                     <dl className="mt-[3.5%] flex gap-x-10 gap-y-2">
@@ -252,8 +253,8 @@ export function CertificateDialog() {
                       </div>
                     ))}
                   </dl>
-                  <div className="mt-[3%] flex items-end justify-between gap-6">
-                    <p className="max-w-[70%] text-[0.7rem] leading-relaxed text-ink-3 sm:max-w-[62%] sm:text-[clamp(0.62rem,1.2vw,0.75rem)]">
+                  <div className="mt-[3%] flex items-center justify-between gap-6">
+                    <p className="max-w-[70%] text-[0.7rem] leading-relaxed text-ink-3 sm:max-w-[78%] sm:text-[clamp(0.62rem,1.2vw,0.75rem)]">
                       {data.receipt ? (
                         <>
                           Receipt{" "}
@@ -271,7 +272,7 @@ export function CertificateDialog() {
                                   : "."}
                         </>
                       ) : (
-                        "Simulation: cleared by the real clearing engine in your browser. Live fills carry an on-chain receipt."
+                        "Simulation: cleared by the real clearing engine in your browser."
                       )}
                     </p>
                     <div className="w-[20%] shrink-0 sm:w-[13%]">

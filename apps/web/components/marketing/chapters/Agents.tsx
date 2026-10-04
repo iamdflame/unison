@@ -18,7 +18,7 @@ export function Agents() {
             Bounded by people.
           </h2>
           <p className="text-lede mt-6 text-ink-2">
-            Inside a batch speed buys nothing, so software competes on judgement instead of latency. Give an agent a session key
+            Inside a batch speed buys no better price, so software competes on judgement instead of latency. Give an agent a session key
             with the limits you choose: markets, size, notional and expiry. It can trade inside them. It can never
             withdraw.
           </p>
@@ -35,7 +35,7 @@ export function Agents() {
           <AgentsTerminal />
           {/* the key that bounds it, beneath the session it signed */}
           <SessionKeyCard
-            className="mt-4 ml-auto w-[min(100%,420px)]"
+            className="mt-4 w-full"
             address="0x8c3e…41d2"
             label="Example session key 0x8c3e…41d2"
             markets="aNVDA, aSPY"

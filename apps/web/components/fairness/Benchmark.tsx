@@ -1,4 +1,4 @@
-import { facts } from "@/lib/content/facts";
+import { facts, shipped } from "@/lib/content/facts";
 import { site } from "@/lib/content/site";
 
 const usd = (n: number) => `$${n.toLocaleString("en-US")}`;
@@ -77,7 +77,7 @@ export function Benchmark() {
         <div className="mt-14 grid grid-cols-1 gap-10 md:grid-cols-3">
           {[
             ["Sniping doesn't pay.", "The auction prices against a reference published after the batch closed. A mid-batch edge only fills when the price has already moved against it, so the sniper stops trading."],
-            [`The same spread keeps ${facts.lp.multiple}× more.`, `At an identical ±${facts.lp.spreadBps} bp quote, order-book makers keep $${facts.lp.clobMakers} a day after snipers; Unison's vault keeps $${facts.lp.unisonVault} and loses nothing to them. Uninformed traders pay ${facts.noiseCostBps.unison} bp here against ${facts.noiseCostBps.clob} bp there, the price of quoting through every regime.`],
+            ["Liquidity keeps what snipers took.", `At the vault's shipped setting (±10 bp, 3 bp fee) it keeps $${shipped.vault.lp.toLocaleString("en-US")} a day; order-book makers keep $${shipped.clob.lp}. Takers pay for the width: ${shipped.vault.noiseBps.toFixed(1)} bp against ${shipped.clob.noiseBps.toFixed(1)} bp. At an identical ±${facts.lp.spreadBps} bp quote, a setting no live vault runs yet, it would keep ${facts.lp.multiple}× as much ($${facts.lp.unisonVault}) and takers would pay ${facts.noiseCostBps.unison} bp. All of it in market hours.`],
             ["The rule is the mechanism.", "Break it on purpose, pricing against a reference published before the close, and the sniper's edge returns at once. So the venue enforces it on-chain: each reference is bound to its batch, and one published too early is rejected."],
           ].map(([title, body]) => (
             <div key={title}>

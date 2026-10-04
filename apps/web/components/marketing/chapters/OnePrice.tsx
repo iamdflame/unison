@@ -121,13 +121,13 @@ export function OnePrice() {
           </h2>
           <p className="text-lede mt-6 text-ink-2">
             Orders that arrive in the same batch are filled together (a batch every 300 ms in market hours, every 3 seconds overnight). Buyers and sellers line up by price,
-            and the batch clears where they meet. Arriving first buys you nothing.
+            and the batch clears where they meet. Arriving first buys no better price.
           </p>
 
-          <div className="mt-10 rounded-[var(--radius-xl)] bg-raised p-5 shadow-panel">
+          <div className="mt-10 border-t border-line pt-6">
             <p className="text-sm font-medium text-ink">Add your order to the next batch</p>
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <div role="radiogroup" aria-label="Side" className="flex rounded-full bg-sunken p-1">
+              <div role="radiogroup" aria-label="Side" className="flex rounded-[var(--radius-md)] bg-sunken p-1">
                 {(["buy", "sell"] as const).map((s) => (
                   <button
                     key={s}
@@ -138,22 +138,22 @@ export function OnePrice() {
                       setSide(s);
                       setLimit(s === "buy" ? REF + 10 : REF - 10);
                     }}
-                    className={`press rounded-full px-4 py-2 text-sm font-semibold capitalize transition-colors duration-150 ${
-                      side === s ? (s === "buy" ? "bg-buy-fill text-bg" : "bg-sell-fill text-bg") : "text-ink-2 hover-fine:text-ink"
+                    className={`press rounded-[var(--radius-sm)] px-4 py-2 text-sm font-semibold capitalize transition-colors duration-150 ${
+                      side === s ? (s === "buy" ? "bg-raised text-buy shadow-sm" : "bg-raised text-sell shadow-sm") : "text-ink-2 hover-fine:text-ink"
                     }`}
                   >
                     {s}
                   </button>
                 ))}
               </div>
-              <div className="flex items-center rounded-full bg-sunken p-1" role="group" aria-label="Limit price">
-                <button type="button" aria-label="Lower limit by one cent" onClick={() => setLimit((l) => l - 1)} className="press grid size-8 place-items-center rounded-full text-ink-2 hover-fine:bg-bg">
+              <div className="flex items-center rounded-[var(--radius-md)] bg-sunken p-1" role="group" aria-label="Limit price">
+                <button type="button" aria-label="Lower limit by one cent" onClick={() => setLimit((l) => l - 1)} className="press grid size-8 place-items-center rounded-[var(--radius-sm)] text-ink-2 hover-fine:bg-bg">
                   <Minus size={14} strokeWidth={1.75} aria-hidden />
                 </button>
                 <output className="tnum w-[7.5ch] text-center text-sm font-semibold text-ink" aria-live="off">
                   {usd(limit)}
                 </output>
-                <button type="button" aria-label="Raise limit by one cent" onClick={() => setLimit((l) => l + 1)} className="press grid size-8 place-items-center rounded-full text-ink-2 hover-fine:bg-bg">
+                <button type="button" aria-label="Raise limit by one cent" onClick={() => setLimit((l) => l + 1)} className="press grid size-8 place-items-center rounded-[var(--radius-sm)] text-ink-2 hover-fine:bg-bg">
                   <Plus size={14} strokeWidth={1.75} aria-hidden />
                 </button>
               </div>
@@ -239,7 +239,7 @@ export function OnePrice() {
               >
                 <NumberFlow value={(t ?? REF) / 100} locales="en-US" format={{ style: "currency", currency: "USD" }} />
               </div>
-              <p className="dial-label mt-2 text-ink-3">{t !== null ? `${vol.toFixed(1)} shares · everyone` : "forming"}</p>
+              <p className="dial-label mt-2 text-ink-3">{t !== null ? `${vol.toFixed(1)} shares · one price for all` : "forming"}</p>
             </div>
 
             <figcaption className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-ink-3">

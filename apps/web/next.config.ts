@@ -24,6 +24,8 @@ const securityHeaders = [
 const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // the dev server's route badge is not part of the product, and it covered the phone tab bar in review captures
+  devIndicators: false,
   // `SOURCE_MAPS=1 pnpm build` lets `scripts/weigh.mjs` attribute every first-load byte to its source.
   productionBrowserSourceMaps: process.env.SOURCE_MAPS === "1",
   // Workspace packages ship TypeScript sources (the `development` export condition); compile them in place.

@@ -32,7 +32,7 @@ export function BandDial({
   const banded = !halted && bandBps !== null;
   return (
     <svg viewBox="0 0 100 100" className={`shrink-0 ${className}`} aria-hidden>
-      <circle cx="50" cy="50" r="47" fill="none" stroke="var(--line)" />
+      <circle cx="50" cy="50" r="47" fill="none" stroke="var(--line-strong)" />
       {[90, 180, 270].map((d) => (
         <line key={d} x1="50" y1="3" x2="50" y2="9" stroke="var(--ink-3)" strokeWidth="1" transform={`rotate(${d} 50 50)`} />
       ))}

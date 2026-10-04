@@ -136,7 +136,7 @@ export default function DevelopersPage() {
         <TapeConsoleClient />
       </Chapter>
 
-      <Chapter id="trade-title" title="Trade from code." lede="Sign an order with a session key and the relayer submits it. Every order in a batch gets one price, so a script is as good as a desk.">
+      <Chapter id="trade-title" title="Trade from code." lede="Sign an order with a session key and the relayer submits it. Every order in a batch gets one price, so a script gets the same price as a desk.">
         <Code code={TRADE} title="order.ts" />
       </Chapter>
 

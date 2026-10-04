@@ -16,7 +16,7 @@ import type { NetConfig } from "@/lib/venue/config";
 import { describeError, grantAgentKey, identity, revokeKey, session } from "@/lib/venue/identity";
 
 /**
- * Agents. Every order in a batch gets the same price, so speed buys nothing: a person can let software trade for
+ * Agents. Every order in a batch gets the same price, so speed buys no better one: a person can let software trade for
  * them through a session key, inside caps the gateway contract enforces (markets, size and notional per order,
  * expiry). The key is shown as an object with its limits engraved on it, because the limits are the point.
  */
@@ -67,7 +67,7 @@ export function Agents() {
       <header className="max-w-3xl">
         <h1 className="text-display-m text-ink">Agents</h1>
         <p className="text-lede mt-4 text-ink-2">
-          Every order in a batch gets the same price, so inside a batch a program has no edge over a person. Let software trade for you, inside limits
+          Every order in a batch gets the same price, so inside a batch a program gets no better price than a person. Let software trade for you, inside limits
           you set and the contract enforces.
         </p>
       </header>

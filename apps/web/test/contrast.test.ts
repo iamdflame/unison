@@ -64,9 +64,9 @@ const pairs: [string, string, number][] = [
   ["sell", "bg", 4.5],
   ["buy", "bg-raised", 4.5],
   ["sell", "bg-raised", 4.5],
-  // the Buy and Sell buttons: their label is set in the page color on the fill
-  ["bg", "buy-fill", 4.5],
-  ["bg", "sell-fill", 4.5],
+  // the Buy and Sell buttons: their label is set in the on-fill color (porcelain by day, pearl by night)
+  ["on-fill", "buy-fill", 4.5],
+  ["on-fill", "sell-fill", 4.5],
   ["halt", "bg", 4.5],
   ["focus", "bg", 3],
   ["champagne", "bg", 3],

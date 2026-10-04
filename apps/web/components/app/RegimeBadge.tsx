@@ -40,12 +40,17 @@ const MEANS: Record<RegimeName, string> = {
   HALTED: "Trading is paused, as it is on the primary market. Cancel, claim and withdraw still work.",
 };
 
-export function RegimeBadge({ name, bandBps, className = "" }: { name: RegimeName; bandBps?: number; className?: string }) {
+/**
+ * `plain` is for tables, where every row would otherwise carry the same filled chip: the glyph and the words only,
+ * in ink (a halt keeps its colour, since it is the exception the table is read for).
+ */
+export function RegimeBadge({ name, bandBps, plain = false, className = "" }: { name: RegimeName; bandBps?: number; plain?: boolean; className?: string }) {
+  const look = plain ? `text-sm font-medium ${name === "HALTED" ? "text-halt" : "text-ink"}` : `rounded-[var(--radius-xs)] px-2 py-1 text-xs font-semibold ${TONE[name]}`;
   return (
-    <span title={MEANS[name]} className={`inline-flex items-center gap-1.5 rounded-[var(--radius-xs)] px-2 py-1 text-xs font-semibold ${TONE[name]} ${className}`}>
+    <span title={MEANS[name]} className={`inline-flex items-center gap-1.5 ${look} ${className}`}>
       <Glyph name={name} />
       {REGIME_LABEL[name]}
-      {bandBps !== undefined ? <span className="tnum font-normal">{bandLabel(bandBps)}</span> : null}
+      {bandBps !== undefined ? <span className={`tnum font-normal ${plain ? "text-ink-2" : ""}`}>{bandLabel(bandBps)}</span> : null}
     </span>
   );
 }

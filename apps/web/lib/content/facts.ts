@@ -52,6 +52,15 @@ export const facts = {
   limits: { openOrdersPerAccount: 55, markets: 10 },
 } as const;
 
+/**
+ * The benchmark at the vault's shipped setting (aNVDA's: ±10 bp, 3 bp fee) and the order book it is compared with.
+ * Lead with these: the ±2 bp row is a setting no live vault runs, so it is only ever quoted as a hypothetical.
+ */
+export const shipped = {
+  vault: facts.fairnessTable.find((r) => r.key === "vault ±10 bp, fee 3 bp")!,
+  clob: facts.fairnessTable.find((r) => r.key === "CLOB + market makers")!,
+} as const;
+
 export const sources = {
   sniper: "docs/evidence/fairness.md",
   lp: "docs/evidence/fairness.md",

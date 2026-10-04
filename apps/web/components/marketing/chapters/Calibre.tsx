@@ -9,7 +9,8 @@ const SPECS: [string, string, string?][] = [
   ["Frequency", `${facts.batchesPerHour.toLocaleString("en-US")} A/h · ${(facts.batchesPerHour / 3600).toFixed(2)} auctions a second`, `A/h, alternations an hour, is how a watchmaker counts beats; here each one is an auction. A batch every Monad block while Wall Street trades; a call auction every ${facts.discoveryBlocks} blocks (${(facts.batchesPerHour / facts.discoveryBlocks).toLocaleString("en-US")} A/h) while it is closed`],
   ["Power reserve", `${facts.hours.week} h a week`, "Every night and every weekend; a market stops only when its rules halt it"],
   ["Escapement", "Frequent batch auction", "Most volume, then least imbalance, then closest to the reference. Orders at that price share it pro rata"],
-  ["Complications", "Discovery · Reopening cross · Halts · Audit", "Each with its own price band"],
+  // one complication a line, as a catalogue lists them: no separator left to dangle at either end of a line
+  ["Complications", "Discovery\nReopening cross\nHalts\nAudit", "Each with its own price band"],
   ["Fairness", "One price per batch", "Against a reference published after the batch closes"],
   ["Gas per clear", `${(facts.gas.clearMonad / 1e6).toFixed(2)}M`, `${facts.gas.savingPct}% less than under Ethereum's rules`],
   ["Cost", `≈ $${facts.gas.batch200Usd} per batch`, `200 orders; about $${facts.gas.orderUsd} per order`],
@@ -24,8 +25,7 @@ export function Calibre() {
     <section aria-labelledby="calibre-title" className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-12 lg:py-24">
       <div className="grid grid-cols-1 gap-x-16 gap-y-14 lg:grid-cols-12">
         <div className="lg:col-span-5">
-          <p className="text-sm text-ink-3">The specification</p>
-          <h2 id="calibre-title" className="text-display-l mt-3 text-ink">
+          <h2 id="calibre-title" className="text-display-l text-ink">
             Calibre U-300
           </h2>
           {/* Technical drawing of the mark, dimensioned on its 48-unit grid */}
@@ -51,7 +51,7 @@ export function Calibre() {
             <div key={k} className="grid grid-cols-12 gap-x-6 border-t border-line py-6 last:border-b">
               <dt className="col-span-12 text-sm text-ink-3 sm:col-span-4">{k}</dt>
               <dd className="col-span-12 sm:col-span-8">
-                <span className="numerals block text-[clamp(1.35rem,2vw,1.75rem)] leading-tight text-balance text-ink">
+                <span className="numerals block text-[clamp(1.35rem,2vw,1.75rem)] leading-tight whitespace-pre-line text-balance text-ink">
                   {/* a unit in Bodoni hairlines breaks up at this size: set it in the text face, smaller */}
                   {v.split(/( A\/h)/).map((part, i) =>
                     part === " A/h" ? (

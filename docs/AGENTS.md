@@ -2,7 +2,7 @@
 
 Trading agents are a first-class audience. Unison gives them three properties that continuous venues can't:
 
-1. **Speed buys nothing.** Every order in a 300 ms batch gets the same price. An agent competes on judgement, not latency.
+1. **Speed buys no better price.** Every order in a 300 ms batch gets the same price. An agent competes on judgement, not latency. (The forming batch is public, so a fast agent can still react to it before it closes; it cannot get a better price than anyone else in it.)
 2. **Bounded authority.** A human hands an agent a session key with caps, not their keys:
    - markets allowed (a bitmask);
    - maximum quantity per order;

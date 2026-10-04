@@ -18,11 +18,12 @@ const spiral = (r0: number, r1: number, turns: number, steps = 360) => {
   return d;
 };
 
-// drawn in the plate's colour: champagne at rest, ink when it is the part in focus
-const LINE = { fill: "none", stroke: "currentColor", strokeWidth: 1.1, vectorEffect: "non-scaling-stroke" as const };
-const FINE = { ...LINE, strokeWidth: 0.6, opacity: 0.7 };
+// one engraving hand: a single 1 px stroke in the plate's colour (ink in focus, half ink beneath); finer detail is
+// the same stroke at lower opacity, never a different weight
+const LINE = { fill: "none", stroke: "currentColor", strokeWidth: 1, vectorEffect: "non-scaling-stroke" as const };
+const FINE = { ...LINE, opacity: 0.55 };
 
-/** Gateway: the top plate, jewelled where orders come in: flat rubies set in gold chatons, as in a real movement. */
+/** Gateway: the top plate, jewelled where orders come in: flat rubies in hairline gold chatons, as in a real movement. */
 function Gateway() {
   return (
     <>
@@ -32,7 +33,7 @@ function Gateway() {
         const [x, y] = polar(R - 17, i * 30);
         return (
           <g key={i}>
-            <circle cx={x} cy={y} r={9.5} fill="var(--champagne)" />
+            <circle cx={x} cy={y} r={9} fill="none" stroke="var(--champagne)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
             <circle cx={x} cy={y} r={5} fill="var(--jewel)" />
           </g>
         );
@@ -81,7 +82,7 @@ function Clearing() {
         return <line key={a} x1={C} y1={C} x2={x} y2={y} {...LINE} />;
       })}
       <circle cx={C} cy={C} r={16} {...LINE} />
-      <circle cx={C} cy={C} r={5} fill="var(--ball)" />
+      <circle cx={C} cy={C} r={5} fill="currentColor" />
     </>
   );
 }
@@ -101,7 +102,7 @@ function References() {
         return <circle key={i} cx={x} cy={y} r={4} {...LINE} />;
       })}
       <path d={spiral(14, 104, 9)} {...FINE} />
-      <circle cx={C} cy={C} r={6} fill="var(--ball)" />
+      <circle cx={C} cy={C} r={6} fill="currentColor" />
     </>
   );
 }
@@ -124,7 +125,10 @@ function Vault() {
   );
 }
 
-/** Compliance: the main plate in perlage, with blued screws, that holds the rest in place. */
+/**
+ * Compliance: the main plate in perlage that holds the rest in place. No screws: half-hidden under the plates above,
+ * they read as stray marks.
+ */
 function Compliance({ id }: { id: string }) {
   const grains: [number, number][] = [];
   for (let y = 30; y <= 370; y += 26) for (let x = 30 + ((y / 26) % 2) * 13; x <= 370; x += 26) grains.push([x, y]);
@@ -141,15 +145,6 @@ function Compliance({ id }: { id: string }) {
           <circle key={`${x}-${y}`} cx={x} cy={y} r={11} {...FINE} />
         ))}
       </g>
-      {[30, 150, 270].map((a) => {
-        const [x, y] = polar(R - 30, a);
-        return (
-          <g key={a}>
-            <circle cx={x} cy={y} r={10} fill="var(--ball)" />
-            <line x1={x - 7} y1={y} x2={x + 7} y2={y} stroke="var(--bg-raised)" strokeWidth={2} transform={`rotate(${a} ${x} ${y})`} />
-          </g>
-        );
-      })}
     </>
   );
 }

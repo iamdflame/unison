@@ -150,7 +150,7 @@ export function Status() {
                       {m.symbol.split("/")[0]}
                     </th>
                     <td className="px-4 py-3.5">
-                      <RegimeBadge name={m.halted ? "HALTED" : m.regime} />
+                      <RegimeBadge name={m.halted ? "HALTED" : m.regime} plain />
                     </td>
                     <td className="tnum px-4 py-3.5 text-right text-ink-2">
                       {lagging(m.id) ? (
@@ -256,7 +256,7 @@ function SimulatedRow({ spec }: { spec: MarketSpec }) {
         {spec.ticker}
       </th>
       <td className="px-4 py-3.5">
-        <RegimeBadge name={m.regime} bandBps={m.band} />
+        <RegimeBadge name={m.regime} bandBps={m.band} plain />
       </td>
       <td className="tnum px-4 py-3.5 text-right text-ink-2">{m.block !== null ? `#${m.block.toLocaleString("en-US")}` : "—"}</td>
       <td className="tnum px-6 py-3.5 text-right text-ink">{m.tick !== null ? fmt(m.tick) : "—"}</td>

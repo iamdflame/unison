@@ -1,12 +1,6 @@
 import { LockKeyhole } from "lucide-react";
 import type { ReactNode } from "react";
 
-/** The engraved rose behind every key, as on a watch's papers: equal circles through one centre. */
-const ROSE = Array.from({ length: 48 }, (_, i) => {
-  const a = (i / 48) * Math.PI * 2;
-  return [(100 + 44 * Math.cos(a)).toFixed(2), (100 + 44 * Math.sin(a)).toFixed(2)] as const;
-});
-
 /**
  * A session key as an object: who it is, what it may do, until when. One card wherever a key is shown (a key you
  * hold on the Agents page, the example on the home page), so a key always looks like the same thing. Presentational
@@ -40,11 +34,6 @@ export function SessionKeyCard({
       className={`relative overflow-hidden rounded-[var(--radius-xl)] bg-raised p-6 shadow-panel sm:p-7 ${className}`}
       aria-label={label ?? `Session key ${address}`}
     >
-      <svg className="pointer-events-none absolute -right-24 -bottom-28 size-64 text-champagne opacity-[0.22]" viewBox="0 0 200 200" aria-hidden>
-        {ROSE.map(([cx, cy], i) => (
-          <circle key={i} cx={cx} cy={cy} r="44" fill="none" stroke="currentColor" strokeWidth="0.45" />
-        ))}
-      </svg>
       <div className="relative flex items-center justify-between gap-3">
         <span className="dial-label text-ink-3">Session key</span>
         {badge}
@@ -60,7 +49,7 @@ export function SessionKeyCard({
           <dd className="figures mt-0.5 text-ink">{expires}</dd>
         </div>
         <div>
-          <dt className="text-ink-3">Size per order</dt>
+          <dt className="text-ink-3">Units per order</dt>
           <dd className="figures mt-0.5 text-ink">{size}</dd>
         </div>
         <div>

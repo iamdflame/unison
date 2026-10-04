@@ -347,13 +347,12 @@ function Holdings({ holdings, equity }: { holdings: Holding[]; equity: number })
                 <span aria-hidden className="size-2.5 shrink-0 rounded-full ring-1 ring-line-strong" style={{ background: h.color }} />
                 <div className="min-w-0">
                   <p className="text-[15px] font-semibold text-ink">{h.label}</p>
-                  <p className="truncate text-[13px] text-ink-3">{h.sub}</p>
+                  <p className="line-clamp-2 text-[13px] text-ink-3 md:truncate">{h.sub}</p>
                 </div>
               </div>
               <div className="text-right">
                 <p className="tnum text-ink">{h.qty.toLocaleString("en-US", { maximumFractionDigits: h.spec ? qtyDigits : 2 })}</p>
                 {/* phones have no column header: the unit rides under the figure */}
-                <p className="text-[11px] text-ink-3 md:hidden">{h.spec ? h.spec.ticker : "AUSD"}</p>
                 {h.locked > 1e-9 ? <p className="tnum text-xs text-ink-3">{h.locked.toLocaleString("en-US", { maximumFractionDigits: 2 })} in orders</p> : null}
               </div>
               <p className="tnum hidden text-right text-ink-2 md:block">
@@ -367,12 +366,17 @@ function Holdings({ holdings, equity }: { holdings: Holding[]; equity: number })
                 <p className="tnum font-semibold text-ink">{money(h.value)}</p>
                 {h.lastPrice !== null ? <p className="tnum text-xs text-ink-3">{money(h.qty * h.lastPrice)} at last trade</p> : null}
               </div>
-              <p className={`tnum hidden text-right md:block ${h.pnl === null ? "text-ink-3" : tone(h.pnl)}`}>{h.pnl !== null ? signedMoney(h.pnl) : ""}</p>
+              <div className="hidden text-right md:block">
+                <p className={`tnum ${h.pnl === null ? "text-ink-3" : tone(h.pnl)}`}>{h.pnl !== null ? signedMoney(h.pnl) : ""}</p>
+                {h.pnl !== null && h.avg !== null && h.lastPrice !== null ? (
+                  <p className="tnum text-xs text-ink-3">{signedMoney(h.qty * (h.lastPrice - h.avg))} at last trade</p>
+                ) : null}
+              </div>
               <p className="tnum hidden text-right text-ink-3 md:block">{share.toFixed(1)}%</p>
               <div className="text-right md:hidden">
                 <p className="tnum font-semibold text-ink">{money(h.value)}</p>
                 <p className={`tnum text-xs ${h.pnl === null ? "text-ink-3" : tone(h.pnl)}`}>
-                  {h.pnl !== null ? signedMoney(h.pnl) : `${share.toFixed(1)}%`}
+                  {h.pnl !== null ? `P&L ${signedMoney(h.pnl)}` : `${share.toFixed(1)}% of total`}
                 </p>
               </div>
             </>

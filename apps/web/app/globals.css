@@ -45,9 +45,11 @@
   --sell: var(--sell-std);
   --buy-soft: color-mix(in oklch, var(--buy) 10%, transparent);
   --sell-soft: color-mix(in oklch, var(--sell) 10%, transparent);
-  /* filled actions: the buy/sell colors by day, a quieter, lower-chroma cut at night */
+  /* filled actions: the buy/sell colors themselves by day; at night the same deep enamels, lettered in pearl */
   --buy-fill: var(--buy);
   --sell-fill: var(--sell);
+  /* the label on a filled action */
+  --on-fill: oklch(0.985 0.003 250);
   --halt: oklch(0.5 0.115 62);
   --champagne: oklch(0.58 0.06 80);
   --engrave: oklch(0.19 0.012 262 / 0.095);
@@ -98,10 +100,12 @@
   --sell: var(--sell-std);
   --buy-soft: color-mix(in oklch, var(--buy) 13%, transparent);
   --sell-soft: color-mix(in oklch, var(--sell) 13%, transparent);
-  --buy-fill-std: oklch(0.68 0.07 180);
-  --sell-fill-std: oklch(0.64 0.1 33);
-  --buy-fill-cvd: oklch(0.72 0.07 240);
-  --sell-fill-cvd: oklch(0.72 0.09 68);
+  /* deep enamel fills with pearl letters, as by day: never a pastel slab with dark text */
+  --buy-fill-std: oklch(0.5 0.085 182);
+  --sell-fill-std: oklch(0.5 0.11 33);
+  --buy-fill-cvd: oklch(0.5 0.1 250);
+  --sell-fill-cvd: oklch(0.52 0.1 60);
+  --on-fill: oklch(0.95 0.006 250);
   --buy-fill: var(--buy-fill-std);
   --sell-fill: var(--sell-fill-std);
   --halt: oklch(0.82 0.12 75);
@@ -181,6 +185,7 @@
   --color-buy-soft: var(--buy-soft);
   --color-buy-fill: var(--buy-fill);
   --color-sell-fill: var(--sell-fill);
+  --color-on-fill: var(--on-fill);
   --color-sell-soft: var(--sell-soft);
   --color-halt: var(--halt);
   --color-champagne: var(--champagne);

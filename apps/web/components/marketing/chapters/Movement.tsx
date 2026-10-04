@@ -63,7 +63,7 @@ export function Movement({ plates }: { plates: ReactNode[] }) {
                       transform: `translateZ(calc((${fromTop} - 2.5) * (34px + var(--p) * 40px)))`,
                       translate: i === active ? "0 0 18px" : "0 0 0",
                       // only the engraving dims, never the plate or its materials: blued screws and jewels stay solid
-                      color: i === active ? "var(--ink)" : "color-mix(in oklch, var(--ink) 50%, transparent)",
+                      color: i === active ? "var(--ink)" : "color-mix(in oklch, var(--ink) 58%, transparent)",
                     }}
                   >
                     {plates[i]}

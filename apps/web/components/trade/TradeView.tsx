@@ -224,14 +224,14 @@ export function TradeView({ ticker }: { ticker: string }) {
           <button
             type="button"
             onClick={() => openSheet("buy")}
-            className="press flex-1 rounded-[var(--radius-sm)] bg-buy-fill py-3 text-[15px] font-semibold text-bg"
+            className="press flex-1 rounded-[var(--radius-sm)] bg-buy-fill py-3 text-[15px] font-semibold text-on-fill"
           >
             Buy
           </button>
           <button
             type="button"
             onClick={() => openSheet("sell")}
-            className="press flex-1 rounded-[var(--radius-sm)] bg-sell-fill py-3 text-[15px] font-semibold text-bg"
+            className="press flex-1 rounded-[var(--radius-sm)] bg-sell-fill py-3 text-[15px] font-semibold text-on-fill"
           >
             Sell
           </button>
