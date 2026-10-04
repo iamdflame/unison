@@ -212,7 +212,7 @@ export function OrderTicket({ ticker, defaultSide = "buy", onPlaced }: { ticker:
       <dl id="qty-help" className="mt-4 space-y-2 border-t border-line pt-4 text-sm">
         <div className="flex justify-between">
           <dt className="text-ink-3">{side === "buy" ? "You lock at most" : "You lock"}</dt>
-          <dd className="tnum text-ink">{side === "buy" ? `${lock.toFixed(2)}` : `${lock} ${ticker}`}</dd>
+          <dd className="tnum text-ink">{side === "buy" ? `$${lock.toFixed(2)}` : `${lock} ${ticker}`}</dd>
         </div>
         {side === "buy" ? (
           <p className="-mt-1 text-xs leading-relaxed text-ink-3">

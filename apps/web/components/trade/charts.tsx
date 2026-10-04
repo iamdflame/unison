@@ -52,7 +52,7 @@ export function CrossChart({ m, fmt, live = false, w = 900, h = 420 }: { m: Mark
   const vault = useMemo(() => (live ? [] : simulatedVault(m.refTick)), [m.refTick, live]);
   const { ticks, demand, supply } = useMemo(() => curves([...m.book, ...vault], lo, hi), [m.book, vault, lo, hi]);
   const maxQ = Math.max(10, ...demand, ...supply) * 1.1;
-  const P = { l: 16, r: 16, t: 24, b: 44 };
+  const P = { l: 16, r: 52, t: 24, b: 44 };
   const x = (t: number) => P.l + ((t - lo + 0.5) / (hi - lo + 1)) * (W - P.l - P.r);
   const y = (q: number) => H - P.b - (q / maxQ) * (H - P.t - P.b);
   const step = (vals: number[]) =>
@@ -73,8 +73,16 @@ export function CrossChart({ m, fmt, live = false, w = 900, h = 420 }: { m: Mark
         </pattern>
       </defs>
       {[0.25, 0.5, 0.75].map((f) => (
-        <line key={f} x1={P.l} x2={W - P.r} y1={y(maxQ * f)} y2={y(maxQ * f)} stroke="var(--line)" />
+        <g key={f}>
+          <line x1={P.l} x2={W - P.r} y1={y(maxQ * f)} y2={y(maxQ * f)} stroke="var(--line)" />
+          <text x={W - P.r + 8} y={y(maxQ * f)} dominantBaseline="middle" className="tnum" fill="var(--ink-3)" style={{ fontSize: 11 }}>
+            {(maxQ * f).toFixed(maxQ * f < 10 ? 1 : 0)}
+          </text>
+        </g>
       ))}
+      <text x={W - P.r + 8} y={P.t - 8} fill="var(--ink-3)" style={{ fontSize: 11 }}>
+        shares
+      </text>
       <path d={`${step(demand)}V${y(0)}H${x(lo - 0.5)}Z`} fill="var(--buy-soft)" />
       <path d={`${step(supply)}V${y(0)}H${x(lo - 0.5)}Z`} fill="var(--sell-soft)" />
       <path d={step(demand)} fill="none" stroke="var(--buy)" strokeWidth="1.8" />

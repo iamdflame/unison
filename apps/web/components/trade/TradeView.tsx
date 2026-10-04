@@ -12,7 +12,8 @@ import { priceFormat } from "@/lib/content/markets";
 import type { MyFill, MyOrder } from "@/lib/demo/engine";
 import { certificate, certificateFor } from "./Certificate";
 import { OrderTicket } from "./OrderTicket";
-import { CrossChart, DepthLadder, PrintsChart } from "./charts";
+import { clearBatch } from "@/lib/sim/batch";
+import { CrossChart, DepthLadder, PrintsChart, simulatedVault } from "./charts";
 import { useSize } from "./useSize";
 
 /**
@@ -23,8 +24,23 @@ export function TradeView({ ticker }: { ticker: string }) {
   const { market, value: m, spec, live } = useMarket(ticker, (s) => s);
   const { unit, decimals, fmt } = priceFormat(spec);
   const last = m.last ?? null;
-  const open = m.prints.length > 120 ? m.prints[m.prints.length - 120]! : m.prints[0];
-  const change = last && open ? ((last.tick - open.tick) / open.tick) * 100 : 0;
+  // The last print against the reference it cleared on: the venue's own measure of where it traded.
+  const devBps = last && last.refTick > 0 ? ((last.tick - last.refTick) / last.refTick) * 10_000 : null;
+  const held = useVenueAccount((a) => (a.base[ticker] ?? 0) + (a.lockedBase[ticker] ?? 0));
+  const cadence = m.regime.name === "DISCOVERY" ? `every ${spec.regime.discCadence} blocks` : m.regime.name === "HALTED" ? "paused" : "every block";
+  // The batch now forming, cleared as it stands: the price it would print, and which side is heavier there.
+  const indicative = useMemo(() => {
+    const all = [...m.book, ...(live ? [] : simulatedVault(m.refTick))];
+    const out = clearBatch(all, { lo: m.lo, hi: m.hi, refTick: m.refTick });
+    if (!out.traded) return null;
+    let bid = 0;
+    let ask = 0;
+    for (const o of all) {
+      if (o.side === "buy" && o.tick >= out.tick) bid += o.qty;
+      if (o.side === "sell" && o.tick <= out.tick) ask += o.qty;
+    }
+    return { tick: out.tick, volume: out.volume, imbalance: bid - ask };
+  }, [m.book, m.refTick, m.lo, m.hi, live]);
   const [view, setView] = useState<string>("cross");
   const v = useVenue();
   // Phones and tablets: the ticket opens as a sheet from the thumb bar; `sheet` keeps it drawn while it closes.
@@ -55,9 +71,12 @@ export function TradeView({ ticker }: { ticker: string }) {
                 opacityTiming={{ duration: 160, easing: "ease-out" }}
               />
             </span>
-            <span className={`tnum text-sm font-semibold ${change >= 0 ? "text-buy" : "text-sell"}`}>
-              {change >= 0 ? "▲" : "▼"} {Math.abs(change).toFixed(2)}%
-            </span>
+            {devBps !== null ? (
+              <span className="tnum text-sm text-ink-2" title="The last print against the reference it cleared on">
+                {devBps >= 0 ? "+" : "−"}
+                {Math.abs(devBps).toFixed(1)} bp vs reference
+              </span>
+            ) : null}
           </div>
         </div>
         <dl className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
@@ -78,10 +97,17 @@ export function TradeView({ ticker }: { ticker: string }) {
             </dd>
           </div>
           <div>
-            <dt className="text-xs text-ink-3">Batch</dt>
+            <dt className="text-xs text-ink-3">Auction</dt>
             <dd className="tnum flex items-center gap-2 text-ink">
               <BatchRing size={18} block={m.block} />
-              {m.block.toLocaleString("en-US")}
+              {cadence}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-ink-3">You hold</dt>
+            <dd className="figures text-ink">
+              {held.toLocaleString("en-US", { maximumFractionDigits: 2 })} {spec.ticker}
+              {held > 0 && last ? <span className="text-ink-3"> · ${(held * last.tick * unit).toLocaleString("en-US", { maximumFractionDigits: 0 })}</span> : null}
             </dd>
           </div>
         </dl>
@@ -107,8 +133,21 @@ export function TradeView({ ticker }: { ticker: string }) {
                 ))}
                 <Tabs.Indicator className="absolute bottom-0 left-[var(--active-tab-left)] h-0.5 w-[var(--active-tab-width)] rounded-full bg-ink transition-[left,width] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]" />
               </Tabs.List>
-              <p className="hidden pr-2 pb-3 text-xs text-ink-3 sm:block">
-                {view === "cross" ? "Buyers and sellers, by limit. The ball is the last price." : view === "prints" ? "Every print against the reference (dashed)." : "Resting liquidity. Tap a level to use its price."}
+              <p className="hidden pr-2 pb-3 text-xs text-ink-3 sm:block" aria-live="off">
+                {view === "cross" ? (
+                  indicative ? (
+                    <>
+                      If it cleared now: <span className="tnum text-ink">{indicative.volume.toFixed(2)} at {fmt(indicative.tick)}</span>
+                      {Math.abs(indicative.imbalance) >= 0.01 ? ` · ${indicative.imbalance > 0 ? "buyers" : "sellers"} heavier by ${Math.abs(indicative.imbalance).toFixed(2)}` : " · balanced"}
+                    </>
+                  ) : (
+                    "No cross yet: buyers and sellers don't meet inside the band."
+                  )
+                ) : view === "prints" ? (
+                  "Every print against the reference (dashed)."
+                ) : (
+                  "Resting liquidity. Tap a level to use its price."
+                )}
               </p>
             </div>
             <Tabs.Panel value="cross" className="h-[clamp(250px,42vw,440px)] w-full p-2">
