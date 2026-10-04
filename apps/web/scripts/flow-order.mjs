@@ -5,6 +5,14 @@ const base = process.env.SHOOT_BASE ?? "http://localhost:3000";
 const b = await chromium.launch();
 const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: "dark" });
 await ctx.addInitScript(() => localStorage.setItem("unison.theme", "dark"));
+// the dev server's route badge is not part of the product: keep it out of the captures
+await ctx.addInitScript(() => {
+  addEventListener("DOMContentLoaded", () => {
+    const style = document.createElement("style");
+    style.textContent = "nextjs-portal{display:none!important}";
+    document.head.appendChild(style);
+  });
+});
 const p = await ctx.newPage();
 const errors = [];
 p.on("pageerror", (e) => errors.push(e.message));
