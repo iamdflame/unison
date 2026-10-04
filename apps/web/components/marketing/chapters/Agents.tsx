@@ -55,7 +55,7 @@ export function Agents() {
 
         <div className="relative lg:col-span-7">
           {/* The terminal is a night instrument in either light. */}
-          <div data-theme="night" className="rounded-[var(--radius-2xl)] bg-[oklch(0.15_0.007_265)] p-1.5 text-ink shadow-lg">
+          <div data-theme="night" className="rounded-[var(--radius-2xl)] bg-[oklch(0.15_0.007_265)] p-1.5 text-ink shadow-float">
             <div className="flex items-center gap-2 px-4 py-3">
               <span className="ml-3 text-xs text-ink-3">agent · unison mcp</span>
             </div>
@@ -78,7 +78,7 @@ export function Agents() {
             </pre>
           </div>
 
-          <div className="relative -mt-10 ml-auto w-[min(100%,360px)] rounded-[var(--radius-xl)] bg-raised/95 p-5 shadow-lg backdrop-blur-xl sm:mr-8 lg:-mt-16 [@media(prefers-reduced-transparency:reduce)]:bg-raised">
+          <div className="relative -mt-10 ml-auto w-[min(100%,360px)] rounded-[var(--radius-xl)] bg-raised/95 p-5 shadow-float backdrop-blur-xl sm:mr-8 lg:-mt-16 [@media(prefers-reduced-transparency:reduce)]:bg-raised">
             <div className="flex items-center gap-2 text-sm font-semibold text-ink">
               <KeyRound size={16} strokeWidth={1.5} aria-hidden /> Session key
               <span className="ml-auto text-xs font-normal text-ink-2">expires in 59 min</span>
