@@ -319,3 +319,16 @@
     border: 1px solid CanvasText;
   }
 }
+
+/* One-shot entrances (state changes use transitions). */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes link-in {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+}

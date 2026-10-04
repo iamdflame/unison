@@ -15,6 +15,15 @@ export const facts = {
   /** Uninformed-trader cost at that same quote (stated so we never pair "7.7× LP" with "cheaper to trade"). */
   noiseCostBps: { unison: 3.3, clob: 2.0 },
   benchmark: { blocks: 1_000_000, hours: 83, sigmaPct: 45, jumpsPerDay: 24, jumpBps: 40, lpCapital: 2_000_000 },
+  /** The whole benchmark, per day, one row per venue. `key` is the row label in docs/evidence/fairness.md. */
+  fairnessTable: [
+    { key: "xy=k AMM", venue: "Constant-product AMM", setup: "fee 30 bp", sniper: 6_171, lp: 13_459, noiseBps: 69.1, sniperFills: 12_563 },
+    { key: "Push-oracle AMM", venue: "Oracle AMM", setup: "±10 bp, 50 bp push trigger", sniper: 473, lp: 2_175, noiseBps: 9.3, sniperFills: 63 },
+    { key: "CLOB + market makers", venue: "Order book", setup: "makers ±2 bp, half the races lost", sniper: 487, lp: 84, noiseBps: 2.0, sniperFills: 5 },
+    { key: "vault ±10 bp, fee 3 bp", venue: "Unison", setup: "vault ±10 bp, fee 3 bp", sniper: 0, lp: 2_858, noiseBps: 13.0, sniperFills: 0 },
+    { key: "vault ±2 bp, fee 1 bp", venue: "Unison", setup: "vault ±2 bp, fee 1 bp", sniper: 0, lp: 646, noiseBps: 3.3, sniperFills: 0 },
+    { key: "stale", venue: "Unison, rule broken", setup: "reference published before the batch closed", sniper: 1_000, lp: 1_740, noiseBps: 13.0, sniperFills: 8 },
+  ],
 
   /** docs/evidence/gas.md */
   gas: {

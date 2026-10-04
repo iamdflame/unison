@@ -19,6 +19,16 @@ describe("every site number is backed by the evidence files", () => {
     expect(fairness).toMatch(/\*\*Unison\*\* \(vault ±2 bp, fee 1 bp\) \| \*\*\$0\*\*/);
   });
 
+  it("the whole benchmark table, row by row", () => {
+    const esc = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // a table cell, bold or not: "| $6,171 " or "| **$0** "
+    const cell = (v: string) => `\\| (?:\\*\\*)?${esc(v)}(?:\\*\\*)? `;
+    for (const r of facts.fairnessTable) {
+      const row = new RegExp(`${esc(r.key)}[^\\n]*${cell(`$${n(r.sniper)}`)}${cell(`$${n(r.lp)}`)}${cell(`${r.noiseBps.toFixed(1)} bp`)}${cell(n(r.sniperFills))}\\|`);
+      expect(fairness, r.key).toMatch(row);
+    }
+  });
+
   it("LP earnings at the same spread", () => {
     expect(fairness).toContain(`${facts.lp.multiple}×`);
     expect(fairness).toContain(`$${facts.lp.unisonVault}/day`);

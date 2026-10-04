@@ -40,3 +40,8 @@ export const VaultDetailClient = dynamic(() => import("@/components/vaults/Vault
   ssr: false,
   loading: () => <Skeleton rows={5} label="Loading the vault" />,
 });
+
+export const FairnessLiveClient = dynamic(() => import("@/components/fairness/FairnessLive").then((m) => m.FairnessLive), {
+  ssr: false,
+  loading: () => <div className="mx-auto h-[900px] max-w-[1440px]" aria-busy="true" aria-label="Loading the live record" />,
+});
