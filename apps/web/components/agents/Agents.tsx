@@ -2,6 +2,7 @@
 
 import { TapeClient, type TapeSession } from "@unison/sdk/tape";
 import { Check, Copy, Eye, EyeOff, Fingerprint, LockKeyhole } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "@/lib/ui/toast";
 import type { Address, Hex } from "viem";
@@ -69,17 +70,32 @@ export function Agents() {
         </p>
       </header>
 
-      <div className="mt-10 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="mt-10 grid items-stretch gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         {live && id ? (
           <Mint net={v.net!} onMinted={(m) => (setMinted(m), setRefresh((n) => n + 1))} />
         ) : live ? (
           <SignInPanel />
         ) : (
-          <Panel title="Keys live on a network">
+          <Panel title="What a key can do">
             <p className="text-ink-2">
-              You&apos;re in the simulation. On a Unison network you mint an agent&apos;s key here with one passkey signature,
-              and see and revoke every key you&apos;ve granted.
+              On a Unison network you mint a key here with one passkey signature, hand it to an agent, and revoke it
+              whenever you like. You&apos;re in the simulation, so the key beside this is an example.
             </p>
+            {/* the rulebook, as the gateway checks it on every order */}
+            <dl className="mt-5 divide-y divide-line border-y border-line text-sm">
+              {RULES.map(([can, what]) => (
+                <div key={what} className="grid grid-cols-[88px_minmax(0,1fr)] gap-4 py-2.5">
+                  <dt className={can ? "font-medium text-ink" : "font-medium text-halt"}>{can ? "Can" : "Never"}</dt>
+                  <dd className="text-ink-2">{what}</dd>
+                </div>
+              ))}
+            </dl>
+            <Link
+              href="/developers#agents-title"
+              className="press mt-6 inline-flex items-center rounded-full bg-ink px-5 py-3 text-sm font-semibold text-bg"
+            >
+              Connect an agent
+            </Link>
           </Panel>
         )}
         {minted ? (
@@ -94,6 +110,14 @@ export function Agents() {
     </div>
   );
 }
+
+/** What a session key may and may not do: OrderGateway's checks, in words. */
+const RULES: [boolean, string][] = [
+  [true, "Place and cancel orders for you, signed with its own key"],
+  [true, "Trade only the markets you pick, each order within the size and notional you set"],
+  [true, "Act until it expires or you revoke it, whichever comes first"],
+  [false, "Withdraw your funds, or grant another key: both need your own signature"],
+];
 
 function Panel({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -164,6 +188,11 @@ function KeyCard({ k, label, browser, onRevoke, busy }: { k: KeyView; label?: st
         <div>
           <dt className="text-ink-3">Notional per order</dt>
           <dd className="figures mt-0.5 text-ink">up to ${notional.toLocaleString("en-US", { maximumFractionDigits: 2 })}</dd>
+        </div>
+        {/* the limits are per order: say what that means for the total, plainly */}
+        <div className="col-span-2">
+          <dt className="text-ink-3">In total</dt>
+          <dd className="mt-0.5 text-ink">Not capped: any number of orders, as far as your free balance goes, until it expires.</dd>
         </div>
       </dl>
       <div className="relative mt-6 flex items-center justify-between gap-4 border-t border-line pt-4">
