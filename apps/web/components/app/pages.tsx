@@ -45,3 +45,13 @@ export const FairnessLiveClient = dynamic(() => import("@/components/fairness/Fa
   ssr: false,
   loading: () => <div className="mx-auto h-[900px] max-w-[1440px]" aria-busy="true" aria-label="Loading the live record" />,
 });
+
+export const TapeConsoleClient = dynamic(() => import("@/components/developers/LivePieces").then((m) => m.TapeConsole), {
+  ssr: false,
+  loading: () => <div className="h-[25rem] rounded-[var(--radius-lg)] bg-sunken" aria-busy="true" />,
+});
+
+export const ContractsClient = dynamic(() => import("@/components/developers/LivePieces").then((m) => m.Contracts), {
+  ssr: false,
+  loading: () => <div className="h-48 rounded-[var(--radius-xl)] bg-raised shadow-md" aria-busy="true" />,
+});

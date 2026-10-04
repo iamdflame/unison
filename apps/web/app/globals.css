@@ -332,3 +332,22 @@
     transform: translateX(18px);
   }
 }
+
+/* Code (Shiki, css-variables theme): the house tokens, in both lights. */
+:root {
+  --code-foreground: var(--ink);
+  --code-background: transparent;
+  --code-token-keyword: var(--accent);
+  --code-token-constant: var(--buy);
+  --code-token-string: oklch(0.47 0.085 70);
+  --code-token-string-expression: oklch(0.47 0.085 70);
+  --code-token-comment: var(--ink-3);
+  --code-token-function: var(--ink);
+  --code-token-parameter: var(--ink-2);
+  --code-token-punctuation: var(--ink-2);
+  --code-token-link: var(--accent);
+}
+[data-theme="night"] {
+  --code-token-string: var(--champagne);
+  --code-token-string-expression: var(--champagne);
+}
