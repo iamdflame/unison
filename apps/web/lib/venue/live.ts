@@ -318,6 +318,7 @@ async function loadAccount(net: NetConfig) {
         bandLo: f.bandLo,
         bandHi: f.bandHi,
         receipt: f.receiptHash,
+        orderQty: qty,
       });
     }
   }

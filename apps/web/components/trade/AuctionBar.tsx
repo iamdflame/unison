@@ -3,15 +3,28 @@
 import { BatchRing } from "@/components/app/BatchRing";
 import { nextAuction, type MarketState } from "@/lib/demo/engine";
 import { BEAT_MS } from "@/lib/motion/tokens";
+import { useMarketMoment } from "@/lib/time/useMarketMoment";
 
 const plural = (n: number, one: string) => `${n.toLocaleString("en-US")} ${n === 1 ? one : `${one}s`}`;
+const qty = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+const nyTime = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+
+export interface Indicative {
+  /** the tick the batch now forming would clear at */
+  tick: number;
+  /** what would trade there */
+  volume: number;
+  /** demand minus supply at that tick: who is left over */
+  imbalance: number;
+}
 
 /**
- * When the next auction runs, what is waiting for it, and what the last one did. In session there is an auction every
- * block. While the reference market is closed there is one every `discCadence` blocks: the escapement fills block by
- * block, orders gather, and everything that gathered clears together at one price.
+ * The state of the auction, on every screen: when the next one runs, where it would clear now and how much would
+ * trade, and what the last one did. In session there is an auction every block. While the reference market is
+ * closed there is one every `discCadence` blocks: the escapement fills block by block, orders gather, and all that
+ * gathered clears together at one price; the bar says when that ends and how the reopening cross works.
  */
-export function AuctionBar({ m, fmt }: { m: MarketState; fmt: (tick: number) => string }) {
+export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick: number) => string; indicative: Indicative | null }) {
   const regime = m.regime.name;
   const discovery = regime === "DISCOVERY";
   const cadence = discovery ? m.spec.regime.discCadence : 1;
@@ -25,7 +38,12 @@ export function AuctionBar({ m, fmt }: { m: MarketState; fmt: (tick: number) => 
       : agoBlocks <= 1
         ? "just now"
         : `${((agoBlocks * BEAT_MS) / 1000).toFixed(agoBlocks * BEAT_MS < 10_000 ? 1 : 0)} s ago`;
-  const unitName = m.spec.ticker;
+  const unit = m.spec.ticker;
+  const stock = m.spec.kind === "equity" || m.spec.kind === "etf" || m.spec.kind === "gold";
+  const moment = useMarketMoment();
+  // a stock's discovery ends when pre-market opens: the first auction after it is the reopening cross
+  const reopens = discovery && stock && moment ? `${nyTime.format(moment.nextChange)} ET` : null;
+  const closedWho = stock ? "Wall Street is closed" : m.spec.kind === "fx" ? "The currency market is closed" : "Its reference is closed";
 
   return (
     <section aria-label="Auctions" className="mt-5 rounded-[var(--radius-xl)] bg-raised px-5 py-3.5 shadow-panel">
@@ -50,20 +68,30 @@ export function AuctionBar({ m, fmt }: { m: MarketState; fmt: (tick: number) => 
             ) : discovery ? (
               <>
                 Next auction in <span className="tnum">{((Math.max(1, left) * BEAT_MS) / 1000).toFixed(1)} s</span>
+                <span className="figures font-normal text-ink-2"> · {plural(m.forming, "new order")}</span>
               </>
             ) : (
               "An auction every block, about 0.3 s"
             )}
           </p>
         </div>
-        {discovery ? (
-          <p className="figures text-sm text-ink-2">{plural(m.forming, "new order")} since the last one</p>
-        ) : null}
+        {/* the batch now forming, cleared as it stands */}
+        <p className="figures text-sm text-ink-2" aria-live="off">
+          {indicative ? (
+            <>
+              Clears now <span className="font-medium text-ink">{fmt(indicative.tick)}</span> · {qty(indicative.volume)} {unit}
+              {Math.abs(indicative.imbalance) >= 0.01
+                ? ` · ${indicative.imbalance > 0 ? "buyers" : "sellers"} left with ${qty(Math.abs(indicative.imbalance))} ${unit}`
+                : " · balanced"}
+            </>
+          ) : (
+            "No cross yet: buyers and sellers don't meet inside the band"
+          )}
+        </p>
         <p className="figures text-sm text-ink-2">
           {last ? (
             <>
-              Last trade <span className="text-ink">{fmt(last.tick)}</span> ·{" "}
-              {last.volume.toLocaleString("en-US", { maximumFractionDigits: 2 })} {unitName} · {ago}
+              Last trade <span className="text-ink">{fmt(last.tick)}</span> · {qty(last.volume)} {unit} · {ago}
             </>
           ) : (
             "No trades yet"
@@ -72,14 +100,21 @@ export function AuctionBar({ m, fmt }: { m: MarketState; fmt: (tick: number) => 
       </div>
       {discovery ? (
         <p className="mt-2 text-xs leading-relaxed text-ink-3 sm:hidden">
-          Its market is closed: a call auction every {(cadence * BEAT_MS) / 1000} s, in a band around the last close.
+          {closedWho}: a call auction every {(cadence * BEAT_MS) / 1000} s, around the last close.
+          {reopens ? ` Reopening cross ${reopens}.` : ""}
         </p>
       ) : null}
       {discovery ? (
         <p className="mt-2 hidden text-xs leading-relaxed text-ink-3 sm:block">
-          Its market is closed, so {unitName} trades in a call auction every {cadence} blocks, about{" "}
-          {(cadence * BEAT_MS) / 1000} s. The band is centred on the last close, {fmt(m.refTick)}, and widens the longer
-          the market stays closed. Prices here come from these auctions, not from the closed market.
+          {closedWho}, so {unit} trades in a call auction every {cadence} blocks, about {(cadence * BEAT_MS) / 1000} s, in
+          a band around the last close, {fmt(m.refTick)}, that widens the longer it stays closed.
+          {reopens ? (
+            <>
+              {" "}
+              This ends {reopens}, when pre-market opens: the first auction then is a reopening cross, its band ±
+              {(m.spec.regime.reopenBandBps / 100).toFixed(2)}%.
+            </>
+          ) : null}
         </p>
       ) : null}
     </section>

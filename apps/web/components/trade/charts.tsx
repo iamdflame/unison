@@ -42,29 +42,40 @@ export function niceStep(range: number, target: number) {
 /** The name of the price the band is centred on: the reference, or, while its market is closed, the last close. */
 export const refName = (m: MarketState) => (m.regime.name === "DISCOVERY" ? "Last close" : "Reference");
 
-export function CrossChart({
-  m,
-  fmt,
-  w = 900,
-  h = 420,
-}: { m: MarketState; fmt: (tick: number) => string } & ChartSize) {
-  const W = Math.max(280, w);
-  const H = Math.max(200, h);
+/**
+ * The prices the batch chart shows: centred on where trading is (the last trade), since while its market is closed
+ * the reference stays at the close and trading can be far from it. The centre moves in steps, so the window holds
+ * still between auctions. Shared with the chart's key, which names only what is on the chart.
+ */
+export function crossWindow(m: MarketState) {
   const span = Math.max(12, Math.min(48, Math.round((m.hi - m.lo) / 2)));
-  // Centred on where trading is (the last trade): while its market is closed the reference stays at the close and
-  // trading can be far from it. The centre moves in steps, so the window holds still between auctions.
   const anchor = m.last?.tick ?? m.refTick;
   const hop = Math.max(2, Math.round(span / 3));
   const centre = Math.round(anchor / hop) * hop;
-  const lo = centre - span;
-  const hi = centre + span;
+  return { lo: centre - span, hi: centre + span };
+}
+
+export function CrossChart({
+  m,
+  fmt,
+  cross = null,
+  w = 900,
+  h = 420,
+}: { m: MarketState; fmt: (tick: number) => string; cross?: { tick: number; volume: number } | null } & ChartSize) {
+  const W = Math.max(280, w);
+  const H = Math.max(200, h);
+  const { lo, hi } = crossWindow(m);
   const { ticks, demand, supply } = useMemo(() => curves([...m.book, ...m.vault], lo, hi), [m.book, m.vault, lo, hi]);
-  const qStep = niceStep(Math.max(1, ...demand, ...supply) * 1.08, 3);
-  const maxQ = Math.ceil((Math.max(1, ...demand, ...supply) * 1.08) / qStep) * qStep;
+  // Scaled to the meeting point, not to the deep walls at the window's edges (the vault's ladder, resting orders):
+  // the cross is what this view is for. Deeper levels run off the top; the scale says how far up it goes.
+  const peak = Math.max(1, ...demand, ...supply);
+  const focus = cross ? Math.min(peak, Math.max(cross.volume * 3.5, peak * 0.12, 1)) : peak;
+  const qStep = niceStep(focus * 1.08, 3);
+  const maxQ = Math.ceil((focus * 1.08) / qStep) * qStep;
   const tStep = Math.max(1, Math.round(niceStep(hi - lo, W < 560 ? 3 : 5)));
   const axis: number[] = [];
   for (let t = Math.ceil(lo / tStep) * tStep; t <= hi; t += tStep) axis.push(t);
-  const P = { l: 16, r: 52, t: 36, b: 44 };
+  const P = { l: 16, r: 52, t: 46, b: 44 };
   const x = (t: number) => P.l + ((t - lo + 0.5) / (hi - lo + 1)) * (W - P.l - P.r);
   const y = (q: number) => H - P.b - (q / maxQ) * (H - P.t - P.b);
   const step = (vals: number[]) =>
@@ -76,7 +87,9 @@ export function CrossChart({
       .join("");
   const mine = m.book.filter((o) => o.owner === "you" && o.tick >= lo && o.tick <= hi);
   const last = m.last && m.last.tick >= lo && m.last.tick <= hi ? m.last : null;
-  const lastQ = last ? Math.min(maxQ * 0.98, last.volume) : 0;
+  const crossOn = cross && cross.tick >= lo && cross.tick <= hi ? cross : null;
+  const unit = m.spec.ticker;
+  const qty = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 2 });
   const bandLo = Math.max(lo, m.lo);
   const bandHi = Math.min(hi, m.hi);
   return (
@@ -84,8 +97,13 @@ export function CrossChart({
       viewBox={`0 0 ${W} ${H}`}
       className="h-full w-full"
       role="img"
-      aria-label={`Batch forming: ${m.book.length} resting and new orders${last ? `; last price ${fmt(last.tick)}` : ""}.`}
+      aria-label={`Batch forming: ${m.book.length} resting and new orders${crossOn ? `; it would clear ${qty(crossOn.volume)} ${unit} at ${fmt(crossOn.tick)}` : ""}${last ? `; last trade ${fmt(last.tick)}` : ""}.`}
     >
+      <defs>
+        <clipPath id="cross-plot">
+          <rect x={P.l} y={P.t} width={W - P.l - P.r} height={H - P.t - P.b + 1} />
+        </clipPath>
+      </defs>
       {/* Outside the band: no fills there this batch */}
       {m.lo > lo ? (
         <rect x={x(lo - 0.5)} y={P.t} width={x(m.lo - 0.5) - x(lo - 0.5)} height={H - P.t - P.b} fill="url(#hatch)" />
@@ -113,13 +131,15 @@ export function CrossChart({
           </text>
         </g>
       ))}
-      <text x={W - P.r + 8} y={P.t - 16} fill="var(--ink-3)" style={{ fontSize: 11 }}>
-        shares
+      <text x={W - P.r + 8} y={P.t - 18} fill="var(--ink-3)" style={{ fontSize: 11 }}>
+        {unit}
       </text>
-      <path d={`${step(demand)}V${y(0)}H${x(lo - 0.5)}Z`} fill="var(--buy-soft)" />
-      <path d={`${step(supply)}V${y(0)}H${x(lo - 0.5)}Z`} fill="var(--sell-soft)" />
-      <path d={step(demand)} fill="none" stroke="var(--buy)" strokeWidth="1.8" />
-      <path d={step(supply)} fill="none" stroke="var(--sell)" strokeWidth="1.8" />
+      <g clipPath="url(#cross-plot)">
+        <path d={`${step(demand)}V${y(0)}H${x(lo - 0.5)}Z`} fill="var(--buy-soft)" />
+        <path d={`${step(supply)}V${y(0)}H${x(lo - 0.5)}Z`} fill="var(--sell-soft)" />
+        <path d={step(demand)} fill="none" stroke="var(--buy)" strokeWidth="1.8" />
+        <path d={step(supply)} fill="none" stroke="var(--sell)" strokeWidth="1.8" />
+      </g>
       <line x1={P.l} x2={W - P.r} y1={y(0)} y2={y(0)} stroke="var(--line-strong)" />
       {axis.map((t) => (
         <g key={t}>
@@ -165,24 +185,23 @@ export function CrossChart({
           </text>
         </g>
       ))}
-      {last ? (
+      {/* the last auction's price: a quiet ring on the price axis, named in the key, never a label on the data */}
+      {last ? <circle cx={x(last.tick)} cy={y(0)} r="4.5" fill="var(--bg-raised)" stroke="var(--ink-2)" strokeWidth="1.5" /> : null}
+      {/* where this batch would clear now: a hairline from the rail above the plot to the meeting point, labelled in
+          the rail, so no annotation ever sits on the curves */}
+      {crossOn ? (
         <g>
-          <line x1={x(last.tick)} x2={x(last.tick)} y1={y(0)} y2={y(lastQ)} stroke="var(--ink)" strokeDasharray="2 4" />
-          <Ball x={x(last.tick)} y={y(lastQ)} />
-          {/* named, so the last batch's price is never read as this batch's cross */}
+          <line x1={x(crossOn.tick)} x2={x(crossOn.tick)} y1={P.t - 8} y2={y(0)} stroke="var(--ink-2)" strokeDasharray="2 3" />
+          <circle cx={x(crossOn.tick)} cy={y(Math.min(maxQ, crossOn.volume))} r="5" fill="var(--accent)" />
           <text
-            x={x(last.tick) + (x(last.tick) > W - P.r - 110 ? -14 : 14)}
-            y={y(lastQ) - 12}
-            textAnchor={x(last.tick) > W - P.r - 110 ? "end" : "start"}
+            x={Math.min(W - P.r - 104, Math.max(P.l + 104, x(crossOn.tick)))}
+            y={P.t - 16}
+            textAnchor="middle"
             className="figures"
-            fill="var(--ink-2)"
-            stroke="var(--bg-raised)"
-            strokeWidth={4}
-            strokeLinejoin="round"
-            paintOrder="stroke"
-            style={{ fontSize: 12 }}
+            fill="var(--ink)"
+            style={{ fontSize: 12, fontWeight: 600 }}
           >
-            last trade {fmt(last.tick)}
+            Clears now {fmt(crossOn.tick)} · {qty(crossOn.volume)} {unit}
           </text>
         </g>
       ) : null}

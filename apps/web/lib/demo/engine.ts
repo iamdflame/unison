@@ -73,6 +73,8 @@ export interface MyFill {
   bandHi: number;
   /** the market was closed: the band was centred on the last close, and the auction was a call auction */
   closed?: boolean;
+  /** the size of the order this fill belongs to */
+  orderQty?: number;
   /** live: the auction's on-chain receipt hash */
   receipt?: string;
 }
@@ -458,6 +460,7 @@ function settle(
           bandLo,
           bandHi,
           closed,
+          orderQty: o.qty,
         });
       }
       const complete = next.filled >= next.qty - 0.004;

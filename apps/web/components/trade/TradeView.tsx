@@ -13,7 +13,8 @@ import { certificate, certificateFor } from "./certificateStore";
 import { OrderTicket } from "./OrderTicket";
 import { clearBatch } from "@/lib/sim/batch";
 import { AuctionBar } from "./AuctionBar";
-import { CrossChart, DepthLadder, PrintsChart, refName } from "./charts";
+import { CrossChart, crossWindow, DepthLadder, PrintsChart, refName } from "./charts";
+import { MarketFacts } from "./MarketFacts";
 import { useSize } from "./useSize";
 
 /**
@@ -51,7 +52,7 @@ export function TradeView({ ticker }: { ticker: string }) {
   };
 
   return (
-    <div className="mx-auto max-w-[1680px] px-4 pt-5 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-6 lg:py-7">
+    <div className="mx-auto max-w-[1680px] px-4 pt-5 pb-[calc(10rem+env(safe-area-inset-bottom))] sm:px-6 sm:pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:py-7">
       {/* Desktop: the ticket owns the right column from the top, so its button is on screen without scrolling. */}
       <div className="grid grid-cols-1 gap-x-5 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0">
@@ -121,7 +122,7 @@ export function TradeView({ ticker }: { ticker: string }) {
             </dl>
           </header>
 
-          <AuctionBar m={m} fmt={fmt} />
+          <AuctionBar m={m} fmt={fmt} indicative={indicative} />
 
           <div className="mt-5 flex min-w-0 flex-col gap-5">
             <Tabs.Root
@@ -148,19 +149,7 @@ export function TradeView({ ticker }: { ticker: string }) {
                 </Tabs.List>
                 <p className="hidden pr-2 pb-3 text-xs text-ink-3 sm:block" aria-live="off">
                   {view === "cross" ? (
-                    indicative ? (
-                      <>
-                        If it cleared now:{" "}
-                        <span className="figures text-ink">
-                          {indicative.volume.toFixed(2)} at {fmt(indicative.tick)}
-                        </span>
-                        {Math.abs(indicative.imbalance) >= 0.01
-                          ? ` · ${indicative.imbalance > 0 ? "buyers" : "sellers"} heavier by ${Math.abs(indicative.imbalance).toFixed(2)}`
-                          : " · balanced"}
-                      </>
-                    ) : (
-                      "No cross yet: buyers and sellers don't meet inside the band."
-                    )
+                    "The batch now forming: everyone's limits, and where they meet."
                   ) : view === "prints" ? (
                     "Every print against the reference (dashed)."
                   ) : (
@@ -170,9 +159,9 @@ export function TradeView({ ticker }: { ticker: string }) {
               </div>
               <Tabs.Panel value="cross" className="flex h-[clamp(300px,46vw,480px)] w-full flex-col p-2">
                 <div className="min-h-0 flex-1">
-                  <Measured>{(w, h) => <CrossChart m={m} fmt={fmt} w={w} h={h} />}</Measured>
+                  <Measured>{(w, h) => <CrossChart m={m} fmt={fmt} cross={indicative} w={w} h={h} />}</Measured>
                 </div>
-                {/* the key, and on phones the readout the tab bar has no room for */}
+                {/* the key: only what is on the chart, each with its own mark */}
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-1 px-3 pt-1 pb-2 text-xs text-ink-3">
                   <span className="inline-flex items-center gap-2">
                     <span aria-hidden className="h-0.5 w-4 rounded bg-buy" /> Buyers at or above each price
@@ -180,18 +169,22 @@ export function TradeView({ ticker }: { ticker: string }) {
                   <span className="inline-flex items-center gap-2">
                     <span aria-hidden className="h-0.5 w-4 rounded bg-sell" /> Sellers at or below
                   </span>
-                  <span className="inline-flex items-center gap-2">
-                    <span aria-hidden className="size-2 rounded-full bg-[var(--ball-3)]" /> Last trade
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <span aria-hidden>▲</span> {refName(m)}
-                  </span>
-                  {!live ? <span>Includes the vault&apos;s quotes</span> : null}
-                  <span className="figures basis-full text-ink-2 sm:hidden">
-                    {indicative
-                      ? `If it cleared now: ${indicative.volume.toFixed(2)} at ${fmt(indicative.tick)}`
-                      : "No cross yet"}
-                  </span>
+                  {indicative ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span aria-hidden className="size-2 rounded-full bg-accent" /> Clears now
+                    </span>
+                  ) : null}
+                  {m.last ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span aria-hidden className="size-2 rounded-full ring-[1.5px] ring-ink-2" /> Last trade
+                    </span>
+                  ) : null}
+                  {m.refTick >= crossWindow(m).lo && m.refTick <= crossWindow(m).hi ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <span aria-hidden>▲</span> {refName(m)}
+                    </span>
+                  ) : null}
+                  {!live ? <span>Quantities in {spec.ticker}, the vault&apos;s quotes included</span> : <span>Quantities in {spec.ticker}</span>}
                 </div>
               </Tabs.Panel>
               <Tabs.Panel value="prints" className="h-[clamp(250px,42vw,440px)] w-full p-2">
@@ -208,6 +201,7 @@ export function TradeView({ ticker }: { ticker: string }) {
               onCancel={(id) => void market.cancel(id)}
               onCertificate={(f) => certificate.set(certificateFor(f, spec, live ? v.net : null))}
             />
+            <MarketFacts m={m} />
           </div>
         </div>
         <div className="hidden lg:sticky lg:top-20 lg:block lg:self-start">

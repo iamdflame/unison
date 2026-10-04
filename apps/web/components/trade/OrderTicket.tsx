@@ -93,6 +93,16 @@ export function OrderTicket({
     const out = clearBatch([...m.book, ...m.vault, { id: 0, side, tick: limit, qty }], band);
     return out.traded ? { tick: out.tick, filled: out.fills.get(0) ?? 0 } : null;
   }, [m.book, m.vault, band, side, limit, qty]);
+  const n = (v: number) => v.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  // What your order would do in that auction, in words: in full, in part (and why), or not at all.
+  const rests = ioc ? "is cancelled" : "rests";
+  const fillNote = !withYou
+    ? "Buyers and sellers don't meet inside the band yet."
+    : withYou.filled >= qty - 0.004
+      ? `All ${n(qty)} ${ticker} would fill${alone !== null && alone !== withYou.tick ? `; your order moves the price from ${fmt(alone)}` : ""}.`
+      : withYou.filled > 0
+        ? `${n(withYou.filled)} of ${n(qty)} ${ticker} would fill: orders at the clearing price share what is left, pro rata. The other ${n(qty - withYou.filled)} ${rests}.`
+        : `None would fill: it clears ${side === "buy" ? "above" : "below"} your limit. Your order ${rests}.`;
   // What it would cost (or bring) if the auction ran now: the fill at the clearing price, plus or minus the fee.
   const estimate =
     withYou && withYou.filled > 0
@@ -279,8 +289,11 @@ export function OrderTicket({
           </p>
         ) : null}
 
-        <label className="mt-4 block text-xs font-medium text-ink-3" htmlFor="qty">
-          Quantity ({ticker})
+        <label className="mt-4 flex justify-between gap-3 text-xs font-medium text-ink-3" htmlFor="qty">
+          <span>Quantity ({ticker})</span>
+          <span className="figures font-normal">
+            {side === "buy" ? `${n(free.quote)} AUSD free` : `${free.base.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${ticker} free`}
+          </span>
         </label>
         <input
           id="qty"
@@ -333,53 +346,32 @@ export function OrderTicket({
         </div>
         <p className="mt-2 text-xs leading-relaxed text-ink-3">
           {ioc
-            ? "What doesn't fill in that auction is cancelled, and its funds come back."
+            ? "What doesn't fill then is cancelled, and its funds come back."
             : discovery
-              ? "It joins every auction until it fills or you cancel, the reopening included, at that auction's price."
-              : "It joins every batch until it fills or you cancel."}
+              ? "Joins every auction until it fills, the reopening included."
+              : "Joins every batch until it fills or you cancel."}
         </p>
 
         <dl id="qty-help" className="mt-4 space-y-2.5 border-t border-line pt-4 text-sm">
-          <div className="flex justify-between gap-4">
-            <dt className="text-ink-3">Clears now, without you</dt>
-            <dd className="figures text-ink">{alone !== null ? fmt(alone) : "No cross yet"}</dd>
+          <div className="flex flex-wrap justify-between gap-x-4 gap-y-0.5">
+            <dt className="text-ink-3">If the auction ran now</dt>
+            <dd className="figures text-ink">{withYou ? fmt(withYou.tick) : "No cross yet"}</dd>
+            <dd className="figures basis-full text-xs leading-relaxed text-ink-3">{fillNote}</dd>
           </div>
-          <div className="flex justify-between gap-4">
-            <dt className="text-ink-3">With your order</dt>
-            <dd className="figures text-right text-ink">
-              {!withYou
-                ? "No cross yet"
-                : withYou.filled > 0
-                  ? `${withYou.filled.toLocaleString("en-US", { maximumFractionDigits: 2 })} at ${fmt(withYou.tick)}`
-                  : `${fmt(withYou.tick)}, no fill`}
-            </dd>
-          </div>
-          <div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
+          <div className="flex flex-wrap justify-between gap-x-4 gap-y-0.5">
             <dt className="text-ink-3">{side === "buy" ? "Estimated cost" : "Estimated proceeds"}</dt>
-            <dd className="figures font-semibold text-ink">
-              {estimate !== null ? money(estimate) : "Not filling now"}
+            <dd className="figures font-semibold text-ink">{estimate !== null ? money(estimate) : "None yet"}</dd>
+            <dd className="figures basis-full text-xs leading-relaxed text-ink-3">
+              {estimate !== null && withYou ? `For the ${n(withYou.filled)} ${ticker} that would fill, ${side === "buy" ? "with" : "less"} the ${spec.feeBps} bp fee.` : "Nothing would fill now."}
             </dd>
+          </div>
+          <div className="flex flex-wrap justify-between gap-x-4 gap-y-0.5">
+            <dt className="text-ink-3">Held until it fills</dt>
+            <dd className="figures text-ink">{side === "buy" ? money(lock) : `${n(lock)} ${ticker}`}</dd>
             <dd className="basis-full text-xs leading-relaxed text-ink-3">
-              If the auction ran now, with the {spec.feeBps} bp fee. The auction sets the price, never worse than your
-              limit.
-            </dd>
-          </div>
-          <div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
-            <dt className="text-ink-3">{side === "buy" ? "You lock at most" : "You lock"}</dt>
-            <dd className="figures text-ink">{side === "buy" ? money(lock) : `${lock} ${ticker}`}</dd>
-            {side === "buy" ? (
-              <dd className="basis-full text-xs leading-relaxed text-ink-3">
-                Your limit plus the {spec.maxFeeBps} bp fee cap, held until it fills; what you don&apos;t pay comes
-                back.
-              </dd>
-            ) : null}
-          </div>
-          <div className="flex justify-between gap-4">
-            <dt className="text-ink-3">Available</dt>
-            <dd className="figures text-ink-2">
               {side === "buy"
-                ? money(free.quote)
-                : `${free.base.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${ticker}`}
+                ? `All ${n(qty)} at your limit plus ${spec.maxFeeBps} bp, the most the fee can be. The rest comes back.`
+                : `You receive the auction's price, less the ${spec.feeBps} bp fee.`}
             </dd>
           </div>
         </dl>
