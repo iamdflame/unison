@@ -12,12 +12,14 @@ import { z } from "zod";
 import { createPublicClient, erc20Abi, http, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import {
+  buildCancel,
   buildOrder,
   chainById,
   formatUnitsExact,
   loadDeploymentFile,
   orderToJson,
   parseUnitsExact,
+  RelayerClient,
   Side,
   signAsSession,
   statusName,
@@ -210,6 +212,28 @@ async function main() {
         body: JSON.stringify(orderToJson(order, sig)),
       });
       return text({ httpStatus: r.status, ...((await r.json()) as object) });
+    },
+  );
+
+  server.registerTool(
+    "cancel_order",
+    {
+      description:
+        "Cancel one of the account's orders by slot (see my_orders), signed with the session key and relayed gaslessly. " +
+        "Its locked funds are released; anything already filled stays filled.",
+      inputSchema: { slot: z.number().int().min(0).describe("the order's slot, from my_orders") },
+    },
+    async ({ slot }) => {
+      if (!agentKey || !agentAccount || !deployment.gateway) {
+        throw new Error("cancelling needs AGENT_PRIVATE_KEY, AGENT_ACCOUNT and a deployment with a gateway");
+      }
+      const cancel = buildCancel({ account: agentAccount, slot });
+      const sig = await signAsSession(agentKey, deployment.chainId, deployment.gateway, cancel, "Cancel");
+      try {
+        return text(await new RelayerClient(relayer).postCancel(cancel, sig));
+      } catch (e) {
+        return text({ error: (e as Error).message });
+      }
     },
   );
 

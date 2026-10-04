@@ -30,7 +30,7 @@ describe("decodeUnisonError", () => {
       new ContractFunctionRevertedError({ abi: merged, data: data("SessionExpired"), functionName: "place" }),
       { abi: merged, args: [], functionName: "place" },
     );
-    expect(decodeUnisonError(decoded)).toEqual({ code: "SessionExpired", message: "This trading session expired." });
+    expect(decodeUnisonError(decoded)).toEqual({ code: "SessionExpired", message: "This session key has expired or was revoked." });
     // the call's ABI didn't know the error (e.g. bubbled from the exchange through the gateway): selector lookup
     const raw = new ContractFunctionRevertedError({ abi: [], data: data("NotEligible"), functionName: "place" });
     expect(decodeUnisonError(raw).code).toBe("NotEligible");

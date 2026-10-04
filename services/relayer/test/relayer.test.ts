@@ -113,7 +113,7 @@ describe("relayer: orders", () => {
     chain.simulateError = () => revert("SessionCap");
     const capped = await post(app, "/v1/orders", await signedOrder());
     expect(capped.status).toBe(400);
-    expect(await json(capped)).toEqual({ error: { code: "SessionCap", message: "Over this session's limits." } });
+    expect(await json(capped)).toEqual({ error: { code: "SessionCap", message: "Over this session key's limits: a market it may not trade, or too large an order." } });
     chain.simulateError = undefined;
 
     const expired = await post(app, "/v1/orders", await signedOrder({ ttlSeconds: -5 }));

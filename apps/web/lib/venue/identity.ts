@@ -182,11 +182,7 @@ export async function startSession(
     marketIds: caps.marketIds,
     ttlSeconds: Math.round((caps.hours ?? 1) * 3600),
   });
-  const gateway = net.deployment.gateway as Address;
-  const sig = await signWithPasskey(id, gatewayDigest(net.deployment.chainId, gateway, "Session", grant as never));
-  const relayer = new RelayerClient(net.relayerUrl);
-  const { id: job } = await relayer.postSession(grant, sig);
-  await relayer.waitForJob(job);
+  await postGrant(net, id, grant);
   const s: TradingSession = { account: id.account, key: pk, address: key.address, expiry: Number(grant.expiry) };
   try {
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(s));
@@ -210,6 +206,46 @@ export async function withdrawFunds(net: NetConfig, id: PasskeyIdentity, token: 
   const relayer = new RelayerClient(net.relayerUrl);
   const { id: job } = await relayer.postWithdraw(w, sig);
   await relayer.waitForJob(job);
+}
+
+/** One Face ID over a session grant (or revocation), relayed and mined. */
+async function postGrant(net: NetConfig, id: PasskeyIdentity, grant: ReturnType<typeof buildSession>) {
+  const gateway = net.deployment.gateway as Address;
+  const sig = await signWithPasskey(id, gatewayDigest(net.deployment.chainId, gateway, "Session", grant as never));
+  const relayer = new RelayerClient(net.relayerUrl);
+  const { id: job } = await relayer.postSession(grant, sig);
+  await relayer.waitForJob(job);
+}
+
+/**
+ * Mints a key for an agent: a fresh key pair made here, granted with one passkey signature, inside caps (markets,
+ * size and notional per order, expiry). The private key is returned once and never stored. It can place and
+ * cancel orders for this account, and can never withdraw.
+ */
+export async function grantAgentKey(
+  net: NetConfig,
+  id: PasskeyIdentity,
+  caps: { maxQty: bigint; maxNotional: bigint; marketIds: number[]; ttlSeconds: number },
+): Promise<{ privateKey: Hex; address: Address; expiry: number }> {
+  const privateKey = generatePrivateKey();
+  const key = privateKeyToAccount(privateKey);
+  const grant = buildSession({ account: id.account, key: key.address, ...caps });
+  await postGrant(net, id, grant);
+  return { privateKey, address: key.address, expiry: Number(grant.expiry) };
+}
+
+/** Revokes a key at once (a grant with expiry 0). Signed with the passkey. */
+export async function revokeKey(net: NetConfig, id: PasskeyIdentity, key: Address): Promise<void> {
+  await postGrant(net, id, buildSession({ account: id.account, key, maxQty: 0n, maxNotional: 0n, marketMask: 0n, expiry: 0n }));
+  const s = session.get();
+  if (s && s.address.toLowerCase() === key.toLowerCase()) {
+    session.set(null);
+    try {
+      sessionStorage.removeItem(SESSION_KEY);
+    } catch {
+      /* nothing kept */
+    }
+  }
 }
 
 /** Signs an order or a cancel: silently with the session key when one is active, otherwise with the passkey. */

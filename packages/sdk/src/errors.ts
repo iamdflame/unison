@@ -42,8 +42,8 @@ export const UNISON_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   NonceUsed: "Already submitted.",
   BadSignature: "The signature didn't verify.",
   SessionNotAllowed: "Session keys can't do that; sign with the account.",
-  SessionExpired: "This trading session expired.",
-  SessionCap: "Over this session's limits.",
+  SessionExpired: "This session key has expired or was revoked.",
+  SessionCap: "Over this session key's limits: a market it may not trade, or too large an order.",
   UnknownPasskey: "This passkey isn't registered yet.",
   ClearRunning: "The vault is waiting for the current auction; retry in a moment.",
 };

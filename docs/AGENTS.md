@@ -59,7 +59,7 @@ The relayer checks every order with `eth_call` before spending gas, and rejects 
 
 ## MCP server
 
-`services/mcp` exposes the same capabilities as Model Context Protocol tools: `markets`, `market`, `depth`, `tape`, `place_order` (session-key signed, relayed), `cancel_order`, `order_status`, `vault`.
+`services/mcp` exposes the same capabilities as Model Context Protocol tools: `markets`, `market`, `depth`, `tape`, `place_order` and `cancel_order` (session-key signed, relayed), `order_status`, `my_orders`, `vault`.
 
 Any MCP-capable agent can trade Unison within the caps its human granted:
 

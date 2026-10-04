@@ -25,3 +25,8 @@ export const PortfolioClient = dynamic(() => import("@/components/portfolio/Port
   ssr: false,
   loading: () => <Skeleton rows={6} label="Loading your portfolio" />,
 });
+
+export const AgentsClient = dynamic(() => import("@/components/agents/Agents").then((m) => m.Agents), {
+  ssr: false,
+  loading: () => <Skeleton rows={5} label="Loading agents" />,
+});
