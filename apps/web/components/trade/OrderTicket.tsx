@@ -4,7 +4,9 @@ import { buyLock } from "@unison/engine";
 import { Minus, Plus } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { account } from "@/lib/demo/engine";
 import { useAccount, useDemoMarket } from "@/lib/demo/useMarket";
+import { certificate } from "./Certificate";
 import { clearBatch } from "@/lib/sim/batch";
 
 /**
@@ -61,9 +63,17 @@ export function OrderTicket({ ticker }: { ticker: string }) {
     const id = toastId.current;
     const avg = status.filled > 0 ? status.quote / status.filled : 0;
     if (status.status === "filled" || status.status === "partial") {
+      const fill = account.get().fills.find((f) => f.orderId === pendingId);
       toast.success(`${side === "buy" ? "Bought" : "Sold"} ${status.filled.toFixed(2)} ${ticker} at $${avg.toFixed(decimals)}`, {
         id,
         description: `The same price as everyone in batch ${status.batch?.toLocaleString("en-US") ?? ""}.`,
+        action: fill
+          ? {
+              label: "Certificate",
+              onClick: () => certificate.set({ ...fill, ticker, name: spec.name, unit, decimals, receipt: null }),
+            }
+          : undefined,
+        duration: 8000,
       });
       toastId.current = null;
     } else if (status.status === "expired") {

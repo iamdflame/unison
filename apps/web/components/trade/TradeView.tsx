@@ -7,7 +7,8 @@ import { useMemo, useState } from "react";
 import { RegimeBadge } from "@/components/app/RegimeBadge";
 import { BatchRing } from "@/components/app/BatchRing";
 import { useAccount, useDemoMarket } from "@/lib/demo/useMarket";
-import type { MyOrder } from "@/lib/demo/engine";
+import type { MyFill, MyOrder } from "@/lib/demo/engine";
+import { CertificateDialog, certificate } from "./Certificate";
 import { OrderTicket } from "./OrderTicket";
 import { CrossChart, DepthLadder, PrintsChart } from "./charts";
 
@@ -107,12 +108,18 @@ export function TradeView({ ticker }: { ticker: string }) {
               <DepthLadder m={m} fmt={fmt} />
             </Tabs.Panel>
           </Tabs.Root>
-          <Activity ticker={ticker} fmt={fmt} onCancel={(id) => market.cancel(id)} />
+          <Activity
+            ticker={ticker}
+            fmt={fmt}
+            onCancel={(id) => market.cancel(id)}
+            onCertificate={(f) => certificate.set({ ...f, ticker, name: spec.name, unit, decimals, receipt: null })}
+          />
         </div>
         <div className="xl:sticky xl:top-20 xl:self-start">
           <OrderTicket ticker={ticker} />
         </div>
       </div>
+      <CertificateDialog />
     </div>
   );
 }
@@ -126,7 +133,17 @@ const STATUS_LABEL: Record<MyOrder["status"], string> = {
   expired: "Expired",
 };
 
-function Activity({ ticker, fmt, onCancel }: { ticker: string; fmt: (t: number) => string; onCancel: (id: number) => void }) {
+function Activity({
+  ticker,
+  fmt,
+  onCancel,
+  onCertificate,
+}: {
+  ticker: string;
+  fmt: (t: number) => string;
+  onCancel: (id: number) => void;
+  onCertificate: (f: MyFill) => void;
+}) {
   const ordersOrNull = useAccount((a) => a.orders[ticker] ?? null);
   const orders = useMemo(() => ordersOrNull ?? [], [ordersOrNull]);
   const fills = useAccount((a) => a.fills);
@@ -174,12 +191,19 @@ function Activity({ ticker, fmt, onCancel }: { ticker: string; fmt: (t: number) 
         ) : (
           <ul className="divide-y divide-line">
             {mine.map((f) => (
-              <li key={`${f.orderId}-${f.block}`} className="grid grid-cols-[auto_1fr_auto] gap-4 px-5 py-3 text-sm">
-                <span className={`font-semibold ${f.side === "buy" ? "text-buy" : "text-sell"}`}>{f.side === "buy" ? "Bought" : "Sold"}</span>
-                <span className="tnum text-ink">
-                  {f.qty.toFixed(2)} at {fmt(f.tick)} <span className="text-ink-3">· batch {f.block.toLocaleString("en-US")} · {f.participants} orders, one price</span>
-                </span>
-                <span className="tnum text-ink-3">{new Date(f.ts).toLocaleTimeString("en-US", { hour12: false })}</span>
+              <li key={`${f.orderId}-${f.block}`}>
+                <button
+                  type="button"
+                  onClick={() => onCertificate(f)}
+                  className="grid w-full grid-cols-[auto_1fr_auto] gap-4 px-5 py-3 text-left text-sm transition-colors hover-fine:bg-ink/[0.03]"
+                  aria-label={`Certificate for ${f.side === "buy" ? "buying" : "selling"} ${f.qty.toFixed(2)} at ${fmt(f.tick)}`}
+                >
+                  <span className={`font-semibold ${f.side === "buy" ? "text-buy" : "text-sell"}`}>{f.side === "buy" ? "Bought" : "Sold"}</span>
+                  <span className="tnum text-ink">
+                    {f.qty.toFixed(2)} at {fmt(f.tick)} <span className="text-ink-3">· batch {f.block.toLocaleString("en-US")} · {f.participants} orders, one price</span>
+                  </span>
+                  <span className="tnum text-ink-3">{new Date(f.ts).toLocaleTimeString("en-US", { hour12: false })}</span>
+                </button>
               </li>
             ))}
           </ul>

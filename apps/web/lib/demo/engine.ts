@@ -60,6 +60,9 @@ export interface MyFill {
   refTick: number;
   batchVolume: number;
   participants: number;
+  limitTick: number;
+  bandLo: number;
+  bandHi: number;
 }
 
 export interface MarketState {
@@ -229,7 +232,7 @@ export class DemoMarket {
       last: print ?? s.last,
       forming: 0,
     });
-    if (!warmup && mine.length) settle(this.spec, mine, print, out.tick, refTick, block, now, book.length);
+    if (!warmup && mine.length) settle(this.spec, mine, print, out.tick, refTick, block, now, book.length, lo, hi);
   }
 
   /** Your order joins the batch now forming. */
@@ -291,6 +294,8 @@ function settle(
   block: number,
   now: number,
   participants: number,
+  bandLo: number,
+  bandHi: number,
 ) {
   const ticker = spec.ticker;
   const unit = Number(spec.tickSize) / 1e6;
@@ -319,7 +324,7 @@ function settle(
           next.locked = Math.max(0, o.locked - f);
           lockedBase[ticker] = (lockedBase[ticker] ?? 0) - f;
         }
-        fills.unshift({ orderId: o.id, side: o.side, qty: f, tick, block, ts: now, refTick, batchVolume: print.volume, participants });
+        fills.unshift({ orderId: o.id, side: o.side, qty: f, tick, block, ts: now, refTick, batchVolume: print.volume, participants, limitTick: o.tick, bandLo, bandHi });
       }
       const complete = next.filled >= next.qty - 0.004;
       const ended = complete || next.ioc;

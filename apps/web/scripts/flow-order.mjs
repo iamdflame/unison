@@ -21,5 +21,8 @@ await p.screenshot({ path: "brand/shots/flow-2-filled.png" });
 await p.getByRole("tab", { name: "Fills" }).click();
 await p.waitForTimeout(300);
 await p.screenshot({ path: "brand/shots/flow-3-fills.png" });
+await p.getByRole("button", { name: /^Certificate for/ }).first().click();
+await p.waitForTimeout(2600);
+await p.screenshot({ path: "brand/shots/flow-4-certificate.png" });
 console.log(JSON.stringify({ errors }, null, 1));
 await b.close();
