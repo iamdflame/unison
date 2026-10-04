@@ -32,9 +32,18 @@ await p.getByText("Test funds deposited.").waitFor({ timeout: 60_000 });
 await p.waitForTimeout(1500);
 await shot("3-funded");
 await p.keyboard.press("Escape");
-await p.getByRole("button", { name: "+$0.50" }).click();
+// a marketable buy: from where the auction would clear now (or the last trade, or the band's centre), a little above
+{
+  await p.getByRole("button", { name: /^(Cross|Last|Ref|Close) \$/ }).first().waitFor();
+  const cross = p.getByRole("button", { name: /^Cross \$/ });
+  const last = p.getByRole("button", { name: /^Last \$/ });
+  await ((await cross.count()) ? cross : (await last.count()) ? last : p.getByRole("button", { name: /^(Ref|Close) \$/ })).click();
+  const limit = p.locator("#limit");
+  await limit.fill((Number(await limit.inputValue()) + 0.5).toFixed(2));
+  await limit.press("Enter");
+}
 await p.locator("#qty").fill("1");
-await p.getByRole("button", { name: /^Buy 1 aNVDA$/ }).click();
+await p.getByRole("button", { name: /^Buy 1 aNVDA at/ }).click();
 await p.waitForTimeout(1500);
 await shot("4-placed");
 // The toast follows the order: the keeper clears the batch, auto-claims, and the tape pushes the fill.

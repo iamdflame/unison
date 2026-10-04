@@ -29,9 +29,18 @@ await p.getByText("Your account.").waitFor({ timeout: 30_000 });
 await p.getByRole("button", { name: "Add test funds" }).click();
 await p.getByText("Test funds deposited.").waitFor({ timeout: 60_000 });
 await p.keyboard.press("Escape");
-await p.getByRole("button", { name: "+$0.50" }).click();
+// a marketable buy: from where the auction would clear now (or the last trade, or the band's centre), a little above
+{
+  await p.getByRole("button", { name: /^(Cross|Last|Ref|Close) \$/ }).first().waitFor();
+  const cross = p.getByRole("button", { name: /^Cross \$/ });
+  const last = p.getByRole("button", { name: /^Last \$/ });
+  await ((await cross.count()) ? cross : (await last.count()) ? last : p.getByRole("button", { name: /^(Ref|Close) \$/ })).click();
+  const limit = p.locator("#limit");
+  await limit.fill((Number(await limit.inputValue()) + 0.5).toFixed(2));
+  await limit.press("Enter");
+}
 await p.locator("#qty").fill("2");
-await p.getByRole("button", { name: /^Buy 2 aNVDA$/ }).click();
+await p.getByRole("button", { name: /^Buy 2 aNVDA at/ }).click();
 await toast(/Bought|Resting at|Not filled/).waitFor({ timeout: 60_000 });
 log.push(`trade: ${(await toast(/Bought|Resting at|Not filled/).innerText()).replace(/\s+/g, " ")}`);
 

@@ -66,7 +66,7 @@ export class LiveMarket {
     this.marketId = net.deployment.markets[spec.symbol]!.id;
     const tick = Number(spec.seedPrice) / Number(spec.tickSize);
     const regime = regimeNow(spec, new Date());
-    this.store = createStore<MarketState>({ spec, block: 0, refTick: tick, regime, lo: tick, hi: tick, book: [], prints: [], last: null, forming: 0 });
+    this.store = createStore<MarketState>({ spec, block: 0, refTick: tick, regime, lo: tick, hi: tick, book: [], prints: [], last: null, forming: 0, lastAuction: 0, vault: [] });
   }
 
   /** Reference-counted. Lists retain without the book (`book: false`): only the terminal polls depth. */
@@ -127,7 +127,7 @@ export class LiveMarket {
       if (!alive) return;
       this.applySummary(summary);
       const list = prints.map((p) => this.toPrint(p)).reverse();
-      this.store.set((m) => ({ ...m, prints: list, last: list.at(-1) ?? null, block: summary.lastPrint?.upTo ?? m.block }));
+      this.store.set((m) => ({ ...m, prints: list, last: list.at(-1) ?? null, block: summary.lastPrint?.upTo ?? m.block, lastAuction: Math.max(m.lastAuction, summary.lastPrint?.upTo ?? 0) }));
     };
     load().catch(() => undefined);
 
@@ -136,7 +136,10 @@ export class LiveMarket {
     const stream = tape.stream(["heads", `prints:${this.marketId}`], {
       head: (h) => this.store.set((m) => ({ ...m, block: h.block })),
       print: (p) => {
-        if (p.marketId !== this.marketId || p.volume === "0") return;
+        if (p.marketId !== this.marketId) return;
+        // every auction, traded or not, restarts the count to the next one
+        this.store.set((m) => (p.upTo > m.lastAuction ? { ...m, lastAuction: p.upTo } : m));
+        if (p.volume === "0") return;
         const pr = this.toPrint(p);
         this.store.set((m) => ({ ...m, prints: [...m.prints.slice(-899), pr], last: pr, refTick: pr.refTick }));
         // An order waiting on this batch changes state with the print, not with an account event.
@@ -176,7 +179,7 @@ export class LiveMarket {
       }));
       bids.forEach((q, i) => q > 0n && book.push({ id: -10_000 - i, side: "buy", tick: m.refTick - span + i, qty: units(q, decimals), owner: "crowd", ioc: false, placedBlock: 0 }));
       asks.forEach((q, i) => q > 0n && book.push({ id: -20_000 - i, side: "sell", tick: m.refTick - span + i, qty: units(q, decimals), owner: "crowd", ioc: false, placedBlock: 0 }));
-      this.store.set((s) => ({ ...s, book }));
+      this.store.set((s) => ({ ...s, book, forming: pending.orders.length }));
     };
     refreshBook().catch(() => undefined);
     const bookTimer = setInterval(() => refreshBook().catch(() => undefined), 1500);

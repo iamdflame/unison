@@ -10,10 +10,19 @@ const errors = [];
 p.on("pageerror", (e) => errors.push(e.message));
 p.on("console", (m) => m.type() === "error" && errors.push(m.text()));
 await p.goto(`${base}/trade/aNVDA?demo=1`, { waitUntil: "networkidle" });
-await p.getByRole("button", { name: /^Buy 1 aNVDA$/ }).waitFor();
-await p.getByRole("button", { name: "+$0.10" }).click();
+await p.getByRole("button", { name: /^Buy 1 aNVDA at/ }).waitFor();
+// a marketable buy: from where the auction would clear now (or the last trade, or the band's centre), a little above
+{
+  await p.getByRole("button", { name: /^(Cross|Last|Ref|Close) \$/ }).first().waitFor();
+  const cross = p.getByRole("button", { name: /^Cross \$/ });
+  const last = p.getByRole("button", { name: /^Last \$/ });
+  await ((await cross.count()) ? cross : (await last.count()) ? last : p.getByRole("button", { name: /^(Ref|Close) \$/ })).click();
+  const limit = p.locator("#limit");
+  await limit.fill((Number(await limit.inputValue()) + 0.5).toFixed(2));
+  await limit.press("Enter");
+}
 await p.locator("#qty").fill("2");
-await p.getByRole("button", { name: /^Buy 2 aNVDA$/ }).click();
+await p.getByRole("button", { name: /^Buy 2 aNVDA at/ }).click();
 await p.waitForTimeout(250);
 await p.screenshot({ path: "brand/shots/flow-1-placed.png" });
 await p.waitForTimeout(1500);

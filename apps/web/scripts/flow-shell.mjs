@@ -101,7 +101,7 @@ const check = async (name, fn) => {
   });
   await check("a paper order shows its toast", async () => {
     await p.goto(`${base}/trade/aNVDA?demo=1`, { waitUntil: "domcontentloaded" });
-    const buy = p.getByRole("button", { name: /^Buy [\d.]+ aNVDA$/ });
+    const buy = p.getByRole("button", { name: /^Buy [\d.]+ aNVDA at/ });
     await buy.waitFor({ timeout: 20_000 });
     await buy.click();
     await p.locator("[data-sonner-toast]").first().waitFor({ timeout: 15_000 });

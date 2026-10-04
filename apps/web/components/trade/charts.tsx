@@ -31,56 +31,89 @@ function Ball({ x, y, r = 8 }: { x: number; y: number; r?: number }) {
   );
 }
 
-/** The simulation's vault quotes; live mode shows only real, on-chain liquidity. */
-export function simulatedVault(refTick: number) {
-  const v = [];
-  for (let k = 0; k < 6; k++) {
-    v.push({ id: -1 - k, side: "buy" as const, tick: refTick - 6 - k * 2, qty: 3 + k });
-    v.push({ id: -100 - k, side: "sell" as const, tick: refTick + 6 + k * 2, qty: 3 + k });
-  }
-  return v;
+/** A round step for an axis: 1, 2 or 5 × 10^k, giving about `target` divisions of `range`. */
+export function niceStep(range: number, target: number) {
+  const raw = Math.max(range, 1e-9) / target;
+  const pow = 10 ** Math.floor(Math.log10(raw));
+  const n = raw / pow;
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * pow;
 }
 
-const axisTicks = (lo: number, hi: number, n: number) => Array.from({ length: n }, (_, i) => lo + Math.round(((hi - lo) * i) / (n - 1)));
+/** The name of the price the band is centred on: the reference, or, while its market is closed, the last close. */
+export const refName = (m: MarketState) => (m.regime.name === "DISCOVERY" ? "Last close" : "Reference");
 
-export function CrossChart({ m, fmt, live = false, w = 900, h = 420 }: { m: MarketState; fmt: (tick: number) => string; live?: boolean } & ChartSize) {
+export function CrossChart({
+  m,
+  fmt,
+  w = 900,
+  h = 420,
+}: { m: MarketState; fmt: (tick: number) => string } & ChartSize) {
   const W = Math.max(280, w);
   const H = Math.max(200, h);
   const span = Math.max(12, Math.min(48, Math.round((m.hi - m.lo) / 2)));
-  const lo = m.refTick - span;
-  const hi = m.refTick + span;
-  const vault = useMemo(() => (live ? [] : simulatedVault(m.refTick)), [m.refTick, live]);
-  const { ticks, demand, supply } = useMemo(() => curves([...m.book, ...vault], lo, hi), [m.book, vault, lo, hi]);
-  const maxQ = Math.max(10, ...demand, ...supply) * 1.1;
-  const P = { l: 16, r: 52, t: 24, b: 44 };
+  // Centred on where trading is (the last trade): while its market is closed the reference stays at the close and
+  // trading can be far from it. The centre moves in steps, so the window holds still between auctions.
+  const anchor = m.last?.tick ?? m.refTick;
+  const hop = Math.max(2, Math.round(span / 3));
+  const centre = Math.round(anchor / hop) * hop;
+  const lo = centre - span;
+  const hi = centre + span;
+  const { ticks, demand, supply } = useMemo(() => curves([...m.book, ...m.vault], lo, hi), [m.book, m.vault, lo, hi]);
+  const qStep = niceStep(Math.max(1, ...demand, ...supply) * 1.08, 3);
+  const maxQ = Math.ceil((Math.max(1, ...demand, ...supply) * 1.08) / qStep) * qStep;
+  const tStep = Math.max(1, Math.round(niceStep(hi - lo, W < 560 ? 3 : 5)));
+  const axis: number[] = [];
+  for (let t = Math.ceil(lo / tStep) * tStep; t <= hi; t += tStep) axis.push(t);
+  const P = { l: 16, r: 52, t: 36, b: 44 };
   const x = (t: number) => P.l + ((t - lo + 0.5) / (hi - lo + 1)) * (W - P.l - P.r);
   const y = (q: number) => H - P.b - (q / maxQ) * (H - P.t - P.b);
   const step = (vals: number[]) =>
-    vals.map((v, i) => `${i === 0 ? `M${x(ticks[i]! - 0.5).toFixed(1)},${y(v).toFixed(1)}` : `V${y(v).toFixed(1)}`}H${x(ticks[i]! + 0.5).toFixed(1)}`).join("");
+    vals
+      .map(
+        (v, i) =>
+          `${i === 0 ? `M${x(ticks[i]! - 0.5).toFixed(1)},${y(v).toFixed(1)}` : `V${y(v).toFixed(1)}`}H${x(ticks[i]! + 0.5).toFixed(1)}`,
+      )
+      .join("");
   const mine = m.book.filter((o) => o.owner === "you" && o.tick >= lo && o.tick <= hi);
   const last = m.last && m.last.tick >= lo && m.last.tick <= hi ? m.last : null;
   const lastQ = last ? Math.min(maxQ * 0.98, last.volume) : 0;
   const bandLo = Math.max(lo, m.lo);
   const bandHi = Math.min(hi, m.hi);
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full" role="img" aria-label={`Batch forming: ${m.book.length} resting and new orders${last ? `; last price ${fmt(last.tick)}` : ""}.`}>
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className="h-full w-full"
+      role="img"
+      aria-label={`Batch forming: ${m.book.length} resting and new orders${last ? `; last price ${fmt(last.tick)}` : ""}.`}
+    >
       {/* Outside the band: no fills there this batch */}
-      {m.lo > lo ? <rect x={x(lo - 0.5)} y={P.t} width={x(m.lo - 0.5) - x(lo - 0.5)} height={H - P.t - P.b} fill="url(#hatch)" /> : null}
-      {m.hi < hi ? <rect x={x(m.hi + 0.5)} y={P.t} width={x(hi + 0.5) - x(m.hi + 0.5)} height={H - P.t - P.b} fill="url(#hatch)" /> : null}
+      {m.lo > lo ? (
+        <rect x={x(lo - 0.5)} y={P.t} width={x(m.lo - 0.5) - x(lo - 0.5)} height={H - P.t - P.b} fill="url(#hatch)" />
+      ) : null}
+      {m.hi < hi ? (
+        <rect x={x(m.hi + 0.5)} y={P.t} width={x(hi + 0.5) - x(m.hi + 0.5)} height={H - P.t - P.b} fill="url(#hatch)" />
+      ) : null}
       <defs>
         <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <line x1="0" y1="0" x2="0" y2="6" stroke="var(--line)" strokeWidth="2" />
         </pattern>
       </defs>
-      {[0.25, 0.5, 0.75].map((f) => (
-        <g key={f}>
-          <line x1={P.l} x2={W - P.r} y1={y(maxQ * f)} y2={y(maxQ * f)} stroke="var(--line)" />
-          <text x={W - P.r + 8} y={y(maxQ * f)} dominantBaseline="middle" className="tnum" fill="var(--ink-3)" style={{ fontSize: 11 }}>
-            {(maxQ * f).toFixed(maxQ * f < 10 ? 1 : 0)}
+      {Array.from({ length: Math.round(maxQ / qStep) }, (_, i) => (i + 1) * qStep).map((q) => (
+        <g key={q}>
+          <line x1={P.l} x2={W - P.r} y1={y(q)} y2={y(q)} stroke="var(--line)" />
+          <text
+            x={W - P.r + 8}
+            y={y(q)}
+            dominantBaseline="middle"
+            className="figures"
+            fill="var(--ink-3)"
+            style={{ fontSize: 11 }}
+          >
+            {q.toLocaleString("en-US", { maximumFractionDigits: qStep < 1 ? 1 : 0 })}
           </text>
         </g>
       ))}
-      <text x={W - P.r + 8} y={P.t - 8} fill="var(--ink-3)" style={{ fontSize: 11 }}>
+      <text x={W - P.r + 8} y={P.t - 16} fill="var(--ink-3)" style={{ fontSize: 11 }}>
         shares
       </text>
       <path d={`${step(demand)}V${y(0)}H${x(lo - 0.5)}Z`} fill="var(--buy-soft)" />
@@ -88,12 +121,42 @@ export function CrossChart({ m, fmt, live = false, w = 900, h = 420 }: { m: Mark
       <path d={step(demand)} fill="none" stroke="var(--buy)" strokeWidth="1.8" />
       <path d={step(supply)} fill="none" stroke="var(--sell)" strokeWidth="1.8" />
       <line x1={P.l} x2={W - P.r} y1={y(0)} y2={y(0)} stroke="var(--line-strong)" />
-      {axisTicks(lo, hi, W < 560 ? 3 : 5).map((t, i, a) => (
-        <text key={t} x={x(t)} y={H - 16} textAnchor={i === 0 ? "start" : i === a.length - 1 ? "end" : "middle"} className="tnum" fill="var(--ink-3)" style={{ fontSize: 12 }}>
-          {fmt(t)}
-        </text>
+      {axis.map((t) => (
+        <g key={t}>
+          <line x1={x(t)} x2={x(t)} y1={y(0)} y2={y(0) + 5} stroke="var(--line-strong)" />
+          <text
+            x={x(t)}
+            y={H - 16}
+            textAnchor={x(t) < P.l + 30 ? "start" : x(t) > W - P.r - 30 ? "end" : "middle"}
+            className="figures"
+            fill="var(--ink-3)"
+            style={{ fontSize: 12 }}
+          >
+            {fmt(t)}
+          </text>
+        </g>
       ))}
-      <path d={`M${x(m.refTick)},${y(0) + 4} l-5,9 h10 z`} fill="var(--ink-2)" />
+      {/* the price the band is centred on: a pointer under the axis, or a note at the edge when it is off the chart */}
+      {m.refTick >= lo && m.refTick <= hi ? (
+        <path d={`M${x(m.refTick)},${y(0) + 7} l-5,9 h10 z`} fill="var(--ink-2)" />
+      ) : (
+        <text
+          x={m.refTick < lo ? P.l + 2 : W - P.r - 2}
+          y={y(0) - 10}
+          textAnchor={m.refTick < lo ? "start" : "end"}
+          className="figures"
+          fill="var(--ink-3)"
+          stroke="var(--bg-raised)"
+          strokeWidth={4}
+          strokeLinejoin="round"
+          paintOrder="stroke"
+          style={{ fontSize: 12 }}
+        >
+          {m.refTick < lo
+            ? `← ${refName(m).toLowerCase()} ${fmt(m.refTick)}`
+            : `${refName(m).toLowerCase()} ${fmt(m.refTick)} →`}
+        </text>
+      )}
       {mine.map((o) => (
         <g key={o.id}>
           <line x1={x(o.tick)} x2={x(o.tick)} y1={P.t} y2={y(0)} stroke="var(--accent)" strokeDasharray="3 4" />
@@ -111,7 +174,7 @@ export function CrossChart({ m, fmt, live = false, w = 900, h = 420 }: { m: Mark
             x={x(last.tick) + (x(last.tick) > W - P.r - 110 ? -14 : 14)}
             y={y(lastQ) - 12}
             textAnchor={x(last.tick) > W - P.r - 110 ? "end" : "start"}
-            className="tnum"
+            className="figures"
             fill="var(--ink-2)"
             stroke="var(--bg-raised)"
             strokeWidth={4}
@@ -119,7 +182,7 @@ export function CrossChart({ m, fmt, live = false, w = 900, h = 420 }: { m: Mark
             paintOrder="stroke"
             style={{ fontSize: 12 }}
           >
-            last {fmt(last.tick)}
+            last trade {fmt(last.tick)}
           </text>
         </g>
       ) : null}
@@ -128,11 +191,17 @@ export function CrossChart({ m, fmt, live = false, w = 900, h = 420 }: { m: Mark
   );
 }
 
-export function PrintsChart({ m, fmt, w = 900, h = 420 }: { m: MarketState; fmt: (tick: number) => string } & ChartSize) {
+export function PrintsChart({
+  m,
+  fmt,
+  w = 900,
+  h = 420,
+}: { m: MarketState; fmt: (tick: number) => string } & ChartSize) {
   const W = Math.max(280, w);
   const H = Math.max(200, h);
   const prints = m.prints.slice(-240);
-  if (prints.length < 2) return <div className="grid h-full place-items-center text-sm text-ink-3">Waiting for prints…</div>;
+  if (prints.length < 2)
+    return <div className="grid h-full place-items-center text-sm text-ink-3">Waiting for prints…</div>;
   const ticks = prints.flatMap((p) => [p.tick, p.refTick]);
   const min = Math.min(...ticks) - 2;
   const max = Math.max(...ticks) + 2;
@@ -144,11 +213,23 @@ export function PrintsChart({ m, fmt, w = 900, h = 420 }: { m: MarketState; fmt:
   const last = prints.at(-1)!;
   const grid = [0, 0.33, 0.66, 1].map((f) => Math.round(min + (max - min) * f));
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full" role="img" aria-label={`Last ${prints.length} prints; latest ${fmt(last.tick)}.`}>
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className="h-full w-full"
+      role="img"
+      aria-label={`Last ${prints.length} prints; latest ${fmt(last.tick)}.`}
+    >
       {grid.map((t) => (
         <g key={t}>
           <line x1={P.l} x2={W - P.r} y1={y(t)} y2={y(t)} stroke="var(--line)" />
-          <text x={W - P.r + 8} y={y(t)} dominantBaseline="middle" className="tnum" fill="var(--ink-3)" style={{ fontSize: 12 }}>
+          <text
+            x={W - P.r + 8}
+            y={y(t)}
+            dominantBaseline="middle"
+            className="tnum"
+            fill="var(--ink-3)"
+            style={{ fontSize: 12 }}
+          >
             {fmt(t)}
           </text>
         </g>
@@ -160,26 +241,34 @@ export function PrintsChart({ m, fmt, w = 900, h = 420 }: { m: MarketState; fmt:
   );
 }
 
-export function DepthLadder({ m, fmt, onPick, live = false }: { m: MarketState; fmt: (tick: number) => string; onPick?: (tick: number) => void; live?: boolean }) {
+export function DepthLadder({
+  m,
+  fmt,
+  onPick,
+}: {
+  m: MarketState;
+  fmt: (tick: number) => string;
+  onPick?: (tick: number) => void;
+}) {
   const levels = 9;
   const byTick = new Map<number, { buy: number; sell: number; mine: boolean }>();
-  for (const o of m.book) {
+  // the book and the vault's quotes, level by level
+  for (const o of [...m.book, ...m.vault.map((v) => ({ ...v, owner: "vault" as const }))]) {
     const e = byTick.get(o.tick) ?? { buy: 0, sell: 0, mine: false };
     if (o.side === "buy") e.buy += o.qty;
     else e.sell += o.qty;
     if (o.owner === "you") e.mine = true;
     byTick.set(o.tick, e);
   }
-  for (let k = 0; k < (live ? 0 : 6); k++) {
-    const b = byTick.get(m.refTick - 6 - k * 2) ?? { buy: 0, sell: 0, mine: false };
-    b.buy += 3 + k;
-    byTick.set(m.refTick - 6 - k * 2, b);
-    const a = byTick.get(m.refTick + 6 + k * 2) ?? { buy: 0, sell: 0, mine: false };
-    a.sell += 3 + k;
-    byTick.set(m.refTick + 6 + k * 2, a);
-  }
-  const asks = [...byTick.entries()].filter(([, v]) => v.sell > 0).sort((a, b) => a[0] - b[0]).slice(0, levels).reverse();
-  const bids = [...byTick.entries()].filter(([, v]) => v.buy > 0).sort((a, b) => b[0] - a[0]).slice(0, levels);
+  const asks = [...byTick.entries()]
+    .filter(([, v]) => v.sell > 0)
+    .sort((a, b) => a[0] - b[0])
+    .slice(0, levels)
+    .reverse();
+  const bids = [...byTick.entries()]
+    .filter(([, v]) => v.buy > 0)
+    .sort((a, b) => b[0] - a[0])
+    .slice(0, levels);
   const max = Math.max(1, ...asks.map(([, v]) => v.sell), ...bids.map(([, v]) => v.buy));
   const Row = ({ tick, q, side, mine }: { tick: number; q: number; side: "buy" | "sell"; mine: boolean }) => (
     <button
@@ -188,7 +277,10 @@ export function DepthLadder({ m, fmt, onPick, live = false }: { m: MarketState; 
       className="group relative grid h-8 w-full grid-cols-[1fr_auto] items-center px-4 text-left text-sm hover-fine:bg-ink/[0.04]"
       aria-label={`${side === "buy" ? "Bid" : "Ask"} ${q.toFixed(2)} at ${fmt(tick)}`}
     >
-      <span className={`absolute inset-y-1 right-0 rounded-l-sm ${side === "buy" ? "bg-buy-soft" : "bg-sell-soft"}`} style={{ width: `${(q / max) * 70}%` }} />
+      <span
+        className={`absolute inset-y-1 right-0 rounded-l-sm ${side === "buy" ? "bg-buy-soft" : "bg-sell-soft"}`}
+        style={{ width: `${(q / max) * 70}%` }}
+      />
       <span className={`tnum relative font-medium ${side === "buy" ? "text-buy" : "text-sell"}`}>
         {fmt(tick)}
         {mine ? <span className="ml-2 rounded bg-accent-soft px-1 text-[11px] text-accent">you</span> : null}

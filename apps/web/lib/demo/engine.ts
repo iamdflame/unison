@@ -1,18 +1,23 @@
 "use client";
 
-import { buyLock } from "@unison/engine";
+import { buyLock, type RegimeName } from "@unison/engine";
 import { BEAT_MS } from "../motion/tokens.ts";
+import { facts } from "../content/facts.ts";
 import type { MarketSpec } from "../content/markets.ts";
 import { estimatedBlock } from "../hero/feed.ts";
 import { clearBatch, type SimOrder } from "../sim/batch.ts";
 import { createStore, type Store } from "../store/createStore.ts";
 import { regimeNow, type RegimeNow } from "../unison/regimeNow.ts";
+import { statusOfRegime, vaultCurve } from "../unison/vaultCurve.ts";
 
 /**
- * Demo mode: a market that runs entirely in the browser on the real clearing engine, one batch per 300 ms beat.
- * The reference walks at NVDA-like volatility, the crowd places limit orders (some IOC), a vault quotes both sides
- * around the reference, resting orders carry over between batches, and a paper account settles fills exactly as
- * the contracts would (lock at the limit plus the maximum fee; refund the difference). Labelled "Simulation".
+ * Demo mode: a market that runs entirely in the browser on the real clearing engine, under the venue's own rules.
+ * While the reference market trades there is an auction every block and the reference is published every block;
+ * while it is closed (DISCOVERY) the reference holds at the last close, the crowd's sense of value keeps moving,
+ * and an auction clears only every `discCadence` blocks, with orders gathering in between. The vault quotes from
+ * the contract's own curve (its real parameters, for the benchmark's vault size, leaning with the inventory its
+ * fills leave it); resting orders carry over; a paper account settles fills exactly as the contracts would (lock at
+ * the limit plus the maximum fee; refund the difference). Labelled "Simulation".
  */
 export interface Print {
   block: number;
@@ -80,8 +85,12 @@ export interface MarketState {
   book: BookOrder[];
   prints: Print[];
   last: Print | null;
-  /** orders that arrived in the batch now forming */
+  /** orders that arrived since the last auction: the batch now forming */
   forming: number;
+  /** the block of the last auction, whether or not it traded */
+  lastAuction: number;
+  /** the vault's quotes in the batch now forming (the simulation's; live, the chain's depth is the book) */
+  vault: SimOrder[];
 }
 
 export interface AccountState {
@@ -94,8 +103,23 @@ export interface AccountState {
 }
 
 const FEE_BPS = 3;
-const VAULT_SPREAD_TICKS = 6;
 const MAX_PRINTS = 900;
+const E18 = 10n ** 18n;
+/** The vault the simulation quotes for: the size the fairness benchmark used. */
+export const SIM_VAULT_NAV = facts.benchmark.lpCapital;
+/** A crowd order's typical size, in dollars (log-normal around it). */
+const CROWD_NOTIONAL = 3_000;
+/** Shares to two decimals; a token worth cents in whole units. */
+const sizeOf = (q: number) => (q >= 100 ? Math.round(q) : Math.round(q * 100) / 100);
+
+/**
+ * The block the next auction clears at: the next block while the reference trades; in DISCOVERY, `discCadence`
+ * blocks after the last (the contract reverts an earlier clear with TooEarly).
+ */
+export function nextAuction(m: MarketState): number {
+  if (m.regime.name !== "DISCOVERY") return m.block + 1;
+  return Math.max(m.block + 1, m.lastAuction + m.spec.regime.discCadence);
+}
 
 function mulberry(seed: number) {
   let a = seed >>> 0;
@@ -128,16 +152,27 @@ export class DemoMarket {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private subscribers = 0;
   private sigma: number;
+  /** the published reference, in ticks (held at the close while the market is closed) */
   private ref: number;
+  /** where the crowd thinks value is, in ticks; the reference follows it while the market trades */
+  private fair: number;
   private regimeAt = 0;
+  private lastAuction = 0;
+  /** the simulated vault's inventory: shares, and AUSD */
+  private vaultBase: number;
+  private vaultQuote: number;
 
   constructor(readonly spec: MarketSpec) {
     this.rand = mulberry(spec.id * 7919 + 17);
     this.ref = Number(spec.seedPrice) / 1e6 / (Number(spec.tickSize) / 1e6);
+    this.fair = this.ref;
     const tick = Math.round(this.ref);
     const regime = regimeNow(spec, new Date());
     const half = Math.max(2, Math.round((tick * regime.bandBps) / 10_000));
     this.sigma = spec.kind === "fx" ? 0.08 : spec.kind === "crypto" ? 0.9 : spec.kind === "etf" ? 0.18 : 0.45;
+    const px = (tick * Number(spec.tickSize)) / 1e6;
+    this.vaultQuote = SIM_VAULT_NAV / 2;
+    this.vaultBase = px > 0 ? SIM_VAULT_NAV / 2 / px : 0;
     this.store = createStore<MarketState>({
       spec,
       block: estimatedBlock(Date.now()),
@@ -149,9 +184,12 @@ export class DemoMarket {
       prints: [],
       last: null,
       forming: 0,
+      lastAuction: 0,
+      vault: [],
     });
-    // Warm up a short history so charts aren't empty on arrival.
-    for (let i = 0; i < 240; i++) this.beat(Date.now() - (240 - i) * BEAT_MS, true);
+    // Warm up a history so charts aren't empty on arrival: about a hundred auctions, whatever the cadence.
+    const beats = regime.name === "DISCOVERY" ? 100 * spec.regime.discCadence : 240;
+    for (let i = 0; i < beats; i++) this.beat(Date.now() - (beats - i) * BEAT_MS, true);
   }
 
   /** Reference-counted: the market only beats while something is watching it. */
@@ -177,44 +215,80 @@ export class DemoMarket {
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * this.rand());
   }
 
+  /** The vault's quotes for this reference and regime: LiquidityVault.curve, for the inventory it holds now. */
+  private quotes(refTick: number, regime: RegimeName): SimOrder[] {
+    const p = this.spec.vault;
+    if (!p || refTick <= 0) return [];
+    const refPrice = BigInt(refTick) * this.spec.tickSize;
+    const q = vaultCurve(p, {
+      refPrice,
+      refTick,
+      status: statusOfRegime(regime),
+      baseBalance: (BigInt(Math.max(0, Math.round(this.vaultBase * 1e6))) * E18) / 1_000_000n,
+      quoteBalance: BigInt(Math.max(0, Math.round(this.vaultQuote * 1e6))),
+      baseUnit: E18,
+    });
+    const per = sizeOf(Number(q.perTick) / 1e18);
+    if (per <= 0) return [];
+    const out: SimOrder[] = [];
+    for (let k = 0; k < q.bidTicks; k++) out.push({ id: -1 - k, side: "buy", tick: q.bidTop - k, qty: per });
+    for (let k = 0; k < q.askTicks; k++) out.push({ id: -1_000 - k, side: "sell", tick: q.askBottom + k, qty: per });
+    return out;
+  }
+
   private beat(now: number, warmup: boolean) {
     const s = this.store.get();
+    const unit = Number(this.spec.tickSize) / 1e6;
     const perBeat = this.sigma * Math.sqrt(BEAT_MS / 1000 / (365 * 24 * 3600));
-    this.ref *= Math.exp(perBeat * 2.4 * this.normal());
-    const refTick = Math.round(this.ref);
+    this.fair *= Math.exp(perBeat * 2.4 * this.normal());
     if (now - this.regimeAt > 30_000) this.regimeAt = now;
     const regime = now - this.regimeAt < 1 ? regimeNow(this.spec, new Date(now)) : s.regime;
+    const discovery = regime.name === "DISCOVERY";
+    if (discovery) {
+      // The reference holds at the close. Value keeps moving, and only the auctions say where it is; it stays
+      // well inside the band, which is centred on that close.
+      const room = (this.ref * regime.bandBps * 0.6) / 10_000;
+      this.fair = Math.min(this.ref + room, Math.max(this.ref - room, this.fair));
+    } else {
+      // A trading reference is published every block: it is where value is.
+      this.ref = this.fair;
+    }
+    const refTick = Math.round(this.ref);
+    const fairTick = Math.round(this.fair);
     const half = Math.max(2, Math.round((refTick * regime.bandBps) / 10_000));
     const lo = refTick - half;
     const hi = refTick + half;
     const block = estimatedBlock(now);
+    const cadence = discovery ? this.spec.regime.discCadence : 1;
 
-    // The crowd: mostly near the reference, sometimes a burst.
+    // The crowd: limits around where it thinks value is, sometimes a burst.
     const book = s.book.filter((o) => o.owner === "you" || block - o.placedBlock < 60);
     const arrivals = this.rand() < 0.1 ? 4 + Math.floor(this.rand() * 6) : Math.floor(this.rand() * 3);
     const spread = Math.max(2, Math.round(refTick * 0.0006));
+    const px = refTick * unit;
     for (let i = 0; i < arrivals; i++) {
       const side = this.rand() < 0.5 ? "buy" : "sell";
       const off = Math.round(this.normal() * spread);
       book.push({
         id: nextId++,
         side,
-        tick: refTick + (side === "buy" ? off - 1 : off + 1),
-        qty: Math.round(Math.exp(this.normal() * 0.7) * 1.6 * 100) / 100,
+        tick: fairTick + (side === "buy" ? off - 1 : off + 1),
+        qty: sizeOf((Math.exp(this.normal() * 0.7) * CROWD_NOTIONAL) / px),
         owner: "crowd",
         ioc: this.rand() < 0.25,
         placedBlock: block,
       });
     }
-    // The vault quotes both sides around the reference (never pays a sniper: the reference is post-close).
-    const vault: SimOrder[] = [];
-    for (let k = 0; k < 6; k++) {
-      vault.push({ id: -1 - k, side: "buy", tick: refTick - VAULT_SPREAD_TICKS - k * 2, qty: 3 + k });
-      vault.push({ id: -100 - k, side: "sell", tick: refTick + VAULT_SPREAD_TICKS + k * 2, qty: 3 + k });
-    }
+    const vault = this.quotes(refTick, regime.name);
+    const common = { block, refTick, regime, lo, hi };
 
-    const batch = [...book, ...vault];
-    const out = clearBatch(batch, { lo, hi, refTick });
+    // Between call auctions orders only gather (one auction a block at most); the auction takes all that gathered.
+    if (block - this.lastAuction < cadence) {
+      this.store.set({ ...s, ...common, book, vault, forming: s.forming + arrivals });
+      return;
+    }
+    this.lastAuction = block;
+    const out = clearBatch([...book, ...vault], { lo, hi, refTick });
     let print: Print | null = null;
     const next: BookOrder[] = [];
     const mine: { o: BookOrder; filled: number }[] = [];
@@ -226,19 +300,26 @@ export class DemoMarket {
     }
     if (out.traded && out.volume > 0) {
       print = { block, ts: now, tick: out.tick, volume: Math.round(out.volume * 100) / 100, refTick };
+      // The vault's fills move its inventory, and its next quotes lean to rebalance.
+      const at = out.tick * unit;
+      for (const o of vault) {
+        const f = out.fills.get(o.id) ?? 0;
+        if (f <= 0) continue;
+        const d = o.side === "buy" ? f : -f;
+        this.vaultBase += d;
+        this.vaultQuote -= d * at;
+      }
     }
     const prints = print ? [...s.prints.slice(-(MAX_PRINTS - 1)), print] : s.prints;
     this.store.set({
       ...s,
-      block,
-      refTick,
-      regime,
-      lo,
-      hi,
+      ...common,
       book: next,
+      vault: print ? this.quotes(refTick, regime.name) : vault,
       prints,
       last: print ?? s.last,
       forming: 0,
+      lastAuction: block,
     });
     if (!warmup && mine.length) settle(this.spec, mine, print, out.tick, refTick, block, now, book.length, lo, hi);
   }
@@ -259,16 +340,34 @@ export class DemoMarket {
       if (qty > (a.base[ticker] ?? 0)) return { error: `Not enough free ${ticker}.` };
       locked = qty;
     }
-    const order: MyOrder = { id: nextId++, side, tick, qty, filled: 0, quote: 0, fee: 0, ioc, status: "pending", placedBlock: s.block, batches: [], locked };
+    const order: MyOrder = {
+      id: nextId++,
+      side,
+      tick,
+      qty,
+      filled: 0,
+      quote: 0,
+      fee: 0,
+      ioc,
+      status: "pending",
+      placedBlock: s.block,
+      batches: [],
+      locked,
+    };
     account.set((acc) => ({
       ...acc,
       quote: side === "buy" ? acc.quote - locked : acc.quote,
       lockedQuote: side === "buy" ? acc.lockedQuote + locked : acc.lockedQuote,
       base: side === "sell" ? { ...acc.base, [ticker]: (acc.base[ticker] ?? 0) - qty } : acc.base,
-      lockedBase: side === "sell" ? { ...acc.lockedBase, [ticker]: (acc.lockedBase[ticker] ?? 0) + qty } : acc.lockedBase,
+      lockedBase:
+        side === "sell" ? { ...acc.lockedBase, [ticker]: (acc.lockedBase[ticker] ?? 0) + qty } : acc.lockedBase,
       orders: { ...acc.orders, [ticker]: [order, ...(acc.orders[ticker] ?? [])] },
     }));
-    this.store.set((m) => ({ ...m, book: [...m.book, { id: order.id, side, tick, qty, owner: "you", ioc, placedBlock: s.block }], forming: m.forming + 1 }));
+    this.store.set((m) => ({
+      ...m,
+      book: [...m.book, { id: order.id, side, tick, qty, owner: "you", ioc, placedBlock: s.block }],
+      forming: m.forming + 1,
+    }));
     return order;
   }
 
@@ -285,7 +384,10 @@ export class DemoMarket {
         quote: o.side === "buy" ? acc.quote + o.locked : acc.quote,
         lockedQuote: o.side === "buy" ? acc.lockedQuote - o.locked : acc.lockedQuote,
         base: o.side === "sell" ? { ...acc.base, [ticker]: (acc.base[ticker] ?? 0) + o.locked } : acc.base,
-        lockedBase: o.side === "sell" ? { ...acc.lockedBase, [ticker]: (acc.lockedBase[ticker] ?? 0) - o.locked } : acc.lockedBase,
+        lockedBase:
+          o.side === "sell"
+            ? { ...acc.lockedBase, [ticker]: (acc.lockedBase[ticker] ?? 0) - o.locked }
+            : acc.lockedBase,
         orders: { ...acc.orders, [ticker]: list.map((x) => (x.id === id ? done : x)) },
       };
     });
@@ -322,7 +424,13 @@ function settle(
         const px = tick * unit;
         const notional = f * px;
         const fee = (notional * FEE_BPS) / 10_000;
-        next = { ...next, filled: o.filled + f, quote: o.quote + notional, fee: o.fee + fee, batches: [...o.batches, block] };
+        next = {
+          ...next,
+          filled: o.filled + f,
+          quote: o.quote + notional,
+          fee: o.fee + fee,
+          batches: [...o.batches, block],
+        };
         if (o.side === "buy") {
           base[ticker] = (base[ticker] ?? 0) + f;
           next.locked = Math.max(0, o.locked - (notional + fee));
@@ -332,7 +440,21 @@ function settle(
           next.locked = Math.max(0, o.locked - f);
           lockedBase[ticker] = (lockedBase[ticker] ?? 0) - f;
         }
-        fills.unshift({ ticker: spec.ticker, orderId: o.id, side: o.side, qty: f, tick, block, ts: now, refTick, batchVolume: print.volume, participants, limitTick: o.tick, bandLo, bandHi });
+        fills.unshift({
+          ticker: spec.ticker,
+          orderId: o.id,
+          side: o.side,
+          qty: f,
+          tick,
+          block,
+          ts: now,
+          refTick,
+          batchVolume: print.volume,
+          participants,
+          limitTick: o.tick,
+          bandLo,
+          bandHi,
+        });
       }
       const complete = next.filled >= next.qty - 0.004;
       const ended = complete || next.ioc;
@@ -352,7 +474,15 @@ function settle(
       }
       return next;
     });
-    return { ...acc, quote, lockedQuote: Math.max(0, lockedQuote), base, lockedBase, orders: { ...acc.orders, [ticker]: list }, fills: fills.slice(0, 200) };
+    return {
+      ...acc,
+      quote,
+      lockedQuote: Math.max(0, lockedQuote),
+      base,
+      lockedBase,
+      orders: { ...acc.orders, [ticker]: list },
+      fills: fills.slice(0, 200),
+    };
   });
 }
 
