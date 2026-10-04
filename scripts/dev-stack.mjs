@@ -194,6 +194,9 @@ async function main() {
     KEEPER_PRIVATE_KEY: KEYS.keeper,
     RELAY_URL: `http://127.0.0.1:${ports.relay}`,
     AUTO_CLAIM: "1",
+    // Size each clear from its estimate: a busy book under Ethereum gas rules outgrows a fixed 8M, and one
+    // failed clear only grows the next one. Anvil's estimator sizes full jobs (docs/DEPLOY.md).
+    CLEAR_GAS: env("CLEAR_GAS", "auto"),
   });
   node("relayer", {
     PORT: String(ports.relayer),
