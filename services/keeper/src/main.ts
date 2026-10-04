@@ -43,7 +43,9 @@ export async function startKeeper() {
   });
   const unwatchBlocks = publicClient.watchBlockNumber({
     emitOnBegin: true,
-    onBlockNumber: (n) => void keeper.tick(n),
+    // a tick that throws is logged and the next block tries again; an unhandled rejection would end the process
+    onBlockNumber: (n) =>
+      void keeper.tick(n).catch((e: unknown) => console.log(JSON.stringify({ t: new Date().toISOString(), level: "error", action: "tick", block: n.toString(), error: (e as Error).message.split("\n")[0] }))),
   });
   console.log(JSON.stringify({ msg: "keeper up", keeper: account.address, markets: deployment.markets }));
   return {

@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
-import type { Hex } from "viem";
-import { Status, type UnisonClient } from "@unison/sdk";
+import { describe, expect, it, vi, type Mock } from "vitest";
+import { encodeAbiParameters, encodeEventTopics, type Address, type Hex } from "viem";
+import { Status, unisonExchangeAbi, type UnisonClient } from "@unison/sdk";
 import { Keeper } from "../src/keeper.ts";
 import { parseClearGas } from "../src/main.ts";
 
@@ -227,5 +227,41 @@ describe("CLEAR_GAS", () => {
     expect(parseClearGas("auto")).toBe("auto");
     expect(parseClearGas(" AUTO ")).toBe("auto");
     expect(parseClearGas("8000000")).toBe(8_000_000n);
+  });
+});
+
+describe("auto-claim", () => {
+  const A = "0x90F79bf6EB2c4f870365E785982E1f101E93b906" as Address;
+  const B = "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65" as Address;
+  /** An OrderPlaced log as the exchange emits it. */
+  const placed = (account: Address, slot: bigint) => ({
+    topics: encodeEventTopics({ abi: unisonExchangeAbi, eventName: "OrderPlaced", args: { marketId: 0n, account } }) as Hex[],
+    data: encodeAbiParameters(
+      [{ type: "uint256" }, { type: "uint256" }, { type: "uint256" }, { type: "uint256" }, { type: "uint256" }, { type: "uint256" }],
+      [slot, 0n, 18_000n, 10n, 0n, 199n],
+    ),
+  });
+
+  it("a reverted claim is logged; the others are claimed, the market still clears, and the slot is tried again", async () => {
+    const state = { ...base, pending: true, simVolume: 5n, lastCleared: 196n };
+    const { client, sent } = fakeClient(state);
+    const c = client as unknown as { previewOrder: Mock; order: Mock; claim: Mock; publicClient: { waitForTransactionReceipt: Mock } };
+    c.previewOrder.mockResolvedValue({ merged: true, closed: false, filled: 10n, quote: 0n });
+    c.order.mockResolvedValue({ side: 0n, credited: 0n });
+    // A's owner claimed first, so the keeper's claim for A reverts; B's goes through
+    c.claim.mockImplementation(async (account: Address) => (account === A ? "0xbad" : "0x0c") as Hex);
+    c.publicClient.waitForTransactionReceipt.mockImplementation(async ({ hash }: { hash: Hex }) => ({ status: hash === "0xbad" ? "reverted" : "success", gasUsed: 1n }));
+    const logs: Record<string, unknown>[] = [];
+    const k = new Keeper({ client, relayUrl: "http://relay", marketIds: [0n], clearGas: 8_000_000n, repriceEvery: 5n, maxPendingAge: 10n, autoClaim: true, log: (m) => logs.push(m) });
+    k.fetchPayload = async () => ({ payload: "0xabcd" as Hex, status: Status.OPEN });
+    k.trackLogs([placed(A, 1n), placed(B, 2n)]);
+
+    await expect(k.tick(200n)).resolves.toBe(2); // the clear, and B's claim
+    expect(sent).toContain("open:199");
+    expect(c.claim).toHaveBeenCalledTimes(2);
+    expect(logs).toContainEqual(expect.objectContaining({ level: "warn", action: "claim", account: A }));
+
+    await k.tick(201n); // A's slot is still tracked, so the keeper tries again
+    expect(c.claim.mock.calls.filter(([account]) => account === A)).toHaveLength(2);
   });
 });

@@ -139,7 +139,14 @@ export class Keeper {
     let sent = 0;
     try {
       for (const marketId of this.cfg.marketIds) sent += await this.serveMarket(marketId, head);
-      if (this.cfg.autoClaim) sent += await this.autoClaim();
+      if (this.cfg.autoClaim) {
+        try {
+          sent += await this.autoClaim();
+        } catch (e) {
+          // claiming is a courtesy; clearing is the job. Never let the first stop the second.
+          this.log({ level: "warn", action: "claim", error: (e as Error).message.split("\n")[0] });
+        }
+      }
     } finally {
       this.busy = false;
     }
@@ -228,9 +235,15 @@ export class Keeper {
     }
     let sent = 0;
     for (const [account, slots] of byAccount) {
-      await this.send(c.claim(account, slots), { action: "claim", account, slots: slots.length });
-      this.stats.claims += slots.length;
-      sent++;
+      // One claim failing (its owner claimed first, a slot changed under us) must not stop the others, nor the
+      // keeper: an unclaimed slot stays tracked and is looked at again next tick.
+      try {
+        await this.send(c.claim(account, slots), { action: "claim", account, slots: slots.length });
+        this.stats.claims += slots.length;
+        sent++;
+      } catch (e) {
+        this.log({ level: "warn", action: "claim", account, slots: slots.length, error: (e as Error).message.split("\n")[0] });
+      }
     }
     return sent;
   }
