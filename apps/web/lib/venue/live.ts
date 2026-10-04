@@ -56,7 +56,9 @@ export class LiveMarket {
   readonly store: Store<MarketState>;
   readonly marketId: number;
   private subscribers = 0;
+  private bookSubscribers = 0;
   private stop: (() => void) | null = null;
+  private stopBook: (() => void) | null = null;
   private tickSize = 0n;
   private baseUnit = 1n;
   private quoteDecimals = 6;
@@ -71,11 +73,20 @@ export class LiveMarket {
     this.store = createStore<MarketState>({ spec, block: 0, refTick: tick, regime, lo: tick, hi: tick, book: [], prints: [], last: null, forming: 0 });
   }
 
-  retain() {
+  /** Reference-counted. Lists retain without the book (`book: false`): only the terminal polls depth. */
+  retain(opts: { book?: boolean } = {}) {
+    const book = opts.book !== false;
     this.subscribers++;
+    if (book) this.bookSubscribers++;
     if (!this.stop) this.stop = this.start();
+    if (book && !this.stopBook) this.stopBook = this.startBook();
     return () => {
       this.subscribers--;
+      if (book) this.bookSubscribers--;
+      if (this.bookSubscribers <= 0 && this.stopBook) {
+        this.stopBook();
+        this.stopBook = null;
+      }
       if (this.subscribers <= 0 && this.stop) {
         this.stop();
         this.stop = null;
@@ -113,7 +124,7 @@ export class LiveMarket {
   }
 
   private start() {
-    const { tape, chain } = liveClients(this.net);
+    const { tape } = liveClients(this.net);
     let alive = true;
     const load = async () => {
       const [summary, prints] = await Promise.all([tape.market(this.marketId), tape.prints(this.marketId, { limit: 600, traded: true })]);
@@ -124,7 +135,29 @@ export class LiveMarket {
     };
     load().catch(() => undefined);
 
-    // Pending orders (tape) and resting depth (chain) near the reference: the batch now forming.
+    const summaryTimer = setInterval(() => tape.market(this.marketId).then((s) => alive && this.applySummary(s)).catch(() => undefined), 10_000);
+
+    const stream = tape.stream(["heads", `prints:${this.marketId}`], {
+      head: (h) => this.store.set((m) => ({ ...m, block: h.block })),
+      print: (p) => {
+        if (p.marketId !== this.marketId || p.volume === "0") return;
+        const pr = this.toPrint(p);
+        this.store.set((m) => ({ ...m, prints: [...m.prints.slice(-899), pr], last: pr, refTick: pr.refTick }));
+        // An order waiting on this batch changes state with the print, not with an account event.
+        if (this.bookSubscribers > 0 && awaitingClear()) void refreshAccount(this.net);
+      },
+    });
+    return () => {
+      alive = false;
+      clearInterval(summaryTimer);
+      stream.close();
+    };
+  }
+
+  /** Pending orders (tape) and resting depth (chain) near the reference: the batch now forming. */
+  private startBook() {
+    const { tape, chain } = liveClients(this.net);
+    let alive = true;
     const refreshBook = async () => {
       const m = this.store.get();
       const span = 40;
@@ -149,23 +182,11 @@ export class LiveMarket {
       asks.forEach((q, i) => q > 0n && book.push({ id: -20_000 - i, side: "sell", tick: m.refTick - span + i, qty: units(q, decimals), owner: "crowd", ioc: false, placedBlock: 0 }));
       this.store.set((s) => ({ ...s, book }));
     };
+    refreshBook().catch(() => undefined);
     const bookTimer = setInterval(() => refreshBook().catch(() => undefined), 1500);
-    const summaryTimer = setInterval(() => tape.market(this.marketId).then((s) => alive && this.applySummary(s)).catch(() => undefined), 10_000);
-
-    const stream = tape.stream(["heads", `prints:${this.marketId}`], {
-      head: (h) => this.store.set((m) => ({ ...m, block: h.block })),
-      print: (p) => {
-        if (p.marketId !== this.marketId || p.volume === "0") return;
-        const pr = this.toPrint(p);
-        this.store.set((m) => ({ ...m, prints: [...m.prints.slice(-899), pr], last: pr, refTick: pr.refTick }));
-        void refreshAccount(this.net);
-      },
-    });
     return () => {
       alive = false;
       clearInterval(bookTimer);
-      clearInterval(summaryTimer);
-      stream.close();
     };
   }
 
@@ -219,11 +240,31 @@ export class LiveMarket {
   }
 }
 
+const awaitingClear = () => Object.values(liveAccount.get().orders).some((list) => list.some((o) => o.status === "pending" || o.settling));
+
+let inflight: Promise<void> | null = null;
+let again = false;
+/** Refreshes the account; calls during a refresh coalesce into one more after it. */
+export function refreshAccount(net: NetConfig): Promise<void> {
+  if (inflight) {
+    again = true;
+    return inflight;
+  }
+  inflight = loadAccount(net).finally(() => {
+    inflight = null;
+    if (again) {
+      again = false;
+      void refreshAccount(net);
+    }
+  });
+  return inflight;
+}
+
 /**
  * Ledger balances (chain) and orders with their per-auction fills (tape) for the signed-in account. Each fill is
  * one auction's uniform price, so a certificate always states a price that every order in that batch got.
  */
-export async function refreshAccount(net: NetConfig) {
+async function loadAccount(net: NetConfig) {
   const id = identity.get();
   if (!id) return;
   const { tape, chain } = liveClients(net);

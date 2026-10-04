@@ -45,7 +45,7 @@ export async function bootVenue() {
 
 export interface VenueMarket {
   store: Store<MarketState>;
-  retain: () => () => void;
+  retain: (opts?: { book?: boolean }) => () => void;
   place: (side: "buy" | "sell", tick: number, qty: number, ioc: boolean) => MyOrder | { error: string } | Promise<MyOrder | { error: string }>;
   cancel: (id: number) => void | Promise<void>;
 }
@@ -54,15 +54,19 @@ export function useVenue(): VenueState {
   return useStore(venue, (v) => v, shallowEqual);
 }
 
-/** The market for a ticker in the current venue (live if listed there, otherwise simulated). */
-export function useMarket<S>(ticker: string, select: (m: MarketState) => S, equal?: (a: S, b: S) => boolean) {
+/**
+ * The market for a ticker in the current venue (live if listed there, otherwise simulated). Lists pass
+ * `{ book: false }`: prints and regime without polling depth.
+ */
+export function useMarket<S>(ticker: string, select: (m: MarketState) => S, equal?: (a: S, b: S) => boolean, opts?: { book?: boolean }) {
   const v = useVenue();
   const spec: MarketSpec = useMemo(() => marketByTicker(ticker) ?? marketByTicker("aNVDA")!, [ticker]);
   const market: VenueMarket = useMemo(
     () => (v.mode === "live" && v.net ? (liveMarket(spec, v.net) ?? demoMarket(spec)) : demoMarket(spec)),
     [v.mode, v.net, spec],
   );
-  useEffect(() => market.retain(), [market]);
+  const book = opts?.book !== false;
+  useEffect(() => market.retain({ book }), [market, book]);
   const value = useStore(market.store, select, equal ?? shallowEqual);
   const live = v.mode === "live" && market !== demoMarket(spec);
   return { market, value, spec, live };

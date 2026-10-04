@@ -40,6 +40,10 @@ export function TradeView({ ticker }: { ticker: string }) {
                 value={last ? last.tick * unit : (Number(spec.seedPrice) / 1e6)}
                 locales="en-US"
                 format={{ style: "currency", currency: "USD", minimumFractionDigits: decimals, maximumFractionDigits: decimals }}
+                // settle inside one 300 ms beat, so the price is still between prints
+                transformTiming={{ duration: 240, easing: "cubic-bezier(0.23, 1, 0.32, 1)" }}
+                spinTiming={{ duration: 240, easing: "cubic-bezier(0.23, 1, 0.32, 1)" }}
+                opacityTiming={{ duration: 160, easing: "ease-out" }}
               />
             </span>
             <span className={`tnum text-sm font-semibold ${change >= 0 ? "text-buy" : "text-sell"}`}>

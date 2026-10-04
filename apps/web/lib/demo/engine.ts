@@ -151,7 +151,7 @@ export class DemoMarket {
   }
 
   /** Reference-counted: the market only beats while something is watching it. */
-  retain() {
+  retain(_opts?: { book?: boolean }) {
     this.subscribers++;
     if (!this.timer) this.loop();
     return () => {

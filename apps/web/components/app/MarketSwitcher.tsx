@@ -35,7 +35,7 @@ export function MarketSwitcher() {
         className="press hidden items-center gap-2 rounded-full bg-sunken px-3 py-1.5 text-sm text-ink-3 transition-colors hover-fine:text-ink md:inline-flex"
         aria-label="Search markets"
       >
-        <Search size={14} strokeWidth={1.5} aria-hidden /> Markets
+        <Search size={14} strokeWidth={1.5} aria-hidden /> Search
         <kbd className="ml-3 rounded-md border border-line px-1.5 text-[11px] text-ink-3">⌘K</kbd>
       </button>
       <Command.Dialog

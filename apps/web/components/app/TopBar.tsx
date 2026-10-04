@@ -13,6 +13,7 @@ const VenuePill = dynamic(() => import("./VenuePill"), { ssr: false });
 
 const NAV = [
   { href: "/trade/aNVDA", label: "Trade", match: "/trade" },
+  { href: "/markets", label: "Markets", match: "/markets" },
   { href: "/portfolio", label: "Portfolio", match: "/portfolio" },
   { href: "/vaults", label: "Vaults", match: "/vaults" },
   { href: "/keys", label: "Agents", match: "/keys" },

@@ -13,7 +13,9 @@ export default function LiveBeat({ ticker }: { ticker: string }) {
         <BatchRing block={value.block} />
         <span className="tnum text-xs text-ink-3">#{value.block.toLocaleString("en-US")}</span>
       </div>
-      <RegimeBadge name={value.regime} bandBps={value.band} className="hidden md:inline-flex" />
+      <span className="hidden md:inline-flex">
+        <RegimeBadge name={value.regime} bandBps={value.band} />
+      </span>
     </>
   );
 }

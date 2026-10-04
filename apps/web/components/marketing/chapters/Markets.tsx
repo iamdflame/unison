@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { BandDial } from "@/components/app/BandDial";
 import { MARKETS, type MarketSpec } from "@/lib/content/markets";
 import { bandLabel, REGIME_LABEL, regimeNow, type RegimeNow } from "@/lib/unison/regimeNow";
 
@@ -9,33 +10,13 @@ import { bandLabel, REGIME_LABEL, regimeNow, type RegimeNow } from "@/lib/unison
  * Chapter 9: the markets. Each is a small dial: the band it would clear under right now (from the bit-exact engine
  * port and the market's mainnet parameters) drawn as an arc around a reference at 12 o'clock.
  */
-function MiniDial({ regime }: { regime: RegimeNow | null }) {
-  const pct = regime ? regime.bandBps / 100 : 1;
-  const deg = Math.min(150, pct * 16);
-  const a = (deg * Math.PI) / 180;
-  const r = 40;
-  const x1 = 50 - r * Math.sin(a);
-  const y1 = 50 - r * Math.cos(a);
-  return (
-    <svg viewBox="0 0 100 100" className="size-16 shrink-0" aria-hidden>
-      <circle cx="50" cy="50" r="46" fill="none" stroke="var(--line)" />
-      {Array.from({ length: 12 }, (_, i) => (
-        <line key={i} x1="50" y1="6" x2="50" y2={i % 3 === 0 ? 12 : 9} stroke="var(--ink-3)" strokeWidth="1" transform={`rotate(${i * 30} 50 50)`} />
-      ))}
-      <path d={`M${x1.toFixed(2)},${y1.toFixed(2)} A${r},${r} 0 ${deg > 90 ? 1 : 0} 1 ${(100 - x1).toFixed(2)},${y1.toFixed(2)}`} fill="none" stroke="var(--champagne)" strokeWidth="3" strokeLinecap="round" />
-      <circle cx="50" cy="50" r="5" fill="var(--ball-3)" />
-      <line x1="50" y1="45" x2="50" y2="18" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function Card({ m, regime }: { m: MarketSpec; regime: RegimeNow | null }) {
   return (
     <Link
       href={`/trade/${m.ticker}`}
       className="group press flex items-center gap-4 rounded-[var(--radius-xl)] bg-raised p-4 shadow-sm transition-shadow duration-200 hover-fine:shadow-md"
     >
-      <MiniDial regime={regime} />
+      <BandDial bandBps={regime ? regime.bandBps : null} regime={regime?.name} />
       <div className="min-w-0">
         <p className="text-[15px] font-semibold text-ink">
           {m.ticker}
