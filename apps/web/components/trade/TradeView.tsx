@@ -85,7 +85,7 @@ export function TradeView({ ticker }: { ticker: string }) {
                     title="The last trade against the price its band was centred on"
                   >
                     {devBps >= 0 ? "+" : "−"}
-                    {Math.abs(devBps).toFixed(1)} bp vs {refName(m).toLowerCase()}
+                    {(Math.abs(devBps) / 100).toFixed(2)}% vs {refName(m).toLowerCase()}
                   </span>
                 ) : null}
               </div>

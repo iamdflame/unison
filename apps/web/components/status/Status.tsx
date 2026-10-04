@@ -136,7 +136,7 @@ export function Status() {
                 <th scope="col" className="px-4 py-3 font-medium">Regime</th>
                 <th scope="col" className="px-4 py-3 text-right font-medium">Last batch</th>
                 <th scope="col" className="px-4 py-3 text-right font-medium">Last trade</th>
-                <th scope="col" className="px-6 py-3 text-right font-medium">Batches, 24 h</th>
+                <th scope="col" className="px-6 py-3 text-right font-medium">Trades, 24 h</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -171,7 +171,7 @@ export function Status() {
             </tbody>
           </table>
         </div>
-        <p className="mt-4 text-sm text-ink-3">A market clears when it has orders to clear; a quiet one waits, so its last batch can be minutes old.</p>
+        <p className="mt-4 text-sm text-ink-3">The keeper clears a market when orders are waiting and the auction would trade, so a quiet market prints less often than its cadence, and its last batch can be minutes old.</p>
       </section>
     </>
   );

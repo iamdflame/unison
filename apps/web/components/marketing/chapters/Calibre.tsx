@@ -6,7 +6,7 @@ import { facts } from "@/lib/content/facts";
  * technical drawing of the mark with its dimensions.
  */
 const SPECS: [string, string, string?][] = [
-  ["Frequency", `${facts.batchesPerHour.toLocaleString("en-US")} A/h · ${(facts.batchesPerHour / 7200).toFixed(2)} Hz`, `A batch every Monad block while Wall Street trades; a call auction every ${facts.discoveryBlocks} blocks (${(facts.batchesPerHour / facts.discoveryBlocks).toLocaleString("en-US")} A/h) while it is closed`],
+  ["Frequency", `${facts.batchesPerHour.toLocaleString("en-US")} A/h · ${(facts.batchesPerHour / 3600).toFixed(2)} a second`, `A/h, alternations an hour, is how a watchmaker counts beats; here each one is an auction. A batch every Monad block while Wall Street trades; a call auction every ${facts.discoveryBlocks} blocks (${(facts.batchesPerHour / facts.discoveryBlocks).toLocaleString("en-US")} A/h) while it is closed`],
   ["Power reserve", `${facts.hours.week} h a week`, "Every night and every weekend; a market stops only when its rules halt it"],
   ["Escapement", "Frequent batch auction", "Most volume, then least imbalance, then closest to the reference"],
   ["Complications", "Discovery · Reopening cross · Halts · Audit", "Each with its own price band"],

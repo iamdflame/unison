@@ -95,7 +95,8 @@ function VaultRow({ spec, cols }: { spec: MarketSpec; cols: string }) {
   const halfBp = bp(q.half);
   const side = (Number(q.perTick) / 1e18) * px * p.widthTicks;
   const nav = vault ? vault.quote + vault.base * px : null;
-  const regimeNote = status === "EXTENDED" ? `×${p.extMult} in extended hours` : status === "CLOSED" ? `×${p.closedMult} while closed` : "";
+  // the multiplier said as arithmetic on the in-session spread, so 40 bp never reads as 40 × 4
+  const regimeNote = status === "EXTENDED" ? `${p.extMult} × ${p.spreadBps} bp, extended hours` : status === "CLOSED" ? `${p.closedMult} × ${p.spreadBps} bp, while closed` : "";
 
   return (
     <Link
