@@ -60,3 +60,13 @@ export const StatusClient = dynamic(() => import("@/components/status/Status").t
   ssr: false,
   loading: () => <div className="mx-auto h-[700px] max-w-[1440px]" aria-busy="true" aria-label="Checking the venue" />,
 });
+
+export const StrikeMarkClient = dynamic(() => import("@/components/brand/BrandLive").then((m) => m.StrikeMark), {
+  ssr: false,
+  loading: () => <div className="mx-auto size-[268px]" aria-busy="true" />,
+});
+
+export const PaletteClient = dynamic(() => import("@/components/brand/BrandLive").then((m) => m.Palette), {
+  ssr: false,
+  loading: () => <div className="h-[640px] rounded-[var(--radius-xl)] bg-raised shadow-md" aria-busy="true" />,
+});
