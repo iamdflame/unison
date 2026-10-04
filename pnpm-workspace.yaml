@@ -1,10 +1,15 @@
 packages:
+  - "apps/*"
   - "packages/*"
   - "services/*"
   - "bots"
   - "cre/*"
   - "research/*"
 
-# Dependencies allowed to run install scripts (vitest's bundler).
+# Dependencies allowed to run install scripts (vitest bundler; ESLint resolver binary).
 allowBuilds:
   esbuild: true
+  unrs-resolver: true
+
+minimumReleaseAgeExclude:
+  - lucide-react@1.51.0

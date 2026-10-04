@@ -1,7 +1,7 @@
 {
-  "name": "@unison/sdk",
+  "name": "@unison/sim",
   "version": "0.1.0",
-  "description": "TypeScript SDK for Unison — per-block batch auctions for tokenized assets on Monad.",
+  "description": "Deterministic Unison market simulation (seeded reference path + order flow) on the real clearing engine. Powers the website hero, demo mode and tests.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -11,28 +11,16 @@
       "development": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./node": {
-      "development": "./src/node.ts",
-      "types": "./dist/node.d.ts",
-      "import": "./dist/node.js"
     }
   },
-  "files": [
-    "dist",
-    "src"
-  ],
+  "files": ["dist", "src"],
   "scripts": {
-    "abis": "node scripts/gen-abis.mjs",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
-    "@noble/curves": "1.9.1",
-    "@noble/hashes": "1.8.0",
-    "@unison/engine": "workspace:*",
-    "viem": "^2.37.0"
+    "@unison/engine": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

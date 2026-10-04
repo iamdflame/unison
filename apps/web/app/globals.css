@@ -1,0 +1,303 @@
+@import "tailwindcss";
+
+/*
+ * Unison design tokens: "Horology".
+ * Day = Porcelain (porcelain enamel, ink, blued steel). Night = Nocturne (onyx, lume, champagne).
+ * The page carries data-theme="day" | "night" (set before paint by lib/theme/script.ts).
+ * Every token pair used for text is contrast-tested in test/contrast.test.ts.
+ */
+
+@custom-variant night (&:where([data-theme="night"], [data-theme="night"] *));
+@custom-variant day (&:where([data-theme="day"], [data-theme="day"] *));
+@custom-variant hover-fine (@media (hover: hover) and (pointer: fine));
+
+:root,
+[data-theme="day"] {
+  color-scheme: light;
+  --bg: oklch(0.985 0.003 250);
+  --bg-raised: oklch(1 0 0);
+  --bg-sunken: oklch(0.962 0.004 252);
+  --ink: oklch(0.19 0.012 262);
+  --ink-2: oklch(0.43 0.012 262);
+  --ink-3: oklch(0.53 0.01 262);
+  --line: oklch(0.19 0.012 262 / 0.1);
+  --line-strong: oklch(0.19 0.012 262 / 0.2);
+  --accent: oklch(0.47 0.17 264);
+  --accent-ink: oklch(0.99 0.002 250);
+  --accent-soft: oklch(0.47 0.17 264 / 0.09);
+  --buy: oklch(0.48 0.095 185); /* verdigris */
+  --sell: oklch(0.53 0.175 32); /* garnet */
+  --buy-soft: oklch(0.48 0.095 185 / 0.1);
+  --sell-soft: oklch(0.53 0.175 32 / 0.1);
+  --halt: oklch(0.5 0.115 62);
+  --champagne: oklch(0.58 0.06 80);
+  --engrave: oklch(0.19 0.012 262 / 0.075);
+  --glow: oklch(0.47 0.17 264 / 0);
+  --focus: oklch(0.47 0.17 264);
+  --scrim: oklch(0.19 0.012 262 / 0.28);
+  --glass: oklch(0.995 0.002 250 / 0.72);
+  --shadow-sm-v: 0px 2px 3px -1px rgba(0, 0, 0, 0.1), 0px 1px 0px 0px rgba(25, 28, 33, 0.02),
+    0px 0px 0px 1px rgba(25, 28, 33, 0.08);
+  --shadow-md-v: 0px 0px 0px 1px rgba(0, 0, 0, 0.06), 0px 1px 1px -0.5px rgba(0, 0, 0, 0.06),
+    0px 3px 3px -1.5px rgba(0, 0, 0, 0.06), 0px 6px 6px -3px rgba(0, 0, 0, 0.06),
+    0px 12px 12px -6px rgba(0, 0, 0, 0.06), 0px 24px 24px -12px rgba(0, 0, 0, 0.06);
+  --shadow-lg-v: 0 2.8px 2.2px rgba(0, 0, 0, 0.034), 0 6.7px 5.3px rgba(0, 0, 0, 0.048),
+    0 12.5px 10px rgba(0, 0, 0, 0.06), 0 22.3px 17.9px rgba(0, 0, 0, 0.072), 0 41.8px 33.4px rgba(0, 0, 0, 0.086),
+    0 100px 80px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="night"] {
+  color-scheme: dark;
+  --bg: oklch(0.135 0.006 265);
+  --bg-raised: oklch(0.18 0.008 265);
+  --bg-sunken: oklch(0.11 0.006 265);
+  --ink: oklch(0.95 0.006 250);
+  --ink-2: oklch(0.76 0.01 255);
+  --ink-3: oklch(0.64 0.01 255);
+  --line: oklch(0.95 0.006 250 / 0.09);
+  --line-strong: oklch(0.95 0.006 250 / 0.17);
+  --accent: oklch(0.88 0.075 228);
+  --accent-ink: oklch(0.17 0.02 258);
+  --accent-soft: oklch(0.88 0.075 228 / 0.12);
+  --buy: oklch(0.83 0.1 184);
+  --sell: oklch(0.72 0.15 32);
+  --buy-soft: oklch(0.83 0.1 184 / 0.13);
+  --sell-soft: oklch(0.72 0.15 32 / 0.13);
+  --halt: oklch(0.82 0.12 75);
+  --champagne: oklch(0.82 0.05 85);
+  --engrave: oklch(0.82 0.05 85 / 0.12);
+  --glow: oklch(0.88 0.08 228 / 0.55);
+  --focus: oklch(0.88 0.075 228);
+  --scrim: oklch(0.05 0.005 265 / 0.6);
+  --glass: oklch(0.2 0.008 265 / 0.66);
+  --shadow-sm-v: inset 0 1px 0 0 oklch(1 0 0 / 0.05), 0 0 0 1px oklch(1 0 0 / 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.5);
+  --shadow-md-v: inset 0 1px 0 0 oklch(1 0 0 / 0.06), 0 0 0 1px oklch(1 0 0 / 0.08),
+    0 12px 24px -8px rgba(0, 0, 0, 0.55);
+  --shadow-lg-v: inset 0 1px 0 0 oklch(1 0 0 / 0.07), 0 0 0 1px oklch(1 0 0 / 0.08),
+    0 40px 80px -20px rgba(0, 0, 0, 0.7);
+}
+
+/* Colorblind-safe buy/sell (steel and amber), chosen in settings. */
+[data-palette="cvd"][data-theme="day"],
+[data-palette="cvd"] [data-theme="day"] {
+  --buy: oklch(0.48 0.15 255);
+  --sell: oklch(0.52 0.13 52);
+}
+[data-palette="cvd"][data-theme="night"],
+[data-palette="cvd"] [data-theme="night"] {
+  --buy: oklch(0.8 0.1 240);
+  --sell: oklch(0.8 0.13 68);
+}
+
+@theme {
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+  --color-white: oklch(1 0 0);
+  --color-black: oklch(0 0 0);
+
+  --font-*: initial;
+  --font-display: var(--font-bodoni), "Bodoni 72", "Didot", serif;
+  --font-sans: var(--font-mona), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-fragment), ui-monospace, "SFMono-Regular", monospace;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-2xl: 36px;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-raised: var(--bg-raised);
+  --color-sunken: var(--bg-sunken);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-buy: var(--buy);
+  --color-sell: var(--sell);
+  --color-buy-soft: var(--buy-soft);
+  --color-sell-soft: var(--sell-soft);
+  --color-halt: var(--halt);
+  --color-champagne: var(--champagne);
+  --color-engrave: var(--engrave);
+  --color-scrim: var(--scrim);
+  --shadow-sm: var(--shadow-sm-v);
+  --shadow-md: var(--shadow-md-v);
+  --shadow-lg: var(--shadow-lg-v);
+}
+
+/* ---------------------------------------------------------------- motion tokens (also in lib/motion/tokens.ts) */
+:root {
+  --dur-instant: 100ms;
+  --dur-press: 140ms;
+  --dur-quick: 180ms;
+  --dur-base: 240ms;
+  --dur-slow: 400ms;
+  --beat: 300ms;
+}
+
+/* ---------------------------------------------------------------- base */
+@layer base {
+  html {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
+    font-synthesis: none;
+  }
+  body {
+    min-height: 100dvh;
+    background: var(--bg);
+  }
+  ::selection {
+    background: var(--accent-soft);
+    color: var(--ink);
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  /* Sticky bars must never hide the focused element (WCAG 2.4.11). */
+  :target,
+  :focus-visible {
+    scroll-margin-block: 96px;
+  }
+  button,
+  [role="button"] {
+    cursor: pointer;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  /* Theme flips must not smear: transitions are suspended for one frame (lib/theme). */
+  [data-theme-switching] *,
+  [data-theme-switching] *::before,
+  [data-theme-switching] *::after {
+    transition: none !important;
+  }
+}
+
+/* Market-driven theme changes (the session opens or closes while the page is open) dim like a dial at dusk. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 1.2s;
+  animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.01ms;
+  }
+}
+
+/* ---------------------------------------------------------------- utilities */
+@utility tnum {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+@utility text-display-xxl {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 96;
+  font-weight: 400;
+  font-size: clamp(3.5rem, 9vw, 9.5rem);
+  line-height: 0.92;
+  letter-spacing: -0.025em;
+}
+@utility text-display-xl {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 96;
+  font-weight: 400;
+  font-size: clamp(2.75rem, 6vw, 6rem);
+  line-height: 0.95;
+  letter-spacing: -0.022em;
+}
+@utility text-display-l {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 72;
+  font-weight: 400;
+  font-size: clamp(2.25rem, 4.2vw, 4rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+@utility text-display-m {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 48;
+  font-weight: 400;
+  font-size: clamp(1.75rem, 2.6vw, 2.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+}
+@utility text-lede {
+  font-size: clamp(1.0625rem, 1.3vw, 1.25rem);
+  line-height: 1.55;
+  letter-spacing: -0.003em;
+}
+/* Instrument labels only (BATCH, BAND): the wide cut of Mona Sans, like the text on a dial. Never for section labels. */
+@utility dial-label {
+  font-family: var(--font-sans);
+  font-stretch: 125%;
+  font-variation-settings: "wdth" 125;
+  font-weight: 600;
+  font-size: 0.6875rem;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@utility hairline {
+  border: 1px solid var(--line);
+}
+
+/* Sapphire: one translucent layer at most. Opaque when the user asks for less transparency. */
+@utility glass {
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  @media (prefers-reduced-transparency: reduce) {
+    background: var(--bg-raised);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* Tactile press: answers on pointer-down, never below 0.96. */
+@utility press {
+  transition-property: scale, opacity, background-color, color, box-shadow;
+  transition-duration: var(--dur-press);
+  transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  &:active:not(:disabled) {
+    scale: 0.96;
+  }
+}
+
+@utility lume {
+  text-shadow: 0 0 18px var(--glow);
+}
+
+@media (forced-colors: active) {
+  .glass {
+    border: 1px solid CanvasText;
+  }
+}

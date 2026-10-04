@@ -54,3 +54,11 @@ deployments/monad-fork.json
 contracts/broadcast/*/143/
 # local devnet broadcasts (DevNet.s.sol only ever targets local chains)
 contracts/broadcast/DevNet.s.sol/
+
+# web app
+.next/
+.vercel/
+next-env.d.ts
+apps/web/playwright-report/
+apps/web/test-results/
+apps/web/.lighthouseci/
