@@ -15,20 +15,9 @@ export interface ChartSize {
   h?: number;
 }
 
+/** The latest price: a flat bead in blued steel, haloed in the card, never a glossy marble. */
 function Ball({ x, y, r = 8 }: { x: number; y: number; r?: number }) {
-  return (
-    <g>
-      <defs>
-        <radialGradient id="termBall" cx="0.38" cy="0.34" r="0.72">
-          <stop offset="0" style={{ stopColor: "var(--ball-1)" }} />
-          <stop offset="0.4" style={{ stopColor: "var(--ball-2)" }} />
-          <stop offset="0.82" style={{ stopColor: "var(--ball-3)" }} />
-          <stop offset="1" style={{ stopColor: "var(--ball-4)" }} />
-        </radialGradient>
-      </defs>
-      <circle cx={x} cy={y} r={r} fill="url(#termBall)" />
-    </g>
-  );
+  return <circle cx={x} cy={y} r={r * 0.8} fill="var(--accent)" stroke="var(--bg-raised)" strokeWidth={2} />;
 }
 
 /** A round step for an axis: 1, 2 or 5 × 10^k, giving about `target` divisions of `range`. */

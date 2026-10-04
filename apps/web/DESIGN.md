@@ -70,7 +70,7 @@ Components use semantic tokens only. Tailwind's default palette is removed (`tex
 
 ## Space, shape and materials
 
-- A 4-point grid. Radii are `xs 6`, `sm 10`, `md 14`, `lg 20`, `xl 28` and `2xl 36`. Nested shapes are concentric: outer radius = inner radius + padding.
+- A 4-point grid. Radii are `xs 4`, `sm 8`, `md 12`, `lg 16`, `xl 20` and `2xl 26`: an instrument's corners, not a pill card's. Nested shapes are concentric: outer radius = inner radius + padding.
 - A surface seated in the page (a board, a table, the ticket) takes `shadow-panel`: a hairline and a contact shadow, no drop. Only what floats over the page (sheets, menus, toasts, the thumb bar, the nav pill's `shadow-float`) casts a shadow.
 - Shadows `shadow-sm`, `md` and `lg` are layered and neutral by day; by night they are an inset highlight, a hairline ring and a deep drop. `shadow-sm` also lifts the selected thumb of a segmented control.
 - **Glass** (`glass`) is a 20 px blur with 180% saturation over a tinted fill, opaque under reduced transparency. Use one translucent layer at a time. In any rule with a prefixed pair, declare `-webkit-backdrop-filter` first and `backdrop-filter` last. The compiler keeps only the last of the pair and Chrome ignores the prefixed form, so the other order draws no blur in Chrome.

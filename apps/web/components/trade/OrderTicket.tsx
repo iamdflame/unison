@@ -101,7 +101,7 @@ export function OrderTicket({
     : withYou.filled >= qty - 0.004
       ? `All ${n(qty)} ${ticker} would fill${alone !== null && alone !== withYou.tick ? `; your order moves the price from ${fmt(alone)}` : ""}.`
       : withYou.filled > 0
-        ? `${n(withYou.filled)} of ${n(qty)} ${ticker} would fill: orders at the clearing price share what is left, pro rata. The other ${n(qty - withYou.filled)} ${rests}.`
+        ? `${n(withYou.filled)} of ${n(qty)} ${ticker} would fill, pro rata at the clearing price; ${n(qty - withYou.filled)} ${rests}.`
         : `None would fill: it clears ${side === "buy" ? "above" : "below"} your limit. Your order ${rests}.`;
   // What it would cost (or bring) if the auction ran now: the fill at the clearing price, plus or minus the fee.
   const estimate =

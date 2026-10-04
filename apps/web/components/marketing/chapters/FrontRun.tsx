@@ -85,7 +85,8 @@ export function FrontRun() {
                       </div>
                     ) : (
                       <div
-                        className="absolute inset-x-0 bottom-0 origin-bottom rounded-t-[3px] bg-ink/[0.86] transition-[scale] duration-[900ms] ease-[cubic-bezier(0.23,1,0.32,1)] night:bg-champagne/80"
+                        // engraved, not printed: a hatched column under a solid rule
+                        className="absolute inset-x-0 bottom-0 origin-bottom border-t-2 border-current text-ink [background:repeating-linear-gradient(135deg,currentColor_0_1px,transparent_1px_5px)] transition-[scale] duration-[900ms] ease-[cubic-bezier(0.23,1,0.32,1)] night:text-champagne"
                         style={{ height: `${h * 100}%`, scale: `1 ${revealed > i ? 1 : 0.02}` }}
                       />
                     )}

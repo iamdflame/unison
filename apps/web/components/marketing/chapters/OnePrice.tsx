@@ -224,15 +224,8 @@ export function OnePrice() {
               {t !== null ? (
                 <g>
                   <line x1={x(t)} x2={x(t)} y1={y(0)} y2={y(vol)} stroke="var(--ink)" strokeWidth="1" strokeDasharray="2 4" />
-                  <defs>
-                    <radialGradient id="crossBall" cx="0.38" cy="0.34" r="0.72">
-                      <stop offset="0" style={{ stopColor: "var(--ball-1)" }} />
-                      <stop offset="0.4" style={{ stopColor: "var(--ball-2)" }} />
-                      <stop offset="0.82" style={{ stopColor: "var(--ball-3)" }} />
-                      <stop offset="1" style={{ stopColor: "var(--ball-4)" }} />
-                    </radialGradient>
-                  </defs>
-                  <circle cx={x(t)} cy={y(vol)} r="9" fill="url(#crossBall)" />
+                  {/* the one price: a flat bead in blued steel, haloed in the page */}
+                  <circle cx={x(t)} cy={y(vol)} r="7" fill="var(--accent)" stroke="var(--bg)" strokeWidth="2.5" />
                 </g>
               ) : null}
             </svg>

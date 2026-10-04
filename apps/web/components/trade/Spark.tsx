@@ -21,7 +21,7 @@ export function Spark({ ticks, className = "h-8 w-28" }: { ticks: readonly numbe
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className={className} aria-hidden>
       <path d={d} fill="none" stroke="var(--ink-2)" strokeWidth="1.25" strokeLinejoin="round" strokeLinecap="round" />
-      <circle cx={x(ticks.length - 1)} cy={y(last)} r="2.6" fill="var(--ball-3)" />
+      <circle cx={x(ticks.length - 1)} cy={y(last)} r="2.4" fill="var(--ink)" />
     </svg>
   );
 }
