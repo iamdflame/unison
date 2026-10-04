@@ -13,21 +13,24 @@ export function Hero() {
   return (
     <section aria-labelledby="hero-title" className="relative">
       <div className="mx-auto grid min-h-[100svh] max-w-[1440px] grid-cols-1 items-center gap-x-10 gap-y-6 px-5 pt-28 pb-16 sm:px-8 lg:grid-cols-12 lg:px-12 lg:pt-24">
-        <div className="lg:col-span-6 xl:col-span-6">
-          <h1 id="hero-title" className="text-display-xxl text-ink">
+        {/* phones read headline, instrument, then the words; from lg the words take the left column, the dial the right */}
+        <div className="contents lg:col-span-6 lg:block">
+          <h1 id="hero-title" className="text-display-xxl order-1 text-ink lg:order-none">
             The market
             <br />
             that never closes.
           </h1>
-          <p className="text-lede mt-7 max-w-xl text-ink-2">
-            Tokenized stocks on Monad. Every order in a batch clears at one price, against a reference published after
-            the batch closes, so no one can trade ahead of you.
-          </p>
-          <HeroSession />
-          {/* what the venue is today, before anyone presses a button */}
-          <p className="mt-8 max-w-xl text-[13px] leading-relaxed text-ink-3">{site.disclosure}</p>
+          <div className="order-3 lg:order-none">
+            <p className="text-lede max-w-xl text-ink-2 lg:mt-7">
+              Tokenized stocks on Monad. Every order in a batch clears at one price, so no one can trade ahead of you: in
+              session against a reference published after the batch closes, at night in a call auction.
+            </p>
+            <HeroSession />
+            {/* what the venue is today, before anyone presses a button */}
+            <p className="mt-8 max-w-xl text-[13px] leading-relaxed text-ink-3">{site.disclosure}</p>
+          </div>
         </div>
-        <div className="mx-auto w-full max-w-[min(88vw,560px)] lg:col-span-6 lg:max-w-[680px] lg:justify-self-end">
+        <div className="order-2 mx-auto w-full max-w-[min(84vw,560px)] lg:order-none lg:col-span-6 lg:max-w-[680px] lg:justify-self-end">
           <ResonanceDial market={nvda} />
         </div>
       </div>

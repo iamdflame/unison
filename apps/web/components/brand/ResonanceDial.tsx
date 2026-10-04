@@ -375,7 +375,7 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
               opacityTiming={{ duration: 150, easing: "ease-out" }}
             />
           </div>
-          <p className="dial-label mt-[1.2cqw] text-ink-2" style={{ fontSize: "max(11px, 1.35cqw)" }}>
+          <p className="dial-label mt-[1.2cqw] whitespace-nowrap text-ink-2" style={{ fontSize: "max(11px, 1.35cqw)" }}>
             <span className="normal-case tracking-[0.04em]">{market.ticker}</span> · {REGIME_LABEL[regime.name]} {bandLabel(regime.bandBps)}
           </p>
         </div>
