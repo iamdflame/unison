@@ -33,6 +33,11 @@
       "types": "./dist/relayer.d.ts",
       "import": "./dist/relayer.js"
     },
+    "./light": {
+      "development": "./src/light.ts",
+      "types": "./dist/light.d.ts",
+      "import": "./dist/light.js"
+    },
     "./calendar": {
       "development": "./src/calendar.ts",
       "types": "./dist/calendar.d.ts",

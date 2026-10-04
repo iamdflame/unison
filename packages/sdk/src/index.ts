@@ -11,3 +11,4 @@ export * from "./passkey.ts";
 export * from "./errors.ts";
 export * from "./tape.ts";
 export * from "./relayer.ts";
+export * from "./light.ts";
