@@ -1,0 +1,12 @@
+# Every text file is stored with LF line endings, whichever editor or OS wrote it.
+* text=auto eol=lf
+
+# Binary assets, never converted.
+*.png binary
+*.jpg binary
+*.ico binary
+*.avif binary
+*.webp binary
+*.woff2 binary
+*.ttf binary
+*.db binary
