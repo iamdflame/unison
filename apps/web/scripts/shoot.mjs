@@ -49,6 +49,14 @@ await context.addInitScript((mode) => {
     localStorage.setItem("unison.theme", mode);
   } catch {}
 }, theme === "night" ? "dark" : theme === "day" ? "light" : "market");
+// the dev server's route badge is not part of the product: keep it out of every capture
+await context.addInitScript(() => {
+  addEventListener("DOMContentLoaded", () => {
+    const style = document.createElement("style");
+    style.textContent = "nextjs-portal{display:none!important}";
+    document.head.appendChild(style);
+  });
+});
 const page = await context.newPage();
 if (at) await page.clock.install({ time: new Date(at) });
 const cdp = await context.newCDPSession(page);
