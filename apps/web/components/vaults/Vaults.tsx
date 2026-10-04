@@ -1,11 +1,12 @@
 "use client";
 
 import NumberFlow from "@number-flow/react";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { RegimeBadge } from "@/components/app/RegimeBadge";
 import { MARKETS, marketByTicker, priceFormat, type MarketSpec } from "@/lib/content/markets";
 import { shallowEqual } from "@/lib/store/createStore";
+import { statusOfRegime, vaultCurve } from "@/lib/unison/vaultCurve";
 import { useMarket, useVenue } from "@/lib/venue";
 import { useVaultLive, type VaultLive } from "@/lib/venue/vault";
 import { QuoteInstrument } from "./QuoteInstrument";
@@ -13,67 +14,163 @@ import { QuoteInstrument } from "./QuoteInstrument";
 const money = (n: number, d = 2) => `$${n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d })}`;
 const signed = (n: number) => `${n >= 0 ? "+" : "−"}${money(Math.abs(n))}`;
 const VAULTED = MARKETS.filter((m) => m.vault);
+const E18 = 10n ** 18n;
+/** The NAV the simulation draws each vault's depth for, half in the stock and half in AUSD. */
+const SIM_NAV = 2_000_000;
+/** One scale for every vault's quote, ±1% of its reference, so a tighter vault always looks tighter. */
+const AXIS_BP = 100;
+const at = (bp: number) => Math.min(100, Math.max(0, 50 + (bp / AXIS_BP) * 50));
+const COLS = {
+  sim: "md:grid-cols-[minmax(0,1fr)_minmax(260px,2fr)_180px_16px]",
+  live: "md:grid-cols-[minmax(0,1fr)_minmax(220px,1.5fr)_112px_112px_112px_112px_16px]",
+};
 
-/** /vaults: every market's vault, its quote drawn small, and what it has earned. */
-/** The live part of /vaults: the cards. The title and the lede are drawn by the server. */
+/** The live part of /vaults: every vault on one board. The title and the lede are drawn by the server. */
 export function VaultIndex() {
   const v = useVenue();
+  const live = v.ready && v.mode === "live";
+  const cols = live ? COLS.live : COLS.sim;
   return (
     <>
       <p className="mt-2 min-h-5 max-w-3xl text-sm text-ink-3">
-        {v.ready && v.mode === "demo" ? "Simulation: quotes from each vault's real parameters, around a simulated reference." : ""}
+        {v.ready && v.mode === "demo" ? `Simulation: each vault's real parameters around a simulated reference, for a ${money(SIM_NAV, 0)} vault.` : ""}
       </p>
-      <ul className="mt-10 grid gap-5 md:grid-cols-2">
-        {VAULTED.map((s) => (
-          <li key={s.ticker}>
-            <VaultCard spec={s} />
-          </li>
-        ))}
-      </ul>
+      <div className="mt-8 overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-md">
+        <div className={`hidden items-end gap-x-5 border-b border-line px-6 pt-4 pb-3 text-xs text-ink-3 md:grid ${cols}`} aria-hidden>
+          <span>Vault</span>
+          <span>
+            <span className="block">Its quotes now, one scale for every vault</span>
+            <span className="tnum mt-1.5 flex justify-between text-[11px]">
+              <span>−1%</span>
+              <span>reference</span>
+              <span>+1%</span>
+            </span>
+          </span>
+          <span className="text-right">Half-spread</span>
+          {live ? (
+            <>
+              <span className="text-right">Each side</span>
+              <span className="text-right">Value</span>
+              <span className="text-right">Spread earned</span>
+            </>
+          ) : null}
+          <span />
+        </div>
+        <ul className="divide-y divide-line">
+          {VAULTED.map((s) => (
+            <li key={s.ticker}>
+              <VaultRow spec={s} cols={cols} />
+            </li>
+          ))}
+        </ul>
+      </div>
     </>
   );
 }
 
-function VaultCard({ spec }: { spec: MarketSpec }) {
+/**
+ * One vault: where its bids and asks sit around the reference (the contract's own curve, for its real inventory or a
+ * balanced simulated one), how wide that is in basis points and dollars, and how much it offers on each side.
+ */
+function VaultRow({ spec, cols }: { spec: MarketSpec; cols: string }) {
   const { value: m } = useMarket(spec.ticker, (s) => ({ refTick: s.refTick, regime: s.regime.name }), shallowEqual, { book: false });
   const vault = useVaultLive(spec);
   const p = spec.vault!;
-  const { unit } = priceFormat(spec);
-  const nav = vault ? vault.quote + vault.base * m.refTick * unit : null;
+  const { unit, decimals } = priceFormat(spec);
+  const ref = m.refTick;
+  const px = ref * unit;
+  const status = statusOfRegime(m.regime);
+  const refPrice = BigInt(ref) * spec.tickSize;
+  const simQuote = BigInt(SIM_NAV * 1e6) / 2n;
+  const q = vaultCurve(p, {
+    refPrice,
+    refTick: ref,
+    status,
+    baseBalance: vault ? vault.baseBalance : refPrice > 0n ? (simQuote * E18) / refPrice : 0n,
+    quoteBalance: vault ? vault.quoteBalance : simQuote,
+    baseUnit: E18,
+  });
+  const quoting = ref > 0 && q.bidTicks + q.askTicks > 0;
+  const bp = (ticks: number) => (ref > 0 ? (ticks / ref) * 10_000 : 0);
+  const halfBp = bp(q.half);
+  const side = (Number(q.perTick) / 1e18) * px * p.widthTicks;
+  const nav = vault ? vault.quote + vault.base * px : null;
+  const regimeNote = status === "EXTENDED" ? `×${p.extMult} in extended hours` : status === "CLOSED" ? `×${p.closedMult} while closed` : "";
+
   return (
-    <Link href={`/vaults/${spec.ticker}`} className="group block rounded-[var(--radius-xl)] bg-raised p-6 shadow-md transition-shadow duration-200 hover-fine:shadow-lg">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[17px] font-semibold text-ink">{spec.ticker} vault</p>
-          <p className="text-sm text-ink-3">{spec.name}</p>
-        </div>
-        <RegimeBadge name={m.regime} />
+    <Link
+      href={`/vaults/${spec.ticker}`}
+      className={`group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-5 gap-y-3 px-4 py-4 transition-colors duration-150 outline-none hover-fine:bg-ink/[0.03] focus-visible:bg-ink/[0.04] md:px-6 ${cols}`}
+      aria-label={
+        quoting
+          ? `${spec.ticker} vault: quotes ${halfBp.toFixed(0)} basis points either side of the reference, ${money(side, 0)} on each side.`
+          : `${spec.ticker} vault: no quotes while its market is halted.`
+      }
+    >
+      <div className="min-w-0">
+        <p className="text-[15px] font-semibold text-ink">{spec.ticker} vault</p>
+        <p className="truncate text-[13px] text-ink-3">{spec.name}</p>
       </div>
-      <div className="mt-4">
-        <QuoteInstrument key={m.regime} spec={spec} refTick={m.refTick} regime={m.regime} compact />
+
+      <div className="col-span-2 row-start-2 md:col-span-1 md:row-start-auto">
+        {quoting ? (
+          <QuoteGauge bid={bp(q.bidTop - ref)} ask={bp(q.askBottom - ref)} width={bp(p.widthTicks)} />
+        ) : (
+          <p className="text-sm text-halt">No quotes while its market is halted</p>
+        )}
       </div>
-      {vault && nav !== null ? (
-        <dl className="mt-4 grid grid-cols-3 gap-4 text-sm">
-          <div>
-            <dt className="text-ink-3">NAV</dt>
-            <dd className="tnum mt-0.5 text-ink">{money(nav, 0)}</dd>
-          </div>
-          <div>
-            <dt className="text-ink-3">Spread earned</dt>
-            <dd className={`tnum mt-0.5 ${vault.spreadPnl >= 0 ? "text-buy" : "text-sell"}`}>{signed(vault.spreadPnl)}</dd>
-          </div>
-          <div>
-            <dt className="text-ink-3">Inventory</dt>
-            <dd className={`tnum mt-0.5 ${vault.inventoryPnl >= 0 ? "text-buy" : "text-sell"}`}>{signed(vault.inventoryPnl)}</dd>
-          </div>
-        </dl>
-      ) : (
-        <p className="mt-4 text-sm text-ink-2">
-          Quotes {p.spreadBps} bp either side of the reference, ×{p.extMult} in extended hours, ×{p.closedMult} while its
-          market is closed.
+
+      <div className="col-start-2 row-start-1 text-right md:col-start-auto md:row-start-auto">
+        <p className="figures text-[15px] font-semibold text-ink">{quoting ? `${halfBp.toFixed(0)} bp` : "None"}</p>
+        <p className="figures text-[12px] text-ink-3">
+          {quoting ? `$${(q.half * unit).toFixed(decimals)}` : ""}
+          {quoting && regimeNote ? ` · ${regimeNote}` : ""}
         </p>
-      )}
+      </div>
+
+      {nav !== null && vault ? (
+        <>
+          <div className="hidden text-right md:block">
+            <p className="tnum text-[15px] text-ink">{quoting ? money(side, 0) : "None"}</p>
+            <p className="figures text-[12px] text-ink-3">over {p.widthTicks} ticks</p>
+          </div>
+          <p className="tnum hidden text-right text-[15px] text-ink md:block">{money(nav, 0)}</p>
+          <p className={`tnum hidden text-right text-[15px] md:block ${vault.spreadPnl >= 0 ? "text-buy" : "text-sell"}`}>{signed(vault.spreadPnl)}</p>
+        </>
+      ) : null}
+
+      {/* phones: what the wide columns say, in one line */}
+      {vault && nav !== null ? (
+        <p className="figures col-span-2 -mt-1 text-[12px] text-ink-3 md:hidden">
+          {quoting ? `${money(side, 0)} each side · ` : ""}value {money(nav, 0)} · spread earned {signed(vault.spreadPnl)}
+        </p>
+      ) : null}
+
+      <ChevronRight size={16} strokeWidth={1.75} aria-hidden className="hidden text-ink-3 transition-colors group-hover:text-ink md:block" />
     </Link>
+  );
+}
+
+/**
+ * Bids and asks as two blocks either side of the reference, on the board's shared ±1% scale. Each block spans the
+ * ticks the vault quotes; the gap between them is the spread a trader crosses.
+ */
+function QuoteGauge({ bid, ask, width }: { bid: number; ask: number; width: number }) {
+  const block = (from: number, to: number, color: string) => (
+    <div className="absolute inset-0 transition-transform duration-[460ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none" style={{ transform: `translateX(${at(from)}%)` }}>
+      <div className={`absolute top-1/2 h-3 -translate-y-1/2 rounded-[2px] ${color}`} style={{ width: `max(3px, ${at(to) - at(from)}%)` }} />
+    </div>
+  );
+  return (
+    <div className="relative h-7 overflow-hidden" aria-hidden>
+      <div className="absolute inset-x-0 top-1/2 h-px bg-line-strong" />
+      {[-50, 50].map((b) => (
+        <div key={b} className="absolute top-1/2 h-2 w-px -translate-y-1/2 bg-line-strong" style={{ left: `${at(b)}%` }} />
+      ))}
+      {block(bid - width, bid, "bg-buy")}
+      {block(ask, ask + width, "bg-sell")}
+      <div className="absolute inset-y-0 left-1/2 w-[1.5px] -translate-x-1/2 bg-champagne" />
+    </div>
   );
 }
 

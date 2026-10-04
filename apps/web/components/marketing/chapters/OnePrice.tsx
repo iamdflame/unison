@@ -202,13 +202,14 @@ export function OnePrice() {
               {Array.from({ length: 7 }, (_, i) => WIN.lo + i * 10).map((tk) => (
                 <g key={tk}>
                   <line x1={x(tk)} x2={x(tk)} y1={y(0)} y2={y(0) + 6} stroke="var(--ink-3)" />
-                  <text x={x(tk)} y={y(0) + 26} textAnchor="middle" className="tnum" fill="var(--ink-3)" style={{ fontSize: 14 }}>
+                  <text x={x(tk)} y={y(0) + 26} textAnchor="middle" className="figures" fill={tk === REF ? "var(--ink-2)" : "var(--ink-3)"} style={{ fontSize: 14 }}>
                     {usd(tk)}
                   </text>
                 </g>
               ))}
-              <path d={`M${x(REF)},${y(0) + 8} l-6,10 h12 z`} fill="var(--ink-2)" />
-              <text x={x(REF)} y={y(0) + 50} textAnchor="middle" className="dial-label" fill="var(--ink-2)" style={{ fontSize: 11 }}>
+              {/* the pointer sits under its price, never on it */}
+              <path d={`M${x(REF)},${y(0) + 35} l-5,9 h10 z`} fill="var(--ink-2)" />
+              <text x={x(REF)} y={y(0) + 60} textAnchor="middle" className="dial-label" fill="var(--ink-2)" style={{ fontSize: 11 }}>
                 REFERENCE
               </text>
 

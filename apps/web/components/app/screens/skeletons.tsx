@@ -9,16 +9,12 @@ export function Skeleton({ rows = 6, label }: { rows?: number; label: string }) 
   );
 }
 
-/** The vault cards alone, under the server-drawn title and lede. */
-export function CardsSkeleton() {
+/** The vault board alone, under the server-drawn title and lede: its measured height (ten 115 px rows on phones; a 66 px header and ten 75 px rows from md up). */
+export function VaultBoardSkeleton() {
   return (
     <div className="animate-pulse motion-reduce:animate-none" aria-busy="true" aria-label="Loading vaults">
       <div className="mt-2 h-5" />
-      <div className="mt-10 grid gap-5 md:grid-cols-2">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="h-64 rounded-[var(--radius-xl)] bg-raised shadow-md" />
-        ))}
-      </div>
+      <div className="mt-8 h-[1149px] md:h-[815px] rounded-[var(--radius-xl)] bg-raised shadow-md" />
     </div>
   );
 }
