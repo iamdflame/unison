@@ -6,6 +6,7 @@ import { marketByTicker } from "@/lib/content/markets";
 import { demoMarket } from "@/lib/demo/engine";
 import { useVenue } from "@/lib/venue";
 import { liveClients } from "@/lib/venue/live";
+import { Hallmark } from "@/components/ui/Hallmark";
 
 interface Line {
   id: number;
@@ -125,10 +126,7 @@ export function TapeConsole() {
     <figure className="overflow-hidden rounded-[var(--radius-lg)] bg-sunken">
       <figcaption className="flex items-center justify-between border-b border-line px-4 py-2.5 text-xs text-ink-3">
         <span className="font-mono">GET /v1/stream?topics=heads,prints</span>
-        <span className="inline-flex items-center gap-1.5">
-          <span aria-hidden className={`size-1.5 rounded-full ${live ? "bg-buy" : "bg-ink-3"}`} />
-          {live ? "Live" : "Simulation"}
-        </span>
+        <Hallmark>{live ? "Live" : "Simulation"}</Hallmark>
       </figcaption>
       <div className="flex h-[22.5rem] flex-col justify-end overflow-hidden p-4 font-mono text-[11.5px] leading-[1.6] [font-variant-ligatures:none]" aria-live="off">
         {lines.map((l) => (

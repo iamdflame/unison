@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "@/lib/ui/toast";
 import type { Address, Hex } from "viem";
 import { preloadSignIn, SignInSheet } from "@/components/app/SignInSheet";
+import { Hallmark } from "@/components/ui/Hallmark";
 import { MARKETS } from "@/lib/content/markets";
 import { useStore } from "@/lib/store/createStore";
 import { useVenue } from "@/lib/venue";
@@ -165,11 +166,13 @@ function KeyCard({ k, label, browser, onRevoke, busy }: { k: KeyView; label?: st
       </svg>
       <div className="relative flex items-center justify-between gap-3">
         <span className="dial-label text-ink-3">Session key</span>
-        <span
-          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${status === "Active" ? "bg-buy-soft text-buy" : "bg-ink/[0.06] text-ink-3"}`}
-        >
-          {label ?? (browser ? `${status} · this browser` : status)}
-        </span>
+        {label ? (
+          <Hallmark>{label}</Hallmark>
+        ) : (
+          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${status === "Active" ? "bg-buy-soft text-buy" : "bg-ink/[0.06] text-ink-3"}`}>
+            {browser ? `${status} · this browser` : status}
+          </span>
+        )}
       </div>
       <p className="relative mt-4 font-mono text-[15px] text-ink">{short(k.key)}</p>
       <dl className="relative mt-6 grid grid-cols-2 gap-x-6 gap-y-4 text-sm">

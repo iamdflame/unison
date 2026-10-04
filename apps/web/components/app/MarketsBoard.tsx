@@ -11,6 +11,7 @@ import { useMarketMoment } from "@/lib/time/useMarketMoment";
 import { useMarket, useVenue } from "@/lib/venue";
 import { Spark, sample } from "@/components/trade/Spark";
 import { BandDial } from "./BandDial";
+import { Hallmark } from "@/components/ui/Hallmark";
 import { bandLabel, REGIME_LABEL } from "@/lib/unison/regimeNow";
 
 const compactUsd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 });
@@ -98,7 +99,7 @@ function Row({ spec }: { spec: MarketSpec }) {
       <div className="min-w-0">
         <p className="flex items-center gap-2 text-[15px] font-semibold text-ink">
           {spec.ticker}
-          {simulated ? <span className="rounded-full px-2 py-0.5 text-[11px] font-medium text-ink-3 hairline">Simulation</span> : null}
+          {simulated ? <Hallmark>Simulation</Hallmark> : null}
         </p>
         <p className="truncate text-[13px] text-ink-3">
           {spec.name} · {KIND[spec.kind]}

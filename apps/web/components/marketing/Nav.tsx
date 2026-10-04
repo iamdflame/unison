@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { ThemeMenu } from "@/components/ui/ThemeMenu";
 import { site } from "@/lib/content/site";
+import { Hallmark } from "@/components/ui/Hallmark";
 import { MobileMenu } from "./MobileMenu";
 
 const LINKS = [
@@ -36,7 +37,7 @@ export function Nav({ brand }: { brand: ReactNode }) {
           {brand}
         </Link>
         {/* the venue's stage, as a hallmark: small capitals in a hairline box */}
-        <span className="dial-label hidden rounded-[3px] px-1.5 py-1 text-[10px] text-ink-3 hairline sm:inline">{site.stage}</span>
+        <Hallmark className="hidden sm:inline-flex">{site.stage}</Hallmark>
         <ul className="ml-6 hidden items-center gap-1 md:flex">
           {LINKS.map((l) => (
             <li key={l.href}>
