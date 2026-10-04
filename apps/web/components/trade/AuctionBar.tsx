@@ -105,14 +105,15 @@ export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick:
         </p>
       ) : null}
       {discovery ? (
+        // one idea a sentence: why, how often, around what, and when it ends
         <p className="mt-2 hidden text-xs leading-relaxed text-ink-3 sm:block">
-          {closedWho}, so {unit} trades in a call auction every {cadence} blocks, about {(cadence * BEAT_MS) / 1000} s, in
-          a band around the last close, {fmt(m.refTick)}, that widens the longer it stays closed.
+          {closedWho}. {unit} trades in a call auction every {cadence} blocks, about {(cadence * BEAT_MS) / 1000} s. Its
+          band is centred on the last close, {fmt(m.refTick)}, and widens the longer the market stays closed.
           {reopens ? (
             <>
               {" "}
-              This ends {reopens}, when pre-market opens: the first auction then is a reopening cross, its band ±
-              {(m.spec.regime.reopenBandBps / 100).toFixed(2)}%.
+              Pre-market opens {reopens}. Its first auction is a reopening cross, with a ±
+              {(m.spec.regime.reopenBandBps / 100).toFixed(2)}% band.
             </>
           ) : null}
         </p>

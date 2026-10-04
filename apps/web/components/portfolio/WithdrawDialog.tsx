@@ -91,7 +91,7 @@ export function WithdrawDialog({ open, onOpenChange, onDone }: { open: boolean; 
                 role="radio"
                 aria-checked={a.sym === sym}
                 onClick={() => setSym(a.sym)}
-                className={`press rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${a.sym === sym ? "bg-raised text-ink shadow-sm" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
+                className={`press rounded-[var(--radius-sm)] px-3 py-1.5 text-sm font-medium transition-colors ${a.sym === sym ? "bg-raised text-ink shadow-sm" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
               >
                 {a.sym}
               </button>
@@ -117,7 +117,7 @@ export function WithdrawDialog({ open, onOpenChange, onDone }: { open: boolean; 
               aria-invalid={!!problem}
               className="tnum w-full bg-transparent px-4 py-3 text-lg font-semibold text-ink outline-none placeholder:text-ink-3"
             />
-            <button type="button" onClick={() => asset && setAmountText(String(Math.floor(asset.free * 1e6) / 1e6))} className="press rounded-full px-3 py-1.5 text-xs font-semibold text-ink-2 hover-fine:text-ink">
+            <button type="button" onClick={() => asset && setAmountText(String(Math.floor(asset.free * 1e6) / 1e6))} className="press rounded-[var(--radius-sm)] px-3 py-1.5 text-xs font-semibold text-ink-2 hover-fine:text-ink">
               Max
             </button>
           </div>
@@ -144,7 +144,7 @@ export function WithdrawDialog({ open, onOpenChange, onDone }: { open: boolean; 
             type="button"
             disabled={!ready}
             onClick={submit}
-            className="press mt-3 flex w-full items-center justify-center gap-2.5 rounded-full bg-ink py-3.5 text-[15px] font-semibold text-bg transition-opacity disabled:opacity-40"
+            className="press mt-3 flex w-full items-center justify-center gap-2.5 rounded-[var(--radius-md)] bg-ink py-3.5 text-[15px] font-semibold text-bg transition-opacity disabled:opacity-40"
           >
             <Fingerprint size={18} strokeWidth={1.5} aria-hidden />
             {busy ? "Waiting for your passkey…" : "Withdraw with passkey"}

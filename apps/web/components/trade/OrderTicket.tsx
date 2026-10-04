@@ -195,7 +195,7 @@ export function OrderTicket({
       className="rounded-[var(--radius-xl)] bg-raised shadow-panel [scrollbar-width:thin] lg:max-h-[calc(100dvh-6.5rem)] lg:overflow-y-auto"
     >
       <div className="p-4 pb-6 sm:p-5 sm:pb-6">
-        <div role="radiogroup" aria-label="Side" className="grid grid-cols-2 rounded-full bg-sunken p-1">
+        <div role="radiogroup" aria-label="Side" className="grid grid-cols-2 rounded-[var(--radius-md)] bg-sunken p-1">
           {(["buy", "sell"] as const).map((s) => (
             <button
               key={s}
@@ -203,7 +203,7 @@ export function OrderTicket({
               role="radio"
               aria-checked={side === s}
               onClick={() => setSide(s)}
-              className={`press rounded-full py-2.5 text-sm font-semibold capitalize transition-colors duration-150 ${
+              className={`press rounded-[var(--radius-sm)] py-2.5 text-sm font-semibold capitalize transition-colors duration-150 ${
                 side === s
                   ? s === "buy"
                     ? "bg-buy-fill text-bg shadow-sm"
@@ -219,12 +219,12 @@ export function OrderTicket({
         <label className="mt-3.5 block text-xs font-medium text-ink-3" htmlFor={ids.limit}>
           Limit price, {side === "buy" ? "the most you'll pay" : "the least you'll take"}
         </label>
-        <div className="mt-2 flex items-center rounded-2xl bg-sunken p-1 focus-within:outline-2 focus-within:outline-focus">
+        <div className="mt-2 flex items-center rounded-[var(--radius-md)] bg-sunken p-1 focus-within:outline-2 focus-within:outline-focus">
           <button
             type="button"
             aria-label="One tick lower"
             onClick={() => setPrice(limit - 1)}
-            className="press grid size-10 place-items-center rounded-xl text-ink-2 hover-fine:bg-bg"
+            className="press grid size-10 place-items-center rounded-[var(--radius-sm)] text-ink-2 hover-fine:bg-bg"
           >
             <Minus size={15} strokeWidth={1.75} aria-hidden />
           </button>
@@ -255,7 +255,7 @@ export function OrderTicket({
             type="button"
             aria-label="One tick higher"
             onClick={() => setPrice(limit + 1)}
-            className="press grid size-10 place-items-center rounded-xl text-ink-2 hover-fine:bg-bg"
+            className="press grid size-10 place-items-center rounded-[var(--radius-sm)] text-ink-2 hover-fine:bg-bg"
           >
             <Plus size={15} strokeWidth={1.75} aria-hidden />
           </button>
@@ -266,7 +266,7 @@ export function OrderTicket({
               key={label}
               type="button"
               onClick={() => setPrice(t)}
-              className={`press tap figures rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${limit === t ? "bg-raised text-ink shadow-sm" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
+              className={`press tap figures rounded-[var(--radius-sm)] px-2.5 py-1 text-xs font-medium transition-colors ${limit === t ? "bg-raised text-ink shadow-sm" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
             >
               {label} {fmt(t)}
             </button>
@@ -310,7 +310,7 @@ export function OrderTicket({
           autoComplete="off"
           value={qtyText}
           onChange={(e) => setQtyText(e.target.value.replace(/[^\d.]/g, ""))}
-          className="figures mt-2 w-full rounded-2xl bg-sunken px-4 py-2.5 text-center text-lg font-semibold text-ink outline-none focus-visible:outline-2 focus-visible:outline-focus"
+          className="figures mt-2 w-full rounded-[var(--radius-md)] bg-sunken px-4 py-2.5 text-center text-lg font-semibold text-ink outline-none focus-visible:outline-2 focus-visible:outline-focus"
           aria-describedby={ids.help}
         />
         <div className="mt-2 flex gap-1.5">
@@ -319,9 +319,11 @@ export function OrderTicket({
               key={f}
               type="button"
               onClick={() => setQtyText(String(Math.floor(maxQty * f * 100) / 100))}
-              className="press tap flex-1 rounded-full bg-sunken py-1 text-xs font-medium text-ink-2 hover-fine:text-ink"
+              aria-label={f === 1 ? `The most you can ${side}` : `${f * 100}% of the most you can ${side}`}
+              className="press tap flex-1 rounded-[var(--radius-sm)] bg-sunken py-1 text-[13px] font-medium text-ink-2 hover-fine:text-ink"
             >
-              {f === 1 ? "Max" : `${f * 100}%`}
+              {/* a fraction of what you can trade, as a fraction: no percent chips */}
+              {f === 1 ? "Max" : f === 0.25 ? "¼" : f === 0.5 ? "½" : "¾"}
             </button>
           ))}
         </div>
@@ -333,7 +335,7 @@ export function OrderTicket({
         <div
           role="radiogroup"
           aria-labelledby={ids.duration}
-          className="mt-2 grid grid-cols-2 gap-1 rounded-full bg-sunken p-1"
+          className="mt-2 grid grid-cols-2 gap-1 rounded-[var(--radius-md)] bg-sunken p-1"
         >
           {(
             [
@@ -347,7 +349,7 @@ export function OrderTicket({
               role="radio"
               aria-checked={ioc === val}
               onClick={() => setIoc(val)}
-              className={`press min-h-9 rounded-full text-sm font-medium transition-colors duration-150 ${ioc === val ? "bg-raised text-ink shadow-sm" : "text-ink-2 hover-fine:text-ink"}`}
+              className={`press min-h-9 rounded-[var(--radius-sm)] text-sm font-medium transition-colors duration-150 ${ioc === val ? "bg-raised text-ink shadow-sm" : "text-ink-2 hover-fine:text-ink"}`}
             >
               {label}
             </button>
@@ -372,7 +374,7 @@ export function OrderTicket({
             <dd className="figures font-semibold text-ink">{estimate !== null ? money(estimate) : "None yet"}</dd>
             <dd className="figures basis-full text-xs leading-relaxed text-ink-3">
               {estimate !== null && withYou ? `For the ${n(withYou.filled)} ${ticker} that would fill, ${side === "buy" ? "with" : "less"} the ${spec.feeBps} bp fee.` : "Nothing would fill now."}
-              {partial && qty > 0 ? ` All ${n(qty)}: ${side === "buy" ? "at most" : "at least"} ${money(bound)}, at your limit.` : null}
+              {partial && qty > 0 ? ` The whole order ${side === "buy" ? "costs at most" : "brings at least"} ${money(bound)} at your limit.` : null}
             </dd>
           </div>
           <div className="flex flex-wrap justify-between gap-x-4 gap-y-0.5">
@@ -395,7 +397,7 @@ export function OrderTicket({
           onPointerEnter={needsSignIn ? preloadSignIn : undefined}
           onFocus={needsSignIn ? preloadSignIn : undefined}
           disabled={!needsSignIn && (qty <= 0 || !affordable)}
-          className={`press w-full rounded-full py-3.5 text-[15px] font-semibold text-bg shadow-md transition-opacity disabled:opacity-40 ${side === "buy" ? "bg-buy-fill" : "bg-sell-fill"}`}
+          className={`press w-full rounded-[var(--radius-md)] py-3.5 text-[15px] font-semibold text-bg shadow-md transition-opacity disabled:opacity-40 ${side === "buy" ? "bg-buy-fill" : "bg-sell-fill"}`}
         >
           {needsSignIn
             ? "Sign in to trade"

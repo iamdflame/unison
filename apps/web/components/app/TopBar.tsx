@@ -36,7 +36,7 @@ export function TopBar({ mark }: { mark: ReactNode }) {
                 key={n.href}
                 href={n.href}
                 aria-current={on ? "page" : undefined}
-                className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors duration-150 ${on ? "bg-ink/[0.07] text-ink" : "text-ink-2 hover-fine:text-ink"}`}
+                className={`rounded-[var(--radius-sm)] px-3 py-1.5 text-sm font-medium transition-colors duration-150 ${on ? "bg-ink/[0.07] text-ink" : "text-ink-2 hover-fine:text-ink"}`}
               >
                 {n.label}
               </Link>

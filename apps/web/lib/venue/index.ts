@@ -93,6 +93,8 @@ export interface MarkNow {
   refTick: number;
   regime: MarketState["regime"]["name"];
   live: boolean;
+  /** the last uniform price, if the market has printed: the second mark while it is closed */
+  lastTick: number | null;
 }
 
 /**
@@ -116,10 +118,10 @@ export function useMarks(specs: readonly MarketSpec[]): Record<string, MarkNow> 
   );
   const snapshot = useCallback(() => {
     const states = markets.map((m) => m.store.get());
-    const key = states.map((s) => `${s.refTick}:${s.regime.name}`).join("|") + `|${v.mode}`;
+    const key = states.map((s) => `${s.refTick}:${s.regime.name}:${s.last?.tick ?? ""}`).join("|") + `|${v.mode}`;
     if (cache.current?.key === key) return cache.current.value;
     const value = Object.fromEntries(
-      specs.map((s, i) => [s.ticker, { refTick: states[i]!.refTick, regime: states[i]!.regime.name, live: v.mode === "live" && markets[i] !== demoMarket(s) }]),
+      specs.map((s, i) => [s.ticker, { refTick: states[i]!.refTick, regime: states[i]!.regime.name, live: v.mode === "live" && markets[i] !== demoMarket(s), lastTick: states[i]!.last?.tick ?? null }]),
     );
     cache.current = { key, value };
     return value;

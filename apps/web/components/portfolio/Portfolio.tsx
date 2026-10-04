@@ -67,6 +67,8 @@ interface Holding {
   avg: number | null;
   /** unrealised P&L at the reference mark; null when the cost isn't known */
   pnl: number | null;
+  /** while its market is closed the reference is the last close; this is the second mark, the last trade since */
+  lastPrice: number | null;
 }
 
 export function Portfolio() {
@@ -82,7 +84,7 @@ export function Portfolio() {
         <div className="mt-8 rounded-[var(--radius-xl)] bg-raised px-6 py-14 text-center shadow-panel sm:py-20">
           <p className="text-display-m text-ink">Your account is your passkey.</p>
           <p className="mx-auto mt-4 max-w-md text-ink-2">Sign in with Face ID, Touch ID or Windows Hello to see your balances, orders and fills.</p>
-          <button type="button" onClick={() => setSignInOpen(true)} onPointerEnter={preloadSignIn} onFocus={preloadSignIn} className="press mt-8 inline-flex items-center gap-2.5 rounded-full bg-ink px-6 py-3.5 text-[15px] font-semibold text-bg shadow-md">
+          <button type="button" onClick={() => setSignInOpen(true)} onPointerEnter={preloadSignIn} onFocus={preloadSignIn} className="press mt-8 inline-flex items-center gap-2.5 rounded-[var(--radius-md)] bg-ink px-6 py-3.5 text-[15px] font-semibold text-bg shadow-md">
             <Fingerprint size={18} strokeWidth={1.5} aria-hidden /> Sign in
           </button>
         </div>
@@ -120,23 +122,30 @@ function Account({ acct }: { acct: AccountState }) {
       const qty = (acct.base[spec.ticker] ?? 0) + (acct.lockedBase[spec.ticker] ?? 0);
       const { unit } = priceFormat(spec);
       const price = (marks[spec.ticker]?.refTick ?? 0) * unit;
+      const mk = marks[spec.ticker];
+      const lastPrice = mk && mk.regime === "DISCOVERY" && mk.lastTick !== null ? mk.lastTick * unit : null;
       const b = basis[spec.ticker];
       // a cost is known only when the fills (and the start) explain the whole position
       const known = !!b && Math.abs(b.qty - qty) < 1e-6 && qty > 0;
       const avg = known ? b.avg : null;
-      return { key: spec.ticker, label: spec.ticker, sub: spec.name, qty, locked: acct.lockedBase[spec.ticker] ?? 0, price, value: qty * price, spec, color: "", avg, pnl: avg !== null && price > 0 ? qty * (price - avg) : null };
+      return { key: spec.ticker, label: spec.ticker, sub: spec.name, qty, locked: acct.lockedBase[spec.ticker] ?? 0, price, value: qty * price, spec, color: "", avg, pnl: avg !== null && price > 0 ? qty * (price - avg) : null, lastPrice };
     });
     positions.sort((a, b) => b.value - a.value);
     positions.forEach((p, i) => (p.color = swatch(i)));
-    const cash: Holding = { key: "AUSD", label: "AUSD", sub: "Cash", qty: acct.quote + acct.lockedQuote, locked: acct.lockedQuote, price: 1, value: acct.quote + acct.lockedQuote, spec: null, color: "var(--champagne)", avg: null, pnl: null };
+    const cash: Holding = { key: "AUSD", label: "AUSD", sub: "Cash", qty: acct.quote + acct.lockedQuote, locked: acct.lockedQuote, price: 1, value: acct.quote + acct.lockedQuote, spec: null, color: "var(--champagne)", avg: null, pnl: null, lastPrice: null };
     return [cash, ...positions];
   }, [held, marks, basis, acct.base, acct.lockedBase, acct.quote, acct.lockedQuote]);
 
   const equity = holdings.reduce((s, h) => s + h.value, 0);
+  // both marks while a held market is closed: the close it is valued at, and where its auctions have traded since
+  const closedHeld = holdings.some((h) => h.lastPrice !== null);
+  const equityAtLast = holdings.reduce((s, h) => s + (h.lastPrice !== null ? h.qty * h.lastPrice : h.value), 0);
   const unrealized = holdings.reduce((s, h) => s + (h.pnl ?? 0), 0);
   const realized = Object.values(basis).reduce((s, b) => s + b.realized, 0);
   // a total over part of the book says so
   const partly = holdings.some((h) => h.spec && h.avg === null);
+  // when no position's cost is known, there is no total to show: "$0.00" would read as flat
+  const anyKnown = holdings.some((h) => h.spec && h.avg !== null);
   const halted = held.filter((s) => marks[s.ticker]?.regime === "HALTED");
 
   return (
@@ -156,11 +165,17 @@ function Account({ acct }: { acct: AccountState }) {
       ) : null}
 
       <section aria-label="Equity" className="mt-8 rounded-[var(--radius-xl)] bg-raised p-6 shadow-panel sm:p-8">
-        <p className="text-sm text-ink-3">Equity at reference prices</p>
+        <p className="text-sm text-ink-3">{closedHeld ? "Equity at reference prices, the last close where a market is closed" : "Equity at reference prices"}</p>
         <p className="numerals mt-2 text-[clamp(2.5rem,7vw,4.75rem)] leading-none text-ink">
           {/* a balance is read, not watched: it updates in place, without rolling digits */}
           {equity.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
+        {closedHeld ? (
+          <p className="figures mt-2 text-sm text-ink-2">
+            {equityAtLast.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 })} with closed
+            markets at their last trade
+          </p>
+        ) : null}
         <Allocation holdings={holdings} equity={equity} />
         <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:flex sm:flex-wrap sm:gap-x-8 sm:gap-y-2">
           <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
@@ -176,8 +191,8 @@ function Account({ acct }: { acct: AccountState }) {
             <dd className="figures text-ink">${(equity - acct.quote - acct.lockedQuote).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd>
           </div>
           <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
-            <dt className="text-ink-3">{partly ? "Unrealised P&L, where cost is known" : "Unrealised P&L"}</dt>
-            <dd className={`figures ${tone(unrealized)}`}>{signedMoney(unrealized)}</dd>
+            <dt className="text-ink-3">{partly && anyKnown ? "Unrealised P&L, where cost is known" : "Unrealised P&L"}</dt>
+            <dd className={`figures ${anyKnown ? tone(unrealized) : "text-ink-3"}`}>{anyKnown ? signedMoney(unrealized) : "Not known"}</dd>
           </div>
           <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
             <dt className="text-ink-3">Realised</dt>
@@ -208,7 +223,7 @@ function AccountLine({ account, network }: { account: string; network: string })
   return (
     <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-ink-2">
       Passkey account on {net}
-      <button type="button" onClick={copy} className="press inline-flex items-center gap-1.5 rounded-full bg-sunken px-2.5 py-1 font-mono text-xs text-ink-2 hover-fine:text-ink" aria-label={copied ? "Address copied" : "Copy account address"}>
+      <button type="button" onClick={copy} className="press inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] bg-sunken px-2.5 py-1 font-mono text-xs text-ink-2 hover-fine:text-ink" aria-label={copied ? "Address copied" : "Copy account address"}>
         {account.slice(0, 6)}…{account.slice(-4)}
         {copied ? <Check size={12} strokeWidth={2} aria-hidden /> : <Copy size={12} strokeWidth={1.75} aria-hidden />}
       </button>
@@ -231,10 +246,13 @@ function Actions({ live }: { live: boolean }) {
           resetPaperAccount();
           toast("Paper account reset", { description: "Orders cancelled and starting balances restored." });
         }}
-        className="press -mr-2 mt-2 inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-2 text-sm font-medium text-ink-3 transition-colors hover-fine:text-ink sm:mt-0 sm:min-h-0 sm:py-1"
+        className="press -mr-2 mt-2 inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-[var(--radius-md)] px-2 text-sm font-medium text-ink-3 transition-colors hover-fine:text-ink sm:mt-0 sm:min-h-0 sm:py-1"
         aria-label="Reset paper account"
       >
-        <RotateCcw size={14} strokeWidth={1.75} aria-hidden /> Reset<span className="hidden sm:inline">&nbsp;paper account</span>
+        <RotateCcw size={14} strokeWidth={1.75} aria-hidden />
+        <span>
+          Reset<span className="hidden sm:inline"> paper account</span>
+        </span>
       </button>
     );
   }
@@ -259,7 +277,7 @@ function Actions({ live }: { live: boolean }) {
               setBusy(false);
             }
           }}
-          className="press inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-ink hairline disabled:opacity-50"
+          className="press inline-flex items-center gap-2 rounded-[var(--radius-sm)] px-4 py-2.5 text-sm font-semibold text-ink hairline disabled:opacity-50"
         >
           <Droplets size={15} strokeWidth={1.75} aria-hidden /> {busy ? "Depositing…" : "Add test funds"}
         </button>
@@ -272,7 +290,7 @@ function Actions({ live }: { live: boolean }) {
           setWithdrawWanted(true);
           setWithdrawOpen(true);
         }}
-        className="press inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-bg">
+        className="press inline-flex items-center gap-2 rounded-[var(--radius-sm)] bg-ink px-4 py-2.5 text-sm font-semibold text-bg">
         <ArrowUpRight size={15} strokeWidth={1.75} aria-hidden /> Withdraw
       </button>
       {withdrawWanted ? <WithdrawDialog open={withdrawOpen} onOpenChange={setWithdrawOpen} /> : null}
@@ -333,8 +351,14 @@ function Holdings({ holdings, equity }: { holdings: Holding[]; equity: number })
               <p className="tnum hidden text-right text-ink-2 md:block">
                 {h.avg !== null ? `$${h.avg.toFixed(decimals)}` : <span className="text-[13px] text-ink-3">{h.spec ? "Not known" : ""}</span>}
               </p>
-              <p className="tnum hidden text-right text-ink-2 md:block">{h.spec ? `$${h.price.toFixed(decimals)}` : "$1.00"}</p>
-              <p className="tnum hidden text-right font-semibold text-ink md:block">{money(h.value)}</p>
+              <div className="hidden text-right md:block">
+                <p className="tnum text-ink-2">{h.spec ? `$${h.price.toFixed(decimals)}` : "$1.00"}</p>
+                {h.lastPrice !== null ? <p className="tnum text-xs text-ink-3">last trade ${h.lastPrice.toFixed(decimals)}</p> : null}
+              </div>
+              <div className="hidden text-right md:block">
+                <p className="tnum font-semibold text-ink">{money(h.value)}</p>
+                {h.lastPrice !== null ? <p className="tnum text-xs text-ink-3">{money(h.qty * h.lastPrice)} at last trade</p> : null}
+              </div>
               <p className={`tnum hidden text-right md:block ${h.pnl === null ? "text-ink-3" : tone(h.pnl)}`}>{h.pnl !== null ? signedMoney(h.pnl) : ""}</p>
               <p className="tnum hidden text-right text-ink-3 md:block">{share.toFixed(1)}%</p>
               <div className="text-right md:hidden">
@@ -342,6 +366,7 @@ function Holdings({ holdings, equity }: { holdings: Holding[]; equity: number })
                 <p className={`tnum text-xs ${h.pnl === null ? "text-ink-3" : tone(h.pnl)}`}>
                   {h.pnl !== null ? signedMoney(h.pnl) : `${share.toFixed(1)}%`}
                 </p>
+                {h.lastPrice !== null ? <p className="tnum text-[11px] text-ink-3">{money(h.qty * h.lastPrice)} at last trade</p> : null}
               </div>
             </>
           );

@@ -59,7 +59,7 @@ export function MarketSwitcher() {
         onClick={() => setOpen(true)}
         onPointerEnter={MarketPalette.preload}
         onFocus={MarketPalette.preload}
-        className="press hidden items-center gap-2 rounded-full bg-sunken px-3 py-1.5 text-sm text-ink-3 transition-colors hover-fine:text-ink md:inline-flex"
+        className="press hidden items-center gap-2 rounded-[var(--radius-sm)] bg-sunken px-3 py-1.5 text-sm text-ink-3 transition-colors hover-fine:text-ink md:inline-flex"
         aria-label="Search markets"
       >
         <Search size={14} strokeWidth={1.5} aria-hidden /> Search

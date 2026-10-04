@@ -130,7 +130,7 @@ export function QuoteInstrument({
       {!compact ? (
         <>
           <div className="mt-5 grid gap-5 md:grid-cols-[auto_minmax(0,1fr)] md:items-end md:gap-8">
-            <div role="radiogroup" aria-label="Regime" className="grid grid-cols-2 gap-1 rounded-[22px] bg-sunken p-1 sm:grid-cols-4 sm:rounded-full">
+            <div role="radiogroup" aria-label="Regime" className="grid grid-cols-2 gap-1 rounded-[var(--radius-md)] bg-sunken p-1 sm:grid-cols-4">
               {REGIMES.map(([s, label]) => (
                 <button
                   key={s}
@@ -138,7 +138,7 @@ export function QuoteInstrument({
                   role="radio"
                   aria-checked={status === s}
                   onClick={() => setStatus(s)}
-                  className={`press min-h-10 rounded-full px-3 text-sm font-medium transition-colors ${status === s ? "bg-raised text-ink shadow-sm" : "text-ink-2 hover-fine:text-ink"}`}
+                  className={`press min-h-10 rounded-[var(--radius-sm)] px-3 text-sm font-medium transition-colors ${status === s ? "bg-raised text-ink shadow-sm" : "text-ink-2 hover-fine:text-ink"}`}
                 >
                   {label}
                 </button>

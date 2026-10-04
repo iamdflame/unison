@@ -94,7 +94,7 @@ export function Agents() {
             </dl>
             <Link
               href="/developers#agents-title"
-              className="press mt-6 inline-flex items-center rounded-full bg-ink px-5 py-3 text-sm font-semibold text-bg"
+              className="press mt-6 inline-flex items-center rounded-[var(--radius-md)] bg-ink px-5 py-3 text-sm font-semibold text-bg"
             >
               Connect an agent
             </Link>
@@ -140,7 +140,7 @@ function SignInPanel() {
         onClick={() => setOpen(true)}
         onPointerEnter={preloadSignIn}
         onFocus={preloadSignIn}
-        className="press mt-6 inline-flex items-center gap-2.5 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-bg"
+        className="press mt-6 inline-flex items-center gap-2.5 rounded-[var(--radius-md)] bg-ink px-5 py-3 text-sm font-semibold text-bg"
       >
         <Fingerprint size={17} strokeWidth={1.5} aria-hidden /> Sign in
       </button>
@@ -169,14 +169,14 @@ function KeyCard({ k, label, browser, onRevoke, busy }: { k: KeyView; label?: st
         label ? (
           <Hallmark>{label}</Hallmark>
         ) : (
-          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${status === "Active" ? "bg-buy-soft text-buy" : "bg-ink/[0.06] text-ink-3"}`}>
+          <span className={`rounded-[var(--radius-xs)] px-2 py-1 text-xs font-semibold ${status === "Active" ? "bg-buy-soft text-buy" : "bg-ink/[0.06] text-ink-3"}`}>
             {browser ? `${status} · this browser` : status}
           </span>
         )
       }
       action={
         onRevoke && status === "Active" ? (
-          <button type="button" disabled={busy} onClick={onRevoke} className="press shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold text-halt hairline disabled:opacity-50">
+          <button type="button" disabled={busy} onClick={onRevoke} className="press shrink-0 rounded-[var(--radius-sm)] px-3.5 py-1.5 text-sm font-semibold text-halt hairline disabled:opacity-50">
             {busy ? "Revoking…" : "Revoke"}
           </button>
         ) : null
@@ -235,7 +235,7 @@ function Mint({ net, onMinted }: { net: NetConfig; onMinted: (m: { privateKey: H
               role="checkbox"
               aria-checked={picked.has(m.id)}
               onClick={() => toggle(m.id)}
-              className={`press rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${picked.has(m.id) ? "bg-raised text-ink shadow-sm" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
+              className={`press rounded-[var(--radius-sm)] px-3 py-1.5 text-sm font-medium transition-colors ${picked.has(m.id) ? "bg-raised text-ink shadow-sm" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
             >
               {m.ticker}
             </button>
@@ -254,7 +254,7 @@ function Mint({ net, onMinted }: { net: NetConfig; onMinted: (m: { privateKey: H
       </div>
       <fieldset className="mt-5">
         <legend className="text-xs font-medium text-ink-3">Expires after</legend>
-        <div role="radiogroup" className="mt-2 grid grid-cols-4 gap-1 rounded-full bg-sunken p-1">
+        <div role="radiogroup" className="mt-2 grid grid-cols-4 gap-1 rounded-[var(--radius-md)] bg-sunken p-1">
           {TTL.map(([label, s]) => (
             <button
               key={s}
@@ -262,14 +262,14 @@ function Mint({ net, onMinted }: { net: NetConfig; onMinted: (m: { privateKey: H
               role="radio"
               aria-checked={ttl === s}
               onClick={() => setTtl(s)}
-              className={`press rounded-full py-2 text-sm font-medium transition-colors ${ttl === s ? "bg-raised text-ink shadow-sm" : "text-ink-2 hover-fine:text-ink"}`}
+              className={`press rounded-[var(--radius-sm)] py-2 text-sm font-medium transition-colors ${ttl === s ? "bg-raised text-ink shadow-sm" : "text-ink-2 hover-fine:text-ink"}`}
             >
               {label}
             </button>
           ))}
         </div>
       </fieldset>
-      <button type="button" disabled={!ready} onClick={mint} className="press mt-6 flex w-full items-center justify-center gap-2.5 rounded-full bg-ink py-3.5 text-[15px] font-semibold text-bg transition-opacity disabled:opacity-40">
+      <button type="button" disabled={!ready} onClick={mint} className="press mt-6 flex w-full items-center justify-center gap-2.5 rounded-[var(--radius-md)] bg-ink py-3.5 text-[15px] font-semibold text-bg transition-opacity disabled:opacity-40">
         <Fingerprint size={18} strokeWidth={1.5} aria-hidden /> {busy ? "Waiting for your passkey…" : "Mint key with passkey"}
       </button>
       <p className="mt-3 text-xs leading-relaxed text-ink-3">
@@ -294,7 +294,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
           toast.error("Couldn't reach the clipboard.");
         }
       }}
-      className="press inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-ink-2 hairline hover-fine:text-ink"
+      className="press inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] px-3 py-1.5 text-xs font-semibold text-ink-2 hairline hover-fine:text-ink"
     >
       {done ? <Check size={13} strokeWidth={2} aria-hidden /> : <Copy size={13} strokeWidth={1.75} aria-hidden />}
       {done ? "Copied" : label}
@@ -328,7 +328,7 @@ function Minted({ minted, net, account }: { minted: { privateKey: Hex; address: 
       <section className="rounded-[var(--radius-xl)] bg-raised p-6 shadow-panel sm:p-7" aria-label="Connect your agent">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-[17px] font-semibold text-ink">Give it to your agent</h2>
-          <button type="button" onClick={() => setShown((s) => !s)} className="press inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-ink-2 hairline hover-fine:text-ink">
+          <button type="button" onClick={() => setShown((s) => !s)} className="press inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] px-3 py-1.5 text-xs font-semibold text-ink-2 hairline hover-fine:text-ink">
             {shown ? <EyeOff size={13} strokeWidth={1.75} aria-hidden /> : <Eye size={13} strokeWidth={1.75} aria-hidden />} {shown ? "Hide key" : "Show key"}
           </button>
         </div>
