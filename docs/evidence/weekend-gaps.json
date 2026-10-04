@@ -1,0 +1,87 @@
+{
+  "generated": "2026-10-04",
+  "thresholdPct": 2,
+  "source": "Yahoo Finance daily bars (split-adjusted)",
+  "results": [
+    {
+      "symbol": "NVDA",
+      "from": "2021-10-04",
+      "to": "2026-10-02",
+      "weekends": 259,
+      "gappedPct": 24,
+      "meanPct": 1.4,
+      "p99Pct": 7.3,
+      "maxPct": 14.2
+    },
+    {
+      "symbol": "TSLA",
+      "from": "2021-10-04",
+      "to": "2026-10-02",
+      "weekends": 260,
+      "gappedPct": 34,
+      "meanPct": 1.9,
+      "p99Pct": 8,
+      "maxPct": 12
+    },
+    {
+      "symbol": "COIN",
+      "from": "2021-10-04",
+      "to": "2026-10-02",
+      "weekends": 260,
+      "gappedPct": 46,
+      "meanPct": 2.4,
+      "p99Pct": 9.8,
+      "maxPct": 21.3
+    },
+    {
+      "symbol": "MSTR",
+      "from": "2021-10-04",
+      "to": "2026-10-02",
+      "weekends": 260,
+      "gappedPct": 53,
+      "meanPct": 2.9,
+      "p99Pct": 14.8,
+      "maxPct": 27.4
+    },
+    {
+      "symbol": "SPY",
+      "from": "2021-10-04",
+      "to": "2026-10-02",
+      "weekends": 260,
+      "gappedPct": 2,
+      "meanPct": 0.5,
+      "p99Pct": 2.6,
+      "maxPct": 4
+    },
+    {
+      "symbol": "QQQ",
+      "from": "2021-10-04",
+      "to": "2026-10-02",
+      "weekends": 260,
+      "gappedPct": 3,
+      "meanPct": 0.6,
+      "p99Pct": 3.3,
+      "maxPct": 5.4
+    },
+    {
+      "symbol": "AAPL",
+      "from": "2021-10-04",
+      "to": "2026-10-02",
+      "weekends": 260,
+      "gappedPct": 6,
+      "meanPct": 0.8,
+      "p99Pct": 5.9,
+      "maxPct": 9.4
+    },
+    {
+      "symbol": "GLD",
+      "from": "2021-10-04",
+      "to": "2026-10-02",
+      "weekends": 260,
+      "gappedPct": 6,
+      "meanPct": 0.7,
+      "p99Pct": 3.1,
+      "maxPct": 3.7
+    }
+  ]
+}
