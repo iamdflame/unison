@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { TopBar } from "@/components/app/TopBar";
+import { VenueBoot } from "@/components/app/VenueBoot";
 import { Toaster } from "@/components/ui/Toaster";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
@@ -11,6 +12,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <TopBar />
       <main id="main">{children}</main>
       <Toaster />
+      <VenueBoot />
     </div>
   );
 }

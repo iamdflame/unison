@@ -60,3 +60,10 @@ export const MARKETS: readonly MarketSpec[] = (config.markets as RawMarket[]).ma
 });
 
 export const marketByTicker = (ticker: string) => MARKETS.find((m) => m.ticker.toLowerCase() === ticker.toLowerCase());
+
+/** A market's prices: one tick in dollars, the decimals prices print with, and tick → "$180.27". */
+export function priceFormat(spec: MarketSpec) {
+  const unit = Number(spec.tickSize) / 1e6;
+  const decimals = unit >= 0.01 ? 2 : unit >= 0.0001 ? 4 : 6;
+  return { unit, decimals, fmt: (tick: number) => `$${(tick * unit).toFixed(decimals)}` };
+}

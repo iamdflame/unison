@@ -43,6 +43,8 @@ export interface MyOrder {
   fee: number;
   ioc: boolean;
   status: MyOrderStatus;
+  /** live: an auction crossed it and the fill is being settled (the keeper claims within a block or two) */
+  settling?: boolean;
   placedBlock: number;
   /** batches that filled it */
   batches: number[];
@@ -63,6 +65,8 @@ export interface MyFill {
   limitTick: number;
   bandLo: number;
   bandHi: number;
+  /** live: the auction's on-chain receipt hash */
+  receipt?: string;
 }
 
 export interface MarketState {

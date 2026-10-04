@@ -9,6 +9,7 @@ import { AccountButton } from "./AccountButton";
 import { MarketSwitcher } from "./MarketSwitcher";
 
 const LiveBeat = dynamic(() => import("./LiveBeat"), { ssr: false });
+const VenuePill = dynamic(() => import("./VenuePill"), { ssr: false });
 
 const NAV = [
   { href: "/trade/aNVDA", label: "Trade", match: "/trade" },
@@ -46,7 +47,7 @@ export function TopBar() {
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
           <MarketSwitcher />
           <LiveBeat ticker={ticker} />
-          <span className="hidden rounded-full border border-dashed border-line-strong px-2.5 py-1 text-xs text-ink-3 xl:inline">Simulation</span>
+          <VenuePill />
           <ThemeMenu />
           <AccountButton />
         </div>

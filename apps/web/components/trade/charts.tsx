@@ -28,18 +28,21 @@ function Ball({ x, y, r = 8 }: { x: number; y: number; r?: number }) {
   );
 }
 
-export function CrossChart({ m, fmt }: { m: MarketState; fmt: (tick: number) => string }) {
+/** The simulation's vault quotes; live mode shows only real, on-chain liquidity. */
+export function simulatedVault(refTick: number) {
+  const v = [];
+  for (let k = 0; k < 6; k++) {
+    v.push({ id: -1 - k, side: "buy" as const, tick: refTick - 6 - k * 2, qty: 3 + k });
+    v.push({ id: -100 - k, side: "sell" as const, tick: refTick + 6 + k * 2, qty: 3 + k });
+  }
+  return v;
+}
+
+export function CrossChart({ m, fmt, live = false }: { m: MarketState; fmt: (tick: number) => string; live?: boolean }) {
   const span = Math.max(12, Math.min(48, Math.round((m.hi - m.lo) / 2)));
   const lo = m.refTick - span;
   const hi = m.refTick + span;
-  const vault = useMemo(() => {
-    const v = [];
-    for (let k = 0; k < 6; k++) {
-      v.push({ id: -1 - k, side: "buy" as const, tick: m.refTick - 6 - k * 2, qty: 3 + k });
-      v.push({ id: -100 - k, side: "sell" as const, tick: m.refTick + 6 + k * 2, qty: 3 + k });
-    }
-    return v;
-  }, [m.refTick]);
+  const vault = useMemo(() => (live ? [] : simulatedVault(m.refTick)), [m.refTick, live]);
   const { ticks, demand, supply } = useMemo(() => curves([...m.book, ...vault], lo, hi), [m.book, vault, lo, hi]);
   const maxQ = Math.max(10, ...demand, ...supply) * 1.1;
   const P = { l: 16, r: 16, t: 24, b: 44 };
@@ -125,7 +128,7 @@ export function PrintsChart({ m, fmt }: { m: MarketState; fmt: (tick: number) =>
   );
 }
 
-export function DepthLadder({ m, fmt, onPick }: { m: MarketState; fmt: (tick: number) => string; onPick?: (tick: number) => void }) {
+export function DepthLadder({ m, fmt, onPick, live = false }: { m: MarketState; fmt: (tick: number) => string; onPick?: (tick: number) => void; live?: boolean }) {
   const levels = 9;
   const byTick = new Map<number, { buy: number; sell: number; mine: boolean }>();
   for (const o of m.book) {
@@ -135,7 +138,7 @@ export function DepthLadder({ m, fmt, onPick }: { m: MarketState; fmt: (tick: nu
     if (o.owner === "you") e.mine = true;
     byTick.set(o.tick, e);
   }
-  for (let k = 0; k < 6; k++) {
+  for (let k = 0; k < (live ? 0 : 6); k++) {
     const b = byTick.get(m.refTick - 6 - k * 2) ?? { buy: 0, sell: 0, mine: false };
     b.buy += 3 + k;
     byTick.set(m.refTick - 6 - k * 2, b);

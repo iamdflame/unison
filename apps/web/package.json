@@ -6,15 +6,16 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "dev": "next dev -p 3000",
-    "build": "next build",
+    "dev": "pnpm sync && next dev -p 3000",
+    "build": "pnpm sync && next build",
     "start": "next start -p 3000",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "eslint .",
+    "typecheck": "pnpm sync && tsc -p tsconfig.json --noEmit",
+    "lint": "pnpm sync && eslint .",
     "format": "prettier --write .",
     "test": "vitest run",
     "e2e": "playwright test",
-    "brand": "node scripts/brand/build.mjs"
+    "brand": "node scripts/brand/build.mjs",
+    "sync": "node scripts/sync-deployments.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

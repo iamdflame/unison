@@ -5,9 +5,15 @@ import { Minus, Plus } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { account } from "@/lib/demo/engine";
-import { useAccount, useDemoMarket } from "@/lib/demo/useMarket";
-import { certificate } from "./Certificate";
+import { useStore } from "@/lib/store/createStore";
+import { useMarket, useVenue, useVenueAccount } from "@/lib/venue";
+import { identity } from "@/lib/venue/identity";
+import { liveAccount, orderAliases } from "@/lib/venue/live";
+import { SignIn } from "@/components/app/SignIn";
+import { certificate, certificateFor } from "./Certificate";
+import { priceFormat } from "@/lib/content/markets";
 import { clearBatch } from "@/lib/sim/batch";
+import { simulatedVault } from "./charts";
 
 /**
  * The order ticket. Every number on it is exact: the lock is the contract's `buyLock` (notional at your limit plus
@@ -16,11 +22,13 @@ import { clearBatch } from "@/lib/sim/batch";
 const MAX_FEE_BPS = 10n;
 
 export function OrderTicket({ ticker }: { ticker: string }) {
-  const { market, value: m, spec } = useDemoMarket(ticker, (s) => ({ refTick: s.refTick, lo: s.lo, hi: s.hi, book: s.book }));
-  const free = useAccount((a) => ({ quote: a.quote, base: a.base[ticker] ?? 0 }));
-  const unit = Number(spec.tickSize) / 1e6;
-  const decimals = unit >= 0.01 ? 2 : unit >= 0.0001 ? 4 : 6;
-  const fmt = (t: number) => `$${(t * unit).toFixed(decimals)}`;
+  const { market, value: m, spec, live } = useMarket(ticker, (s) => ({ refTick: s.refTick, lo: s.lo, hi: s.hi, book: s.book }));
+  const free = useVenueAccount((a) => ({ quote: a.quote, base: a.base[ticker] ?? 0 }));
+  const v = useVenue();
+  const signedIn = !!useStore(identity, (x) => x);
+  const needsSignIn = live && !signedIn;
+  const [signInOpen, setSignInOpen] = useState(false);
+  const { unit, decimals, fmt } = priceFormat(spec);
 
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [offsetTicks, setOffsetTicks] = useState(2); // limit = reference + offset (buys) or − offset (sells)
@@ -40,61 +48,61 @@ export function OrderTicket({ ticker }: { ticker: string }) {
   // What would happen if the batch cleared now: the engine on the live book, the vault, and you.
   const indicative = useMemo(() => {
     if (qty <= 0) return null;
-    const vault = [];
-    for (let k = 0; k < 6; k++) {
-      vault.push({ id: -1 - k, side: "buy" as const, tick: m.refTick - 6 - k * 2, qty: 3 + k });
-      vault.push({ id: -100 - k, side: "sell" as const, tick: m.refTick + 6 + k * 2, qty: 3 + k });
-    }
+    const vault = live ? [] : simulatedVault(m.refTick);
     const out = clearBatch([...m.book, ...vault, { id: 0, side, tick: limit, qty }], { lo: m.lo, hi: m.hi, refTick: m.refTick });
     return out.traded ? { tick: out.tick, filled: out.fills.get(0) ?? 0 } : null;
-  }, [m.book, m.refTick, m.lo, m.hi, side, limit, qty]);
+  }, [m.book, m.refTick, m.lo, m.hi, side, limit, qty, live]);
 
   const maxQty = side === "buy" ? Math.floor((free.quote / (limit * unit * 1.001)) * 100) / 100 : free.base;
-  const [pendingId, setPendingId] = useState<number | null>(null);
+  // The order the toast follows, as submitted (the ticket may change after).
+  const [sent, setSent] = useState<{ id: number; side: "buy" | "sell"; limit: number; ioc: boolean } | null>(null);
   const toastId = useRef<string | number | null>(null);
-  const status = useAccount((a) => {
-    const o = pendingId ? (a.orders[ticker] ?? []).find((x) => x.id === pendingId) : undefined;
-    return o ? { status: o.status, filled: o.filled, qty: o.qty, quote: o.quote, batch: o.batches.at(-1) ?? null } : null;
+  const alias = useStore(orderAliases, (a) => (sent ? a[sent.id] : undefined));
+  const trackedId = alias ?? sent?.id ?? null;
+  const status = useVenueAccount((a) => {
+    const o = trackedId !== null ? (a.orders[ticker] ?? []).find((x) => x.id === trackedId) : undefined;
+    return o ? { status: o.status, filled: o.filled, qty: o.qty, quote: o.quote, settling: !!o.settling, batch: o.batches.at(-1) ?? null } : null;
   });
 
-  // The toast follows your order: in the batch → filled at the one price (or rests, or expires).
+  // The toast follows your order: in the batch → filled at the batch's one price (or rests, or expires).
   useEffect(() => {
-    if (!status || toastId.current === null) return;
+    if (!status || !sent || toastId.current === null) return;
     const id = toastId.current;
-    const avg = status.filled > 0 ? status.quote / status.filled : 0;
     if (status.status === "filled" || status.status === "partial") {
-      const fill = account.get().fills.find((f) => f.orderId === pendingId);
-      toast.success(`${side === "buy" ? "Bought" : "Sold"} ${status.filled.toFixed(2)} ${ticker} at $${avg.toFixed(decimals)}`, {
+      const fill = (v.mode === "live" ? liveAccount : account).get().fills.find((f) => f.orderId === trackedId); // newest first
+      const price = fill ? fmt(fill.tick) : `$${(status.quote / status.filled).toFixed(decimals)}`;
+      const of = status.status === "partial" ? ` of ${status.qty}` : "";
+      const rest = status.status !== "partial" ? "" : sent.ioc ? " The rest was released." : " The rest stays in the book at your limit.";
+      toast.success(`${sent.side === "buy" ? "Bought" : "Sold"} ${status.filled.toFixed(2)}${of} ${ticker} at ${price}`, {
         id,
-        description: `The same price as everyone in batch ${status.batch?.toLocaleString("en-US") ?? ""}.`,
-        action: fill
-          ? {
-              label: "Certificate",
-              onClick: () => certificate.set({ ...fill, ticker, name: spec.name, unit, decimals, receipt: null }),
-            }
-          : undefined,
+        description: `The same price as everyone in batch ${(fill?.block ?? status.batch ?? 0).toLocaleString("en-US")}.${rest}`,
+        action: fill ? { label: "Certificate", onClick: () => certificate.set(certificateFor(fill, spec, v.mode === "live" ? v.net : null)) } : undefined,
         duration: 8000,
       });
       toastId.current = null;
     } else if (status.status === "expired") {
-      toast(`Not filled this batch`, { id, description: "This-batch-only order expired; your funds are released." });
+      toast("Not filled this batch", { id, description: "Your this-batch-only order expired and your funds are released." });
       toastId.current = null;
-    } else if (status.status === "open") {
-      toast(`Resting at ${fmt(limit)}`, { id, description: "It joins every batch until it fills or you cancel it." });
+    } else if (status.status === "open" && !status.settling) {
+      toast(`Resting at ${fmt(sent.limit)}`, { id, description: "It joins every batch until it fills or you cancel it." });
       toastId.current = null;
     }
-  }, [status, side, ticker, decimals, limit]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [status, sent, ticker, decimals]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const submit = () => {
+  const submit = async () => {
+    if (needsSignIn) {
+      setSignInOpen(true);
+      return;
+    }
     if (qty <= 0 || !affordable) return;
-    const r = market.place(side, limit, Math.round(qty * 100) / 100, ioc);
+    const r = await market.place(side, limit, Math.round(qty * 100) / 100, ioc);
     if ("error" in r) {
       toast.error(r.error);
       return;
     }
-    setPendingId(r.id);
+    setSent({ id: r.id, side, limit, ioc });
     toastId.current = toast.loading(`${side === "buy" ? "Buy" : "Sell"} ${qty} ${ticker} in the next batch`, {
-      description: `Limit ${fmt(limit)} · clears in about 0.3 s`,
+      description: live ? `Limit ${fmt(limit)} · signed and relayed, no gas` : `Limit ${fmt(limit)} · clears in about 0.3 s`,
     });
   };
 
@@ -213,11 +221,18 @@ export function OrderTicket({ ticker }: { ticker: string }) {
       <button
         type="button"
         onClick={submit}
-        disabled={qty <= 0 || !affordable}
+        disabled={!needsSignIn && (qty <= 0 || !affordable)}
         className={`press mt-5 w-full rounded-full py-3.5 text-[15px] font-semibold text-bg shadow-md transition-opacity disabled:opacity-40 ${side === "buy" ? "bg-buy" : "bg-sell"}`}
       >
-        {!affordable ? (side === "buy" ? "Not enough AUSD" : `Not enough ${ticker}`) : `${side === "buy" ? "Buy" : "Sell"} ${qty || ""} ${ticker}`}
+        {needsSignIn
+          ? "Sign in to trade"
+          : !affordable
+            ? side === "buy"
+              ? "Not enough AUSD"
+              : `Not enough ${ticker}`
+            : `${side === "buy" ? "Buy" : "Sell"} ${qty || ""} ${ticker}`}
       </button>
+      <SignIn open={signInOpen} onOpenChange={setSignInOpen} />
       <p className="mt-3 text-center text-xs text-ink-3">Fee {spec.feeBps} bp. Everyone in the batch gets the same price.</p>
     </section>
   );

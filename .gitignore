@@ -70,3 +70,6 @@ apps/web/.lighthouseci/
 # design-review screenshots and regenerable exploration pages
 apps/web/brand/shots/
 apps/web/brand/explore/*.html
+
+# web: bundled from deployments/*.json by apps/web/scripts/sync-deployments.mjs
+apps/web/lib/venue/deployments.generated.ts

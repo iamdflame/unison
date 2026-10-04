@@ -6,9 +6,10 @@ import { X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { RegimeBadge } from "@/components/app/RegimeBadge";
 import { BatchRing } from "@/components/app/BatchRing";
-import { useAccount, useDemoMarket } from "@/lib/demo/useMarket";
+import { useMarket, useVenue, useVenueAccount } from "@/lib/venue";
+import { priceFormat } from "@/lib/content/markets";
 import type { MyFill, MyOrder } from "@/lib/demo/engine";
-import { CertificateDialog, certificate } from "./Certificate";
+import { CertificateDialog, certificate, certificateFor } from "./Certificate";
 import { OrderTicket } from "./OrderTicket";
 import { CrossChart, DepthLadder, PrintsChart } from "./charts";
 
@@ -17,14 +18,13 @@ import { CrossChart, DepthLadder, PrintsChart } from "./charts";
  * Desktop: chart column + ticket column + activity. Mobile: the same, stacked, ticket last.
  */
 export function TradeView({ ticker }: { ticker: string }) {
-  const { market, value: m, spec } = useDemoMarket(ticker, (s) => s);
-  const unit = Number(spec.tickSize) / 1e6;
-  const decimals = unit >= 0.01 ? 2 : unit >= 0.0001 ? 4 : 6;
-  const fmt = (t: number) => `$${(t * unit).toFixed(decimals)}`;
+  const { market, value: m, spec, live } = useMarket(ticker, (s) => s);
+  const { unit, decimals, fmt } = priceFormat(spec);
   const last = m.last ?? null;
   const open = m.prints.length > 120 ? m.prints[m.prints.length - 120]! : m.prints[0];
   const change = last && open ? ((last.tick - open.tick) / open.tick) * 100 : 0;
   const [view, setView] = useState<string>("cross");
+  const v = useVenue();
 
   return (
     <div className="mx-auto max-w-[1680px] px-4 py-5 sm:px-6 lg:py-7">
@@ -99,20 +99,21 @@ export function TradeView({ ticker }: { ticker: string }) {
               </p>
             </div>
             <Tabs.Panel value="cross" className="aspect-[900/420] w-full p-2">
-              <CrossChart m={m} fmt={fmt} />
+              <CrossChart m={m} fmt={fmt} live={live} />
             </Tabs.Panel>
             <Tabs.Panel value="prints" className="aspect-[900/420] w-full p-2">
               <PrintsChart m={m} fmt={fmt} />
             </Tabs.Panel>
             <Tabs.Panel value="depth" className="min-h-[420px] w-full">
-              <DepthLadder m={m} fmt={fmt} />
+              <DepthLadder m={m} fmt={fmt} live={live} />
             </Tabs.Panel>
           </Tabs.Root>
           <Activity
             ticker={ticker}
             fmt={fmt}
-            onCancel={(id) => market.cancel(id)}
-            onCertificate={(f) => certificate.set({ ...f, ticker, name: spec.name, unit, decimals, receipt: null })}
+            decimals={decimals}
+            onCancel={(id) => void market.cancel(id)}
+            onCertificate={(f) => certificate.set(certificateFor(f, spec, live ? v.net : null))}
           />
         </div>
         <div className="xl:sticky xl:top-20 xl:self-start">
@@ -136,17 +137,19 @@ const STATUS_LABEL: Record<MyOrder["status"], string> = {
 function Activity({
   ticker,
   fmt,
+  decimals,
   onCancel,
   onCertificate,
 }: {
   ticker: string;
   fmt: (t: number) => string;
+  decimals: number;
   onCancel: (id: number) => void;
   onCertificate: (f: MyFill) => void;
 }) {
-  const ordersOrNull = useAccount((a) => a.orders[ticker] ?? null);
+  const ordersOrNull = useVenueAccount((a) => a.orders[ticker] ?? null);
   const orders = useMemo(() => ordersOrNull ?? [], [ordersOrNull]);
-  const fills = useAccount((a) => a.fills);
+  const fills = useVenueAccount((a) => a.fills);
   const mine = useMemo(() => fills.filter((f) => orders.some((o) => o.id === f.orderId)).slice(0, 12), [fills, orders]);
   const [tab, setTab] = useState<string>("orders");
   const live = orders.filter((o) => o.status === "pending" || o.status === "open" || o.status === "partial");
@@ -169,9 +172,9 @@ function Activity({
               <li key={o.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-3 text-sm">
                 <span className={`font-semibold ${o.side === "buy" ? "text-buy" : "text-sell"}`}>{o.side === "buy" ? "Buy" : "Sell"}</span>
                 <span className="tnum text-ink">
-                  {o.filled.toFixed(2)} / {o.qty} at ≤ {fmt(o.tick)}
-                  <span className="ml-3 text-ink-3">{STATUS_LABEL[o.status]}</span>
-                  {o.filled > 0 ? <span className="ml-3 text-ink-2">avg ${(o.quote / o.filled).toFixed(2)}</span> : null}
+                  {o.filled.toFixed(2)} / {o.qty} at {o.side === "buy" ? "≤" : "≥"} {fmt(o.tick)}
+                  <span className="ml-3 text-ink-3">{o.settling ? "Filling…" : STATUS_LABEL[o.status]}</span>
+                  {o.filled > 0 ? <span className="ml-3 text-ink-2">avg ${(o.quote / o.filled).toFixed(decimals)}</span> : null}
                 </span>
                 {o.status === "open" || o.status === "pending" || o.status === "partial" ? (
                   <button type="button" onClick={() => onCancel(o.id)} aria-label="Cancel order" className="press grid size-8 place-items-center rounded-full text-ink-3 hover-fine:bg-ink/[0.06] hover-fine:text-ink">
@@ -200,7 +203,10 @@ function Activity({
                 >
                   <span className={`font-semibold ${f.side === "buy" ? "text-buy" : "text-sell"}`}>{f.side === "buy" ? "Bought" : "Sold"}</span>
                   <span className="tnum text-ink">
-                    {f.qty.toFixed(2)} at {fmt(f.tick)} <span className="text-ink-3">· batch {f.block.toLocaleString("en-US")} · {f.participants} orders, one price</span>
+                    {f.qty.toFixed(2)} at {fmt(f.tick)}{" "}
+                    <span className="text-ink-3">
+                      · batch {f.block.toLocaleString("en-US")} · {f.participants > 0 ? `${f.participants} orders` : `${f.batchVolume.toFixed(2)} ${ticker} traded`}, one price
+                    </span>
                   </span>
                   <span className="tnum text-ink-3">{new Date(f.ts).toLocaleTimeString("en-US", { hour12: false })}</span>
                 </button>

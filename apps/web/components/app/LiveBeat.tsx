@@ -1,12 +1,12 @@
 "use client";
 
-import { useDemoMarket } from "@/lib/demo/useMarket";
+import { useMarket } from "@/lib/venue";
 import { BatchRing } from "./BatchRing";
 import { RegimeBadge } from "./RegimeBadge";
 
 /** The active market's beat, block and regime. Client-only: it is a clock, so the server never renders it. */
 export default function LiveBeat({ ticker }: { ticker: string }) {
-  const { value } = useDemoMarket(ticker, (m) => ({ block: m.block, regime: m.regime.name, band: m.regime.bandBps }));
+  const { value } = useMarket(ticker, (m) => ({ block: m.block, regime: m.regime.name, band: m.regime.bandBps }));
   return (
     <>
       <div className="hidden items-center gap-2 lg:flex" title="One batch per Monad block">

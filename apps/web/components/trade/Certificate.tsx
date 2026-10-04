@@ -5,8 +5,12 @@ import { X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Lockup } from "@/components/brand/Lockup";
 import { MARK_PARTS } from "@/components/brand/geometry";
+import { priceFormat, type MarketSpec } from "@/lib/content/markets";
 import type { MyFill } from "@/lib/demo/engine";
+import { TapeClient } from "@unison/sdk";
 import { createStore, useStore } from "@/lib/store/createStore";
+import type { NetConfig } from "@/lib/venue/config";
+import { identity } from "@/lib/venue/identity";
 
 /**
  * The certificate of execution: the moment a fill becomes an object. An engraved guilloché frame (interlaced
@@ -16,16 +20,33 @@ import { createStore, useStore } from "@/lib/store/createStore";
 export interface CertificateData extends MyFill {
   ticker: string;
   name: string;
-  limitTick: number;
   unit: number;
   decimals: number;
-  bandLo: number;
-  bandHi: number;
-  /** on-chain receipt hash when live; null in the simulation */
-  receipt: string | null;
+  /** live fills: where the tape can check the receipt */
+  live?: { tapeUrl: string; marketId: number; account: string; slot: number; explorer?: string };
+  /**
+   * The tape's check (live): "recomputed" when the receipt chain links through this batch and the fill recomputes
+   * from its uniform price; "linked" when only the chain could be checked; "unverified" when the check failed.
+   */
+  check?: "recomputed" | "linked" | "unverified";
 }
 
 export const certificate = createStore<CertificateData | null>(null);
+
+/** A fill → its certificate. Live fills (net given, signed in) carry where to verify their receipt. */
+export function certificateFor(fill: MyFill, spec: MarketSpec, net: NetConfig | null): CertificateData {
+  const { unit, decimals } = priceFormat(spec);
+  const account = identity.get()?.account;
+  const marketId = net?.deployment.markets[spec.symbol]?.id;
+  return {
+    ...fill,
+    ticker: spec.ticker,
+    name: spec.name,
+    unit,
+    decimals,
+    ...(net && account && marketId !== undefined ? { live: { tapeUrl: net.tapeUrl, marketId, account, slot: fill.orderId, explorer: net.explorer } } : {}),
+  };
+}
 
 /** Interlaced sine bands along a rounded rectangle: the frame of a share certificate or a watch's papers. */
 function guillocheFrame(w: number, h: number, inset: number, r: number) {
@@ -74,9 +95,29 @@ export function CertificateDialog() {
   const [sig, setSig] = useState<string | null>(null);
   const frame = useMemo(() => guillocheFrame(760, 560, 20, 26), []);
 
-  // The signature writes itself each time a certificate opens.
+  // Live fills: ask the tape to check this batch's receipt chain and recompute the fill from its uniform price.
   useEffect(() => {
-    if (!data) return;
+    const l = data?.live;
+    if (!data || !l || data.check) return;
+    let alive = true;
+    new TapeClient(l.tapeUrl)
+      .receipt(l.marketId, l.account, l.slot)
+      .then((r) => {
+        if (!alive) return;
+        const linked = r.verification.chainOk && r.prints.some((p) => p.upTo === data.block);
+        const check = !linked ? "unverified" : r.verification.recomputed === true ? "recomputed" : r.verification.recomputed === false ? "unverified" : "linked";
+        certificate.set({ ...data, check });
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [data]);
+
+  // The signature writes itself once each time a certificate opens (not again when its check comes back).
+  const opened = data ? `${data.ticker}:${data.orderId}:${data.block}` : null;
+  useEffect(() => {
+    if (!opened) return;
     let live = true;
     fetch("/brand/signature.svg")
       .then((r) => r.text())
@@ -86,7 +127,7 @@ export function CertificateDialog() {
       live = false;
       setSig(null);
     };
-  }, [data]);
+  }, [opened]);
 
   const fmt = (t: number) => (data ? `$${(t * data.unit).toFixed(data.decimals)}` : "");
   const improvement = data ? Math.abs(data.limitTick - data.tick) : 0;
@@ -130,7 +171,7 @@ export function CertificateDialog() {
                   {[
                     ["Batch", data.block.toLocaleString("en-US")],
                     ["Cleared", new Date(data.ts).toISOString().replace("T", " ").slice(0, 19) + " UTC"],
-                    ["Orders in batch", String(data.participants)],
+                    data.participants > 0 ? ["Orders in batch", String(data.participants)] : ["Batch volume", `${data.batchVolume.toFixed(2)} ${data.ticker}`],
                     ["Reference", fmt(data.refTick)],
                     ["Band", `${fmt(data.bandLo)} – ${fmt(data.bandHi)}`],
                     ["Better than your limit by", improvement ? fmt(improvement) : "—"],
@@ -145,7 +186,16 @@ export function CertificateDialog() {
                   <p className="max-w-[55%] text-[clamp(0.65rem,1.2vw,0.75rem)] leading-relaxed text-ink-3">
                     {data.receipt ? (
                       <>
-                        Receipt <span className="font-mono">{data.receipt.slice(0, 10)}…{data.receipt.slice(-8)}</span>, linked in the venue&apos;s receipt chain.
+                        Receipt <span className="font-mono">{data.receipt.slice(0, 10)}…{data.receipt.slice(-8)}</span>
+                        {data.check === "recomputed"
+                          ? ". Linked in the venue's receipt chain; your fill recomputes from the batch price."
+                          : data.check === "linked"
+                            ? ". Linked in the venue's receipt chain."
+                            : data.check === "unverified"
+                              ? ". On-chain; the tape could not verify it."
+                              : data.live
+                                ? ". Verifying…"
+                                : "."}
                       </>
                     ) : (
                       "Simulation: cleared by the real clearing engine in your browser. Live fills carry an on-chain receipt."

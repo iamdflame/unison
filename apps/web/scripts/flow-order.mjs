@@ -9,7 +9,7 @@ const p = await ctx.newPage();
 const errors = [];
 p.on("pageerror", (e) => errors.push(e.message));
 p.on("console", (m) => m.type() === "error" && errors.push(m.text()));
-await p.goto(`${base}/trade/aNVDA`, { waitUntil: "networkidle" });
+await p.goto(`${base}/trade/aNVDA?demo=1`, { waitUntil: "networkidle" });
 await p.getByRole("button", { name: /^Buy 1 aNVDA$/ }).waitFor();
 await p.getByRole("button", { name: "+$0.10" }).click();
 await p.locator("#qty").fill("2");
