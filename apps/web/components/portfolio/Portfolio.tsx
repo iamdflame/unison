@@ -1,0 +1,465 @@
+"use client";
+
+import { Tabs } from "@base-ui/react/tabs";
+import NumberFlow from "@number-flow/react";
+import { RelayerClient, TapeClient, type Transfer } from "@unison/sdk";
+import { ArrowUpRight, Check, Copy, Droplets, Fingerprint, RotateCcw, X } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import { SignIn } from "@/components/app/SignIn";
+import { certificate, certificateFor } from "@/components/trade/Certificate";
+import { MARKETS, marketByTicker, priceFormat, type MarketSpec } from "@/lib/content/markets";
+import { resetPaperAccount, type AccountState, type MyOrder } from "@/lib/demo/engine";
+import { useStore } from "@/lib/store/createStore";
+import { marketFor, useMarks, useVenue, useVenueAccount } from "@/lib/venue";
+import { identity } from "@/lib/venue/identity";
+import { refreshAccount } from "@/lib/venue/live";
+import { WithdrawDialog } from "./WithdrawDialog";
+
+/** Ink at falling strengths for positions; champagne for cash, the reserve. Never a rainbow. */
+const STRENGTH = [82, 64, 50, 40, 32, 26, 21, 17, 14, 12];
+const swatch = (i: number) => `color-mix(in oklch, var(--ink) ${STRENGTH[Math.min(i, STRENGTH.length - 1)]}%, transparent)`;
+
+/** Shows a fast-moving number at most once a second, so the figure reads as a figure, not a ticker. */
+function useSampled(value: number, ms = 1000) {
+  const [shown, setShown] = useState(value);
+  const latest = useRef(value);
+  useEffect(() => {
+    latest.current = value;
+  }, [value]);
+  useEffect(() => {
+    const push = () => setShown(latest.current);
+    const first = setTimeout(push, 0);
+    const t = setInterval(push, ms);
+    return () => {
+      clearTimeout(first);
+      clearInterval(t);
+    };
+  }, [ms]);
+  return shown;
+}
+
+interface Holding {
+  key: string;
+  label: string;
+  sub: string;
+  qty: number;
+  locked: number;
+  price: number;
+  value: number;
+  spec: MarketSpec | null;
+  color: string;
+}
+
+export function Portfolio() {
+  const v = useVenue();
+  const id = useStore(identity, (x) => x);
+  const acct = useVenueAccount((a) => a, Object.is);
+  const [signInOpen, setSignInOpen] = useState(false);
+
+  if (v.ready && v.mode === "live" && !id) {
+    return (
+      <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:py-12">
+        <h1 className="text-display-m text-ink">Portfolio</h1>
+        <div className="mt-8 rounded-[var(--radius-xl)] bg-raised px-6 py-14 text-center shadow-md sm:py-20">
+          <p className="text-display-m text-ink">Your account is your passkey.</p>
+          <p className="mx-auto mt-4 max-w-md text-ink-2">Sign in with Face ID, Touch ID or Windows Hello to see your balances, orders and fills.</p>
+          <button type="button" onClick={() => setSignInOpen(true)} className="press mt-8 inline-flex items-center gap-2.5 rounded-full bg-ink px-6 py-3.5 text-[15px] font-semibold text-bg shadow-md">
+            <Fingerprint size={18} strokeWidth={1.5} aria-hidden /> Sign in
+          </button>
+        </div>
+        <SignIn open={signInOpen} onOpenChange={setSignInOpen} />
+      </div>
+    );
+  }
+  return <Account acct={acct} />;
+}
+
+function Account({ acct }: { acct: AccountState }) {
+  const v = useVenue();
+  const id = useStore(identity, (x) => x);
+  const live = v.mode === "live";
+  const heldKey = MARKETS.filter((m) => (acct.base[m.ticker] ?? 0) + (acct.lockedBase[m.ticker] ?? 0) > 1e-12)
+    .map((m) => m.ticker)
+    .join(",");
+  const held = useMemo(() => (heldKey ? heldKey.split(",").map((t) => marketByTicker(t)!) : []), [heldKey]);
+  const marks = useMarks(held);
+
+  const holdings = useMemo(() => {
+    const positions: Holding[] = held.map((spec) => {
+      const qty = (acct.base[spec.ticker] ?? 0) + (acct.lockedBase[spec.ticker] ?? 0);
+      const { unit } = priceFormat(spec);
+      const price = (marks[spec.ticker]?.refTick ?? 0) * unit;
+      return { key: spec.ticker, label: spec.ticker, sub: spec.name, qty, locked: acct.lockedBase[spec.ticker] ?? 0, price, value: qty * price, spec, color: "" };
+    });
+    positions.sort((a, b) => b.value - a.value);
+    positions.forEach((p, i) => (p.color = swatch(i)));
+    const cash: Holding = { key: "AUSD", label: "AUSD", sub: "Cash", qty: acct.quote + acct.lockedQuote, locked: acct.lockedQuote, price: 1, value: acct.quote + acct.lockedQuote, spec: null, color: "var(--champagne)" };
+    return [cash, ...positions];
+  }, [held, marks, acct.base, acct.lockedBase, acct.quote, acct.lockedQuote]);
+
+  const equity = holdings.reduce((s, h) => s + h.value, 0);
+  const shown = useSampled(equity);
+  const halted = held.filter((s) => marks[s.ticker]?.regime === "HALTED");
+
+  return (
+    <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:py-12">
+      <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
+        <div className="min-w-0">
+          <h1 className="text-display-m text-ink">Portfolio</h1>
+          {live && id && v.net ? <AccountLine account={id.account} network={v.net.network} /> : <p className="mt-3 text-ink-2">Paper account · Simulation</p>}
+        </div>
+        <Actions live={live} />
+      </header>
+
+      {halted.length ? (
+        <p role="status" className="mt-6 rounded-2xl bg-sell-soft px-4 py-3 text-sm text-halt">
+          Trading in {halted.map((s) => s.ticker).join(", ")} is paused while its primary market is halted. Cancel, claim and withdraw still work.
+        </p>
+      ) : null}
+
+      <section aria-label="Equity" className="mt-8 rounded-[var(--radius-xl)] bg-raised p-6 shadow-md sm:p-8">
+        <p className="text-sm text-ink-3">Equity at reference prices</p>
+        <p className="numerals mt-2 text-[clamp(2.5rem,7vw,4.75rem)] leading-none text-ink">
+          <NumberFlow
+            value={shown}
+            locales="en-US"
+            format={{ style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 }}
+            transformTiming={{ duration: 420, easing: "cubic-bezier(0.23, 1, 0.32, 1)" }}
+            spinTiming={{ duration: 420, easing: "cubic-bezier(0.23, 1, 0.32, 1)" }}
+          />
+        </p>
+        <Allocation holdings={holdings} equity={equity} />
+        <dl className="mt-5 flex flex-wrap gap-x-8 gap-y-2 text-sm">
+          <div className="flex gap-2">
+            <dt className="text-ink-3">Cash</dt>
+            <dd className="tnum text-ink">${acct.quote.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd>
+          </div>
+          <div className="flex gap-2">
+            <dt className="text-ink-3">Held by open orders</dt>
+            <dd className="tnum text-ink">${acct.lockedQuote.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd>
+          </div>
+          <div className="flex gap-2">
+            <dt className="text-ink-3">Positions</dt>
+            <dd className="tnum text-ink">${(equity - acct.quote - acct.lockedQuote).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <Holdings holdings={holdings} equity={equity} />
+      <History acct={acct} />
+    </div>
+  );
+}
+
+function AccountLine({ account, network }: { account: string; network: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(account);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      /* clipboard refused */
+    }
+  };
+  const net = network === "mainnet" ? "Monad" : network === "testnet" ? "Monad testnet" : "Local devnet";
+  return (
+    <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-ink-2">
+      Passkey account on {net}
+      <button type="button" onClick={copy} className="press inline-flex items-center gap-1.5 rounded-full bg-sunken px-2.5 py-1 font-mono text-xs text-ink-2 hover-fine:text-ink" aria-label={copied ? "Address copied" : "Copy account address"}>
+        {account.slice(0, 6)}…{account.slice(-4)}
+        {copied ? <Check size={12} strokeWidth={2} aria-hidden /> : <Copy size={12} strokeWidth={1.75} aria-hidden />}
+      </button>
+    </p>
+  );
+}
+
+function Actions({ live }: { live: boolean }) {
+  const v = useVenue();
+  const id = useStore(identity, (x) => x);
+  const [busy, setBusy] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+
+  if (!live) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          resetPaperAccount();
+          toast("Paper account reset", { description: "Orders cancelled and starting balances restored." });
+        }}
+        className="press inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-ink hairline"
+      >
+        <RotateCcw size={15} strokeWidth={1.75} aria-hidden /> Reset paper account
+      </button>
+    );
+  }
+  const net = v.net;
+  return (
+    <div className="flex flex-wrap gap-2">
+      {net?.faucet && id ? (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              const r = new RelayerClient(net.relayerUrl);
+              const { id: job } = await r.faucet(id.account);
+              await r.waitForJob(job);
+              await refreshAccount(net);
+              toast.success("Test funds deposited.");
+            } catch (e) {
+              toast.error((e as Error).message.split("\n")[0] ?? "The faucet didn't answer.");
+            } finally {
+              setBusy(false);
+            }
+          }}
+          className="press inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-ink hairline disabled:opacity-50"
+        >
+          <Droplets size={15} strokeWidth={1.75} aria-hidden /> {busy ? "Depositing…" : "Add test funds"}
+        </button>
+      ) : null}
+      <button type="button" onClick={() => setWithdrawOpen(true)} className="press inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-bg">
+        <ArrowUpRight size={15} strokeWidth={1.75} aria-hidden /> Withdraw
+      </button>
+      <WithdrawDialog open={withdrawOpen} onOpenChange={setWithdrawOpen} />
+    </div>
+  );
+}
+
+function Allocation({ holdings, equity }: { holdings: Holding[]; equity: number }) {
+  if (equity <= 0) return <div className="mt-7 h-2 rounded-full bg-sunken" aria-hidden />;
+  return (
+    <div className="mt-7 flex h-2 gap-[3px] overflow-hidden rounded-full" aria-hidden>
+      {holdings
+        .filter((h) => h.value / equity >= 0.002)
+        .map((h) => (
+          <span key={h.key} className="h-full rounded-full transition-[flex-grow] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]" style={{ flexGrow: h.value, flexBasis: 0, background: h.color }} />
+        ))}
+    </div>
+  );
+}
+
+function Holdings({ holdings, equity }: { holdings: Holding[]; equity: number }) {
+  const money = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return (
+    <section aria-labelledby="holdings-title" className="mt-6 overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-md">
+      <h2 id="holdings-title" className="px-6 pt-5 pb-3 text-[15px] font-semibold text-ink">
+        Holdings
+      </h2>
+      <div className="hidden grid-cols-[minmax(0,1.4fr)_1fr_1fr_1fr_80px] gap-x-5 border-y border-line px-6 py-2.5 text-xs text-ink-3 md:grid" aria-hidden>
+        <span>Asset</span>
+        <span className="text-right">Quantity</span>
+        <span className="text-right">Reference price</span>
+        <span className="text-right">Value</span>
+        <span className="text-right">Share</span>
+      </div>
+      <ul className="divide-y divide-line border-t border-line md:border-t-0">
+        {holdings.map((h) => {
+          const share = equity > 0 ? (h.value / equity) * 100 : 0;
+          const decimals = h.spec ? priceFormat(h.spec).decimals : 2;
+          const qtyDigits = h.spec?.kind === "crypto" || h.spec?.kind === "fx" ? 2 : 4;
+          const row = (
+            <>
+              <div className="flex min-w-0 items-center gap-3">
+                <span aria-hidden className="size-2.5 shrink-0 rounded-full ring-1 ring-line-strong" style={{ background: h.color }} />
+                <div className="min-w-0">
+                  <p className="text-[15px] font-semibold text-ink">{h.label}</p>
+                  <p className="truncate text-[13px] text-ink-3">{h.sub}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="tnum text-ink">{h.qty.toLocaleString("en-US", { maximumFractionDigits: h.spec ? qtyDigits : 2, minimumFractionDigits: h.spec ? 0 : 2 })}</p>
+                {h.locked > 1e-9 ? <p className="tnum text-xs text-ink-3">{h.locked.toLocaleString("en-US", { maximumFractionDigits: 2 })} in orders</p> : null}
+              </div>
+              <p className="tnum hidden text-right text-ink-2 md:block">{h.spec ? `$${h.price.toFixed(decimals)}` : "$1.00"}</p>
+              <p className="tnum hidden text-right font-semibold text-ink md:block">{money(h.value)}</p>
+              <p className="tnum hidden text-right text-ink-3 md:block">{share.toFixed(share < 10 ? 1 : 0)}%</p>
+              <div className="text-right md:hidden">
+                <p className="tnum font-semibold text-ink">{money(h.value)}</p>
+                <p className="tnum text-xs text-ink-3">{share.toFixed(1)}%</p>
+              </div>
+            </>
+          );
+          const cls = "grid grid-cols-[minmax(0,1.4fr)_auto_auto] items-center gap-x-5 px-6 py-3.5 md:grid-cols-[minmax(0,1.4fr)_1fr_1fr_1fr_80px]";
+          return (
+            <li key={h.key}>
+              {h.spec ? (
+                <Link href={`/trade/${h.spec.ticker}`} className={`${cls} transition-colors duration-150 hover-fine:bg-ink/[0.03]`} aria-label={`${h.label}: ${money(h.value)}, ${share.toFixed(1)}% of equity`}>
+                  {row}
+                </Link>
+              ) : (
+                <div className={cls}>{row}</div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+const STATUS: Record<MyOrder["status"], string> = { pending: "In batch", open: "Resting", partial: "Partly filled", filled: "Filled", cancelled: "Cancelled", expired: "Expired" };
+
+function History({ acct }: { acct: AccountState }) {
+  const v = useVenue();
+  const live = v.mode === "live";
+  const [tab, setTab] = useState("orders");
+  const open = useMemo(
+    () =>
+      Object.entries(acct.orders)
+        .flatMap(([ticker, list]) => list.map((o) => ({ ticker, o })))
+        .filter(({ o }) => o.status === "pending" || o.status === "open" || o.status === "partial")
+        .sort((a, b) => b.o.placedBlock - a.o.placedBlock),
+    [acct.orders],
+  );
+  const fills = acct.fills.slice(0, 60);
+
+  return (
+    <Tabs.Root value={tab} onValueChange={(t) => setTab(String(t))} className="mt-6 rounded-[var(--radius-xl)] bg-raised shadow-md">
+      <Tabs.List className="relative flex gap-1 border-b border-line px-3 pt-3" aria-label="Activity">
+        {[
+          ["orders", "Open orders", open.length],
+          ["fills", "Fills", 0],
+          ...(live ? [["transfers", "Transfers", 0] as const] : []),
+        ].map(([value, label, n]) => (
+          <Tabs.Tab key={value} value={value} className="rounded-t-xl px-3 pt-1.5 pb-3 text-sm font-medium text-ink-3 outline-none transition-colors data-[active]:text-ink hover-fine:text-ink focus-visible:outline-2 focus-visible:outline-focus">
+            {label}
+            {n ? <span className="tnum ml-1.5 rounded-full bg-ink/[0.07] px-1.5 text-xs">{n}</span> : null}
+          </Tabs.Tab>
+        ))}
+        <Tabs.Indicator className="absolute bottom-0 left-[var(--active-tab-left)] h-0.5 w-[var(--active-tab-width)] rounded-full bg-ink transition-[left,width] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]" />
+      </Tabs.List>
+
+      <Tabs.Panel value="orders">
+        {open.length === 0 ? (
+          <p className="px-6 py-12 text-center text-sm text-ink-3">No open orders. Every order joins the next batch, 300 ms away.</p>
+        ) : (
+          <ul className="divide-y divide-line">
+            {open.map(({ ticker, o }) => {
+              const spec = marketByTicker(ticker);
+              const fmt = spec ? priceFormat(spec).fmt : (t: number) => String(t);
+              return (
+                <li key={`${ticker}-${o.id}`} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-6 py-3 text-sm">
+                  <span className={`w-10 font-semibold ${o.side === "buy" ? "text-buy" : "text-sell"}`}>{o.side === "buy" ? "Buy" : "Sell"}</span>
+                  <span className="tnum min-w-0 truncate text-ink">
+                    <Link href={`/trade/${ticker}`} className="font-semibold hover-fine:underline">
+                      {ticker}
+                    </Link>{" "}
+                    {o.filled.toFixed(2)} / {o.qty} at {o.side === "buy" ? "≤" : "≥"} {fmt(o.tick)}
+                    <span className="ml-3 text-ink-3">{o.settling ? "Filling…" : STATUS[o.status]}</span>
+                  </span>
+                  {spec ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void Promise.resolve(marketFor(spec).cancel(o.id)).catch((e: Error) => toast.error(e.message.split("\n")[0] ?? "Couldn't cancel."));
+                      }}
+                      aria-label={`Cancel ${o.side} ${ticker} at ${fmt(o.tick)}`}
+                      className="press grid size-8 place-items-center rounded-full text-ink-3 hover-fine:bg-ink/[0.06] hover-fine:text-ink"
+                    >
+                      <X size={15} strokeWidth={1.75} aria-hidden />
+                    </button>
+                  ) : (
+                    <span />
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Tabs.Panel>
+
+      <Tabs.Panel value="fills">
+        {fills.length === 0 ? (
+          <p className="px-6 py-12 text-center text-sm text-ink-3">Fills appear here, each at its batch&apos;s one price, each with a certificate.</p>
+        ) : (
+          <ul className="divide-y divide-line">
+            {fills.map((f) => {
+              const spec = marketByTicker(f.ticker);
+              if (!spec) return null;
+              const { fmt } = priceFormat(spec);
+              return (
+                <li key={`${f.ticker}-${f.orderId}-${f.block}`}>
+                  <button
+                    type="button"
+                    onClick={() => certificate.set(certificateFor(f, spec, live ? v.net : null))}
+                    className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-6 py-3 text-left text-sm transition-colors hover-fine:bg-ink/[0.03]"
+                    aria-label={`Certificate for ${f.side === "buy" ? "buying" : "selling"} ${f.qty.toFixed(2)} ${f.ticker} at ${fmt(f.tick)}`}
+                  >
+                    <span className={`w-14 font-semibold ${f.side === "buy" ? "text-buy" : "text-sell"}`}>{f.side === "buy" ? "Bought" : "Sold"}</span>
+                    <span className="tnum min-w-0 truncate text-ink">
+                      {f.qty.toFixed(2)} {f.ticker} at {fmt(f.tick)} <span className="text-ink-3">· batch {f.block.toLocaleString("en-US")}</span>
+                    </span>
+                    <span className="tnum text-ink-3">{new Date(f.ts).toLocaleTimeString("en-US", { hour12: false })}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Tabs.Panel>
+
+      {live ? (
+        <Tabs.Panel value="transfers">
+          <Transfers />
+        </Tabs.Panel>
+      ) : null}
+    </Tabs.Root>
+  );
+}
+
+function Transfers() {
+  const v = useVenue();
+  const id = useStore(identity, (x) => x);
+  const quote = useVenueAccount((a) => a.quote);
+  const [rows, setRows] = useState<Transfer[] | null>(null);
+  const net = v.net;
+
+  // Balances move with every deposit and withdrawal, so a new balance is the cue to look again.
+  useEffect(() => {
+    if (!net || !id) return;
+    let alive = true;
+    new TapeClient(net.tapeUrl)
+      .transfers(id.account)
+      .then((t) => alive && setRows(t))
+      .catch(() => alive && setRows([]));
+    return () => {
+      alive = false;
+    };
+  }, [net, id, quote]);
+
+  if (!net || !id) return null;
+  if (rows === null) return <p className="px-6 py-12 text-center text-sm text-ink-3">Loading transfers…</p>;
+  if (rows.length === 0) return <p className="px-6 py-12 text-center text-sm text-ink-3">No deposits or withdrawals yet.</p>;
+  const tokens = Object.entries(net.deployment.tokens ?? {});
+  return (
+    <ul className="divide-y divide-line">
+      {rows.map((t) => {
+        const [sym, info] = tokens.find(([, x]) => x.address.toLowerCase() === t.token.toLowerCase()) ?? [t.token.slice(0, 8), { decimals: 18 }];
+        const amount = Number(BigInt(t.amount)) / 10 ** info.decimals;
+        return (
+          <li key={`${t.tx}-${t.kind}-${t.token}`} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-6 py-3 text-sm">
+            <span className="w-24 font-semibold text-ink">{t.kind === "deposit" ? "Deposit" : "Withdrawal"}</span>
+            <span className="tnum min-w-0 truncate text-ink">
+              {amount.toLocaleString("en-US", { maximumFractionDigits: 6 })} {sym}
+              <span className="ml-2 font-mono text-xs text-ink-3">
+                {t.kind === "deposit" ? "from" : "to"} {t.counterparty.slice(0, 6)}…{t.counterparty.slice(-4)}
+              </span>
+            </span>
+            {net.explorer ? (
+              <a href={`${net.explorer}/tx/${t.tx}`} target="_blank" rel="noreferrer" className="tnum text-ink-3 hover-fine:text-ink">
+                {new Date(t.ts).toLocaleString("en-US", { hour12: false })}
+              </a>
+            ) : (
+              <span className="tnum text-ink-3">{new Date(t.ts).toLocaleString("en-US", { hour12: false })}</span>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}

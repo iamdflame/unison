@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { TabBar } from "@/components/app/TabBar";
 import { TopBar } from "@/components/app/TopBar";
 import { VenueBoot } from "@/components/app/VenueBoot";
+import { CertificateDialog } from "@/components/trade/Certificate";
 import { Toaster } from "@/components/ui/Toaster";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
@@ -15,6 +16,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <TabBar />
+      <CertificateDialog />
       <Toaster />
       <VenueBoot />
     </div>

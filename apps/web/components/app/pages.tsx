@@ -20,3 +20,8 @@ export const MarketsClient = dynamic(() => import("./MarketsBoard").then((m) => 
   ssr: false,
   loading: () => <Skeleton rows={10} label="Loading markets" />,
 });
+
+export const PortfolioClient = dynamic(() => import("@/components/portfolio/Portfolio").then((m) => m.Portfolio), {
+  ssr: false,
+  loading: () => <Skeleton rows={6} label="Loading your portfolio" />,
+});

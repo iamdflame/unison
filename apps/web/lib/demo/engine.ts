@@ -53,6 +53,7 @@ export interface MyOrder {
 }
 
 export interface MyFill {
+  ticker: string;
   orderId: number;
   side: "buy" | "sell";
   qty: number;
@@ -107,14 +108,17 @@ function mulberry(seed: number) {
   };
 }
 
-export const account: Store<AccountState> = createStore<AccountState>({
+const PAPER: AccountState = {
   quote: 25_000,
   base: { aNVDA: 12, aSPY: 4, aQQQ: 4, aAAPL: 10, aTSLA: 6, aCOIN: 8, aMSTR: 6, aGLD: 6, WMON: 40_000, GBPm: 2_000 },
   lockedQuote: 0,
   lockedBase: {},
   orders: {},
   fills: [],
-});
+};
+
+/** The simulation's paper account. */
+export const account: Store<AccountState> = createStore<AccountState>(structuredClone(PAPER));
 
 let nextId = 10_000;
 
@@ -328,7 +332,7 @@ function settle(
           next.locked = Math.max(0, o.locked - f);
           lockedBase[ticker] = (lockedBase[ticker] ?? 0) - f;
         }
-        fills.unshift({ orderId: o.id, side: o.side, qty: f, tick, block, ts: now, refTick, batchVolume: print.volume, participants, limitTick: o.tick, bandLo, bandHi });
+        fills.unshift({ ticker: spec.ticker, orderId: o.id, side: o.side, qty: f, tick, block, ts: now, refTick, batchVolume: print.volume, participants, limitTick: o.tick, bandLo, bandHi });
       }
       const complete = next.filled >= next.qty - 0.004;
       const ended = complete || next.ioc;
@@ -350,6 +354,15 @@ function settle(
     });
     return { ...acc, quote, lockedQuote: Math.max(0, lockedQuote), base, lockedBase, orders: { ...acc.orders, [ticker]: list }, fills: fills.slice(0, 200) };
   });
+}
+
+/** Cancels the paper account's resting orders and restores its starting balances. */
+export function resetPaperAccount() {
+  for (const [ticker, list] of Object.entries(account.get().orders)) {
+    const m = markets.get(ticker);
+    for (const o of list) if (o.status === "open" || o.status === "pending" || o.status === "partial") m?.cancel(o.id);
+  }
+  account.set(structuredClone(PAPER));
 }
 
 const markets = new Map<string, DemoMarket>();

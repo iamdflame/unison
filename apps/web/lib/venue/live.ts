@@ -11,6 +11,7 @@ import {
   type MarketSummary,
   type Print as TapePrint,
 } from "@unison/sdk";
+import { buyLock } from "@unison/engine";
 import { createPublicClient, http, type Address } from "viem";
 import { marketByTicker, type MarketSpec } from "../content/markets.ts";
 import type { AccountState, BookOrder, MarketState, MyFill, MyOrder, Print } from "../demo/engine.ts";
@@ -283,10 +284,19 @@ async function loadAccount(net: NetConfig) {
   const decOf = (sym: string) => tokens[sym]?.decimals ?? 18;
   const byTicker: Record<string, MyOrder[]> = {};
   const myFills: MyFill[] = [];
+  let lockedQuote = 0n;
+  const lockedBase: Record<string, number> = {};
   for (const o of orders ?? []) {
     const t = symbolOf(o.marketId);
     const d = decOf(t);
-    const tickSize = marketByTicker(t)?.tickSize ?? 10_000n;
+    const spec = marketByTicker(t);
+    const tickSize = spec?.tickSize ?? 10_000n;
+    // Funds an order holds until it is done: a bid its whole lock (notional at the limit plus the fee cap, settled
+    // at its final claim), an ask its unsold base.
+    if (o.status === "pending" || o.status === "open") {
+      if (o.side === 0) lockedQuote += buyLock(BigInt(o.qty), BigInt(o.tick) * tickSize, BigInt(spec?.maxFeeBps ?? 10), 10n ** BigInt(d));
+      else lockedBase[t] = (lockedBase[t] ?? 0) + units(BigInt(o.qty) - BigInt(o.filled), d);
+    }
     const qty = units(o.qty, d);
     const filled = units(o.filled, d);
     const side = o.side === 0 ? "buy" : "sell";
@@ -309,6 +319,7 @@ async function loadAccount(net: NetConfig) {
     });
     for (const f of o.fills) {
       myFills.push({
+        ticker: t,
         orderId: o.slot,
         side,
         qty: units(f.qty, d),
@@ -330,6 +341,7 @@ async function loadAccount(net: NetConfig) {
     ...a,
     quote: units(quote, quoteDecimals),
     base: Object.fromEntries(bases),
+    ...(orders ? { lockedQuote: units(lockedQuote, quoteDecimals), lockedBase } : {}),
     // keep what we had if the tape didn't answer this time
     ...(orders ? { orders: byTicker, fills: myFills } : {}),
   }));

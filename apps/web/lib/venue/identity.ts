@@ -3,6 +3,7 @@
 import {
   base64UrlEncode,
   buildSession,
+  buildWithdraw,
   challengeFromDigest,
   gatewayDigest,
   passkeyAccount,
@@ -194,6 +195,21 @@ export async function startSession(
   }
   session.set(s);
   return s;
+}
+
+/**
+ * Withdraws from the venue ledger to a wallet. Only the passkey itself can sign it (one Face ID); a trading
+ * session never can. The account address has no key, so sending to it would lose the tokens: refused here.
+ */
+export async function withdrawFunds(net: NetConfig, id: PasskeyIdentity, token: Address, amount: bigint, to: Address): Promise<void> {
+  if (to.toLowerCase() === id.account.toLowerCase()) {
+    throw new Error("Send it to a wallet you control. Your Unison account address has no key, so tokens sent there can't be recovered.");
+  }
+  const w = buildWithdraw({ account: id.account, token, amount, to });
+  const sig = await signWithPasskey(id, gatewayDigest(net.deployment.chainId, net.deployment.gateway as Address, "Withdraw", w as never));
+  const relayer = new RelayerClient(net.relayerUrl);
+  const { id: job } = await relayer.postWithdraw(w, sig);
+  await relayer.waitForJob(job);
 }
 
 /** Signs an order or a cancel: silently with the session key when one is active, otherwise with the passkey. */

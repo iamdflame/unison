@@ -1,7 +1,7 @@
 "use client";
 
 import { TapeClient } from "@unison/sdk";
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { marketByTicker, type MarketSpec } from "../content/markets.ts";
 import { account as demoAccount, demoMarket, type AccountState, type MarketState, type MyOrder } from "../demo/engine.ts";
 import { createStore, shallowEqual, useStore, type Store } from "../store/createStore.ts";
@@ -75,4 +75,48 @@ export function useMarket<S>(ticker: string, select: (m: MarketState) => S, equa
 export function useVenueAccount<S>(select: (a: AccountState) => S, equal?: (a: S, b: S) => boolean): S {
   const v = useVenue();
   return useStore(v.mode === "live" ? liveAccount : demoAccount, select, equal ?? shallowEqual);
+}
+
+/** The market behind a spec in the current venue, outside React (cancel buttons, batch actions). */
+export function marketFor(spec: MarketSpec): VenueMarket {
+  const v = venue.get();
+  return v.mode === "live" && v.net ? (liveMarket(spec, v.net) ?? demoMarket(spec)) : demoMarket(spec);
+}
+
+export interface MarkNow {
+  refTick: number;
+  regime: MarketState["regime"]["name"];
+  live: boolean;
+}
+
+/**
+ * Reference ticks and regimes for several markets at once (no order books), for valuing a portfolio. One
+ * snapshot object per change, so a component re-renders only when a mark actually moves.
+ */
+export function useMarks(specs: readonly MarketSpec[]): Record<string, MarkNow> {
+  const v = useVenue();
+  const markets = useMemo(() => specs.map((s) => (v.mode === "live" && v.net ? (liveMarket(s, v.net) ?? demoMarket(s)) : demoMarket(s))), [v.mode, v.net, specs]);
+  useEffect(() => {
+    const release = markets.map((m) => m.retain({ book: false }));
+    return () => release.forEach((r) => r());
+  }, [markets]);
+  const cache = useRef<{ key: string; value: Record<string, MarkNow> } | null>(null);
+  const subscribe = useCallback(
+    (cb: () => void) => {
+      const off = markets.map((m) => m.store.subscribe(cb));
+      return () => off.forEach((o) => o());
+    },
+    [markets],
+  );
+  const snapshot = useCallback(() => {
+    const states = markets.map((m) => m.store.get());
+    const key = states.map((s) => `${s.refTick}:${s.regime.name}`).join("|") + `|${v.mode}`;
+    if (cache.current?.key === key) return cache.current.value;
+    const value = Object.fromEntries(
+      specs.map((s, i) => [s.ticker, { refTick: states[i]!.refTick, regime: states[i]!.regime.name, live: v.mode === "live" && markets[i] !== demoMarket(s) }]),
+    );
+    cache.current = { key, value };
+    return value;
+  }, [markets, specs, v.mode]);
+  return useSyncExternalStore(subscribe, snapshot, snapshot);
 }

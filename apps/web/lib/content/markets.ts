@@ -12,6 +12,8 @@ export interface MarketSpec {
   tickSize: bigint;
   bandBps: number;
   feeBps: number;
+  /** the fee cap a buy locks for, on top of its notional */
+  maxFeeBps: number;
   regime: { extBandBps: number; reopenBandBps: number; discFloorBps: number; discCapBps: number; discHorizonSec: number; discCadence: number };
   /** quote units (AUSD, 6 decimals) */
   seedPrice: bigint;
@@ -47,6 +49,7 @@ export const MARKETS: readonly MarketSpec[] = (config.markets as RawMarket[]).ma
     tickSize: BigInt(m.tickSize),
     bandBps: m.bandBps,
     feeBps: m.feeBps,
+    maxFeeBps: m.maxFeeBps,
     regime: {
       extBandBps: extBandBps!,
       reopenBandBps: reopenBandBps!,

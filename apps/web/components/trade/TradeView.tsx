@@ -9,7 +9,7 @@ import { BatchRing } from "@/components/app/BatchRing";
 import { useMarket, useVenue, useVenueAccount } from "@/lib/venue";
 import { priceFormat } from "@/lib/content/markets";
 import type { MyFill, MyOrder } from "@/lib/demo/engine";
-import { CertificateDialog, certificate, certificateFor } from "./Certificate";
+import { certificate, certificateFor } from "./Certificate";
 import { OrderTicket } from "./OrderTicket";
 import { CrossChart, DepthLadder, PrintsChart } from "./charts";
 
@@ -124,7 +124,6 @@ export function TradeView({ ticker }: { ticker: string }) {
           <OrderTicket ticker={ticker} />
         </div>
       </div>
-      <CertificateDialog />
     </div>
   );
 }
@@ -154,7 +153,7 @@ function Activity({
   const ordersOrNull = useVenueAccount((a) => a.orders[ticker] ?? null);
   const orders = useMemo(() => ordersOrNull ?? [], [ordersOrNull]);
   const fills = useVenueAccount((a) => a.fills);
-  const mine = useMemo(() => fills.filter((f) => orders.some((o) => o.id === f.orderId)).slice(0, 12), [fills, orders]);
+  const mine = useMemo(() => fills.filter((f) => f.ticker === ticker).slice(0, 12), [fills, ticker]);
   const [tab, setTab] = useState<string>("orders");
   const live = orders.filter((o) => o.status === "pending" || o.status === "open" || o.status === "partial");
   return (
