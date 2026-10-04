@@ -12,7 +12,7 @@ const C = {
   ink: formatHex("oklch(0.19 0.012 262)"),
   onyx: formatHex("oklch(0.135 0.006 265)"),
   pearl: formatHex("oklch(0.95 0.006 250)"),
-  lume: formatHex("oklch(0.88 0.075 228)"),
+  lume: formatHex("oklch(0.74 0.085 266)"), // the night accent: blued steel lifted for a black dial
 };
 const mark = (params, size, t) => emblemSvg(params, { ink: t === "day" ? C.ink : C.pearl, ballFill: t === "day" ? BALL.steel : BALL.lume, size });
 const master = (s) => (s <= 20 ? MARK_SMALL : s < 44 ? MARK_MID : MARK);

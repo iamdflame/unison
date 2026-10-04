@@ -36,10 +36,10 @@ export default function RouteError({ error, reset }: { error: Error & { digest?:
             Your funds and orders live on-chain and aren&apos;t affected. Try again, or check the venue&apos;s status.
           </p>
           <div className="mt-10 flex flex-wrap gap-3">
-            <button type="button" onClick={reset} className="press rounded-full bg-ink px-6 py-3.5 text-[15px] font-semibold text-bg shadow-md">
+            <button type="button" onClick={reset} className="press rounded-[var(--radius-sm)] bg-ink px-6 py-3.5 text-[15px] font-semibold text-bg">
               Try again
             </button>
-            <Link href="/status" className="press rounded-full px-6 py-3.5 text-[15px] font-semibold text-ink hairline">
+            <Link href="/status" className="press rounded-[var(--radius-sm)] px-6 py-3.5 text-[15px] font-semibold text-ink hairline">
               Status
             </Link>
           </div>

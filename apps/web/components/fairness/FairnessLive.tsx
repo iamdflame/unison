@@ -95,7 +95,7 @@ export function FairnessLive() {
             {live && v.net ? (
               <a
                 href={`${v.net.tapeUrl}/v1/markets/${v.net.deployment.markets[spec.symbol]!.id}/prints.csv`}
-                className="press mt-4 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-ink hairline"
+                className="press mt-4 inline-flex items-center gap-2 rounded-[var(--radius-sm)] px-4 py-2 text-sm font-semibold text-ink hairline"
                 download
               >
                 <Download size={15} strokeWidth={1.75} aria-hidden /> Every {spec.ticker} print, as CSV

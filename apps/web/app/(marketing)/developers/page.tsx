@@ -40,21 +40,25 @@ tape.stream(["prints:0"], {
 // or ask: prints, candles, fairness, an account's fills
 const fairness = await tape.fairness(0, { window: "24h" });`;
 
-const TRADE = `import { buildOrder, RelayerClient, Side, signAsSession, tickOfPrice } from "@unison/sdk";
+// every snippet is set to 72 columns, so none of them scrolls or clips in its panel
+const TRADE = `import {
+  buildOrder, RelayerClient, Side, signAsSession, tickOfPrice,
+} from "@unison/sdk";
 
 const order = buildOrder({
-  account,                         // the account this key trades for
-  marketId: 0n,                    // aNVDA/AUSD
+  account,              // the account this key trades for
+  marketId: 0n,         // aNVDA/AUSD
   side: Side.BID,
   tick: tickOfPrice(180_250_000n, 10_000n), // $180.25, never worse
-  qty: 10n ** 18n,                 // 1 share
+  qty: 10n ** 18n,      // 1 share
 });
 const sig = await signAsSession(sessionKey, chainId, gateway, order);
-const { id } = await new RelayerClient(RELAYER_URL).postOrder(order, sig); // no gas`;
+const relayer = new RelayerClient(RELAYER_URL);
+const { id } = await relayer.postOrder(order, sig); // no gas`;
 
 const ENGINE = `import { compute } from "@unison/engine";
 
-// the batch now forming, per tick in the band (from depth + pending orders)
+// the batch now forming: per tick in the band, depth + pending orders
 const r = compute({ lo, hi, refTick, bidAbove, askBelow, bids, asks });
 
 r.traded;  // did demand meet supply inside the band?
@@ -63,14 +67,21 @@ r.volume;  // and how much changed hands`;
 
 const CHAIN = `import { encodeAbiParameters, keccak256 } from "viem";
 
-const T = ["bytes32", "uint256", "uint64", "uint256", "uint256", "uint256", "uint64", "uint8", "uint256"]
-  .map((type) => ({ type }));
+const T = [
+  "bytes32", "uint256", "uint64", "uint256", "uint256",
+  "uint256", "uint64", "uint8", "uint256",
+].map((type) => ({ type }));
 
 let prev = "0x" + "0".repeat(64);
-for (const p of (await tape.prints(0, { limit: 1000 })).reverse()) {
-  const h = keccak256(encodeAbiParameters(T, [prev, 0n, BigInt(p.upTo), BigInt(p.tick), BigInt(p.volume),
-    BigInt(p.refPrice), BigInt(p.refTimeMs), p.status, BigInt(p.ts / 1000)]));
-  if (p.prevReceiptHash === prev && h !== p.receiptHash) throw new Error(\`batch \${p.upTo} doesn't recompute\`);
+const prints = await tape.prints(0, { limit: 1000 });
+for (const p of prints.reverse()) {
+  const h = keccak256(encodeAbiParameters(T, [
+    prev, 0n, BigInt(p.upTo), BigInt(p.tick), BigInt(p.volume),
+    BigInt(p.refPrice), BigInt(p.refTimeMs), p.status,
+    BigInt(p.ts / 1000),
+  ]));
+  if (p.prevReceiptHash === prev && h !== p.receiptHash)
+    throw new Error(\`batch \${p.upTo} doesn't recompute\`);
   prev = p.receiptHash;
 }`;
 
@@ -193,10 +204,8 @@ export default function DevelopersPage() {
             .
           </p>
 
-          <h2 className="text-display-m mt-20 text-ink">Contracts</h2>
-          <div className="mt-6 max-w-3xl">
-            <ContractsClient />
-          </div>
+          {/* only when there are addresses to show: in the simulation there is no network, so no section */}
+          <ContractsClient />
         </div>
       </section>
       <VenueBoot />

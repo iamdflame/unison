@@ -368,7 +368,7 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
       {/* The 6 o'clock aperture: the price everyone in this batch got */}
       <div className="absolute left-1/2 -translate-x-1/2" style={{ top: "66.5cqw" }}>
         {/* an aperture cut into the dial: a sunken window, lit from above, edged in one champagne hairline */}
-        <div className="flex flex-col items-center rounded-[0.8cqw] bg-sunken px-[3.2cqw] py-[1.6cqw] shadow-[inset_0_1px_2px_oklch(0_0_0/0.18)] ring-1 ring-champagne/60">
+        <div className="flex flex-col items-center rounded-[0.8cqw] bg-bg px-[3.2cqw] py-[1.6cqw] shadow-[inset_0_1px_2px_oklch(0_0_0/0.14)] ring-1 ring-champagne/60">
           <div className="numerals leading-none" style={{ fontSize: "6.2cqw" }}>
             <NumberFlow
               value={price}
@@ -389,7 +389,9 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
             <path d="M5.5,17 L0,0 h11 z" fill="var(--accent)" />
           </svg>
           <span>
-            Block <span ref={batchEl}>—</span>, one step each · {flow === "live" ? "live" : "simulation"}
+            Block <span ref={batchEl}>—</span>
+            {/* a narrow dial keeps the caption inside its track */}
+            <span className="hidden @min-[480px]:inline">, one step each</span> · {flow === "live" ? "live" : "simulation"}
           </span>
         </p>
       </div>

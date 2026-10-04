@@ -14,7 +14,7 @@ export function BrandLab() {
         <div className="flex flex-col gap-6">
           <button
             type="button"
-            className="press rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-bg"
+            className="press rounded-[var(--radius-sm)] bg-ink px-5 py-2.5 text-sm font-semibold text-bg"
             onPointerDown={() => {
               big.current?.strike(1);
               nav.current?.strike(1);

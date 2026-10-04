@@ -53,6 +53,8 @@
   --engrave: oklch(0.19 0.012 262 / 0.095);
   --glow: oklch(0.4 0.15 266 / 0);
   --focus: oklch(0.4 0.15 266);
+  /* a movement's jewels: synthetic ruby, set in champagne chatons; only the movement drawings use it */
+  --jewel: oklch(0.45 0.14 18);
   /* The mark's ball by day: blued steel, flat, the accent itself. One finish wherever the mark appears. */
   --ball: oklch(0.4 0.15 266);
   --scrim: oklch(0.19 0.012 262 / 0.28);
@@ -76,25 +78,28 @@
   color-scheme: dark;
   --bg: oklch(0.135 0.006 265);
   --bg-raised: oklch(0.18 0.008 265);
-  --bg-sunken: oklch(0.11 0.006 265);
+  /* a well cut into a raised panel: below the panel, never below the page, so it reads as enamel, not a hole */
+  --bg-sunken: oklch(0.148 0.008 265);
   --ink: oklch(0.95 0.006 250);
   --ink-2: oklch(0.76 0.01 255);
   --ink-3: oklch(0.64 0.01 255);
   --line: oklch(0.95 0.006 250 / 0.09);
   --line-strong: oklch(0.95 0.006 250 / 0.17);
-  --accent: oklch(0.88 0.075 228);
+  /* Nocturne keeps the day's materials, lifted for a black dial: blued steel, verdigris, oxblood. Never cyan, mint
+     or coral. */
+  --accent: oklch(0.74 0.085 266);
   --accent-ink: oklch(0.17 0.02 258);
-  --accent-soft: oklch(0.88 0.075 228 / 0.12);
-  --buy-std: oklch(0.83 0.1 184);
-  --sell-std: oklch(0.72 0.12 30);
+  --accent-soft: oklch(0.74 0.085 266 / 0.13);
+  --buy-std: oklch(0.76 0.085 180);
+  --sell-std: oklch(0.66 0.115 33);
   --buy-cvd: oklch(0.8 0.1 240);
   --sell-cvd: oklch(0.8 0.13 68);
   --buy: var(--buy-std);
   --sell: var(--sell-std);
   --buy-soft: color-mix(in oklch, var(--buy) 13%, transparent);
   --sell-soft: color-mix(in oklch, var(--sell) 13%, transparent);
-  --buy-fill-std: oklch(0.74 0.07 184);
-  --sell-fill-std: oklch(0.68 0.105 32);
+  --buy-fill-std: oklch(0.68 0.07 180);
+  --sell-fill-std: oklch(0.64 0.1 33);
   --buy-fill-cvd: oklch(0.72 0.07 240);
   --sell-fill-cvd: oklch(0.72 0.09 68);
   --buy-fill: var(--buy-fill-std);
@@ -102,10 +107,11 @@
   --halt: oklch(0.82 0.12 75);
   --champagne: oklch(0.82 0.05 85);
   --engrave: oklch(0.82 0.05 85 / 0.12);
-  --glow: oklch(0.88 0.08 228 / 0.55);
-  --focus: oklch(0.88 0.075 228);
-  /* By night: lume, flat, the night accent. */
-  --ball: oklch(0.88 0.075 228);
+  --glow: oklch(0.74 0.085 266 / 0.5);
+  --focus: oklch(0.74 0.085 266);
+  --jewel: oklch(0.58 0.14 20);
+  /* By night: blued steel lifted for the black dial, flat, the night accent. */
+  --ball: oklch(0.74 0.085 266);
   --scrim: oklch(0.05 0.005 265 / 0.6);
   --glass: oklch(0.2 0.008 265 / 0.66);
   --shadow-sm-v: inset 0 1px 0 0 oklch(1 0 0 / 0.05), 0 0 0 1px oklch(1 0 0 / 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.5);

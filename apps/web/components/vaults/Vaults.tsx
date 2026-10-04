@@ -229,7 +229,7 @@ export function VaultDetail({ ticker }: { ticker: string }) {
         </div>
         <div>
           <p className="text-sm text-ink-3">From a wallet, with the SDK:</p>
-          <pre className="mt-3 overflow-x-auto rounded-2xl bg-sunken p-4 font-mono text-[12.5px] leading-relaxed text-ink">{`import { UnisonClient } from "@unison/sdk";
+          <pre className="mt-3 overflow-x-auto rounded-[var(--radius-md)] bg-sunken p-4 font-mono text-[12.5px] leading-relaxed text-ink">{`import { UnisonClient } from "@unison/sdk";
 
 // approve AUSD, then request; it executes at the next reference
 await client.requestDeposit(vault, 1_000_000_000n); // 1,000 AUSD

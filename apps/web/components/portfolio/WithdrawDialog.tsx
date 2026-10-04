@@ -144,7 +144,7 @@ export function WithdrawDialog({ open, onOpenChange, onDone }: { open: boolean; 
             type="button"
             disabled={!ready}
             onClick={submit}
-            className="press mt-3 flex w-full items-center justify-center gap-2.5 rounded-[var(--radius-md)] bg-ink py-3.5 text-[15px] font-semibold text-bg transition-opacity disabled:opacity-40"
+            className="press mt-3 flex w-full items-center justify-center gap-2.5 rounded-[var(--radius-sm)] bg-ink py-3.5 text-[15px] font-semibold text-bg transition-opacity disabled:opacity-40"
           >
             <Fingerprint size={18} strokeWidth={1.5} aria-hidden />
             {busy ? "Waiting for your passkey…" : "Withdraw with passkey"}

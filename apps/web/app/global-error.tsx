@@ -19,7 +19,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
             <span className="text-ink-3">Not the market.</span>
           </h1>
           <p className="mt-6 text-ink-2">Your funds and orders live on-chain and aren&apos;t affected. Reload to try again.</p>
-          <button type="button" onClick={reset} className="press mt-8 rounded-full bg-ink px-6 py-3.5 text-[15px] font-semibold text-bg">
+          <button type="button" onClick={reset} className="press mt-8 rounded-[var(--radius-sm)] bg-ink px-6 py-3.5 text-[15px] font-semibold text-bg">
             Reload
           </button>
           {error.digest ? <p className="mt-8 font-mono text-xs text-ink-3">Reference {error.digest}</p> : null}

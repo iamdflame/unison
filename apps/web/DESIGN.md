@@ -43,13 +43,13 @@ Components use semantic tokens only. Tailwind's default palette is removed (`tex
 | `bg`, `raised`, `sunken` | page, cards, wells |
 | `ink`, `ink-2`, `ink-3` | text: primary, secondary, tertiary |
 | `line`, `line-strong` | hairlines (structure comes from hairlines; elevation from shadow) |
-| `accent`, `accent-ink`, `accent-soft` | blued steel by day, lume (ice blue) by night |
+| `accent`, `accent-ink`, `accent-soft` | blued steel by day, the same steel lifted for a black dial by night |
 | `buy`, `sell`, `buy-soft`, `sell-soft`, `buy-fill`, `sell-fill` | sides of the market: text, tints, filled buttons |
 | `halt` | a halted market |
 | `champagne` | the band arc, hairline engraving |
 | `engrave` | text cut into a surface (the footer wordmark) |
 | `glass`, `scrim` | the one translucent layer; behind dialogs |
-| `ball` | the mark's ball, flat: blued steel by day, lume by night (the accent of each light) |
+| `ball` | the mark's ball, flat: the accent of each light |
 
 - **Buy and sell** come in two palettes: verdigris and garnet (house), and steel and amber for color-vision deficiencies. The visitor picks one in the light switch (Appearance, then Buy and sell). Each light defines both palettes as data (`--buy-std`, `--buy-cvd` and so on); the tints derive from the active pair with `color-mix`, so everything switches together. Buy and sell always carry a word or a glyph as well as a color.
 - **Contrast is tested, not eyeballed.** `test/contrast.test.ts` reads the token blocks out of `globals.css` and checks every text pair, the labels on the buy and sell buttons, and buy/sell separation under protanopia, deuteranopia and tritanopia, in all four light and palette combinations.

@@ -123,7 +123,7 @@ const cleared = (ts: number) => `${NY.format(new Date(ts))} ET`;
 export function CertificateDialog() {
   const data = useStore(certificate, (c) => c);
   const frame = useMemo(() => guillocheFrame(760, 556, 18, 3, 52), []);
-  const portrait = useMemo(() => guillocheFrame(380, 640, 12, 3, 38), []);
+  const portrait = useMemo(() => guillocheFrame(380, 700, 12, 3, 40), []);
 
   // Live fills: ask the tape to check this batch's receipt chain and recompute the fill from its uniform price.
   useEffect(() => {
@@ -165,6 +165,8 @@ export function CertificateDialog() {
   // a buy reserves its size at its limit plus the fee cap; what the fill didn't use comes back
   const returned = data && data.side === "buy" ? data.qty * data.limitTick * data.unit * (1 + data.maxFeeBps / 10_000) - (notional + fee) : 0;
   const share = data && data.batchVolume > 0 ? (data.qty / data.batchVolume) * 100 : 0;
+  // where the fill landed against the price its band was centred on, in basis points
+  const vsRef = data && data.refTick > 0 ? ((data.tick - data.refTick) / data.refTick) * 10_000 : 0;
 
   return (
     <Dialog.Root open={!!data} onOpenChange={(o) => !o && certificate.set(null)}>
@@ -180,8 +182,8 @@ export function CertificateDialog() {
               >
                 <X size={16} strokeWidth={1.75} aria-hidden />
               </Dialog.Close>
-              <div className="relative aspect-[380/640] w-full overflow-hidden rounded-[6px] bg-raised text-ink shadow-lg sm:aspect-[760/556]">
-                <svg viewBox="0 0 380 640" className="absolute inset-0 h-full w-full sm:hidden" aria-hidden>
+              <div className="relative aspect-[380/700] w-full overflow-hidden rounded-[6px] bg-raised text-ink shadow-lg sm:aspect-[760/556]">
+                <svg viewBox="0 0 380 700" className="absolute inset-0 h-full w-full sm:hidden" aria-hidden>
                   <g fill="none" stroke="var(--champagne)" strokeWidth="0.75" opacity="0.8">
                     {portrait.map((d, i) => (
                       <path key={i} d={d} />
@@ -209,6 +211,21 @@ export function CertificateDialog() {
                       The same price as {data.participants > 1 ? `all ${data.participants} orders that traded` : "every order that traded"} in
                       block {data.block.toLocaleString("en-US")}. {data.name}, quoted in AUSD.
                     </Dialog.Description>
+                    {/* the two figures a trader reads first, larger than the record beneath them */}
+                    <dl className="mt-[3.5%] flex gap-x-10 gap-y-2">
+                      <div>
+                        <dt className="text-xs text-ink-3">{data.side === "buy" ? "You paid" : "You received"}</dt>
+                        <dd className="figures mt-0.5 text-[clamp(1rem,2vw,1.25rem)] font-medium text-ink">
+                          {money(data.side === "buy" ? notional + fee : notional - fee)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-ink-3">{data.side === "buy" ? "Under your limit" : "Over your limit"}</dt>
+                        <dd className="figures mt-0.5 text-[clamp(1rem,2vw,1.25rem)] font-medium text-ink">
+                          {improvement ? `${fmt(improvement)} a share` : "At your limit"}
+                        </dd>
+                      </div>
+                    </dl>
                   </div>
                   <dl className="mt-auto grid grid-cols-2 gap-x-5 gap-y-3 border-t border-line pt-4 text-[0.78rem] sm:grid-cols-4 sm:gap-x-5 sm:text-[clamp(0.7rem,1.1vw,0.8rem)]">
                     {[
@@ -219,17 +236,13 @@ export function CertificateDialog() {
                           : `#${data.orderId}`,
                       ],
                       ["Your limit", `${data.side === "buy" ? "≤" : "≥"} ${fmt(data.limitTick)}`],
-                      ["Improvement", improvement ? `${fmt(improvement)} a share` : "None: at your limit"],
-                      [data.closed ? "Last close" : "Reference", fmt(data.refTick)],
+                      [data.closed ? "Last close" : "Reference", `${fmt(data.refTick)} · ${vsRef >= 0 ? "+" : "−"}${Math.abs(vsRef).toFixed(1)} bp`],
+                      ["Auction", data.closed ? `Call, every ${data.discCadence} blocks` : "Every block"],
                       ["Notional", money(notional)],
                       ["Fee", `${money(fee)} · ${data.feeBps} bp`],
-                      [
-                        data.side === "buy" ? "You paid" : "You received",
-                        money(data.side === "buy" ? notional + fee : notional - fee),
-                      ],
                       ...(data.side === "buy" ? [["Reserve returned", money(Math.max(0, returned))]] : []),
                       ["Auction volume", `${qty(data.batchVolume)} ${data.ticker}`],
-                      ["Your share", share >= 99.95 ? "All of it" : `${share < 1 ? share.toFixed(1) : share.toFixed(0)}%`],
+                      ["Your share", share >= 99.95 ? "All of it" : `${share.toFixed(1)}%`],
                       ["Band at this auction", `${fmt(data.bandLo)} – ${fmt(data.bandHi)}`],
                       ["Cleared", cleared(data.ts)],
                     ].map(([k, v]) => (

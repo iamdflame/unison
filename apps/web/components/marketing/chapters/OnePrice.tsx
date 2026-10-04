@@ -157,7 +157,7 @@ export function OnePrice() {
                   <Plus size={14} strokeWidth={1.75} aria-hidden />
                 </button>
               </div>
-              <button type="button" onClick={addMine} className="press rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-bg">
+              <button type="button" onClick={addMine} className="press rounded-[var(--radius-sm)] bg-ink px-4 py-2.5 text-sm font-semibold text-bg">
                 Add 2 shares
               </button>
             </div>

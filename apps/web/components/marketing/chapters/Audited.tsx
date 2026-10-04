@@ -1,7 +1,6 @@
 "use client";
 
 import { Hallmark } from "@/components/ui/Hallmark";
-import { Check } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useInView } from "@/components/motion/useInView";
 import { facts } from "@/lib/content/facts";
@@ -46,11 +45,11 @@ export function Audited() {
 
   return (
     <section aria-labelledby="audited-title" className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-12 lg:py-24">
-      <div ref={ref} className="grid grid-cols-1 items-center gap-x-16 gap-y-12 lg:grid-cols-12">
+      <div ref={ref} className="grid grid-cols-1 items-start gap-x-16 gap-y-12 lg:grid-cols-12">
         <div className="lg:col-span-5">
           {/* honest about today: one signer publishes the reference, and the check on it runs in a simulator */}
           <h2 id="audited-title" className="text-display-l text-ink">
-            A second opinion on every&nbsp;price.
+            A second opinion, every&nbsp;{facts.cre.auditEverySec}&nbsp;seconds.
           </h2>
           <p className="text-lede mt-6 text-ink-2">
             Today one signer publishes the reference Unison clears against. A Chainlink workflow checks that signer
@@ -95,13 +94,10 @@ export function Audited() {
             </text>
           </svg>
           <figcaption className="mx-auto mt-4 flex max-w-[620px] items-center gap-3 text-sm">
-            <span
-              className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 font-medium transition-[opacity,background-color] duration-200 ${
-                verdict ? "bg-buy-soft text-buy" : "bg-sunken text-ink-2"
-              }`}
-            >
-              <Check size={14} strokeWidth={2} aria-hidden />
-              {verdict ? "Within 0.75%: trading continues" : "Auditing"}
+            {/* the verdict as an engraved mark, in the same small capitals as the hallmark beside it */}
+            <span className={`dial-label inline-flex shrink-0 items-center gap-1.5 text-[11px] transition-colors duration-200 ${verdict ? "text-buy" : "text-ink-3"}`}>
+              <span aria-hidden className={`size-[5px] rounded-full ${verdict ? "bg-buy" : "bg-ink-3"}`} />
+              {verdict ? `Within ${(facts.cre.haltAboveBps / 100).toFixed(2)}%` : "Auditing"}
             </span>
             <span className="text-ink-3">Past {(facts.cre.haltAboveBps / 100).toFixed(2)}%, the market halts and the signer&apos;s bond is slashed.</span>
             <Hallmark className="ml-auto">CRE simulator</Hallmark>

@@ -8,8 +8,8 @@ import { facts } from "@/lib/content/facts";
 const SPECS: [string, string, string?][] = [
   ["Frequency", `${facts.batchesPerHour.toLocaleString("en-US")} A/h · ${(facts.batchesPerHour / 3600).toFixed(2)} auctions a second`, `A/h, alternations an hour, is how a watchmaker counts beats; here each one is an auction. A batch every Monad block while Wall Street trades; a call auction every ${facts.discoveryBlocks} blocks (${(facts.batchesPerHour / facts.discoveryBlocks).toLocaleString("en-US")} A/h) while it is closed`],
   ["Power reserve", `${facts.hours.week} h a week`, "Every night and every weekend; a market stops only when its rules halt it"],
-  ["Escapement", "Frequent batch auction", "Most volume, then least imbalance, then closest to the reference"],
-  ["Complications", "Discovery · Reopening cross · Halts · Audit", "Each with its own price band"],
+  ["Escapement", "Frequent batch auction", "Most volume, then least imbalance, then closest to the reference. Orders at that price share it pro rata"],
+  ["Complications", "Discovery · Reopening cross · Halts · Audit", "Each with its own price band"],
   ["Fairness", "One price per batch", "Against a reference published after the batch closes"],
   ["Gas per clear", `${(facts.gas.clearMonad / 1e6).toFixed(2)}M`, `${facts.gas.savingPct}% less than under Ethereum's rules`],
   ["Cost", `≈ $${facts.gas.batch200Usd} per batch`, `200 orders; about $${facts.gas.orderUsd} per order`],
@@ -52,7 +52,16 @@ export function Calibre() {
               <dt className="col-span-12 text-sm text-ink-3 sm:col-span-4">{k}</dt>
               <dd className="col-span-12 sm:col-span-8">
                 <span className="numerals block text-[clamp(1.35rem,2vw,1.75rem)] leading-tight text-balance text-ink">
-                  {v}
+                  {/* a unit in Bodoni hairlines breaks up at this size: set it in the text face, smaller */}
+                  {v.split(/( A\/h)/).map((part, i) =>
+                    part === " A/h" ? (
+                      <span key={i} className="font-sans text-[0.62em] font-medium tracking-wide text-ink-2">
+                        {" "}A/h
+                      </span>
+                    ) : (
+                      part
+                    ),
+                  )}
                 </span>
                 {note ? <span className="mt-1 block text-sm text-ink-2">{note}</span> : null}
               </dd>

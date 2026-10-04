@@ -26,10 +26,10 @@ export default function NotFound() {
             to one.
           </p>
           <div className="mt-10 flex flex-wrap gap-3">
-            <Link href="/trade/aNVDA" className="press rounded-full bg-ink px-6 py-3.5 text-[15px] font-semibold text-bg shadow-md">
+            <Link href="/trade/aNVDA" className="press rounded-[var(--radius-sm)] bg-ink px-6 py-3.5 text-[15px] font-semibold text-bg">
               Open the terminal
             </Link>
-            <Link href="/" className="press rounded-full px-6 py-3.5 text-[15px] font-semibold text-ink hairline">
+            <Link href="/" className="press rounded-[var(--radius-sm)] px-6 py-3.5 text-[15px] font-semibold text-ink hairline">
               Home
             </Link>
           </div>

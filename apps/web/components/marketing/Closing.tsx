@@ -1,6 +1,6 @@
 "use client";
 
-import { ChartSpline, Fingerprint } from "lucide-react";
+import { Fingerprint } from "lucide-react";
 import Link from "next/link";
 import { site } from "@/lib/content/site";
 import { useMarketMoment } from "@/lib/time/useMarketMoment";
@@ -20,11 +20,11 @@ export function Closing() {
         your batch.
       </p>
       <div className="mt-10 flex flex-wrap items-center gap-3">
-        <Link href="/trade/aNVDA?onboard=passkey" className="press inline-flex items-center gap-2.5 rounded-[var(--radius-sm)] bg-ink px-6 py-3.5 text-[15px] font-semibold text-bg shadow-md">
+        <Link href="/trade/aNVDA?onboard=passkey" className="press inline-flex items-center gap-2.5 rounded-[var(--radius-sm)] bg-ink px-6 py-3.5 text-[15px] font-semibold text-bg">
           <Fingerprint size={18} strokeWidth={1.5} aria-hidden /> Continue with a passkey
         </Link>
-        <Link href="/trade/aNVDA?demo=1" className="press inline-flex items-center gap-2.5 rounded-full bg-raised px-6 py-3.5 text-[15px] font-semibold text-ink shadow-sm hairline">
-          <ChartSpline size={18} strokeWidth={1.5} aria-hidden /> Trade on paper
+        <Link href="/trade/aNVDA?demo=1" className="press inline-flex items-center gap-2.5 rounded-[var(--radius-sm)] px-6 py-3.5 text-[15px] font-semibold text-ink hairline">
+          Trade on paper
         </Link>
       </div>
       <p className="mt-8 text-xs text-ink-3">{site.disclosure}</p>

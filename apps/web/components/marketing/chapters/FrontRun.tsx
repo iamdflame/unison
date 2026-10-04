@@ -46,13 +46,19 @@ export function FrontRun() {
             Speed buys nothing.
           </h2>
           <p className="text-lede mt-6 text-ink-2">
-            On most venues, whoever sees the price move first trades against everyone else&apos;s stale quotes. Unison
-            prices each batch against a reference published after the batch closes, so there is nothing left to race
-            for.
+            On most venues, whoever sees the price move first trades against everyone else&apos;s stale quotes. Inside a
+            Unison batch, every order gets one price, so arriving first buys nothing. In session, that price is checked
+            against a reference published after the batch closes, so there is nothing left to race for.
           </p>
           <p className="text-lede mt-6 text-ink-2">
             Snipers take from whoever quotes. Where two venues quote the same ±{facts.lp.spreadBps}&nbsp;bp, liquidity on
-            Unison keeps <span className="text-ink">{facts.lp.multiple} times as much</span>.
+            Unison keeps <span className="text-ink">{facts.lp.multiple} times as much</span>. The trade-off: a taker pays{" "}
+            {facts.noiseCostBps.unison}&nbsp;bp here, against {facts.noiseCostBps.clob}&nbsp;bp on that order book.
+          </p>
+          {/* the claim's limits, stated where it is made */}
+          <p className="mt-6 text-sm text-ink-3">
+            At night there is no later reference. The auction forming is public, as in an exchange&apos;s opening cross,
+            and the vault quotes wider and caps what it trades in each auction.
           </p>
         </div>
 

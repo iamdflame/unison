@@ -19,7 +19,7 @@ export const TapeConsoleClient = dynamic(() => import("@/components/developers/L
 
 export const ContractsClient = dynamic(() => import("@/components/developers/LivePieces").then((m) => m.Contracts), {
   ssr: false,
-  loading: () => <div className="h-48 rounded-[var(--radius-xl)] bg-raised shadow-panel" aria-busy="true" />,
+  loading: () => null,
 });
 
 export const StatusClient = dynamic(() => import("@/components/status/Status").then((m) => m.Status), {

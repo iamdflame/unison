@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SessionKeyCard } from "@/components/agents/SessionKeyCard";
 import { Hallmark } from "@/components/ui/Hallmark";
 import { AgentsTerminal } from "./AgentsTerminal";
@@ -9,7 +10,7 @@ import { AgentsTerminal } from "./AgentsTerminal";
 export function Agents() {
   return (
     <section aria-labelledby="agents-title" className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-12 lg:py-24">
-      <div className="grid grid-cols-1 items-center gap-x-16 gap-y-12 lg:grid-cols-12">
+      <div className="grid grid-cols-1 items-start gap-x-16 gap-y-12 lg:grid-cols-12">
         <div className="lg:col-span-6">
           <h2 id="agents-title" className="text-display-l text-ink">
             Built for agents.
@@ -17,11 +18,17 @@ export function Agents() {
             Bounded by people.
           </h2>
           <p className="text-lede mt-6 text-ink-2">
-            Speed buys nothing here, so software competes on judgement instead of latency. Give an agent a session key
+            Inside a batch speed buys nothing, so software competes on judgement instead of latency. Give an agent a session key
             with the limits you choose: markets, size, notional and expiry. It can trade inside them. It can never
             withdraw.
           </p>
           <p className="mt-6 text-sm text-ink-3">Works with any MCP client, the TypeScript SDK, or plain signed messages.</p>
+          <Link
+            href="/keys"
+            className="press mt-8 inline-flex items-center rounded-[var(--radius-sm)] px-5 py-3 text-[15px] font-semibold text-ink hairline"
+          >
+            Connect an agent
+          </Link>
         </div>
 
         <div className="relative lg:col-span-6">

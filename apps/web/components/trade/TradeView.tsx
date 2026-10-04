@@ -58,9 +58,13 @@ export function TradeView({ ticker }: { ticker: string }) {
         <div className="min-w-0">
           <header className="flex flex-wrap items-end gap-x-8 gap-y-4">
             <div>
-              <h1 className="flex items-baseline gap-3">
+              {/* on a phone the name takes its own line under the ticker, never a ragged second column */}
+              <h1 className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-3">
                 <span className="text-2xl font-semibold tracking-tight text-ink">{spec.ticker}</span>
-                <span className="text-sm text-ink-3">{spec.name} · quoted in AUSD, a dollar stablecoin</span>
+                <span className="text-sm text-ink-3">
+                  {spec.name} · <span className="sm:hidden">in AUSD</span>
+                  <span className="hidden sm:inline">quoted in AUSD, a dollar stablecoin</span>
+                </span>
               </h1>
               {/* the headline figure is named: it is the last auction's price, not a live quote */}
               <p className="mt-2 text-xs text-ink-3">Last trade</p>
@@ -115,9 +119,10 @@ export function TradeView({ ticker }: { ticker: string }) {
                   {held.toLocaleString("en-US", { maximumFractionDigits: 2 })} {spec.ticker}
                   {/* valued as the portfolio values it: at the reference (at night, the last close) */}
                   {held > 0 && m.refTick > 0 ? (
-                    <span className="text-ink-3">
+                    <span className="whitespace-nowrap text-ink-3">
                       {" "}
-                      · ${(held * m.refTick * unit).toLocaleString("en-US", { maximumFractionDigits: 0 })} at {refName(m).toLowerCase()}
+                      · ${(held * m.refTick * unit).toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                      <span className="hidden sm:inline"> at {refName(m).toLowerCase()}</span>
                     </span>
                   ) : null}
                 </dd>
@@ -160,7 +165,7 @@ export function TradeView({ ticker }: { ticker: string }) {
                   )}
                 </p>
               </div>
-              <Tabs.Panel value="cross" className="flex h-[clamp(300px,46vw,480px)] w-full flex-col p-2">
+              <Tabs.Panel value="cross" className="flex h-[clamp(300px,32vw,420px)] w-full flex-col p-2">
                 <div className="min-h-0 flex-1">
                   <Measured>{(w, h) => <CrossChart m={m} fmt={fmt} cross={indicative} w={w} h={h} />}</Measured>
                 </div>
@@ -219,14 +224,14 @@ export function TradeView({ ticker }: { ticker: string }) {
           <button
             type="button"
             onClick={() => openSheet("buy")}
-            className="press flex-1 rounded-[var(--radius-md)] bg-buy-fill py-3 text-[15px] font-semibold text-bg"
+            className="press flex-1 rounded-[var(--radius-sm)] bg-buy-fill py-3 text-[15px] font-semibold text-bg"
           >
             Buy
           </button>
           <button
             type="button"
             onClick={() => openSheet("sell")}
-            className="press flex-1 rounded-[var(--radius-md)] bg-sell-fill py-3 text-[15px] font-semibold text-bg"
+            className="press flex-1 rounded-[var(--radius-sm)] bg-sell-fill py-3 text-[15px] font-semibold text-bg"
           >
             Sell
           </button>

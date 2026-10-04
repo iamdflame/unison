@@ -16,6 +16,8 @@ export interface CertificateData extends MyFill {
   feeBps: number;
   /** the fee cap a buy reserves at; what it reserved beyond the fill comes back */
   maxFeeBps: number;
+  /** blocks between call auctions while the market is closed */
+  discCadence: number;
   /** live fills: where the tape can check the receipt */
   live?: { tapeUrl: string; marketId: number; account: string; slot: number; explorer?: string };
   /**
@@ -40,6 +42,7 @@ export function certificateFor(fill: MyFill, spec: MarketSpec, net: NetConfig | 
     decimals,
     feeBps: spec.feeBps,
     maxFeeBps: spec.maxFeeBps,
+    discCadence: spec.regime.discCadence,
     ...(net && account && marketId !== undefined ? { live: { tapeUrl: net.tapeUrl, marketId, account, slot: fill.orderId, explorer: net.explorer } } : {}),
   };
 }

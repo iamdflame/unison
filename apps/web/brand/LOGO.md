@@ -25,7 +25,8 @@ There are three optical masters, the way a watch dial's printing changes with si
 - **Monochrome** (engraving, print, single colour): ink or porcelain only.
 - **Screen.** The ball is one flat colour, the light's accent, the same on the site, the favicon and every download:
   - by day, blued steel `oklch(0.4 0.15 266)` (`#213E97`);
-  - by night, lume `oklch(0.88 0.075 228)` (`#A3E2FF`).
+  - by night, the same blued steel lifted for a black dial, `oklch(0.74 0.085 266)` (`#92AAE1`). Round 7 retired the
+    ice-blue lume: at night every colour keeps its day material, lifted, never cyan, mint or coral.
 
   An earlier finish lit the ball as a sphere (a radial gradient from the upper left). Round 6 of the design review
   dropped it: every other jewel on the site is flat, and a gloss on the logo alone read as a different hand. Only

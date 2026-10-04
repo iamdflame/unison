@@ -5,7 +5,8 @@ import { nextAuction, type MarketState } from "@/lib/demo/engine";
 import { BEAT_MS } from "@/lib/motion/tokens";
 import { useMarketMoment } from "@/lib/time/useMarketMoment";
 
-const plural = (n: number, one: string) => `${n.toLocaleString("en-US")} ${n === 1 ? one : `${one}s`}`;
+// a count and its noun never part at a line end
+const plural = (n: number, one: string) => `${n.toLocaleString("en-US")} ${n === 1 ? one : `${one}s`}`.replace(/ /g, " ");
 const qty = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 2 });
 const nyTime = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 
@@ -42,7 +43,11 @@ export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick:
   const stock = m.spec.kind === "equity" || m.spec.kind === "etf" || m.spec.kind === "gold";
   const moment = useMarketMoment();
   // a stock's discovery ends when pre-market opens: the first auction after it is the reopening cross
-  const reopens = discovery && stock && moment ? `in ${moment.hoursToChange < 1 ? "under an hour" : `${moment.hoursToChange} h`}, at ${nyTime.format(moment.nextChange)} ET` : null;
+  const span = moment ? `${Math.floor(moment.minutesToChange / 60)} h ${moment.minutesToChange % 60} min` : "";
+  const reopens = discovery && stock && moment ? `in ${moment.minutesToChange < 60 ? `${moment.minutesToChange} min` : span}, at ${nyTime.format(moment.nextChange)} ET` : null;
+  // the vault's quote: its best bid and ask in the auction now forming, on the same strip as the cross
+  const vaultBid = m.vault.reduce((b, o) => (o.side === "buy" && o.qty > 0 && (b === null || o.tick > b) ? o.tick : b), null as number | null);
+  const vaultAsk = m.vault.reduce((a, o) => (o.side === "sell" && o.qty > 0 && (a === null || o.tick < a) ? o.tick : a), null as number | null);
   const closedWho = stock ? "Wall Street is closed" : m.spec.kind === "fx" ? "The currency market is closed" : "Its reference is closed";
 
   return (
@@ -88,6 +93,11 @@ export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick:
             "No cross yet: buyers and sellers don't meet inside the band"
           )}
         </p>
+        {vaultBid !== null && vaultAsk !== null ? (
+          <p className="figures text-sm text-ink-2">
+            Vault <span className="text-ink">{fmt(vaultBid)}</span> × <span className="text-ink">{fmt(vaultAsk)}</span>
+          </p>
+        ) : null}
         <p className="figures text-sm text-ink-2">
           {last ? (
             <>

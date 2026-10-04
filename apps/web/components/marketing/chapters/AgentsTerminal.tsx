@@ -39,7 +39,7 @@ export function AgentsTerminal() {
   }, [shown]);
 
   return (
-    <div ref={ref} data-theme="night" className="rounded-[var(--radius-2xl)] bg-raised p-1.5 text-ink shadow-float">
+    <div ref={ref} data-theme="night" className="rounded-[var(--radius-2xl)] bg-raised p-1.5 text-ink shadow-panel">
       <div className="flex items-center justify-between gap-3 px-4 py-3">
         <span className="text-xs text-ink-3">agent · unison mcp</span>
         <Hallmark>Illustration</Hallmark>

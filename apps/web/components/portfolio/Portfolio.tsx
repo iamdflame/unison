@@ -84,7 +84,7 @@ export function Portfolio() {
         <div className="mt-8 rounded-[var(--radius-xl)] bg-raised px-6 py-14 text-center shadow-panel sm:py-20">
           <p className="text-display-m text-ink">Your account is your passkey.</p>
           <p className="mx-auto mt-4 max-w-md text-ink-2">Sign in with Face ID, Touch ID or Windows Hello to see your balances, orders and fills.</p>
-          <button type="button" onClick={() => setSignInOpen(true)} onPointerEnter={preloadSignIn} onFocus={preloadSignIn} className="press mt-8 inline-flex items-center gap-2.5 rounded-[var(--radius-md)] bg-ink px-6 py-3.5 text-[15px] font-semibold text-bg shadow-md">
+          <button type="button" onClick={() => setSignInOpen(true)} onPointerEnter={preloadSignIn} onFocus={preloadSignIn} className="press mt-8 inline-flex items-center gap-2.5 rounded-[var(--radius-sm)] bg-ink px-6 py-3.5 text-[15px] font-semibold text-bg">
             <Fingerprint size={18} strokeWidth={1.5} aria-hidden /> Sign in
           </button>
         </div>
@@ -146,6 +146,8 @@ function Account({ acct }: { acct: AccountState }) {
   const partly = holdings.some((h) => h.spec && h.avg === null);
   // when no position's cost is known, there is no total to show: "$0.00" would read as flat
   const anyKnown = holdings.some((h) => h.spec && h.avg !== null);
+  // the same P&L at the second mark: where a market is closed its last trade can put the sign the other way
+  const unrealizedAtLast = holdings.reduce((s, h) => s + (h.avg !== null && h.lastPrice !== null ? h.qty * (h.lastPrice - h.avg) : (h.pnl ?? 0)), 0);
   const halted = held.filter((s) => marks[s.ticker]?.regime === "HALTED");
 
   return (
@@ -194,7 +196,13 @@ function Account({ acct }: { acct: AccountState }) {
             <dt className="text-ink-3">{partly && anyKnown ? "Unrealised P&L, where cost is known" : "Unrealised P&L"}</dt>
             <dd className={`figures ${anyKnown ? tone(unrealized) : "text-ink-3"}`}>{anyKnown ? signedMoney(unrealized) : "Not known"}</dd>
           </div>
-          <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
+          {closedHeld && anyKnown ? (
+            <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
+              <dt className="text-ink-3">At last trades</dt>
+              <dd className={`figures ${tone(unrealizedAtLast)}`}>{signedMoney(unrealizedAtLast)}</dd>
+            </div>
+          ) : null}
+          <div className={`flex flex-col gap-0.5 sm:flex-row sm:gap-2 ${closedHeld && anyKnown ? "" : "col-span-2 sm:col-span-1"}`}>
             <dt className="text-ink-3">Realised</dt>
             <dd className={`figures ${tone(realized)}`}>{signedMoney(realized)}</dd>
           </div>
@@ -246,7 +254,7 @@ function Actions({ live }: { live: boolean }) {
           resetPaperAccount();
           toast("Paper account reset", { description: "Orders cancelled and starting balances restored." });
         }}
-        className="press -mr-2 mt-2 inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-[var(--radius-md)] px-2 text-sm font-medium text-ink-3 transition-colors hover-fine:text-ink sm:mt-0 sm:min-h-0 sm:py-1"
+        className="press -mr-2 -mt-0.5 inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-[var(--radius-sm)] px-2 text-sm font-medium text-ink-3 transition-colors hover-fine:text-ink sm:mt-0 sm:min-h-0 sm:py-1"
         aria-label="Reset paper account"
       >
         <RotateCcw size={14} strokeWidth={1.75} aria-hidden />
@@ -339,7 +347,7 @@ function Holdings({ holdings, equity }: { holdings: Holding[]; equity: number })
                 <span aria-hidden className="size-2.5 shrink-0 rounded-full ring-1 ring-line-strong" style={{ background: h.color }} />
                 <div className="min-w-0">
                   <p className="text-[15px] font-semibold text-ink">{h.label}</p>
-                  <p className="text-[13px] text-ink-3 md:truncate">{h.sub}</p>
+                  <p className="truncate text-[13px] text-ink-3">{h.sub}</p>
                 </div>
               </div>
               <div className="text-right">
@@ -366,7 +374,6 @@ function Holdings({ holdings, equity }: { holdings: Holding[]; equity: number })
                 <p className={`tnum text-xs ${h.pnl === null ? "text-ink-3" : tone(h.pnl)}`}>
                   {h.pnl !== null ? signedMoney(h.pnl) : `${share.toFixed(1)}%`}
                 </p>
-                {h.lastPrice !== null ? <p className="tnum text-[11px] text-ink-3">{money(h.qty * h.lastPrice)} at last trade</p> : null}
               </div>
             </>
           );

@@ -166,7 +166,8 @@ export function emblemSvg(params = {}, { ink = "currentColor", jewel = "currentC
 }
 
 /**
- * The ball's one finish, flat: blued steel by day, lume by night. The same two colours as --ball in app/globals.css
- * (oklch(0.4 0.15 266) and oklch(0.88 0.075 228)), so a download, the favicon and the live site never disagree.
+ * The ball's one finish, flat: blued steel by day, and by night the same steel lifted for a black dial (the key
+ * keeps its old name, lume). The same two colours as --ball in app/globals.css (oklch(0.4 0.15 266) and
+ * oklch(0.74 0.085 266)), so a download, the favicon and the live site never disagree.
  */
-export const BALL = { steel: "#213e97", lume: "#a3e2ff" };
+export const BALL = { steel: "#213e97", lume: "#92aae1" };

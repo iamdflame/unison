@@ -32,7 +32,7 @@ const C = {
   ink: formatHex("oklch(0.19 0.012 262)"),
   onyx: formatHex("oklch(0.135 0.006 265)"),
   pearl: formatHex("oklch(0.95 0.006 250)"),
-  lume: formatHex("oklch(0.88 0.075 228)"),
+  lume: formatHex("oklch(0.74 0.085 266)"), // the night accent: blued steel lifted for a black dial
 };
 
 // ------------------------------------------------------------------ vector downloads

@@ -66,10 +66,11 @@ export function QuoteInstrument({
   const bp = refTick > 0 ? (q.half / refTick) * 10_000 : 0;
   const perTick = Number(q.perTick) / 1e18;
 
+  // each tick a solid tint under a solid edge: readable on porcelain and on the night panel alike
   const block = (side: "buy" | "sell") => (
     <g style={{ transform: `translateX(${side === "buy" ? bidStart : askStart}px)`, transition: EASE, opacity: halted ? 0 : 1 }} className="motion-reduce:transition-none">
       {Array.from({ length: p.widthTicks }, (_, i) => (
-        <rect key={i} x={i * tickW + 0.6} y={base - barH} width={Math.max(1, tickW - 1.2)} height={barH} rx={Math.min(2, tickW / 4)} fill={`var(--${side}-soft)`} />
+        <rect key={i} x={i * tickW + 0.6} y={base - barH} width={Math.max(1, tickW - 1.2)} height={barH} rx={Math.min(2, tickW / 4)} style={{ fill: `color-mix(in oklch, var(--${side}) 30%, transparent)` }} />
       ))}
       <rect x={0} y={base - barH} width={blockW} height={1.6} fill={`var(--${side})`} />
     </g>

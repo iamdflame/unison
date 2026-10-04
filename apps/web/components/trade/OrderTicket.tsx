@@ -97,24 +97,33 @@ export function OrderTicket({
     return out.traded ? { tick: out.tick, filled: out.fills.get(0) ?? 0 } : null;
   }, [m.book, m.vault, band, side, limit, qty]);
   const n = (v: number) => v.toLocaleString("en-US", { maximumFractionDigits: 2 });
-  // What your order would do in that auction, in words: in full, in part (and why), or not at all.
-  const rests = ioc ? "is cancelled" : "rests";
-  const fillNote = !withYou
-    ? "Buyers and sellers don't meet inside the band yet."
-    : withYou.filled >= qty - 0.004
-      ? withYou.tick === limit
-        ? // at the margin: the last price that clears is yours, and anyone else who arrives there shares it with you
-          `All ${n(qty)} ${ticker} would fill now, at your limit exactly. If more orders join at this price, they share what clears here pro rata.`
-        : `All ${n(qty)} ${ticker} would fill${alone !== null && alone !== withYou.tick ? `; your order moves the price from ${fmt(alone)}` : ""}.`
-      : withYou.filled > 0
-        ? `${n(withYou.filled)} of ${n(qty)} ${ticker} would fill, pro rata at the clearing price; ${n(qty - withYou.filled)} ${rests}.`
-        : `None would fill: it clears ${side === "buy" ? "above" : "below"} your limit. Your order ${rests}.`;
   // What it would cost (or bring) if the auction ran now: the fill at the clearing price, plus or minus the fee.
   const feeSign = side === "buy" ? 1 + spec.feeBps / 10_000 : 1 - spec.feeBps / 10_000;
   const estimate = withYou && withYou.filled > 0 ? withYou.filled * withYou.tick * unit * feeSign : null;
-  // the whole order at its own limit: the most it can cost, or the least it can bring, whatever the auction does
-  const bound = qty * limit * unit * feeSign;
-  const partial = !withYou || withYou.filled < qty - 0.004;
+  // the whole order at its own limit: the most it can cost, or the least it can bring, whatever the auction does.
+  // The fee is fixed when the order is placed, so this bound holds while it rests.
+  const notionalAtLimit = qty * limit * unit;
+  const bound = notionalAtLimit * feeSign;
+  // What your order would do in the auction now, number first: a figure, then one line on why.
+  const full = !!withYou && withYou.filled >= qty - 0.004;
+  const fillsNow = !withYou
+    ? "No cross yet"
+    : withYou.filled <= 0
+      ? `None · ${ioc ? "cancelled" : "rests"}`
+      : full
+        ? `All ${n(qty)} at ${fmt(withYou.tick)}`
+        : `${n(withYou.filled)} of ${n(qty)} at ${fmt(withYou.tick)}`;
+  const withFee = estimate !== null ? `${money(estimate)} ${side === "buy" ? "with" : "after"} the fee` : "";
+  const fillNote = !withYou
+    ? "Buyers and sellers don't meet inside the band yet."
+    : withYou.filled <= 0
+      ? `Clears at ${fmt(withYou.tick)}, ${side === "buy" ? "above" : "below"} your ${fmt(limit)} limit.`
+      : full
+        ? withYou.tick === limit
+          ? // at the margin: the last price that clears is yours, and anyone else who arrives there shares it with you
+            `${withFee}. At your limit: newcomers at this price share it.`
+          : `${withFee}${alone !== null && alone !== withYou.tick ? `; moves the cross from ${fmt(alone)}` : ""}.`
+        : `${withFee}; the rest ${ioc ? "is cancelled" : "rests"}.`;
 
   const maxQty =
     side === "buy" ? Math.floor((free.quote / (limit * unit * (1 + spec.maxFeeBps / 10_000))) * 100) / 100 : free.base;
@@ -364,26 +373,24 @@ export function OrderTicket({
         </p>
 
         <dl id={ids.help} className="mt-3.5 space-y-2 border-t border-line pt-3.5 text-sm">
+          {/* number first, one line under it: what happens now, the most it can cost, what is held meanwhile */}
           <div className="flex flex-wrap justify-between gap-x-4 gap-y-0.5">
-            <dt className="text-ink-3">Indicative fill</dt>
-            <dd className="figures text-ink">{withYou ? fmt(withYou.tick) : "No cross yet"}</dd>
-            <dd className="figures basis-full text-xs leading-relaxed text-ink-3">{fillNote}</dd>
+            <dt className="text-ink-3">Fills now</dt>
+            <dd className="figures text-ink">{fillsNow}</dd>
+            <dd className="figures basis-full text-xs text-ink-3">{fillNote}</dd>
           </div>
           <div className="flex flex-wrap justify-between gap-x-4 gap-y-0.5">
-            <dt className="text-ink-3">{side === "buy" ? "Estimated cost" : "Estimated proceeds"}</dt>
-            <dd className="figures font-semibold text-ink">{estimate !== null ? money(estimate) : "None yet"}</dd>
-            <dd className="figures basis-full text-xs leading-relaxed text-ink-3">
-              {estimate !== null && withYou ? `For the ${n(withYou.filled)} ${ticker} that would fill, ${side === "buy" ? "with" : "less"} the ${spec.feeBps} bp fee.` : "Nothing would fill now."}
-              {partial && qty > 0 ? ` The whole order ${side === "buy" ? "costs at most" : "brings at least"} ${money(bound)} at your limit.` : null}
+            <dt className="text-ink-3">{side === "buy" ? "Most it can cost" : "Least it can bring"}</dt>
+            <dd className="figures font-semibold text-ink">{qty > 0 ? money(bound) : "None yet"}</dd>
+            <dd className="figures basis-full text-xs text-ink-3">
+              {money(notionalAtLimit)} at your limit {side === "buy" ? "+" : "−"} {money(Math.abs(bound - notionalAtLimit))} fee ({spec.feeBps} bp, fixed when placed)
             </dd>
           </div>
           <div className="flex flex-wrap justify-between gap-x-4 gap-y-0.5">
-            <dt className="text-ink-3">Reserved</dt>
+            <dt className="text-ink-3">Held while it rests</dt>
             <dd className="figures text-ink">{side === "buy" ? money(lock) : `${n(lock)} ${ticker}`}</dd>
-            <dd className="basis-full text-xs leading-relaxed text-ink-3">
-              {side === "buy"
-                ? `${n(qty)} at your limit plus the ${spec.maxFeeBps} bp fee cap; the rest comes back.`
-                : `You receive the auction's price, less the ${spec.feeBps} bp fee.`}
+            <dd className="basis-full text-xs text-ink-3">
+              {side === "buy" ? `At your limit + the ${spec.maxFeeBps} bp fee cap; what isn't used comes back.` : "Until it fills or you cancel."}
             </dd>
           </div>
         </dl>
@@ -397,7 +404,7 @@ export function OrderTicket({
           onPointerEnter={needsSignIn ? preloadSignIn : undefined}
           onFocus={needsSignIn ? preloadSignIn : undefined}
           disabled={!needsSignIn && (qty <= 0 || !affordable)}
-          className={`press w-full rounded-[var(--radius-md)] py-3.5 text-[15px] font-semibold text-bg shadow-md transition-opacity disabled:opacity-40 ${side === "buy" ? "bg-buy-fill" : "bg-sell-fill"}`}
+          className={`press w-full rounded-[var(--radius-sm)] py-3.5 text-[15px] font-semibold text-bg transition-opacity disabled:opacity-40 ${side === "buy" ? "bg-buy-fill" : "bg-sell-fill"}`}
         >
           {needsSignIn
             ? "Sign in to trade"
@@ -410,7 +417,7 @@ export function OrderTicket({
                 : `${side === "buy" ? "Buy" : "Sell"} ${qty || ""} ${ticker} at ${side === "buy" ? "≤" : "≥"} ${fmt(limit)}`}
         </button>
         <p className="mt-2.5 text-center text-xs text-ink-3">
-          Fee {spec.feeBps} bp. Everyone in the auction gets the same price.
+          One price for everyone in the auction; orders at that price share it pro rata.
           <span className="mt-1 block text-ink-3/80">Testnet · mock assets · not yet audited</span>
         </p>
       </div>

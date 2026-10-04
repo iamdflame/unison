@@ -22,7 +22,7 @@ const spiral = (r0: number, r1: number, turns: number, steps = 360) => {
 const LINE = { fill: "none", stroke: "currentColor", strokeWidth: 1.1, vectorEffect: "non-scaling-stroke" as const };
 const FINE = { ...LINE, strokeWidth: 0.6, opacity: 0.7 };
 
-/** Gateway: the top plate, jewelled where orders come in: flat engraved jewels in hairline chatons. */
+/** Gateway: the top plate, jewelled where orders come in: flat rubies set in gold chatons, as in a real movement. */
 function Gateway() {
   return (
     <>
@@ -32,8 +32,8 @@ function Gateway() {
         const [x, y] = polar(R - 17, i * 30);
         return (
           <g key={i}>
-            <circle cx={x} cy={y} r={9.5} {...LINE} />
-            <circle cx={x} cy={y} r={6.5} fill="var(--champagne)" />
+            <circle cx={x} cy={y} r={9.5} fill="var(--champagne)" />
+            <circle cx={x} cy={y} r={5} fill="var(--jewel)" />
           </g>
         );
       })}

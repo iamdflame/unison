@@ -64,10 +64,10 @@ export function SignIn({ open, onOpenChange }: { open: boolean; onOpenChange: (o
                 Face ID, Touch ID or Windows Hello. No seed phrase, no gas. Your passkey is your account on {net.network}.
               </Dialog.Description>
               <div className="mt-6 space-y-2">
-                <button type="button" disabled={!!busy} onClick={run("create", () => createPasskey(net), "Your passkey account is ready.")} className="press flex w-full items-center justify-center gap-2.5 rounded-[var(--radius-md)] bg-ink py-3.5 text-[15px] font-semibold text-bg disabled:opacity-50">
+                <button type="button" disabled={!!busy} onClick={run("create", () => createPasskey(net), "Your passkey account is ready.")} className="press flex w-full items-center justify-center gap-2.5 rounded-[var(--radius-sm)] bg-ink py-3.5 text-[15px] font-semibold text-bg disabled:opacity-50">
                   <Fingerprint size={18} strokeWidth={1.5} aria-hidden /> {busy === "create" ? "Creating…" : "Create a passkey"}
                 </button>
-                <button type="button" disabled={!!busy} onClick={run("signin", () => signInWithPasskey(net), "Welcome back.")} className="press w-full rounded-[var(--radius-md)] py-3 text-sm font-semibold text-ink hairline disabled:opacity-50">
+                <button type="button" disabled={!!busy} onClick={run("signin", () => signInWithPasskey(net), "Welcome back.")} className="press w-full rounded-[var(--radius-sm)] py-3 text-sm font-semibold text-ink hairline disabled:opacity-50">
                   {busy === "signin" ? "Signing in…" : "I already have one"}
                 </button>
               </div>

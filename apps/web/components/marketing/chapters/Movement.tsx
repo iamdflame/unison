@@ -56,14 +56,14 @@ export function Movement({ plates }: { plates: ReactNode[] }) {
                 return (
                   <div
                     key={p.name}
-                    className="absolute inset-[10%] transition-[opacity,color,translate] duration-300"
+                    className="absolute inset-[10%] transition-[color,translate] duration-300"
                     // parted from the start, so six plates read at once; the scroll opens them further, and the part in
                     // focus lifts a little and is drawn in ink
                     style={{
                       transform: `translateZ(calc((${fromTop} - 2.5) * (34px + var(--p) * 40px)))`,
                       translate: i === active ? "0 0 18px" : "0 0 0",
-                      opacity: i === active ? 1 : 0.7,
-                      color: i === active ? "var(--ink)" : "var(--ink-3)",
+                      // only the engraving dims, never the plate or its materials: blued screws and jewels stay solid
+                      color: i === active ? "var(--ink)" : "color-mix(in oklch, var(--ink) 50%, transparent)",
                     }}
                   >
                     {plates[i]}

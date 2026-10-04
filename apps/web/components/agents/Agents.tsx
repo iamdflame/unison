@@ -67,7 +67,7 @@ export function Agents() {
       <header className="max-w-3xl">
         <h1 className="text-display-m text-ink">Agents</h1>
         <p className="text-lede mt-4 text-ink-2">
-          Every order in a batch gets the same price, so a program has no edge over a person. Let software trade for you, inside limits
+          Every order in a batch gets the same price, so inside a batch a program has no edge over a person. Let software trade for you, inside limits
           you set and the contract enforces.
         </p>
       </header>
@@ -94,7 +94,7 @@ export function Agents() {
             </dl>
             <Link
               href="/developers#agents-title"
-              className="press mt-6 inline-flex items-center rounded-[var(--radius-md)] bg-ink px-5 py-3 text-sm font-semibold text-bg"
+              className="press mt-6 inline-flex items-center rounded-[var(--radius-sm)] bg-ink px-5 py-3 text-sm font-semibold text-bg"
             >
               Connect an agent
             </Link>
@@ -140,7 +140,7 @@ function SignInPanel() {
         onClick={() => setOpen(true)}
         onPointerEnter={preloadSignIn}
         onFocus={preloadSignIn}
-        className="press mt-6 inline-flex items-center gap-2.5 rounded-[var(--radius-md)] bg-ink px-5 py-3 text-sm font-semibold text-bg"
+        className="press mt-6 inline-flex items-center gap-2.5 rounded-[var(--radius-sm)] bg-ink px-5 py-3 text-sm font-semibold text-bg"
       >
         <Fingerprint size={17} strokeWidth={1.5} aria-hidden /> Sign in
       </button>
@@ -269,7 +269,7 @@ function Mint({ net, onMinted }: { net: NetConfig; onMinted: (m: { privateKey: H
           ))}
         </div>
       </fieldset>
-      <button type="button" disabled={!ready} onClick={mint} className="press mt-6 flex w-full items-center justify-center gap-2.5 rounded-[var(--radius-md)] bg-ink py-3.5 text-[15px] font-semibold text-bg transition-opacity disabled:opacity-40">
+      <button type="button" disabled={!ready} onClick={mint} className="press mt-6 flex w-full items-center justify-center gap-2.5 rounded-[var(--radius-sm)] bg-ink py-3.5 text-[15px] font-semibold text-bg transition-opacity disabled:opacity-40">
         <Fingerprint size={18} strokeWidth={1.5} aria-hidden /> {busy ? "Waiting for your passkey…" : "Mint key with passkey"}
       </button>
       <p className="mt-3 text-xs leading-relaxed text-ink-3">
