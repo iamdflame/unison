@@ -62,3 +62,7 @@ next-env.d.ts
 apps/web/playwright-report/
 apps/web/test-results/
 apps/web/.lighthouseci/
+
+# design-review screenshots and regenerable exploration pages
+apps/web/brand/shots/
+apps/web/brand/explore/*.html

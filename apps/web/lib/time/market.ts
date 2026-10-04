@@ -90,3 +90,13 @@ export function ctaLabel(m: MarketMoment): string {
   if (m.phase === "overnight" || m.phase === "after-hours" || m.phase === "holiday") return "Trade tonight";
   return "Start trading";
 }
+
+/** When the current CLOSED period began (the last half-hour boundary where the session turned CLOSED). */
+export function lastClose(now: Date = new Date()): Date | null {
+  if (usEquitySession(now) !== Status.CLOSED) return null;
+  let t = Math.floor(now.getTime() / HALF_HOUR) * HALF_HOUR;
+  for (let i = 0; i < 480; i++, t -= HALF_HOUR) {
+    if (usEquitySession(new Date(t - HALF_HOUR)) !== Status.CLOSED) return new Date(t);
+  }
+  return null;
+}

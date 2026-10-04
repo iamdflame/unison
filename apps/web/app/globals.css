@@ -31,9 +31,14 @@
   --sell-soft: oklch(0.53 0.175 32 / 0.1);
   --halt: oklch(0.5 0.115 62);
   --champagne: oklch(0.58 0.06 80);
-  --engrave: oklch(0.19 0.012 262 / 0.075);
+  --engrave: oklch(0.19 0.012 262 / 0.095);
   --glow: oklch(0.47 0.17 264 / 0);
   --focus: oklch(0.47 0.17 264);
+  /* The mark's ball by day: heat-blued steel, lit from the upper left. */
+  --ball-1: #6f7fe0;
+  --ball-2: #3442b0;
+  --ball-3: #24318f;
+  --ball-4: #1a2366;
   --scrim: oklch(0.19 0.012 262 / 0.28);
   --glass: oklch(0.995 0.002 250 / 0.72);
   --shadow-sm-v: 0px 2px 3px -1px rgba(0, 0, 0, 0.1), 0px 1px 0px 0px rgba(25, 28, 33, 0.02),
@@ -68,6 +73,11 @@
   --engrave: oklch(0.82 0.05 85 / 0.12);
   --glow: oklch(0.88 0.08 228 / 0.55);
   --focus: oklch(0.88 0.075 228);
+  /* By night: lume, glowing inside its edge. */
+  --ball-1: #ffffff;
+  --ball-2: #e0f6ff;
+  --ball-3: #b6e4fd;
+  --ball-4: #86c9f2;
   --scrim: oklch(0.05 0.005 265 / 0.6);
   --glass: oklch(0.2 0.008 265 / 0.66);
   --shadow-sm-v: inset 0 1px 0 0 oklch(1 0 0 / 0.05), 0 0 0 1px oklch(1 0 0 / 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.5);
