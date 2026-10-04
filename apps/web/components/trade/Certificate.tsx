@@ -202,18 +202,18 @@ export function CertificateDialog() {
                     <Lockup capHeight={11} />
                     <Dialog.Title className="dial-label text-ink-3">Certificate of execution</Dialog.Title>
                   </div>
-                  <div className="mt-[4.5%]">
+                  <div className="mt-[3.5%]">
                     <p className="text-sm text-ink-3">{data.side === "buy" ? "Bought" : "Sold"}</p>
-                    <p className="numerals mt-1 text-[clamp(1.6rem,5.2vw,3.1rem)] leading-none">
+                    <p className="numerals mt-1 text-[clamp(1.6rem,5vw,2.8rem)] leading-none">
                       {qty(data.qty)} {data.ticker} <span className="text-ink-3">at</span> {fmt(data.tick)}
                     </p>
                     <Dialog.Description className="mt-3 text-[clamp(0.78rem,1.6vw,0.95rem)] text-ink-2">
                       The same price as {data.participants > 1 ? `all ${data.participants} orders that traded` : "every order that traded"} in
                       {" "}
-                      {data.receipt ? "block" : "simulated block"} {data.block.toLocaleString("en-US")}. {data.name}, quoted in AUSD.
+                      {data.receipt ? "block" : "simulated block"} {data.block.toLocaleString("en-US")}.
                     </Dialog.Description>
                     {/* the two figures a trader reads first, larger than the record beneath them */}
-                    <dl className="mt-[3.5%] flex gap-x-10 gap-y-2">
+                    <dl className="mt-[3%] flex gap-x-10 gap-y-2">
                       <div>
                         <dt className="text-xs text-ink-3">{data.side === "buy" ? "You paid" : "You received"}</dt>
                         <dd className="figures mt-0.5 text-[clamp(1rem,2vw,1.25rem)] font-medium text-ink">
