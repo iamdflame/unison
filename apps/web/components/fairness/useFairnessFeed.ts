@@ -22,6 +22,8 @@ export interface ChainLink {
   prev: string;
   /** links to the previous print and recomputes */
   ok: boolean;
+  /** cleared while its market was closed: the reference was the last close */
+  closed?: boolean;
 }
 
 export interface FairStats {
@@ -88,6 +90,7 @@ export function useFairnessFeed(spec: MarketSpec, window: FairnessWindow) {
       hash: p.receiptHash,
       prev: p.prevReceiptHash,
       ok: p.chainOk,
+      closed: p.regime === "DISCOVERY",
     });
     let alive = true;
     tape
@@ -129,11 +132,15 @@ export function useFairnessFeed(spec: MarketSpec, window: FairnessWindow) {
 
   // simulation: the venue's chain rule applied to simulated prints, in the browser
   const [prints, setPrints] = useState<readonly Print[]>([]);
+  const [simClosed, setSimClosed] = useState(false);
   const sim = useMemo(() => (live ? null : demoMarket(spec)), [live, spec]);
   useEffect(() => {
     if (!sim) return;
     const release = sim.retain({ book: false });
-    const push = () => setPrints(sim.store.get().prints);
+    const push = () => {
+      setPrints(sim.store.get().prints);
+      setSimClosed(sim.store.get().regime.name === "DISCOVERY");
+    };
     push();
     const off = sim.store.subscribe(push);
     return () => {
@@ -154,12 +161,12 @@ export function useFairnessFeed(spec: MarketSpec, window: FairnessWindow) {
         h = receiptHash(prev, { marketId: spec.id, upTo: p.block, tick: p.tick, volume: BigInt(Math.round(p.volume * 1e6)) * 10n ** 12n, refPrice: BigInt(p.refTick) * tickSize, refTimeMs: p.ts, status: 0 }, Math.floor(p.ts / 1000));
         simHashes.set(key, h);
       }
-      chain.push({ upTo: p.block, ts: p.ts, tick: p.tick, refTick: p.refTick, traded: p.volume > 0, devBps: p.volume > 0 ? ((p.tick - p.refTick) / p.refTick) * 10_000 : null, hash: h, prev, ok: true });
+      chain.push({ upTo: p.block, ts: p.ts, tick: p.tick, refTick: p.refTick, traded: p.volume > 0, devBps: p.volume > 0 ? ((p.tick - p.refTick) / p.refTick) * 10_000 : null, hash: h, prev, ok: true, closed: simClosed });
       prev = h;
     }
     const devs = chain.filter((c) => c.devBps !== null).map((c) => c.devBps!);
     return { links: chain.slice(-LINKS), stats: statsOf(devs, chain.length) };
-  }, [live, prints, spec]);
+  }, [live, prints, spec, simClosed]);
 
   return live ? { links, stats, live } : { links: simFeed?.links ?? [], stats: simFeed?.stats ?? null, live };
 }

@@ -67,8 +67,9 @@ export function FairnessLive() {
               How close to the reference.
             </h2>
             <p className="text-lede mt-5 text-ink-2">
-              Each batch&apos;s one price against the reference it cleared on. Tight is good: nobody bought a price the
-              reference didn&apos;t support.
+              Each batch&apos;s one price against the reference it cleared on. In session, tight is good: nobody bought a
+              price the reference didn&apos;t support. While a market is closed its reference is the last close, so its
+              prints wander from it as the auctions find the price; that distance is discovery, not slippage.
             </p>
             {live ? (
               <div role="radiogroup" aria-label="Window" className="mt-8 inline-grid grid-cols-3 gap-1 rounded-full bg-sunken p-1">
@@ -141,7 +142,7 @@ function Chain({ links, spec }: { links: ChainLink[]; spec: MarketSpec }) {
               </div>
               <p className="tnum mt-1 text-sm font-semibold text-ink">{l.upTo.toLocaleString("en-US")}</p>
               <p className="tnum mt-3 text-lg font-semibold text-ink">{l.traded ? fmt(l.tick) : "No cross"}</p>
-              <p className="tnum text-xs text-ink-2">{l.devBps === null ? `reference ${fmt(l.refTick)}` : `${l.devBps >= 0 ? "+" : "−"}${Math.abs(l.devBps).toFixed(1)} bp vs reference`}</p>
+              <p className="tnum text-xs text-ink-2">{l.devBps === null ? `${l.closed ? "last close" : "reference"} ${fmt(l.refTick)}` : `${l.devBps >= 0 ? "+" : "−"}${Math.abs(l.devBps).toFixed(1)} bp vs ${l.closed ? "last close" : "reference"}`}</p>
               <p className="mt-3 font-mono text-[11px] text-ink-3">
                 {l.hash.slice(0, 10)}…{l.hash.slice(-4)}
               </p>
