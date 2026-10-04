@@ -202,6 +202,8 @@ async function main() {
     PORT: String(ports.relayer),
     RELAYER_PRIVATE_KEY: KEYS.relayer,
     FAUCET: "1",
+    // every browser test on this machine shares one IP; the public testnet keeps the default of 3 a day
+    FAUCET_PER_IP: "1000",
     JOBS_DB: join(stackDir, "relayer.db"),
   });
   node("tape", {

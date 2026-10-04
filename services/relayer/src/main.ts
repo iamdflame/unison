@@ -8,7 +8,7 @@
  *
  * Env: RPC_URL, DEPLOYMENT, RELAYER_PRIVATE_KEY, PORT (8788), MAX_BATCH (40), JOBS_DB (./data/relayer.db),
  *      CORS_ORIGINS (http://localhost:3000), FAUCET (0; 1 on devnets/testnets), FAUCET_QUOTE_AMOUNT (10000),
- *      FAUCET_BASE_AMOUNT (10), FAUCET_DAILY_BUDGET (1000), RATE_IP_BURST (60), RATE_IP_PER_SEC (10),
+ *      FAUCET_BASE_AMOUNT (10), FAUCET_DAILY_BUDGET (1000), FAUCET_PER_IP (3 a day), RATE_IP_BURST (60), RATE_IP_PER_SEC (10),
  *      RATE_ACCOUNT_BURST (10), RATE_ACCOUNT_PER_SEC (1), TRUST_PROXY (1 on Fly)
  */
 import { serve, type ServerType } from "@hono/node-server";
@@ -70,7 +70,12 @@ export async function startRelayer() {
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean),
-    faucet: { enabled: faucetEnabled, perAccount: 1, perIp: 3, dailyBudget: Number(env("FAUCET_DAILY_BUDGET", "1000")) },
+    faucet: {
+      enabled: faucetEnabled,
+      perAccount: 1,
+      perIp: Number(env("FAUCET_PER_IP", "3")),
+      dailyBudget: Number(env("FAUCET_DAILY_BUDGET", "1000")),
+    },
     ipBurst: Number(env("RATE_IP_BURST", "60")),
     ipPerSec: Number(env("RATE_IP_PER_SEC", "10")),
     accountBurst: Number(env("RATE_ACCOUNT_BURST", "10")),
