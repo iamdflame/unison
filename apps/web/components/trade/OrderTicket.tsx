@@ -4,6 +4,7 @@ import { buyLock } from "@unison/engine";
 import { Minus, Plus } from "lucide-react";
 import { useEffect, useId, useMemo, useState } from "react";
 import { nextAuction } from "@/lib/demo/engine";
+import { draft } from "./draftStore";
 import { BEAT_MS } from "@/lib/motion/tokens";
 import { toast } from "@/lib/ui/toast";
 import { useStore } from "@/lib/store/createStore";
@@ -74,6 +75,11 @@ export function OrderTicket({
   const [qtyText, setQtyText] = useState("1");
   const [ioc, setIoc] = useState(false);
   const qty = Math.max(0, Number(qtyText) || 0);
+  // the chart draws the order being composed: publish its side and limit while this ticket is on screen
+  useEffect(() => {
+    draft.set({ ticker, side, tick: limit });
+  }, [ticker, side, limit]);
+  useEffect(() => () => draft.set(null), []);
 
   const lock = useMemo(() => {
     if (side === "sell") return qty;
@@ -422,7 +428,7 @@ export function OrderTicket({
                 : `${side === "buy" ? "Buy" : "Sell"} ${qty || ""} ${ticker} at ${side === "buy" ? "≤" : "≥"} ${fmt(limit)}`}
         </button>
         <p className="mt-2.5 text-center text-xs text-ink-3">
-          One price for everyone in the auction; orders at that price share it pro rata.
+          One price for everyone; orders at that price share it pro rata.
           <span className="mt-1 block text-ink-3/80">Testnet · mock assets · not yet audited</span>
         </p>
       </div>

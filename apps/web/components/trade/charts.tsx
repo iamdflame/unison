@@ -3,6 +3,8 @@
 import { useMemo } from "react";
 import type { MarketState } from "@/lib/demo/engine";
 import { curves } from "@/lib/sim/batch";
+import { useStore } from "@/lib/store/createStore";
+import { draft } from "./draftStore";
 
 /**
  * The terminal's three views of one market. Cross: the batch now forming, demand against supply, the band shaded
@@ -77,6 +79,10 @@ export function CrossChart({
       )
       .join("");
   const mine = m.book.filter((o) => o.owner === "you" && o.tick >= lo && o.tick <= hi);
+  // the order still being composed in the ticket, if it is for this market and inside the window
+  const composing = useStore(draft, (d) => (d && d.ticker === m.spec.ticker && d.tick >= lo && d.tick <= hi ? `${d.side}:${d.tick}` : null));
+  const [draftSide, draftTickText] = composing ? composing.split(":") : [null, null];
+  const draftTick = draftTickText !== null ? Number(draftTickText) : null;
   const last = m.last && m.last.tick >= lo && m.last.tick <= hi ? m.last : null;
   const crossOn = cross && cross.tick >= lo && cross.tick <= hi ? cross : null;
   const unit = m.spec.ticker;
@@ -177,6 +183,14 @@ export function CrossChart({
             : `${refName(m).toLowerCase()} ${fmt(m.refTick)} →`}
         </text>
       )}
+      {draftTick !== null ? (
+        <g>
+          <line x1={x(draftTick)} x2={x(draftTick)} y1={P.t + 22} y2={y(0)} stroke="var(--ink-2)" strokeDasharray="2 3" />
+          <text x={x(draftTick) + (x(draftTick) > W - 160 ? -6 : 6)} y={P.t + 34} textAnchor={x(draftTick) > W - 160 ? "end" : "start"} className="figures" fill="var(--ink-2)" stroke="var(--bg-raised)" strokeWidth={4} paintOrder="stroke" style={{ fontSize: 11 }}>
+            {draftSide === "buy" ? "Your bid" : "Your ask"} {fmt(draftTick)}
+          </text>
+        </g>
+      ) : null}
       {mine.map((o) => (
         <g key={o.id}>
           <line x1={x(o.tick)} x2={x(o.tick)} y1={P.t} y2={y(0)} stroke="var(--accent)" strokeDasharray="3 4" />
