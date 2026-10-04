@@ -11,8 +11,8 @@ import { BEAT_MS } from "@/lib/motion/tokens";
  * up by price; where the lines cross is the price, and everyone in the batch trades there. Visitors can add their
  * own order to the next batch and see exactly how it fills. Runs the real clearing engine.
  */
-const REF = 18120; // $181.20
-const BAND = { lo: REF - 181, hi: REF + 181, refTick: REF }; // ±1% (LIVE)
+const REF = 18000; // $180.00, aNVDA's close in the deployment (an illustration in market hours, not the live market)
+const BAND = { lo: REF - 180, hi: REF + 180, refTick: REF }; // ±1% (LIVE)
 const WIN = { lo: REF - 30, hi: REF + 30 };
 const W = 960;
 const H = 500;
@@ -258,6 +258,7 @@ export function OnePrice() {
               <span className="tnum">
                 {phase === "forming" ? `Batch forming · ${plural(orders.length, "order")}` : `Cleared · ${plural(buyers, "buyer")}, ${plural(sellers, "seller")}, one price`}
               </span>
+              <span className="ml-auto text-xs">Illustration: one batch in market hours, on the real clearing engine</span>
             </figcaption>
           </figure>
         </div>

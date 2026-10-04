@@ -10,11 +10,11 @@ import { useInView } from "@/components/motion/useInView";
  */
 const SCRIPT: { kind: "in" | "out"; text: string }[] = [
   { kind: "in", text: 'unison.market({ symbol: "aNVDA/AUSD" })' },
-  { kind: "out", text: "reference $181.20 · discovery band ±4.49% · fee 3 bp" },
-  { kind: "in", text: 'unison.place_order({ symbol: "aNVDA/AUSD", side: "buy", price: "181.30", qty: "2" })' },
+  { kind: "out", text: "reference $180.00 · live, band ±1.00% · fee 3 bp" },
+  { kind: "in", text: 'unison.place_order({ symbol: "aNVDA/AUSD", side: "buy", price: "180.10", qty: "2" })' },
   { kind: "out", text: "signed with session key 0x8c3e…41d2 · inside its limits · relayed, no gas" },
   { kind: "in", text: 'unison.order_status({ id: "5c1e…" })' },
-  { kind: "out", text: "filled 2.00 at $181.23 · same price as everyone in batch 110,330,351" },
+  { kind: "out", text: "filled 2.00 at $180.03 · same price as everyone in block 110,330,351" },
 ];
 
 /** Where each line starts in the typed stream. */
@@ -57,7 +57,7 @@ export function Agents() {
           {/* The terminal is a night instrument in either light. */}
           <div data-theme="night" className="rounded-[var(--radius-2xl)] bg-[oklch(0.15_0.007_265)] p-1.5 text-ink shadow-float">
             <div className="flex items-center gap-2 px-4 py-3">
-              <span className="ml-3 text-xs text-ink-3">agent · unison mcp</span>
+              <span className="ml-3 text-xs text-ink-3">agent · unison mcp · illustration</span>
             </div>
             <pre
               role="img"

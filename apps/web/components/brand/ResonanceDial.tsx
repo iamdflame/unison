@@ -4,6 +4,7 @@ import NumberFlow from "@number-flow/react";
 import { memo, useEffect, useRef, useState } from "react";
 import { BEAT_MS } from "@/lib/motion/tokens";
 import { createHeroFeed, type HeroFrame } from "@/lib/hero/feed";
+import { whenIdle } from "@/lib/ui/lazy";
 import type { MarketSpec } from "@/lib/content/markets";
 import { bandLabel, REGIME_LABEL, regimeNow } from "@/lib/unison/regimeNow";
 import { Emblem, type EmblemHandle } from "./Emblem";
@@ -101,6 +102,8 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
   });
   const cadence = useRef(auctionEvery);
   const [price, setPrice] = useState(() => feed.last ?? Number(market.seedPrice) / 1e6);
+  // where the beat comes from: the seeded feed for the first frames, then the venue's own market for the visit
+  const [flow, setFlow] = useState<"seeded" | "simulation" | "live">("seeded");
   useEffect(() => {
     cadence.current = auctionEvery;
   }, [auctionEvery]);
@@ -213,6 +216,9 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
     let swing: Animation | null = null;
     const onBeat = (f: HeroFrame) => {
       if (batchEl.current) batchEl.current.textContent = f.block.toLocaleString("en-US");
+      // the venue's own regime and band, so the dial and the board never disagree
+      const next = f.regime;
+      if (next) setRegime((r) => (r.name === next.name && Math.abs(r.bandBps - next.bandBps) < 1 ? r : next));
       const g = pointer.current;
       if (g && !still) {
         const angle = (f.block % STEPS) * (360 / STEPS);
@@ -267,7 +273,24 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
 
     let timer = 0;
     let running = true;
+    // Once the page is idle, the dial hands over to the venue: the market the terminal trades, live or simulated,
+    // so this visit has one tape. Until then (and if that fails) the seeded feed keeps the beat.
+    let source: { stop: () => void } | null = null;
+    let alive = true;
+    whenIdle(() => {
+      import("@/lib/hero/source")
+        .then(({ heroSource }) => heroSource(market, (f) => running && onBeat(f)))
+        .then((s) => {
+          if (!alive) return s.stop();
+          source = s;
+          clearTimeout(timer);
+          if (s.last !== null) setPrice(s.last);
+          setFlow(s.live ? "live" : "simulation");
+        })
+        .catch(() => undefined);
+    });
     const tick = () => {
+      if (source) return;
       if (running) onBeat(feed.next(Date.now(), cadence.current));
       timer = window.setTimeout(tick, BEAT_MS);
     };
@@ -281,6 +304,8 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
     document.addEventListener("visibilitychange", onVis);
     tick();
     return () => {
+      alive = false;
+      source?.stop();
       clearTimeout(timer);
       cancelAnimationFrame(raf);
       ro.disconnect();
@@ -302,7 +327,7 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
       // its own layer: what changes on a beat (the aperture, the batch number, the lume) repaints the dial, not the page
       className={`relative aspect-square w-full select-none [container-type:inline-size] [will-change:transform] ${className ?? ""}`}
       role="img"
-      aria-label={`${market.ticker} on Unison: one price every batch. ${REGIME_LABEL[regime.name]}, band ${bandLabel(regime.bandBps)}. Simulated order flow.`}
+      aria-label={`${market.ticker} on Unison: one price every batch. ${REGIME_LABEL[regime.name]}, band ${bandLabel(regime.bandBps)}. ${flow === "live" ? "Live" : "Simulated"} order flow.`}
     >
       <canvas ref={canvas} className="absolute inset-0 h-full w-full" aria-hidden />
       <DialFace bandDeg={bandDeg} />
@@ -354,7 +379,7 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
           </p>
         </div>
         <p className="tnum mt-[1.4cqw] text-center text-ink-3" style={{ fontSize: "max(11px, 1.4cqw)" }}>
-          Batch <span ref={batchEl}>—</span> · simulated flow
+          Block <span ref={batchEl}>—</span> · {flow === "live" ? "live" : "simulation"}
         </p>
       </div>
     </div>

@@ -1,3 +1,5 @@
+import type { RegimeNow } from "../unison/regimeNow.ts";
+
 /**
  * The hero's heartbeat: one frame per 300 ms batch. Prices follow a seeded random walk around a reference at
  * realistic volatility (σ 45%/yr ≈ 0.44 bp per batch), and trades print only when a batch actually crosses. Flow is
@@ -16,6 +18,8 @@ export interface HeroFrame {
   volume: number;
   /** Orders that arrived in this batch. */
   orders: number;
+  /** The venue's regime and band, when the frame comes from the venue (the seeded feed leaves it to the calendar). */
+  regime?: RegimeNow;
 }
 
 /** mulberry32: tiny, fast, seedable. */

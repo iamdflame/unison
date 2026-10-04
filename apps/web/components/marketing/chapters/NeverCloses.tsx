@@ -91,6 +91,8 @@ export function NeverCloses() {
     return `${i === 0 ? "M" : "L"}${cx(t).toFixed(1)},${cy(band(t)).toFixed(1)}`;
   }).join("");
   const sinceClose = regime?.closedSince && now ? (now.getTime() - regime.closedSince.getTime()) / 3_600_000 : null;
+  // the band at this moment as the venue computes it (the contract's integer math), not the curve's float
+  const nowBand = regime ? regime.bandBps / 100 : 0;
   const marks = [
     { t: 0, label: "Close" },
     { t: 16, label: "Sat noon" },
@@ -211,13 +213,13 @@ export function NeverCloses() {
               ))}
               {sinceClose !== null && sinceClose <= tMax ? (
                 <g>
-                  <line x1={cx(sinceClose)} x2={cx(sinceClose)} y1={cy(0)} y2={cy(band(sinceClose))} stroke="var(--ink)" strokeDasharray="2 4" />
-                  <circle cx={cx(sinceClose)} cy={cy(band(sinceClose))} r="6.5" fill="var(--ball-3)" />
+                  <line x1={cx(sinceClose)} x2={cx(sinceClose)} y1={cy(0)} y2={cy(nowBand)} stroke="var(--ink)" strokeDasharray="2 4" />
+                  <circle cx={cx(sinceClose)} cy={cy(nowBand)} r="6.5" fill="var(--ball-3)" />
                   {/* up and to the left of the dot, where the rising band never is (flipped only near the close);
                       a halo in the page color keeps grid hairlines off the figures */}
                   <text
                     x={cx(sinceClose) + (cx(sinceClose) > CW * 0.3 ? -12 : 12)}
-                    y={cy(band(sinceClose)) - 14}
+                    y={cy(nowBand) - 14}
                     textAnchor={cx(sinceClose) > CW * 0.3 ? "end" : "start"}
                     className="tnum"
                     fill="var(--ink)"
@@ -227,7 +229,7 @@ export function NeverCloses() {
                     paintOrder="stroke"
                     style={{ fontSize: 13, fontWeight: 600 }}
                   >
-                    Now ±{band(sinceClose).toFixed(2)}%
+                    Now ±{nowBand.toFixed(2)}%
                   </text>
                 </g>
               ) : null}

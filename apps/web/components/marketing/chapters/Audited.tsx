@@ -82,10 +82,10 @@ export function Audited() {
               {consensus ? "CONSENSUS" : "NODES REPORTING"}
             </text>
             <text x="260" y="232" textAnchor="middle" className="numerals" fill="var(--ink)" style={{ fontSize: 30 }}>
-              {consensus ? "$181.17" : `${reported}/${NODES}`}
+              {consensus ? "$180.02" : `${reported}/${NODES}`}
             </text>
             <text x="260" y="256" textAnchor="middle" className="tnum" fill="var(--ink-3)" style={{ fontSize: 12 }}>
-              {verdict ? "Reference $181.20 · 0.02% apart" : consensus ? "Median of medians" : "Alpaca IEX · Finnhub"}
+              {verdict ? "Reference $180.00 · 0.01% apart" : consensus ? "Median of medians" : "Alpaca IEX · Finnhub"}
             </text>
           </svg>
           <figcaption className="mx-auto mt-4 flex max-w-[620px] items-center gap-3 text-sm">
