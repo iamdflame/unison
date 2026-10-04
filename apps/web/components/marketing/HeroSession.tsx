@@ -17,7 +17,7 @@ export function HeroSession() {
       <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
         <Link
           href="/trade/aNVDA"
-          className="press inline-flex items-center rounded-full bg-ink px-6 py-3.5 text-[15px] font-semibold text-bg shadow-md hover-fine:opacity-90"
+          className="press inline-flex items-center rounded-[var(--radius-sm)] bg-ink px-6 py-3.5 text-[15px] font-semibold text-bg hover-fine:opacity-90"
         >
           {m ? ctaLabel(m) : "Start trading"}
         </Link>

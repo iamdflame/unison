@@ -13,8 +13,9 @@ const LINKS = [
 ];
 
 /**
- * A single sapphire pill. It tightens a little once the page scrolls; it never hides the content it sits over.
- * `brand` is drawn by the (server) layout, so the lockup's outlines reach the page as markup, not JavaScript.
+ * A full-width bar of sapphire on a hairline, the way a maison's site and Apple's are ruled: the lockup, the stage as
+ * a hallmark, text links, and one quiet action. It firms up once the page scrolls; it never hides the content it
+ * sits over. `brand` is drawn by the (server) layout, so the lockup's outlines reach the page as markup, not JavaScript.
  */
 export function Nav({ brand }: { brand: ReactNode }) {
   const [scrolled, setScrolled] = useState(false);
@@ -26,35 +27,31 @@ export function Nav({ brand }: { brand: ReactNode }) {
   }, []);
 
   return (
-    <header className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center px-4 pt-[max(12px,env(safe-area-inset-top))]">
-      <nav
-        aria-label="Primary"
-        data-scrolled={scrolled || undefined}
-        className="glass pointer-events-auto flex w-full max-w-[760px] items-center gap-2 rounded-full py-1.5 pr-1.5 pl-4 shadow-float transition-[padding,box-shadow] duration-[240ms] ease-[cubic-bezier(0.23,1,0.32,1)]"
-      >
-        <Link href="/" className="flex items-center rounded-full py-1.5 pr-2 outline-offset-4" aria-label="Unison, home">
+    <header
+      data-scrolled={scrolled || undefined}
+      className="glass fixed inset-x-0 top-0 z-50 border-b border-transparent pt-[env(safe-area-inset-top)] transition-[border-color] duration-[240ms] data-[scrolled]:border-line"
+    >
+      <nav aria-label="Primary" className="mx-auto flex h-14 max-w-[1440px] items-center gap-3 px-5 sm:px-8 lg:px-12">
+        <Link href="/" className="flex items-center py-1.5 pr-1 outline-offset-4" aria-label="Unison, home">
           {brand}
         </Link>
-        {/* the venue's stage, always in view */}
-        <span className="hidden rounded-full px-2 py-0.5 text-[11px] font-medium text-ink-3 hairline sm:inline">{site.stage}</span>
-        <ul className="mx-auto hidden items-center gap-1 md:flex">
+        {/* the venue's stage, as a hallmark: small capitals in a hairline box */}
+        <span className="dial-label hidden rounded-[3px] px-1.5 py-1 text-[10px] text-ink-3 hairline sm:inline">{site.stage}</span>
+        <ul className="ml-6 hidden items-center gap-1 md:flex">
           {LINKS.map((l) => (
             <li key={l.href}>
-              <Link
-                href={l.href}
-                className="rounded-full px-3.5 py-2 text-[13.5px] font-medium text-ink-2 transition-colors duration-150 hover-fine:text-ink"
-              >
+              <Link href={l.href} className="px-3 py-2 text-[13.5px] font-medium text-ink-2 transition-colors duration-150 hover-fine:text-ink">
                 {l.label}
               </Link>
             </li>
           ))}
         </ul>
-        <div className="ml-auto flex items-center gap-1 md:ml-0">
+        <div className="ml-auto flex items-center gap-1.5">
           <MobileMenu />
           <ThemeMenu />
           <Link
             href="/trade/aNVDA"
-            className="press tap rounded-full bg-ink px-4 py-2.5 text-[13.5px] font-semibold text-bg shadow-sm hover-fine:opacity-90"
+            className="press tap rounded-[var(--radius-sm)] bg-ink px-3.5 py-2 text-[13.5px] font-semibold text-bg hover-fine:opacity-90"
           >
             Start trading
           </Link>
