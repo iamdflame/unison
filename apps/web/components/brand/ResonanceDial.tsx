@@ -232,8 +232,6 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
     const y1 = 500 - r * Math.cos(a);
     return `M${x1.toFixed(2)},${y1.toFixed(2)} A${r},${r} 0 ${deg > 90 ? 1 : 0} 1 ${(1000 - x1).toFixed(2)},${y1.toFixed(2)}`;
   };
-  // Rehaut engraving, as on a fine case: the name, repeated, evenly around the dial.
-  const rehaut = Array.from({ length: 12 }, () => "UNISON").join("  ◆  ") + "  ◆  ";
 
   return (
     <div
@@ -244,9 +242,6 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
     >
       <canvas ref={canvas} className="absolute inset-0 h-full w-full" aria-hidden />
       <svg viewBox="0 0 1000 1000" className="absolute inset-0 h-full w-full overflow-visible" aria-hidden>
-        <defs>
-          <path id="rehaut" d="M500,500 m-402,0 a402,402 0 1,1 804,0 a402,402 0 1,1 -804,0" />
-        </defs>
         <circle cx="500" cy="500" r="494" fill="none" stroke="var(--line-strong)" strokeWidth="1" />
         {/* 200-step track: one step per batch, a minute per turn */}
         <g stroke="var(--ink-3)">
@@ -263,10 +258,9 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
             />
           ))}
         </g>
-        <text className="dial-label" fill="var(--ink-3)" style={{ fontSize: 11, letterSpacing: "0.32em" }} opacity="0.75">
-          <textPath href="#rehaut" textLength={2 * Math.PI * 402 - 18} lengthAdjust="spacing">
-            {rehaut}
-          </textPath>
+        {/* Signed once, beneath twelve, as a maison signs a dial */}
+        <text x="500" y="132" textAnchor="middle" fill="var(--ink-2)" style={{ fontFamily: "var(--font-display)", fontSize: 22, letterSpacing: "0.34em" }}>
+          UNISON
         </text>
         {/* Band at 12: the half-width the venue would use right now; prints land on it */}
         <path d={arc(442, bandDeg)} fill="none" stroke="var(--champagne)" strokeWidth="2" strokeLinecap="round" />
@@ -276,8 +270,8 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
           <path d="M500,40 l-5.5,-17 h11 z" fill="var(--accent)" />
         </g>
         {/* Engraved specification, like a calibre's dial text */}
-        <text x="500" y="610" textAnchor="middle" className="dial-label" fill="var(--ink-3)" style={{ fontSize: 13, letterSpacing: "0.2em" }}>
-          12,000 A/H · MONAD
+        <text x="500" y="610" textAnchor="middle" fill="var(--ink-3)" style={{ fontSize: 13, letterSpacing: "0.14em", fontStretch: "125%", fontWeight: 600 }}>
+          12,000 A/h · Monad
         </text>
       </svg>
       {/* Lume: the ball charges with traded volume (night only) */}
@@ -300,7 +294,8 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
       </div>
       {/* The 6 o'clock aperture: the price everyone in this batch got */}
       <div className="absolute left-1/2 -translate-x-1/2" style={{ top: "66.5cqw" }}>
-        <div className="glass flex flex-col items-center rounded-[2.4cqw] px-[3.2cqw] py-[1.6cqw] shadow-sm hairline">
+        {/* an aperture cut into the dial: an opaque window, a bevel of two hairlines, no shadow */}
+        <div className="flex flex-col items-center rounded-[1.2cqw] bg-raised px-[3.2cqw] py-[1.6cqw] ring-1 ring-line-strong outline outline-1 outline-offset-[0.45cqw] outline-line">
           <div className="numerals leading-none" style={{ fontSize: "6.2cqw" }}>
             <NumberFlow
               value={price}
