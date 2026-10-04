@@ -409,7 +409,7 @@ function History({ acct }: { acct: AccountState }) {
                   >
                     <span className={`w-14 font-semibold ${f.side === "buy" ? "text-buy" : "text-sell"}`}>{f.side === "buy" ? "Bought" : "Sold"}</span>
                     <span className="tnum min-w-0 truncate text-ink">
-                      {f.qty.toFixed(2)} {f.ticker} at {fmt(f.tick)} <span className="text-ink-3">· batch {f.block.toLocaleString("en-US")}</span>
+                      {f.qty.toFixed(2)} {f.ticker} at {fmt(f.tick)} <span className="text-ink-3">· block {f.block.toLocaleString("en-US")}</span>
                     </span>
                     <span className="tnum text-ink-3">{new Date(f.ts).toLocaleTimeString("en-US", { hour12: false })}</span>
                   </button>

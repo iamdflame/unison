@@ -63,7 +63,7 @@ function settle(w: OrderWatch): boolean {
     const rest = o.status !== "partial" ? "" : w.ioc ? " The rest was released." : " The rest stays in the book at your limit.";
     toast.success(`${w.side === "buy" ? "Bought" : "Sold"} ${o.filled.toFixed(2)}${of} ${w.ticker} at ${price}`, {
       id: w.toastId,
-      description: `The same price as everyone in batch ${(fill?.block ?? o.batches.at(-1) ?? o.placedBlock).toLocaleString("en-US")}.${rest}`,
+      description: `The same price as everyone in block ${(fill?.block ?? o.batches.at(-1) ?? o.placedBlock).toLocaleString("en-US")}.${rest}`,
       action: fill ? { label: "Certificate", onClick: () => w.onCertificate(fill) } : undefined,
       duration: 8000,
     });

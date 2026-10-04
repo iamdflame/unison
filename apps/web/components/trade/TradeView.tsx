@@ -365,7 +365,7 @@ function Activity({
                   <span className="tnum text-ink">
                     {f.qty.toFixed(2)} at {fmt(f.tick)}{" "}
                     <span className="text-ink-3">
-                      · batch {f.block.toLocaleString("en-US")} ·{" "}
+                      · block {f.block.toLocaleString("en-US")} ·{" "}
                       {f.participants > 0 ? `${f.participants} orders` : `${f.batchVolume.toFixed(2)} ${ticker} traded`}
                       , one price
                     </span>
