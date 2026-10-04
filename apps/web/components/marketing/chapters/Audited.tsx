@@ -1,5 +1,6 @@
 "use client";
 
+import { Hallmark } from "@/components/ui/Hallmark";
 import { Check } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useInView } from "@/components/motion/useInView";
@@ -101,7 +102,7 @@ export function Audited() {
               {verdict ? "Within 0.75%: trading continues" : "Auditing"}
             </span>
             <span className="text-ink-3">Past {(facts.cre.haltAboveBps / 100).toFixed(2)}%, the market halts and the signer&apos;s bond is slashed.</span>
-            <span className="ml-auto shrink-0 rounded-full px-2.5 py-1 text-xs font-medium text-ink-2 hairline">CRE simulator</span>
+            <Hallmark className="ml-auto">CRE simulator</Hallmark>
           </figcaption>
         </figure>
       </div>
