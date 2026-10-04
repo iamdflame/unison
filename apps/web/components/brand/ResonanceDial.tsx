@@ -301,7 +301,7 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
       {/* The 6 o'clock aperture: the price everyone in this batch got */}
       <div className="absolute left-1/2 -translate-x-1/2" style={{ top: "66.5cqw" }}>
         <div className="glass flex flex-col items-center rounded-[2.4cqw] px-[3.2cqw] py-[1.6cqw] shadow-sm hairline">
-          <div className="font-display tnum leading-none" style={{ fontSize: "6.2cqw", fontVariationSettings: '"opsz" 72' }}>
+          <div className="numerals leading-none" style={{ fontSize: "6.2cqw" }}>
             <NumberFlow
               value={price}
               locales="en-US"

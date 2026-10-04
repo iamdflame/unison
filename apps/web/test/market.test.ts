@@ -34,3 +34,25 @@ describe("marketMoment", () => {
     expect(marketMoment(new Date("2026-11-26T17:00:00Z")).phase).toBe("holiday"); // Thanksgiving 12:00 ET
   });
 });
+
+describe("regimeNow", async () => {
+  const { regimeNow } = await import("../lib/unison/regimeNow.ts");
+  const { marketByTicker } = await import("../lib/content/markets.ts");
+  it("follows the FX week for the pound and Wall Street for stocks", () => {
+    const gbp = marketByTicker("GBPm")!;
+    const nvda = marketByTicker("aNVDA")!;
+    const tuesdayNight = new Date("2026-10-07T02:00:00Z"); // Tue 22:00 ET: stocks closed, FX open
+    expect(regimeNow(gbp, tuesdayNight).name).toBe("LIVE");
+    expect(regimeNow(nvda, tuesdayNight).name).toBe("DISCOVERY");
+    const saturday = new Date("2026-10-03T16:00:00Z");
+    expect(regimeNow(gbp, saturday).name).toBe("DISCOVERY");
+    expect(regimeNow(marketByTicker("WMON")!, saturday).name).toBe("LIVE");
+  });
+  it("widens NVDA's weekend band with the square root of time closed", () => {
+    const nvda = marketByTicker("aNVDA")!;
+    const fridayNight = regimeNow(nvda, new Date("2026-10-10T01:00:00Z")).bandBps; // Fri 21:00 ET, 1 h closed
+    const sunday = regimeNow(nvda, new Date("2026-10-11T16:00:00Z")).bandBps; // Sun noon ET
+    expect(fridayNight).toBeLessThan(sunday);
+    expect(sunday).toBeLessThanOrEqual(nvda.regime.discCapBps);
+  });
+});

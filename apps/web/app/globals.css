@@ -264,6 +264,14 @@
   line-height: 1.55;
   letter-spacing: -0.003em;
 }
+/* Figures set in Bodoni at mid sizes need a sturdier optical cut: at opsz 48+ the hairlines of 4 and 7 vanish. */
+@utility numerals {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 28;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.01em;
+}
 /* Instrument labels only (BATCH, BAND): the wide cut of Mona Sans, like the text on a dial. Never for section labels. */
 @utility dial-label {
   font-family: var(--font-sans);

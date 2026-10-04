@@ -31,6 +31,7 @@ const scrollTo = opt("scroll", null);
 const full = opt("full", false) === true;
 const reduced = opt("reduced", false) === true;
 const at = opt("at", null); // ISO instant to freeze the clock at (market-hours states)
+const sections = opt("sections", null); // comma-separated selectors: scroll each into view and shoot the viewport
 
 const dir = new URL("../brand/shots/", import.meta.url);
 mkdirSync(dir, { recursive: true });
@@ -63,6 +64,21 @@ await page.waitForTimeout(wait);
 if (click) await page.locator(click).first().dispatchEvent("pointerdown");
 
 const out = [];
+if (sections) {
+  for (const [i, sel] of String(sections).split(",").entries()) {
+    await page.evaluate((s) => {
+      const el = document.querySelector(s);
+      if (el) window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 80);
+    }, sel);
+    await page.waitForTimeout(wait);
+    const file = new URL(`${slug}-s${i}.png`, dir);
+    await page.screenshot({ path: file.pathname.replace(/^\/([A-Z]:)/, "$1") });
+    out.push(file.pathname.replace(/^\/([A-Z]:)/, "$1"));
+  }
+  await browser.close();
+  console.log(out.join("\n"));
+  process.exit(0);
+}
 for (let i = 0; i < frames; i++) {
   if (i > 0) await page.waitForTimeout(interval);
   const file = new URL(`${slug}${frames > 1 ? `-${i}` : ""}.png`, dir);
