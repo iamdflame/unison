@@ -44,6 +44,7 @@ describe("every site number is backed by the evidence files", () => {
     expect(gas).toContain(n(facts.gas.orderSteadyState));
     expect(gas).toContain(`$${facts.gas.batch200Usd}`);
     expect(gas).toContain(`$${facts.gas.orderUsd}`);
+    expect(gas).toContain(`${facts.gas.baseFeeGwei} gwei minimum base fee and MON ≈ $${facts.gas.monUsd}`);
   });
 
   it("weekend gaps", () => {

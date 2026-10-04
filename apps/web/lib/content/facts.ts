@@ -38,6 +38,9 @@ export const facts = {
     orderSteadyState: 132_650,
     batch200Usd: 0.02,
     orderUsd: 0.0005,
+    /** the dollar figures' basis: Monad's minimum base fee and the MON price used in docs/evidence/gas.md */
+    baseFeeGwei: 100,
+    monUsd: 0.034,
   },
 
   /** docs/evidence/weekend-gaps.md (5 years of daily data). */

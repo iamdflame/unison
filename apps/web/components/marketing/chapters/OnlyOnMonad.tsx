@@ -102,6 +102,11 @@ export function OnlyOnMonad() {
               </p>
               <p className="mt-3 text-sm text-ink-3">to place an order</p>
             </div>
+            {/* every figure with its basis */}
+            <figcaption className="col-span-2 text-xs leading-relaxed text-ink-3">
+              At Monad&apos;s {facts.gas.baseFeeGwei} gwei minimum base fee and MON at ${facts.gas.monUsd}. Blocks measured at
+              293–304 ms in October 2026; every 300 ms figure on this site rests on that.
+            </figcaption>
           </figure>
         </div>
       </div>
