@@ -318,7 +318,7 @@ export class DemoMarket {
     const common = { block, refTick, regime, lo, hi };
 
     // Between call auctions orders only gather (one auction a block at most); the auction takes all that gathered.
-    if (block - this.lastAuction < cadence) {
+    if (Math.floor(block / cadence) <= Math.floor(this.lastAuction / cadence)) {
       this.store.set({ ...s, ...common, book, vault, forming: s.forming + arrivals, vaultBook: this.vaultBook() });
       return;
     }

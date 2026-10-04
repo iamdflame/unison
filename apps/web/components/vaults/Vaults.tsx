@@ -1,6 +1,5 @@
 "use client";
 
-import NumberFlow from "@number-flow/react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { RegimeBadge } from "@/components/app/RegimeBadge";
@@ -12,7 +11,8 @@ import { useVaultView, type VaultLive } from "@/lib/venue/vault";
 import { QuoteInstrument } from "./QuoteInstrument";
 
 const money = (n: number, d = 2) => `$${n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d })}`;
-const signed = (n: number) => `${n >= 0 ? "+" : "−"}${money(Math.abs(n))}`;
+const signed = (n: number) => `${n > 0.004 ? "+" : n < -0.004 ? "−" : ""}${money(Math.abs(n))}`;
+const tone = (n: number) => (Math.abs(n) < 0.005 ? "text-ink-2" : n > 0 ? "text-buy" : "text-sell");
 const VAULTED = MARKETS.filter((m) => m.vault);
 const E18 = 10n ** 18n;
 /** The NAV the simulation draws each vault's depth for, half in the stock and half in AUSD. */
@@ -129,7 +129,7 @@ function VaultRow({ spec, cols }: { spec: MarketSpec; cols: string }) {
             <p className="figures text-[12px] text-ink-3">over {p.widthTicks} ticks</p>
           </div>
           <p className="tnum hidden text-right text-[15px] text-ink md:block">{money(nav, 0)}</p>
-          <p className={`tnum hidden text-right text-[15px] md:block ${vault.spreadPnl >= 0 ? "text-buy" : "text-sell"}`}>{signed(vault.spreadPnl)}</p>
+          <p className={`tnum hidden text-right text-[15px] md:block ${tone(vault.spreadPnl)}`}>{signed(vault.spreadPnl)}</p>
         </>
       ) : null}
 
@@ -171,7 +171,7 @@ function QuoteGauge({ bid, ask, width }: { bid: number; ask: number; width: numb
 /** /vaults/[ticker]: the vault's quote as an instrument, what it holds and has earned, and how to join it. */
 export function VaultDetail({ ticker }: { ticker: string }) {
   const spec = marketByTicker(ticker)!;
-  const { value: m } = useMarket(ticker, (s) => ({ refTick: s.refTick, regime: s.regime.name }), shallowEqual, { book: false });
+  const { value: m } = useMarket(ticker, (s) => ({ refTick: s.refTick, regime: s.regime.name, last: s.last?.tick ?? null }), shallowEqual, { book: false });
   const vault = useVaultView(spec);
   const { unit } = priceFormat(spec);
   const p = spec.vault!;
@@ -180,7 +180,7 @@ export function VaultDetail({ ticker }: { ticker: string }) {
   const weight = vault && nav ? ((vault.base * px) / nav) * 100 : 50;
 
   return (
-    <div className="mx-auto max-w-[1680px] px-4 py-8 sm:px-6 lg:py-12 [&>*]:max-w-[1200px]">
+    <div className="mx-auto max-w-[1680px] px-4 py-8 sm:px-6 lg:py-12">
       <Link href="/vaults" className="press -ml-2 inline-flex items-center gap-1 rounded-full px-2 py-1 text-sm text-ink-3 hover-fine:text-ink">
         <ChevronLeft size={15} strokeWidth={1.75} aria-hidden /> Vaults
       </Link>
@@ -209,7 +209,9 @@ export function VaultDetail({ ticker }: { ticker: string }) {
         ) : null}
       </section>
 
-      {vault && nav !== null ? <Live vault={vault} nav={nav} px={px} ticker={spec.ticker} /> : null}
+      {vault && nav !== null ? (
+        <Live vault={vault} nav={nav} px={px} ticker={spec.ticker} lastPx={m.regime === "DISCOVERY" && m.last !== null ? m.last * unit : null} />
+      ) : null}
 
       <section aria-labelledby="lp-title" className="mt-6 grid gap-8 rounded-[var(--radius-xl)] bg-raised p-6 shadow-panel sm:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div>
@@ -241,26 +243,37 @@ await client.requestRedeem(vault, shares);`}</pre>
   );
 }
 
-function Live({ vault, nav, px, ticker }: { vault: VaultLive; nav: number; px: number; ticker: string }) {
+function Live({ vault, nav, px, ticker, lastPx }: { vault: VaultLive; nav: number; px: number; ticker: string; lastPx: number | null }) {
+  // while its market is closed the reference is the last close; the auctions have since found another price, and
+  // what the vault holds is worth that too: both marks, so weekend risk is never hidden behind a frozen close
+  const navAtLast = lastPx !== null ? vault.quote + vault.base * lastPx : null;
+  const inventoryAtLast = lastPx !== null ? vault.inventoryPnl + vault.base * (lastPx - px) : null;
   const sharePrice = vault.supply > 0 ? nav / vault.supply : 0;
   const total = Math.abs(vault.spreadPnl) + Math.abs(vault.inventoryPnl) || 1;
   return (
     <>
       <section aria-label="Vault now" className="mt-6 grid gap-6 rounded-[var(--radius-xl)] bg-raised p-6 shadow-panel sm:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <div>
-          <p className="text-sm text-ink-3">Net asset value at the reference</p>
-          <p className="numerals mt-2 text-[clamp(2.25rem,5vw,3.5rem)] leading-none text-ink">
-            <NumberFlow value={nav} locales="en-US" format={{ style: "currency", currency: "USD", maximumFractionDigits: 0 }} />
-          </p>
+          <p className="text-sm text-ink-3">{lastPx !== null ? "Net asset value at the last close" : "Net asset value at the reference"}</p>
+          {/* a balance is read, not watched: it updates in place, without rolling digits */}
+          <p className="numerals mt-2 text-[clamp(2.25rem,5vw,3.5rem)] leading-none text-ink">{money(nav, 0)}</p>
+          {navAtLast !== null ? (
+            <p className="figures mt-2 text-sm text-ink-2">
+              {money(navAtLast, 0)} at the last trade, {money(lastPx!)}
+            </p>
+          ) : null}
           <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
             <div>
               <dt className="text-ink-3">Share price</dt>
               <dd className="tnum mt-0.5 text-ink">${sharePrice.toFixed(4)}</dd>
             </div>
             <div>
-              <dt className="text-ink-3">Inventory</dt>
+              <dt className="text-ink-3">Holds</dt>
               <dd className="tnum mt-0.5 text-ink">
-                {vault.base.toLocaleString("en-US", { maximumFractionDigits: 2 })} {ticker} · {money(vault.quote, 0)}
+                {vault.base.toLocaleString("en-US", { maximumFractionDigits: 2 })} {ticker} <span className="text-ink-3">({money(vault.base * px, 0)})</span>
+              </dd>
+              <dd className="tnum text-ink">
+                {money(vault.quote, 0)} <span className="text-ink-3">AUSD</span>
               </dd>
             </div>
             <div>
@@ -270,7 +283,7 @@ function Live({ vault, nav, px, ticker }: { vault: VaultLive; nav: number; px: n
             <div>
               <dt className="text-ink-3">Volume</dt>
               <dd className="tnum mt-0.5 text-ink">
-                {vault.tradedBase.toLocaleString("en-US", { maximumFractionDigits: 2 })} {ticker} · {money(vault.tradedBase * px, 0)}
+                {vault.tradedBase.toLocaleString("en-US", { maximumFractionDigits: 2 })} {ticker} <span className="text-ink-3">({money(vault.tradedBase * px, 0)})</span>
               </dd>
             </div>
           </dl>
@@ -285,7 +298,7 @@ function Live({ vault, nav, px, ticker }: { vault: VaultLive; nav: number; px: n
               <div key={label as string}>
                 <div className="flex items-baseline justify-between gap-4">
                   <p className="text-[15px] font-semibold text-ink">{label}</p>
-                  <p className={`tnum text-[15px] font-semibold ${(value as number) >= 0 ? "text-buy" : "text-sell"}`}>{signed(value as number)}</p>
+                  <p className={`tnum text-[15px] font-semibold ${tone(value as number)}`}>{signed(value as number)}</p>
                 </div>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-sunken" aria-hidden>
                   <div className={`h-full rounded-full ${(value as number) >= 0 ? "bg-buy" : "bg-sell"}`} style={{ width: `${(Math.abs(value as number) / total) * 100}%` }} />
@@ -294,6 +307,13 @@ function Live({ vault, nav, px, ticker }: { vault: VaultLive; nav: number; px: n
               </div>
             ))}
           </div>
+          {inventoryAtLast !== null ? (
+            <p className="mt-5 text-sm text-ink-2">
+              Marked at the last trade instead of the close, its inventory would show{" "}
+              <span className={`figures font-semibold ${tone(inventoryAtLast)}`}>{signed(inventoryAtLast)}</span>: what the weekend has done to
+              it so far, before the market reopens.
+            </p>
+          ) : null}
           {vault.pending > 0 ? <p className="mt-5 text-sm text-ink-2">{vault.pending} LP request{vault.pending === 1 ? "" : "s"} waiting for the next reference.</p> : null}
         </div>
       </section>

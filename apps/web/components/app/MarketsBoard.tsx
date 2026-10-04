@@ -120,7 +120,7 @@ function Row({ spec }: { spec: MarketSpec }) {
         {/* the header says "since close"; only a market measured otherwise says so */}
         {closed ? null : <p className="text-[11px] text-ink-3">{basis}</p>}
       </div>
-      <p className="figures hidden text-right text-[15px] text-ink md:block">{clears !== null ? fmt(clears) : <span className="text-[13px] text-ink-3">{m.book.length ? "No cross" : "In the terminal"}</span>}</p>
+      <p className="figures hidden text-right text-[15px] text-ink md:block">{clears !== null ? fmt(clears) : <span className="text-[13px] text-ink-3">{m.book.length ? "No cross yet" : "In the terminal"}</span>}</p>
       <p className="figures hidden text-right text-[15px] text-ink-2 md:block">{traded > 0 ? compactUsd.format(traded) : <span className="text-[13px] text-ink-3">None</span>}</p>
       <ChevronRight size={16} strokeWidth={1.75} aria-hidden className="hidden text-ink-3 transition-colors group-hover:text-ink md:block" />
     </Link>

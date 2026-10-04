@@ -1,7 +1,6 @@
 "use client";
 
 import { Tabs } from "@base-ui/react/tabs";
-import NumberFlow from "@number-flow/react";
 import { RelayerClient } from "@unison/sdk/relayer";
 import { TapeClient, type Transfer } from "@unison/sdk/tape";
 import { ArrowUpRight, Check, Copy, Droplets, Fingerprint, RotateCcw, X } from "lucide-react";
@@ -78,7 +77,7 @@ export function Portfolio() {
 
   if (v.ready && v.mode === "live" && !id) {
     return (
-      <div className="mx-auto max-w-[1680px] px-4 py-8 sm:px-6 lg:py-12 [&>*]:max-w-[1200px]">
+      <div className="mx-auto max-w-[1680px] px-4 py-8 sm:px-6 lg:py-12">
         <h1 className="text-display-m text-ink">Portfolio</h1>
         <div className="mt-8 rounded-[var(--radius-xl)] bg-raised px-6 py-14 text-center shadow-panel sm:py-20">
           <p className="text-display-m text-ink">Your account is your passkey.</p>
@@ -141,7 +140,7 @@ function Account({ acct }: { acct: AccountState }) {
   const halted = held.filter((s) => marks[s.ticker]?.regime === "HALTED");
 
   return (
-    <div className="mx-auto max-w-[1680px] px-4 py-8 sm:px-6 lg:py-12 [&>*]:max-w-[1200px]">
+    <div className="mx-auto max-w-[1680px] px-4 py-8 sm:px-6 lg:py-12">
       <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
         <div className="min-w-0">
           <h1 className="text-display-m text-ink">Portfolio</h1>
@@ -159,13 +158,8 @@ function Account({ acct }: { acct: AccountState }) {
       <section aria-label="Equity" className="mt-8 rounded-[var(--radius-xl)] bg-raised p-6 shadow-panel sm:p-8">
         <p className="text-sm text-ink-3">Equity at reference prices</p>
         <p className="numerals mt-2 text-[clamp(2.5rem,7vw,4.75rem)] leading-none text-ink">
-          <NumberFlow
-            value={equity}
-            locales="en-US"
-            format={{ style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 }}
-            transformTiming={{ duration: 420, easing: "cubic-bezier(0.23, 1, 0.32, 1)" }}
-            spinTiming={{ duration: 420, easing: "cubic-bezier(0.23, 1, 0.32, 1)" }}
-          />
+          {/* a balance is read, not watched: it updates in place, without rolling digits */}
+          {equity.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
         <Allocation holdings={holdings} equity={equity} />
         <dl className="mt-5 flex flex-wrap gap-x-8 gap-y-2 text-sm">
