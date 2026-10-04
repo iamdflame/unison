@@ -108,7 +108,7 @@ export function Status() {
           {rows.map(([name, what, p, detail]) => {
             const level = p?.level ?? "down";
             return (
-              <li key={name} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-6 py-4 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto]">
+              <li key={name} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-6 py-4 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_140px]">
                 <div>
                   <p className="text-[15px] font-semibold text-ink">{name}</p>
                   <p className="text-sm text-ink-3">{what}</p>
@@ -200,7 +200,7 @@ function SimulatedStatus() {
       <section aria-label="Services" className="mx-auto max-w-[1440px] px-5 pb-10 sm:px-8 lg:px-12">
         <ul className="divide-y divide-line overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-panel">
           {rows.map(([name, what, detail, word, dot]) => (
-            <li key={name} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-6 py-4 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto]">
+            <li key={name} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-6 py-4 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_140px]">
               <div>
                 <p className="text-[15px] font-semibold text-ink">{name}</p>
                 <p className="text-sm text-ink-3">{what}</p>

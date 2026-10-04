@@ -252,7 +252,7 @@ export function OnePrice() {
               <span className="tnum">
                 {phase === "forming" ? `Batch forming · ${plural(orders.length, "order")}` : `Cleared · ${plural(buyers, "buyer")}, ${plural(sellers, "seller")}, one price`}
               </span>
-              <span className="ml-auto text-xs">Illustration: one batch in market hours, on the real clearing engine</span>
+              <span className="basis-full text-xs">Illustration: one batch in market hours, on the real clearing engine.</span>
             </figcaption>
           </figure>
         </div>

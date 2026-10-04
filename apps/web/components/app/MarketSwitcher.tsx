@@ -14,6 +14,7 @@ const MarketPalette = preloadable(() => import("./MarketPalette").then((m) => m.
  * press is answered as soon as the switcher renders.
  */
 const presses = createStore(0);
+const noop = () => () => {};
 if (typeof window !== "undefined") {
   window.addEventListener("keydown", (e) => {
     if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) {
@@ -36,6 +37,11 @@ export function MarketSwitcher() {
     if ((pressed - answered) % 2 === 1) setOpen((o) => !o);
   }
   const router = useRouter();
+  const mac = useSyncExternalStore(
+    noop,
+    () => /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent),
+    () => true,
+  );
 
   useEffect(() => {
     whenIdle(MarketPalette.preload);
@@ -57,7 +63,7 @@ export function MarketSwitcher() {
         aria-label="Search markets"
       >
         <Search size={14} strokeWidth={1.5} aria-hidden /> Search
-        <kbd className="ml-3 rounded-md border border-line px-1.5 text-[11px] text-ink-3">⌘K</kbd>
+        <kbd className="ml-3 rounded-md border border-line px-1.5 text-[11px] text-ink-3">{mac ? "⌘K" : "Ctrl K"}</kbd>
       </button>
       {mounted ? (
         <Suspense fallback={null}>

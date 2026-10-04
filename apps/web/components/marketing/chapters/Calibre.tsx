@@ -6,7 +6,7 @@ import { facts } from "@/lib/content/facts";
  * technical drawing of the mark with its dimensions.
  */
 const SPECS: [string, string, string?][] = [
-  ["Frequency", `${facts.batchesPerHour.toLocaleString("en-US")} A/h · ${(facts.batchesPerHour / 3600).toFixed(2)} a second`, `A/h, alternations an hour, is how a watchmaker counts beats; here each one is an auction. A batch every Monad block while Wall Street trades; a call auction every ${facts.discoveryBlocks} blocks (${(facts.batchesPerHour / facts.discoveryBlocks).toLocaleString("en-US")} A/h) while it is closed`],
+  ["Frequency", `${facts.batchesPerHour.toLocaleString("en-US")} A/h · ${(facts.batchesPerHour / 3600).toFixed(2)} auctions a second`, `A/h, alternations an hour, is how a watchmaker counts beats; here each one is an auction. A batch every Monad block while Wall Street trades; a call auction every ${facts.discoveryBlocks} blocks (${(facts.batchesPerHour / facts.discoveryBlocks).toLocaleString("en-US")} A/h) while it is closed`],
   ["Power reserve", `${facts.hours.week} h a week`, "Every night and every weekend; a market stops only when its rules halt it"],
   ["Escapement", "Frequent batch auction", "Most volume, then least imbalance, then closest to the reference"],
   ["Complications", "Discovery · Reopening cross · Halts · Audit", "Each with its own price band"],
@@ -35,17 +35,13 @@ export function Calibre() {
               <path d={ball} />
             </g>
             <g stroke="var(--ink-3)" strokeWidth="0.12" fill="none">
-              <line x1={24 - b.R} x2={24 - b.R} y1={b.top - 2.5} y2={b.top - 0.6} />
-              <line x1={24 + b.R} x2={24 + b.R} y1={b.top - 2.5} y2={b.top - 0.6} />
-              <line x1={24 - b.R} x2={24 + b.R} y1={b.top - 1.8} y2={b.top - 1.8} />
               <line x1={24} x2={24} y1={b.top - 4} y2={b.bottom + 3} strokeDasharray="1.2 0.8" />
               <circle cx={b.ball.cx} cy={b.ball.cy} r={b.ball.r + 1.6} strokeDasharray="0.6 0.6" />
               <line x1={b.ball.cx + b.ball.r + 1.6} x2={b.ball.cx + 14} y1={b.ball.cy} y2={b.ball.cy} />
               <line x1={24 + b.R + 1} x2={24 + b.R + 9} y1={b.yc} y2={b.yc} />
             </g>
             <g fill="var(--ink-2)" style={{ fontSize: 2.3, fontFamily: "var(--font-sans)", letterSpacing: "0.02em" }}>
-              <text x="24" y={b.top - 2.6} textAnchor="middle">{(2 * b.R).toFixed(1)} u</text>
-              <text x={b.ball.cx + 14.6} y={b.ball.cy + 0.7}>the ball: the one price</text>
+                            <text x={b.ball.cx + 14.6} y={b.ball.cy + 0.7}>the ball: the one price</text>
               <text x={24 + b.R + 9.6} y={b.yc + 0.7}>the tines: buyers and sellers, joined</text>
             </g>
           </svg>

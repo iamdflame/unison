@@ -197,7 +197,7 @@ function Actions({ live }: { live: boolean }) {
           resetPaperAccount();
           toast("Paper account reset", { description: "Orders cancelled and starting balances restored." });
         }}
-        className="press -mr-2 inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-sm font-medium text-ink-3 transition-colors hover-fine:text-ink"
+        className="press -ml-2 inline-flex items-center gap-1.5 sm:ml-0 sm:-mr-2 rounded-full px-2 py-1 text-sm font-medium text-ink-3 transition-colors hover-fine:text-ink"
       >
         <RotateCcw size={14} strokeWidth={1.75} aria-hidden /> Reset paper account
       </button>
@@ -284,11 +284,13 @@ function Holdings({ holdings, equity }: { holdings: Holding[]; equity: number })
                 <span aria-hidden className="size-2.5 shrink-0 rounded-full ring-1 ring-line-strong" style={{ background: h.color }} />
                 <div className="min-w-0">
                   <p className="text-[15px] font-semibold text-ink">{h.label}</p>
-                  <p className="truncate text-[13px] text-ink-3">{h.sub}</p>
+                  <p className="text-[13px] text-ink-3 md:truncate">{h.sub}</p>
                 </div>
               </div>
               <div className="text-right">
                 <p className="tnum text-ink">{h.qty.toLocaleString("en-US", { maximumFractionDigits: h.spec ? qtyDigits : 2 })}</p>
+                {/* phones have no column header: the unit rides under the figure */}
+                <p className="text-[11px] text-ink-3 md:hidden">{h.spec ? h.spec.ticker : "AUSD"}</p>
                 {h.locked > 1e-9 ? <p className="tnum text-xs text-ink-3">{h.locked.toLocaleString("en-US", { maximumFractionDigits: 2 })} in orders</p> : null}
               </div>
               <p className="tnum hidden text-right text-ink-2 md:block">{h.spec ? `$${h.price.toFixed(decimals)}` : "$1.00"}</p>

@@ -92,7 +92,7 @@ export function TradeView({ ticker }: { ticker: string }) {
                 ) : null}
               </div>
             </div>
-            <dl className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+            <dl className="grid grid-cols-2 items-start gap-x-6 gap-y-3 text-sm sm:flex sm:flex-wrap sm:items-center sm:gap-y-2">
               <div>
                 <dt className="text-xs text-ink-3">{refName(m)}</dt>
                 <dd className="tnum text-ink">{fmt(m.refTick)}</dd>

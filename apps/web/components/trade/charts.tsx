@@ -188,12 +188,12 @@ export function CrossChart({
       {/* depth beyond the scale, quantified at the edge where it leaves: buyers' at the left, sellers' at the right */}
       {demand.length && demand[0]! > maxQ ? (
         <text x={P.l + 4} y={P.t + 14} className="figures" fill="var(--buy)" style={{ fontSize: 11 }}>
-          ↑ {qty(demand[0]!)} {unit} bid at or above {fmt(lo)}
+          {W < 640 ? `↑ ${Math.round(demand[0]!).toLocaleString("en-US")} ${unit}` : `↑ ${qty(demand[0]!)} ${unit} bid at or above ${fmt(lo)}`}
         </text>
       ) : null}
       {supply.length && supply[supply.length - 1]! > maxQ ? (
         <text x={W - P.r - 4} y={P.t + 14} textAnchor="end" className="figures" fill="var(--sell)" style={{ fontSize: 11 }}>
-          ↑ {qty(supply[supply.length - 1]!)} {unit} offered at or below {fmt(hi)}
+          {W < 640 ? `↑ ${Math.round(supply[supply.length - 1]!).toLocaleString("en-US")} ${unit}` : `↑ ${qty(supply[supply.length - 1]!)} ${unit} offered at or below ${fmt(hi)}`}
         </text>
       ) : null}
       {/* the last auction's price: a quiet ring on the price axis, named in the key, never a label on the data */}

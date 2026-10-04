@@ -61,14 +61,14 @@ export function Agents() {
             </div>
             <pre
               role="img"
-              className="min-h-[300px] overflow-x-auto rounded-[calc(var(--radius-2xl)-6px)] bg-[oklch(0.12_0.006_265)] p-6 font-mono text-[13px] leading-7"
+              className="min-h-[248px] rounded-[calc(var(--radius-2xl)-6px)] bg-[oklch(0.12_0.006_265)] p-6 font-mono text-[13px] leading-7 whitespace-pre-wrap [font-variant-ligatures:none]"
               aria-label="An agent reads the market, places an order with its session key, and gets filled at the batch price."
             >
               {SCRIPT.map((l, i) => {
                 const take = Math.max(0, Math.min(l.text.length, chars - STARTS[i]!));
                 if (take === 0 && i > 0) return null;
                 return (
-                  <div key={i} className={l.kind === "in" ? "text-ink" : "text-accent"}>
+                  <div key={i} className={l.kind === "in" ? "text-ink" : "text-ink-2"}>
                     <span aria-hidden className="select-none text-ink-3">{l.kind === "in" ? "› " : "  "}</span>
                     {l.text.slice(0, take)}
                     {take < l.text.length && take > 0 ? <span aria-hidden className="ml-0.5 inline-block h-4 w-2 translate-y-0.5 bg-ink/70" /> : null}
@@ -78,18 +78,19 @@ export function Agents() {
             </pre>
           </div>
 
-          <div className="relative -mt-10 ml-auto w-[min(100%,360px)] rounded-[var(--radius-xl)] bg-raised/95 p-5 shadow-float backdrop-blur-xl sm:mr-8 lg:-mt-16 [@media(prefers-reduced-transparency:reduce)]:bg-raised">
+          {/* the key that bounds it, beneath the session it signed: the same example as the Agents page */}
+          <div className="mt-4 ml-auto w-[min(100%,380px)] rounded-[var(--radius-xl)] bg-raised p-5 shadow-panel">
             <div className="flex items-center gap-2 text-sm font-semibold text-ink">
               <KeyRound size={16} strokeWidth={1.5} aria-hidden /> Session key
-              <span className="ml-auto text-xs font-normal text-ink-2">expires in 59 min</span>
+              <span className="ml-auto text-xs font-normal text-ink-2">expires in 24 h</span>
             </div>
             <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
               <dt className="text-ink-3">Markets</dt>
               <dd className="text-right text-ink">aNVDA, aSPY</dd>
               <dt className="text-ink-3">Size per order</dt>
-              <dd className="figures text-right text-ink">5 shares</dd>
-              <dt className="text-ink-3">Notional</dt>
-              <dd className="figures text-right text-ink">$2,000</dd>
+              <dd className="figures text-right text-ink">up to 10</dd>
+              <dt className="text-ink-3">Notional per order</dt>
+              <dd className="figures text-right text-ink">up to $5,000</dd>
               <dt className="text-ink-3">Withdraw</dt>
               <dd className="text-right font-semibold text-ink">Never</dd>
             </dl>

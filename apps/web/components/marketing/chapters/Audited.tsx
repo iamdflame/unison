@@ -94,13 +94,13 @@ export function Audited() {
           <figcaption className="mx-auto mt-4 flex max-w-[620px] items-center gap-3 text-sm">
             <span
               className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 font-medium transition-[opacity,background-color] duration-200 ${
-                verdict ? "bg-buy-soft text-buy opacity-100" : "bg-sunken text-ink-3 opacity-70"
+                verdict ? "bg-buy-soft text-buy" : "bg-sunken text-ink-2"
               }`}
             >
               <Check size={14} strokeWidth={2} aria-hidden />
               {verdict ? "Within 0.75%: trading continues" : "Auditing"}
             </span>
-            <span className="text-ink-3">Outside it: halt the market, slash the signer.</span>
+            <span className="text-ink-3">Past {(facts.cre.haltAboveBps / 100).toFixed(2)}%, the market halts and the signer&apos;s bond is slashed.</span>
             <span className="ml-auto shrink-0 rounded-full px-2.5 py-1 text-xs font-medium text-ink-2 hairline">CRE simulator</span>
           </figcaption>
         </figure>

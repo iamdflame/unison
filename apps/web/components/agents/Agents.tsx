@@ -158,7 +158,7 @@ function KeyCard({ k, label, browser, onRevoke, busy }: { k: KeyView; label?: st
   return (
     <article className="relative overflow-hidden rounded-[var(--radius-xl)] bg-raised p-6 shadow-panel sm:p-7" aria-label={`Session key ${short(k.key)}, ${status.toLowerCase()}`}>
       {/* engraved rose, as on a watch's papers: equal circles through one centre */}
-      <svg className="pointer-events-none absolute -right-16 -bottom-20 size-64 text-champagne opacity-[0.22]" viewBox="0 0 200 200" aria-hidden>
+      <svg className="pointer-events-none absolute -right-24 -bottom-28 size-64 text-champagne opacity-[0.22]" viewBox="0 0 200 200" aria-hidden>
         {Array.from({ length: 48 }, (_, i) => (
           <circle key={i} cx={(100 + 44 * Math.cos((i / 48) * Math.PI * 2)).toFixed(2)} cy={(100 + 44 * Math.sin((i / 48) * Math.PI * 2)).toFixed(2)} r="44" fill="none" stroke="currentColor" strokeWidth="0.45" />
         ))}

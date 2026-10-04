@@ -37,7 +37,7 @@ export function FairnessLive() {
               hash after it breaks.
             </p>
           </div>
-          <div role="radiogroup" aria-label="Market" className="flex max-w-xl flex-wrap justify-end gap-1.5">
+          <div role="radiogroup" aria-label="Market" className="flex max-w-xl flex-wrap justify-start gap-1.5">
             {listed.map((m) => (
               <button
                 key={m.ticker}
