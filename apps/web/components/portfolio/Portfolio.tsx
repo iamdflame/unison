@@ -351,7 +351,7 @@ function History({ acct }: { acct: AccountState }) {
 
       <Tabs.Panel value="orders">
         {open.length === 0 ? (
-          <p className="px-6 py-12 text-center text-sm text-ink-3">No open orders. Every order joins the next batch, 300 ms away.</p>
+          <p className="px-6 py-12 text-center text-sm text-ink-3">No open orders. Each one you place joins the next batch.</p>
         ) : (
           <ul className="divide-y divide-line">
             {open.map(({ ticker, o }) => {

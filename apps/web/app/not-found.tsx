@@ -22,7 +22,7 @@ export default function NotFound() {
             <span className="text-ink-3">The market isn&apos;t.</span>
           </h1>
           <p className="text-lede mt-7 max-w-md text-ink-2">
-            Every Unison market clears every 300 ms, nights and weekends included. This address just doesn&apos;t lead
+            Every Unison market keeps clearing, nights and weekends included. This address just doesn&apos;t lead
             to one.
           </p>
           <div className="mt-10 flex flex-wrap gap-3">
@@ -35,7 +35,7 @@ export default function NotFound() {
           </div>
         </div>
         <div className="order-1 flex justify-center lg:order-2">
-          <LazyWatchFace hacked caption="Hacking seconds" className="w-[min(74vw,460px)]" />
+          <LazyWatchFace hacked caption="Stop-seconds" className="w-[min(74vw,460px)]" />
         </div>
       </main>
     </div>

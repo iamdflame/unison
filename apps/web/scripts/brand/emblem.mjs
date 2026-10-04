@@ -143,7 +143,9 @@ export function emblem(params = {}) {
 
 const circle = (x, y, r) =>
   `M${f(x - r)},${f(y)} a${f(r)},${f(r)} 0 1 0 ${f(2 * r)},0 a${f(r)},${f(r)} 0 1 0 ${f(-2 * r)},0 Z`;
-const rect = (x, y, w, h) => `M${f(x)},${f(y)} h${f(w)} v${f(h)} h${f(-w)} Z`;
+// Wound like the tine outline (down, across, up), so where a serif overlaps a tine the nonzero rule fills the
+// overlap instead of cancelling it: every consumer joins the body parts into one path.
+const rect = (x, y, w, h) => `M${f(x)},${f(y)} v${f(h)} h${f(w)} v${f(-h)} Z`;
 
 /**
  * SVG string. `ink` fills the body; `jewel` fills the ball when its role is "jewel" (otherwise the ball is ink);

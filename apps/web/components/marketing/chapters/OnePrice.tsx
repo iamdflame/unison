@@ -119,7 +119,7 @@ export function OnePrice() {
             One price for everyone.
           </h2>
           <p className="text-lede mt-6 text-ink-2">
-            Orders that arrive in the same 300 milliseconds are filled together. Buyers and sellers line up by price,
+            Orders that arrive in the same batch are filled together (a batch every 300 ms in market hours, every 3 seconds overnight). Buyers and sellers line up by price,
             and the batch clears where they meet. Arriving first buys you nothing.
           </p>
 

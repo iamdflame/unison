@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { facts } from "../lib/content/facts.ts";
+import { MARKETS } from "../lib/content/markets.ts";
 
 const repo = (p: string) => readFileSync(new URL(`../../../${p}`, import.meta.url), "utf8");
 const n = (x: number) => x.toLocaleString("en-US");
@@ -58,7 +59,12 @@ describe("every site number is backed by the evidence files", () => {
 
   it("calendar arithmetic", () => {
     expect((3_600_000 / facts.beatMs)).toBe(facts.batchesPerHour);
-    expect(facts.batchesPerHour * 24).toBe(facts.batchesPerDay);
     expect(facts.hours.regularPerWeek).toBe(6.5 * 5);
+  });
+
+  it("the night cadence is the contract's", () => {
+    // UnisonExchange's default discovery cadence, and every market the site lists uses it
+    expect(repo("contracts/src/core/UnisonExchange.sol")).toMatch(new RegExp(`g\\.discCadence = ${facts.discoveryBlocks};`));
+    for (const m of MARKETS) expect(m.regime.discCadence, m.ticker).toBe(facts.discoveryBlocks);
   });
 });

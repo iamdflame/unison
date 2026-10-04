@@ -3,10 +3,15 @@
  * the site cannot drift from the evidence. If a number isn't here, the site doesn't say it.
  */
 export const facts = {
-  /** One batch per Monad block. docs/MONAD.md; measured 293–304 ms on testnet/mainnet (Oct 2026). */
+  /** One batch per Monad block while the reference market trades. docs/MONAD.md; measured 293–304 ms (Oct 2026). */
   beatMs: 300,
+  /** ...so 12,000 batches an hour in session (a watchmaker's 12,000 A/h, which is 1.67 Hz). */
   batchesPerHour: 12_000,
-  batchesPerDay: 288_000,
+  /**
+   * While the reference market is closed (DISCOVERY: nights, weekends, holidays) a market holds one call auction
+   * every `discoveryBlocks` blocks, about 3 s. contracts/src/core/UnisonExchange.sol (discCadence).
+   */
+  discoveryBlocks: 10,
 
   /** Latency-sniper benchmark, per day. docs/evidence/fairness.md */
   sniper: { xyk: 6_171, pushOracleAmm: 473, clob: 487, unison: 0, unisonFills: 0 },

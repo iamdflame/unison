@@ -183,7 +183,7 @@ export function Status() {
  */
 function SimulatedStatus() {
   const rows: [string, string, string, string, string][] = [
-    ["Clearing engine", "The contracts' auction, bit-exact, in your browser", "every 300 ms", "Running", "bg-buy"],
+    ["Clearing engine", "The contracts' auction, bit-exact, in your browser", "every block in session, every 10 overnight", "Running", "bg-buy"],
     ["Reference prices", "A simulated feed for each market", "labelled on every screen", "Simulated", "bg-accent"],
     ["Network", "No chain, tape or relayer connected to this copy of the site", "—", "Not connected", "bg-ink-3"],
   ];
@@ -193,7 +193,7 @@ function SimulatedStatus() {
         <h1 className="text-display-xl max-w-4xl text-ink">Running the simulation.</h1>
         <p className="text-lede mt-7 max-w-2xl text-ink-2">
           This copy of the site isn&apos;t connected to a Unison network, so every market here clears on the real clearing
-          engine in your browser, every 300 ms. Live status appears when the site is pointed at a network.
+          engine in your browser, on the venue&apos;s own schedule. Live status appears when the site is pointed at a network.
         </p>
       </section>
 

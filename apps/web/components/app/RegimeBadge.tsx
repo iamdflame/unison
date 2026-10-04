@@ -1,7 +1,7 @@
 import type { RegimeName } from "@unison/engine";
 import { bandLabel, REGIME_LABEL } from "@/lib/unison/regimeNow";
 
-/** Regime chip: a glyph and a word, never colour alone. HALTED shows the stopped hand ("hacking seconds"). */
+/** Regime chip: a glyph and a word, never colour alone. HALTED shows the stopped hand (a watch's stop-seconds). */
 const TONE: Record<RegimeName, string> = {
   LIVE: "text-ink bg-ink/[0.06]",
   EXTENDED: "text-[oklch(0.5_0.12_300)] night:text-[oklch(0.8_0.09_300)] bg-[oklch(0.5_0.12_300/0.1)]",

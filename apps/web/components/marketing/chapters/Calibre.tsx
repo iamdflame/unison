@@ -6,11 +6,11 @@ import { facts } from "@/lib/content/facts";
  * technical drawing of the mark with its dimensions.
  */
 const SPECS: [string, string, string?][] = [
-  ["Frequency", "3.33 Hz · 12,000 A/h", "One batch per Monad block"],
-  ["Power reserve", "∞", "Open every night and every weekend"],
+  ["Frequency", `${facts.batchesPerHour.toLocaleString("en-US")} A/h · ${(facts.batchesPerHour / 7200).toFixed(2)} Hz`, `A batch every Monad block while Wall Street trades; a call auction every ${facts.discoveryBlocks} blocks (${(facts.batchesPerHour / facts.discoveryBlocks).toLocaleString("en-US")} A/h) while it is closed`],
+  ["Power reserve", `${facts.hours.week} h a week`, "Every night and every weekend; a market stops only when its rules halt it"],
   ["Escapement", "Frequent batch auction", "Most volume, then least imbalance, then closest to the reference"],
   ["Complications", "Discovery · Reopening cross · Halts · Audit", "Each with its own price band"],
-  ["Accuracy", "One price per batch", "Against a reference published after the batch closes"],
+  ["Fairness", "One price per batch", "Against a reference published after the batch closes"],
   ["Gas per clear", `${(facts.gas.clearMonad / 1e6).toFixed(2)}M`, `${facts.gas.savingPct}% less than under Ethereum's rules`],
   ["Cost", `≈ $${facts.gas.batch200Usd} per batch`, `200 orders; about $${facts.gas.orderUsd} per order`],
   ["Case", "Monad", "Testnet today, mainnet after an external audit. Open source, MIT"],
@@ -55,7 +55,7 @@ export function Calibre() {
             <div key={k} className="grid grid-cols-12 gap-x-6 border-t border-line py-6 last:border-b">
               <dt className="col-span-12 text-sm text-ink-3 sm:col-span-4">{k}</dt>
               <dd className="col-span-12 sm:col-span-8">
-                <span className={`text-[clamp(1.35rem,2vw,1.75rem)] leading-tight text-ink ${v === "∞" ? "font-sans font-light" : "numerals"}`}>
+                <span className="numerals block text-[clamp(1.35rem,2vw,1.75rem)] leading-tight text-balance text-ink">
                   {v}
                 </span>
                 {note ? <span className="mt-1 block text-sm text-ink-2">{note}</span> : null}

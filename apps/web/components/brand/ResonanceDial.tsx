@@ -68,17 +68,9 @@ const DialFace = memo(function DialFace({ bandDeg }: { bandDeg: number }) {
           />
         ))}
       </g>
-      {/* Signed once, beneath twelve, as a maison signs a dial */}
-      <text x="500" y="132" textAnchor="middle" fill="var(--ink-2)" style={{ fontFamily: "var(--font-display)", fontSize: 22, letterSpacing: "0.34em" }}>
-        UNISON
-      </text>
       {/* Band at 12: the half-width the venue would use right now; prints land on it */}
       <path d={arc(442, bandDeg)} fill="none" stroke="var(--champagne)" strokeWidth="2" strokeLinecap="round" />
       <path d="M500,48 l-6,-10 h12 z" fill="var(--ink-2)" />
-      {/* Engraved specification, like a calibre's dial text */}
-      <text x="500" y="610" textAnchor="middle" fill="var(--ink-3)" style={{ fontSize: 13, letterSpacing: "0.14em", fontStretch: "125%", fontWeight: 600 }}>
-        12,000 A/h · Monad
-      </text>
     </svg>
   );
 });
@@ -99,8 +91,19 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
   const printsLayer = useRef<HTMLDivElement>(null);
   const lume = useRef<HTMLDivElement>(null);
   const emblem = useRef<EmblemHandle>(null);
-  const [price, setPrice] = useState(() => Number(market.seedPrice) / 1e6);
   const [regime, setRegime] = useState(() => regimeNow(market, new Date()));
+  const auctionEvery = regime.name === "DISCOVERY" ? market.regime.discCadence : 1;
+  const [feed] = useState(() => {
+    const f = createHeroFeed({ seed, ref: Number(market.seedPrice) / 1e6 });
+    // seeded, so the server and the browser run the same path and land on the same print
+    for (let i = 0; i < 40 || (f.last === null && i < 400); i++) f.next(0, auctionEvery);
+    return f;
+  });
+  const cadence = useRef(auctionEvery);
+  const [price, setPrice] = useState(() => feed.last ?? Number(market.seedPrice) / 1e6);
+  useEffect(() => {
+    cadence.current = auctionEvery;
+  }, [auctionEvery]);
 
   useEffect(() => {
     const id = setInterval(() => setRegime(regimeNow(market, new Date())), 60_000);
@@ -121,7 +124,7 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
     const noise = Array.from({ length: RINGS }, (_, i) => Math.sin(i * 12.9898 + 78.233) * 43758.5453 % 1);
     // Ring phases: `from` → `to` over one impulse. Unison = every ring at the same phase.
     const base = 0.4;
-    let from = noise.map((n) => base + n * 2.2);
+    let from = noise.map(() => base);
     let to = from.slice();
     let moveAt = -1;
     let raf = 0;
@@ -206,7 +209,6 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
     });
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
-    const feed = createHeroFeed({ seed, ref: Number(market.seedPrice) / 1e6 });
     let lastAngle = 0;
     let swing: Animation | null = null;
     const onBeat = (f: HeroFrame) => {
@@ -238,8 +240,9 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
         charge = Math.min(1, charge + f.volume / 60);
       } else if (f.orders > 0) {
         // Orders arriving: a small dead-beat jump out of phase, proportional to how many arrived.
-        const spread = Math.min(1, f.orders / 8) * 0.9;
-        move(from.map((p, i) => p + (noise[i]! - 0.5) * spread));
+        const spread = Math.min(1, f.orders / 8) * 0.3;
+        // drift accumulates while an auction gathers, but never past ±0.6 rad of unison
+        move(from.map((p, i) => base + Math.max(-0.6, Math.min(0.6, p - base + (noise[i]! - 0.5) * spread))));
       }
       charge *= 0.985;
       // the lume only shows at night; by day there is nothing to update
@@ -265,7 +268,7 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
     let timer = 0;
     let running = true;
     const tick = () => {
-      if (running) onBeat(feed.next(Date.now()));
+      if (running) onBeat(feed.next(Date.now(), cadence.current));
       timer = window.setTimeout(tick, BEAT_MS);
     };
     const io = new IntersectionObserver(([e]) => {
@@ -285,11 +288,11 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
       io.disconnect();
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [seed, market]);
+  }, [feed, market]);
 
   // The fork stands at 12 with its ball on the arbor: the reference everyone tunes to.
   const ballCy = MARK_BOX.ball?.cy ?? MARK_BOX.bottom;
-  const forkReach = 0.355; // tine tops at 35.5% of the dial's width above the arbor
+  const forkReach = 0.28; // tine tops at 28% of the dial's width above the arbor: the fork signs the dial, it isn't the dial
   const emblemPct = (forkReach * 48) / (ballCy - MARK_BOX.top);
   const bandDeg = Math.min(150, (regime.bandBps / 100) * DEG_PER_PCT);
 
@@ -328,6 +331,10 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
       >
         <Emblem ref={emblem} size={0} master="display" jewel style={{ width: "100%", height: "100%" }} />
       </div>
+      {/* Engraved specification, like a calibre's dial text: the cadence this market keeps right now */}
+      <p className="dial-label absolute inset-x-0 text-center text-ink-3" style={{ top: "59.6cqw", fontSize: "max(10px, 1.3cqw)" }} aria-hidden>
+        {(12_000 / auctionEvery).toLocaleString("en-US")} A/h · {regime.name === "DISCOVERY" ? "Discovery" : "Monad"}
+      </p>
       {/* The 6 o'clock aperture: the price everyone in this batch got */}
       <div className="absolute left-1/2 -translate-x-1/2" style={{ top: "66.5cqw" }}>
         {/* an aperture cut into the dial: an opaque window, a bevel of two hairlines, no shadow */}
@@ -342,11 +349,11 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
               opacityTiming={{ duration: 150, easing: "ease-out" }}
             />
           </div>
-          <p className="dial-label mt-[1.2cqw] text-ink-2" style={{ fontSize: "1.35cqw" }}>
+          <p className="dial-label mt-[1.2cqw] text-ink-2" style={{ fontSize: "max(11px, 1.35cqw)" }}>
             <span className="normal-case tracking-[0.04em]">{market.ticker}</span> · {REGIME_LABEL[regime.name]} {bandLabel(regime.bandBps)}
           </p>
         </div>
-        <p className="tnum mt-[1.4cqw] text-center text-ink-3" style={{ fontSize: "1.4cqw" }}>
+        <p className="tnum mt-[1.4cqw] text-center text-ink-3" style={{ fontSize: "max(11px, 1.4cqw)" }}>
           Batch <span ref={batchEl}>—</span> · simulated flow
         </p>
       </div>

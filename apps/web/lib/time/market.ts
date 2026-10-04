@@ -1,5 +1,9 @@
 import { NYSE_HOLIDAYS, usEquitySession } from "@unison/sdk/calendar";
 import { Status, type StatusCode } from "@unison/sdk/types";
+import { facts } from "../content/facts.ts";
+
+/** How often a market clears while Wall Street is closed: one call auction every few blocks. */
+const nightCadence = `an auction every ${(facts.discoveryBlocks * facts.beatMs) / 1000} seconds`;
 
 /**
  * Where Wall Street is in its week, and what that means for Unison: the light of the site, the hero's copy,
@@ -72,16 +76,16 @@ export function marketMoment(now: Date = new Date(), holidays: ReadonlySet<strin
 export function heroLine(m: MarketMoment): string {
   switch (m.phase) {
     case "open":
-      return "Wall Street is open. So are we.";
+      return `Wall Street is open. So are we: a batch every ${facts.beatMs} ms.`;
     case "pre-market":
     case "after-hours":
-      return "Wall Street is in extended hours. Unison keeps one price for everyone.";
+      return `Wall Street is in extended hours. Unison clears every ${facts.beatMs} ms.`;
     case "weekend":
-      return `Wall Street opens in ${m.hoursToOpen} hours. Unison is open now.`;
+      return `Wall Street opens in ${m.hoursToOpen} hours. Unison is open now, with ${nightCadence}.`;
     case "holiday":
-      return "Wall Street is closed for the holiday. Unison isn't.";
+      return `Wall Street is closed for the holiday. Unison isn't: ${nightCadence}.`;
     default:
-      return "Wall Street is asleep. Unison isn't.";
+      return `Wall Street is asleep. Unison isn't: ${nightCadence}.`;
   }
 }
 

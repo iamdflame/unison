@@ -45,12 +45,28 @@ export function createHeroFeed({ seed = 7, ref = 181.2, tick = 0.01, sigmaAnnual
   const perBeat = sigmaAnnual * Math.sqrt(beatMs / 1000 / (365 * 24 * 3600));
   let price = ref;
   let last: number | null = null;
+  let beat = 0;
+  let waiting = 0; // orders collected for the next call auction
   return {
-    next(nowMs: number): HeroFrame {
+    /** The last uniform price this feed printed (null before its first). */
+    get last() {
+      return last;
+    },
+    /**
+     * One block. `cadence` is blocks per auction: 1 while the reference market trades; while it is closed the venue
+     * holds one call auction every few blocks, and orders wait for it.
+     */
+    next(nowMs: number, cadence = 1): HeroFrame {
       price *= Math.exp(perBeat * normal() * 2.2 - (perBeat * perBeat) / 2);
       // Orders per batch: mostly a few, sometimes a burst.
-      const orders = rand() < 0.12 ? 6 + Math.floor(rand() * 9) : Math.floor(rand() * 4);
-      const crosses = orders >= 2 && rand() < 0.72;
+      const arrived = rand() < 0.12 ? 6 + Math.floor(rand() * 9) : Math.floor(rand() * 4);
+      beat++;
+      waiting += arrived;
+      // between call auctions orders only gather; the auction takes everything that gathered
+      const auction = cadence <= 1 || beat % cadence === 0;
+      const orders = auction ? waiting : arrived;
+      if (auction) waiting = 0;
+      const crosses = auction && orders >= 2 && rand() < (cadence > 1 ? 0.95 : 0.72);
       let p: number | null = null;
       let volume = 0;
       if (crosses) {

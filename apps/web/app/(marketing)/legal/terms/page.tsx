@@ -23,8 +23,9 @@ export default function TermsPage() {
           body: (
             <>
               <p>
-                Unison runs a frequent batch auction: every 300 ms, every order in a market clears at one price, inside a
-                band around a reference price published after the batch closed.
+                Unison runs a frequent batch auction: every order in a market clears at one price, inside a band around a
+                reference price published after the batch closed. Batches clear every block (about 300 ms) while the
+                reference market trades, and every 10 blocks (about 3 seconds) while it is closed.
               </p>
               <p>
                 Unison is not a broker, an adviser or a custodian. It doesn&apos;t hold your funds; the contracts do, under

@@ -5,7 +5,7 @@ import { MARK_PARTS } from "@/components/brand/geometry";
 import { WORDMARK } from "@/components/brand/glyphs";
 
 /** The card a link unfurls into: Nocturne, the mark with a lume ball, the wordmark, and the one sentence. */
-export const alt = "Unison: the market that never closes. Tokenized stocks on Monad, one price for everyone, every 300 ms.";
+export const alt = "Unison: the market that never closes. Tokenized stocks on Monad, one price for every order in a batch.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -31,7 +31,7 @@ export default async function OpenGraphImage() {
           <div style={{ fontFamily: "Bodoni", fontSize: 96, lineHeight: 1, letterSpacing: "-0.02em" }}>The market that</div>
           <div style={{ fontFamily: "Bodoni", fontSize: 96, lineHeight: 1.06, letterSpacing: "-0.02em" }}>never closes.</div>
           <div style={{ fontFamily: "Mona", fontSize: 29, color: "#a9b0bc", marginTop: 34 }}>
-            Tokenized stocks on Monad. One price for everyone, every 300 ms.
+            Tokenized stocks on Monad. One price for every order in a batch.
           </div>
         </div>
         <div style={{ display: "flex", height: 1, background: "linear-gradient(90deg, #d8c9a4 0%, rgba(216,201,164,0) 70%)" }} />

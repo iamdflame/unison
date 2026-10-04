@@ -3,6 +3,7 @@
 import { buyLock } from "@unison/engine";
 import { Minus, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { BEAT_MS } from "@/lib/motion/tokens";
 import { toast } from "@/lib/ui/toast";
 import { useStore } from "@/lib/store/createStore";
 import { useMarket, useVenue, useVenueAccount } from "@/lib/venue";
@@ -78,8 +79,10 @@ export function OrderTicket({ ticker, defaultSide = "buy", onPlaced }: { ticker:
       toast.error(r.error);
       return;
     }
-    const toastId = toast.loading(`${side === "buy" ? "Buy" : "Sell"} ${qty} ${ticker} in the next batch`, {
-      description: live ? `Limit ${fmt(limit)} · signed and relayed, no gas` : `Limit ${fmt(limit)} · clears in about 0.3 s`,
+    // when it clears depends on the regime: every block in session, one call auction every few blocks while closed
+    const when = m.regime === "DISCOVERY" ? `the next auction, within about ${(spec.regime.discCadence * BEAT_MS) / 1000} s` : "about 0.3 s";
+    const toastId = toast.loading(`${side === "buy" ? "Buy" : "Sell"} ${qty} ${ticker} in the next ${m.regime === "DISCOVERY" ? "auction" : "batch"}`, {
+      description: live ? `Limit ${fmt(limit)} · signed and relayed, no gas` : `Limit ${fmt(limit)} · clears in ${when}`,
     });
     const net = live ? v.net : null;
     watchOrder({

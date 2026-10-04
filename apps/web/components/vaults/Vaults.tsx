@@ -96,7 +96,7 @@ export function VaultDetail({ ticker }: { ticker: string }) {
       <header className="mt-3 flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div className="max-w-3xl">
           <h1 className="text-display-m text-ink">{spec.ticker} vault</h1>
-          <p className="text-lede mt-4 text-ink-2">Always-on liquidity for {spec.name}, priced against the reference every 300 ms.</p>
+          <p className="text-lede mt-4 text-ink-2">Always-on liquidity for {spec.name}, priced against the reference every batch.</p>
         </div>
         <RegimeBadge name={m.regime} bandBps={undefined} />
       </header>

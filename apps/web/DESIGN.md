@@ -9,7 +9,7 @@ Unison is the market that never closes. Every 300 ms (one Monad block), every or
 | Power reserve: ∞ | never closes |
 | Complications | discovery, reopening, halts, the Chainlink audit |
 | Lume | the night light |
-| Hacking seconds | a halted market |
+| Stop-seconds | a halted market |
 
 Use one metaphor per section at most. The product's truth comes before the metaphor.
 

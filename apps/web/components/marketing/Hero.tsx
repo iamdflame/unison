@@ -12,19 +12,19 @@ export function Hero() {
   return (
     <section aria-labelledby="hero-title" className="relative">
       <div className="mx-auto grid min-h-[100svh] max-w-[1440px] grid-cols-1 items-center gap-x-10 gap-y-6 px-5 pt-28 pb-16 sm:px-8 lg:grid-cols-12 lg:px-12 lg:pt-24">
-        <div className="order-2 lg:order-1 lg:col-span-6 xl:col-span-6">
+        <div className="lg:col-span-6 xl:col-span-6">
           <h1 id="hero-title" className="text-display-xxl text-ink">
             The market
             <br />
             that never closes.
           </h1>
           <p className="text-lede mt-7 max-w-xl text-ink-2">
-            Tokenized stocks on Monad. Every 300 milliseconds, every order in a market clears at one price, against a
-            reference published after the batch closes, so no one can trade ahead of you.
+            Tokenized stocks on Monad. Every order in a batch clears at one price, against a reference published after
+            the batch closes, so no one can trade ahead of you.
           </p>
           <HeroSession />
         </div>
-        <div className="order-1 mx-auto w-full max-w-[min(92vw,600px)] lg:order-2 lg:col-span-6 lg:max-w-[680px] lg:justify-self-end">
+        <div className="mx-auto w-full max-w-[min(88vw,560px)] lg:col-span-6 lg:max-w-[680px] lg:justify-self-end">
           <ResonanceDial market={nvda} />
         </div>
       </div>
