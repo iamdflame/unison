@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Wordmark } from "@/components/brand/Wordmark";
+import { StaticEmblem } from "@/components/brand/StaticEmblem";
 import { site } from "@/lib/content/site";
 
 const COLUMNS = [
@@ -30,9 +30,11 @@ export function Footer() {
             </nav>
           ))}
         </div>
-        {/* engraved, not printed: the name cut into the caseback, at engraving strength */}
-        <div className="mt-24 text-engrave" aria-hidden>
-          <Wordmark capHeight={200} master="display" title="" className="h-auto w-full" />
+        {/* a colophon, as on a caseback: the mark and the calibre under one champagne rule, nothing louder */}
+        <div className="mt-24 flex flex-col items-center gap-4 text-center">
+          <span aria-hidden className="h-px w-[120px] bg-champagne" />
+          <StaticEmblem size={28} jewel className="text-ink" />
+          <p className="dial-label text-[11px] text-ink-3">Unison · Calibre U-300</p>
         </div>
         <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6 text-xs text-ink-3">
           <p>Tokenized stocks on Monad. {site.disclosure}</p>

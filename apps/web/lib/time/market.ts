@@ -56,6 +56,7 @@ function phaseOf(at: Date, status: StatusCode, holidays: ReadonlySet<string>, ny
 }
 
 const nyDateFmt = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" });
+const nyWeekday = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "long" });
 
 let memo: { minute: number; value: MarketMoment } | null = null;
 
@@ -87,7 +88,8 @@ export function heroLine(m: MarketMoment): string {
     case "after-hours":
       return `Wall Street is in extended hours. Unison clears every ${facts.beatMs} ms.`;
     case "weekend":
-      return `Wall Street opens in ${m.hoursToOpen} hours. Unison is open now, with ${nightCadence}.`;
+      // a time, not a count of hours: the terminal counts down to pre-market, and two "opens" would disagree
+      return `Wall Street opens ${nyWeekday.format(m.nextOpen)} at 9:30 ET. Unison is open now, with ${nightCadence}.`;
     case "holiday":
       return `Wall Street is closed for the holiday. Unison isn't: ${nightCadence}.`;
     default:

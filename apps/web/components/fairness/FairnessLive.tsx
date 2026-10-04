@@ -213,7 +213,7 @@ function Deviation({ stats }: { stats: FairStats }) {
         </div>
         <div>
           <dt className="text-ink-3">Reference published after close</dt>
-          <dd className="tnum mt-0.5 text-ink">{stats.refLagMean === null ? "Enforced on-chain" : `${lag(stats.refLagP95)} p95`}</dd>
+          <dd className="tnum mt-0.5 text-ink">{stats.refLagMean === null ? "Enforced by contract" : `${lag(stats.refLagP95)} p95`}</dd>
         </div>
         <div>
           <dt className="text-ink-3">Receipt chain</dt>
