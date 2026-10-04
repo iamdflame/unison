@@ -136,6 +136,8 @@ function Account({ acct }: { acct: AccountState }) {
   const equity = holdings.reduce((s, h) => s + h.value, 0);
   const unrealized = holdings.reduce((s, h) => s + (h.pnl ?? 0), 0);
   const realized = Object.values(basis).reduce((s, b) => s + b.realized, 0);
+  // a total over part of the book says so
+  const partly = holdings.some((h) => h.spec && h.avg === null);
   const halted = held.filter((s) => marks[s.ticker]?.regime === "HALTED");
 
   return (
@@ -180,7 +182,7 @@ function Account({ acct }: { acct: AccountState }) {
             <dd className="figures text-ink">${(equity - acct.quote - acct.lockedQuote).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd>
           </div>
           <div className="flex gap-2">
-            <dt className="text-ink-3">Unrealised P&amp;L</dt>
+            <dt className="text-ink-3">{partly ? "Unrealised P&L, where cost is known" : "Unrealised P&L"}</dt>
             <dd className={`figures ${tone(unrealized)}`}>{signedMoney(unrealized)}</dd>
           </div>
           <div className="flex gap-2">
