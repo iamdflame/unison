@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Download } from "lucide-react";
 import { PaletteClient, StrikeMarkClient } from "@/components/app/pages";
-import { Emblem } from "@/components/brand/Emblem";
+import { StaticEmblem } from "@/components/brand/StaticEmblem";
 import { Lockup } from "@/components/brand/Lockup";
 import { Wordmark } from "@/components/brand/Wordmark";
 
@@ -63,7 +63,7 @@ export default function BrandPage() {
           ].map(([name, range, size, master]) => (
             <figure key={name as string} className="flex flex-col items-center rounded-[var(--radius-xl)] bg-raised px-6 pt-10 pb-6 shadow-sm">
               <div className="grid h-28 place-items-center text-ink">
-                <Emblem size={size as number} master={master as "display" | "mid" | "small"} jewel />
+                <StaticEmblem size={size as number} master={master as "display" | "mid" | "small"} jewel />
               </div>
               <figcaption className="mt-6 text-center">
                 <span className="block text-[15px] font-semibold text-ink">{name}</span>

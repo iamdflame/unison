@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useId, useImperativeHandle, useRef, type CSSProperties } from "react";
-import { MARK_BOX, MARK_MID_BOX, MARK_MID_PARTS, MARK_PARTS, MARK_SMALL_PARTS } from "./geometry";
+import { MARK_BOX, MARK_MID_BOX, MARK_MID_PARTS, MARK_PARTS } from "./geometry";
 import { masterForSize, type Master } from "./master";
 
 export interface EmblemHandle {
@@ -47,8 +47,10 @@ export const Emblem = forwardRef<EmblemHandle, EmblemProps>(function Emblem(
   const left = useRef<SVGGElement>(null);
   const right = useRef<SVGGElement>(null);
   const m: Master = master === "auto" ? masterForSize(size) : master;
-  const parts = m === "small" ? MARK_SMALL_PARTS : m === "mid" ? MARK_MID_PARTS : MARK_PARTS;
-  const box = m === "mid" ? MARK_MID_BOX : MARK_BOX;
+  // The live mark is drawn at text and display sizes; the 16 px pixel-grid master ships only in the server-drawn
+  // StaticEmblem (nav, favicon, specimens), so it costs the browser nothing here. Below 20 px the text master stands in.
+  const parts = m === "display" ? MARK_PARTS : MARK_MID_PARTS;
+  const box = m === "display" ? MARK_BOX : MARK_MID_BOX;
   const yc = box.yc;
 
   useImperativeHandle(ref, () => ({
