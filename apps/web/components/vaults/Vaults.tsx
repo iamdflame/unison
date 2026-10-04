@@ -21,7 +21,7 @@ const SIM_NAV = 2_000_000;
 const AXIS_BP = 100;
 const at = (bp: number) => Math.min(100, Math.max(0, 50 + (bp / AXIS_BP) * 50));
 // one layout, live or simulated: the simulation keeps each vault's books too
-const COLS = "md:grid-cols-[minmax(0,1fr)_minmax(220px,1.5fr)_112px_112px_112px_112px_16px]";
+const COLS = "md:grid-cols-[minmax(0,1fr)_minmax(220px,1.5fr)_112px_112px_112px_168px_16px]";
 
 /** The live part of /vaults: every vault on one board. The title and the lede are drawn by the server. */
 export function VaultIndex() {
@@ -46,7 +46,7 @@ export function VaultIndex() {
           <span className="text-right">Half-spread</span>
           <span className="text-right">Each side</span>
           <span className="text-right">Value</span>
-          <span className="text-right">Spread earned</span>
+          <span className="text-right">P&amp;L</span>
           <span />
         </div>
         <ul className="divide-y divide-line">
@@ -129,14 +129,20 @@ function VaultRow({ spec, cols }: { spec: MarketSpec; cols: string }) {
             <p className="figures text-[12px] text-ink-3">over {p.widthTicks} ticks</p>
           </div>
           <p className="tnum hidden text-right text-[15px] text-ink md:block">{money(nav, 0)}</p>
-          <p className={`tnum hidden text-right text-[15px] md:block ${tone(vault.spreadPnl)}`}>{signed(vault.spreadPnl)}</p>
+          {/* the whole return, not only the good half: what spread earned and what inventory did, and their sum */}
+          <div className="hidden text-right md:block">
+            <p className={`tnum text-[15px] ${tone(vault.spreadPnl + vault.inventoryPnl)}`}>{signed(vault.spreadPnl + vault.inventoryPnl)}</p>
+            <p className="figures text-[12px] whitespace-nowrap text-ink-3">
+              spread {signed(vault.spreadPnl)} · inv. {signed(vault.inventoryPnl)}
+            </p>
+          </div>
         </>
       ) : null}
 
       {/* phones: what the wide columns say, in one line */}
       {vault && nav !== null ? (
         <p className="figures col-span-2 -mt-1 text-[12px] text-ink-3 md:hidden">
-          {quoting ? `${money(side, 0)} each side · ` : ""}value {money(nav, 0)} · spread earned {signed(vault.spreadPnl)}
+          {quoting ? `${money(side, 0)} each side · ` : ""}value {money(nav, 0)} · P&amp;L {signed(vault.spreadPnl + vault.inventoryPnl)}
         </p>
       ) : null}
 
