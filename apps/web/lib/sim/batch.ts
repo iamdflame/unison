@@ -25,32 +25,52 @@ export interface BatchOutcome {
 const SCALE = 1_000_000;
 const toUnits = (q: number) => BigInt(Math.round(q * SCALE));
 
-export function clearBatch(orders: readonly SimOrder[], band: { lo: number; hi: number; refTick: number }): BatchOutcome {
-  const n = band.hi - band.lo + 1;
-  const bids = new Array<bigint>(n).fill(0n);
-  const asks = new Array<bigint>(n).fill(0n);
+/**
+ * The engine runs over the ticks that can trade, not the whole band. Below the lowest order inside the band, supply
+ * is only what sits below the band; above the highest, demand is only what sits above it. So unless orders lie
+ * beyond the band (then the window reaches that edge), no tick outside [lowest, highest] has volume, and the
+ * engine's scan, keys and tie rule give the same auction on the window as on the band (test/batch.test.ts checks
+ * that on thousands of batches). A discovery band can be 2,000 ticks wide; a batch's orders span a few dozen.
+ */
+function tradableWindow(orders: readonly SimOrder[], band: { lo: number; hi: number }) {
+  let lo = band.hi + 1;
+  let hi = band.lo - 1;
   let bidAbove = 0n;
   let askBelow = 0n;
   for (const o of orders) {
-    const q = toUnits(o.qty);
-    if (o.side === "buy") {
-      if (o.tick > band.hi) bidAbove += q;
-      else if (o.tick >= band.lo) bids[o.tick - band.lo]! += q;
-    } else {
-      if (o.tick < band.lo) askBelow += q;
-      else if (o.tick <= band.hi) asks[o.tick - band.lo]! += q;
+    if (o.side === "buy" && o.tick > band.hi) bidAbove += toUnits(o.qty);
+    else if (o.side === "sell" && o.tick < band.lo) askBelow += toUnits(o.qty);
+    else if (o.tick >= band.lo && o.tick <= band.hi) {
+      if (o.tick < lo) lo = o.tick;
+      if (o.tick > hi) hi = o.tick;
     }
   }
+  if (bidAbove > 0n) hi = band.hi;
+  if (askBelow > 0n) lo = band.lo;
+  return { lo, hi, bidAbove, askBelow };
+}
+
+export function clearBatch(orders: readonly SimOrder[], band: { lo: number; hi: number; refTick: number }): BatchOutcome {
+  const fills = new Map<number, number>();
+  const w = tradableWindow(orders, band);
+  if (w.lo > w.hi) return { traded: false, tick: band.refTick, volume: 0, fills };
+  const n = w.hi - w.lo + 1;
+  const bids = new Array<bigint>(n).fill(0n);
+  const asks = new Array<bigint>(n).fill(0n);
+  for (const o of orders) {
+    if (o.tick < w.lo || o.tick > w.hi) continue; // beyond the band: already in bidAbove / askBelow, or can't trade
+    if (o.side === "buy") bids[o.tick - w.lo]! += toUnits(o.qty);
+    else asks[o.tick - w.lo]! += toUnits(o.qty);
+  }
   const r = compute({
-    lo: BigInt(band.lo),
-    hi: BigInt(band.hi),
+    lo: BigInt(w.lo),
+    hi: BigInt(w.hi),
     refTick: BigInt(band.refTick),
-    bidAbove,
-    askBelow,
+    bidAbove: w.bidAbove,
+    askBelow: w.askBelow,
     bids,
     asks,
   });
-  const fills = new Map<number, number>();
   if (!r.traded) return { traded: false, tick: band.refTick, volume: 0, fills };
   const t = Number(r.tick);
   const bidRatio = Number((r.bidRatio * 1_000_000n) / ONE) / 1_000_000;

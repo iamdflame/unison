@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Agents } from "@/components/marketing/chapters/Agents";
 import { Audited } from "@/components/marketing/chapters/Audited";
 import { Calibre } from "@/components/marketing/chapters/Calibre";
@@ -12,20 +13,45 @@ import { OnlyOnMonad } from "@/components/marketing/chapters/OnlyOnMonad";
 import { Closing } from "@/components/marketing/Closing";
 import { Hero } from "@/components/marketing/Hero";
 
+/** Below the fold, a chapter is rendered by the browser only as it nears the viewport (`defer-paint`). */
+function Later({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <div className={`defer-paint ${className}`}>{children}</div>;
+}
+
 export default function Home() {
   return (
     <>
       <Hero />
-      <OnePrice />
-      <FrontRun />
-      <NeverCloses />
-      <Audited />
-      <Movement plates={PLATES.map((p) => <MovementPart key={p.name} name={p.name} />)} />
-      <Calibre />
-      <Agents />
-      <OnlyOnMonad />
-      <Markets />
-      <Closing />
+      <Later>
+        <OnePrice />
+      </Later>
+      <Later>
+        <FrontRun />
+      </Later>
+      <Later>
+        <NeverCloses />
+      </Later>
+      <Later>
+        <Audited />
+      </Later>
+      <Later className="lg:[--defer-h:320vh]">
+        <Movement plates={PLATES.map((p) => <MovementPart key={p.name} name={p.name} />)} />
+      </Later>
+      <Later>
+        <Calibre />
+      </Later>
+      <Later>
+        <Agents />
+      </Later>
+      <Later>
+        <OnlyOnMonad />
+      </Later>
+      <Later>
+        <Markets />
+      </Later>
+      <Later className="[--defer-h:720px]">
+        <Closing />
+      </Later>
     </>
   );
 }

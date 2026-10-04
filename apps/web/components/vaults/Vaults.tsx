@@ -15,18 +15,14 @@ const signed = (n: number) => `${n >= 0 ? "+" : "−"}${money(Math.abs(n))}`;
 const VAULTED = MARKETS.filter((m) => m.vault);
 
 /** /vaults: every market's vault, its quote drawn small, and what it has earned. */
+/** The live part of /vaults: the cards. The title and the lede are drawn by the server. */
 export function VaultIndex() {
   const v = useVenue();
   return (
-    <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:py-12">
-      <header className="max-w-3xl">
-        <h1 className="text-display-m text-ink">Vaults</h1>
-        <p className="text-lede mt-4 text-ink-2">
-          Every market has a vault: liquidity that is always there, priced against the reference. It earns the spread, and
-          reports on-chain how much came from the spread and how much from inventory moving with the market.
-        </p>
-        {v.ready && v.mode === "demo" ? <p className="mt-2 text-sm text-ink-3">Simulation: quotes from each vault&apos;s real parameters, around a simulated reference.</p> : null}
-      </header>
+    <>
+      <p className="mt-2 min-h-5 max-w-3xl text-sm text-ink-3">
+        {v.ready && v.mode === "demo" ? "Simulation: quotes from each vault's real parameters, around a simulated reference." : ""}
+      </p>
       <ul className="mt-10 grid gap-5 md:grid-cols-2">
         {VAULTED.map((s) => (
           <li key={s.ticker}>
@@ -34,7 +30,7 @@ export function VaultIndex() {
           </li>
         ))}
       </ul>
-    </div>
+    </>
   );
 }
 

@@ -393,3 +393,13 @@
     transform: translate(-50%, -50%);
   }
 }
+
+/*
+ * Long pages: a section well below the fold is not styled, laid out or painted until it nears the viewport.
+ * `auto` remembers a section's real height once it has rendered; the estimate (--defer-h) only holds the scrollbar
+ * steady before that. Content stays in the accessibility tree and in find-in-page.
+ */
+@utility defer-paint {
+  content-visibility: auto;
+  contain-intrinsic-size: auto var(--defer-h, 960px);
+}

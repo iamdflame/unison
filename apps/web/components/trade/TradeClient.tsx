@@ -1,12 +1,14 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { early } from "@/components/app/screens/early";
 
-/** The terminal is a live instrument: it renders on the client, with a skeleton holding its exact place. */
-const TradeView = dynamic(() => import("./TradeView").then((m) => m.TradeView), {
-  ssr: false,
-  loading: () => <TradeSkeleton />,
-});
+/**
+ * The terminal is a live instrument: it renders on the client, with a skeleton holding its exact place. Its code
+ * starts downloading with the page's own scripts, not after hydration.
+ */
+const load = early(() => import("./TradeView").then((m) => m.TradeView));
+const TradeView = dynamic(() => load(), { ssr: false, loading: () => <TradeSkeleton /> });
 
 export function TradeClient({ ticker }: { ticker: string }) {
   return <TradeView ticker={ticker} />;

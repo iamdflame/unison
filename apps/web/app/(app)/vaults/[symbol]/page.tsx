@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { VaultDetailClient } from "@/components/app/pages";
+import { VaultDetailClient } from "@/components/app/screens/VaultDetailScreen";
 import { MARKETS, marketByTicker } from "@/lib/content/markets";
 
 export function generateStaticParams() {

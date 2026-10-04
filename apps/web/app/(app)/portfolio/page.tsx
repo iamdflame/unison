@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PortfolioClient } from "@/components/app/pages";
+import { PortfolioClient } from "@/components/app/screens/PortfolioScreen";
 
 export const metadata: Metadata = { title: "Portfolio" };
 

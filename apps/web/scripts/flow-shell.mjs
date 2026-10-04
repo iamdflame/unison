@@ -91,7 +91,8 @@ const check = async (name, fn) => {
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
   const p = await ctx.newPage();
   await p.goto(`${base}/markets?demo=1`, { waitUntil: "domcontentloaded" });
-  await p.getByRole("heading", { name: "Markets" }).waitFor({ timeout: 20_000 });
+  // the title is drawn by the server; wait for the shell itself to be live before pressing its shortcut
+  await hydrated(p, "Search markets");
   await check("⌘K finds aTSLA and opens its terminal", async () => {
     await p.keyboard.press("Control+k");
     await p.getByPlaceholder("Search markets, pages…").fill("TSLA");

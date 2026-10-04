@@ -1,7 +1,7 @@
 "use client";
 
 import NumberFlow from "@number-flow/react";
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { BEAT_MS } from "@/lib/motion/tokens";
 import { createHeroFeed, type HeroFrame } from "@/lib/hero/feed";
 import type { MarketSpec } from "@/lib/content/markets";
@@ -36,6 +36,53 @@ function cssColor(el: HTMLElement, varName: string): string {
   return c;
 }
 
+/** Polar arc on the 1000-unit dial, symmetric about 12 o'clock. */
+const arc = (r: number, deg: number) => {
+  const a = (deg * Math.PI) / 180;
+  const x1 = 500 - r * Math.sin(a);
+  const y1 = 500 - r * Math.cos(a);
+  return `M${x1.toFixed(2)},${y1.toFixed(2)} A${r},${r} 0 ${deg > 90 ? 1 : 0} 1 ${(1000 - x1).toFixed(2)},${y1.toFixed(2)}`;
+};
+
+/**
+ * Everything on the dial that doesn't move: the 200-step track, the signature, the band, the index and the
+ * calibre text. It re-renders only when the band changes and nothing animates inside it, so the browser paints it
+ * once; the pointer and the prints travel on their own composited layers above it.
+ */
+const DialFace = memo(function DialFace({ bandDeg }: { bandDeg: number }) {
+  return (
+    <svg viewBox="0 0 1000 1000" className="absolute inset-0 h-full w-full overflow-visible" aria-hidden>
+      <circle cx="500" cy="500" r="494" fill="none" stroke="var(--line-strong)" strokeWidth="1" />
+      {/* 200-step track: one step per batch, a minute per turn */}
+      <g stroke="var(--ink-3)">
+        {Array.from({ length: STEPS }, (_, i) => (
+          <line
+            key={i}
+            x1="500"
+            y1={i % 10 === 0 ? 16 : 22}
+            x2="500"
+            y2="34"
+            strokeWidth={i % 10 === 0 ? 1.8 : 0.8}
+            strokeOpacity={i % 10 === 0 ? 0.85 : 0.45}
+            transform={`rotate(${(i * 360) / STEPS} 500 500)`}
+          />
+        ))}
+      </g>
+      {/* Signed once, beneath twelve, as a maison signs a dial */}
+      <text x="500" y="132" textAnchor="middle" fill="var(--ink-2)" style={{ fontFamily: "var(--font-display)", fontSize: 22, letterSpacing: "0.34em" }}>
+        UNISON
+      </text>
+      {/* Band at 12: the half-width the venue would use right now; prints land on it */}
+      <path d={arc(442, bandDeg)} fill="none" stroke="var(--champagne)" strokeWidth="2" strokeLinecap="round" />
+      <path d="M500,48 l-6,-10 h12 z" fill="var(--ink-2)" />
+      {/* Engraved specification, like a calibre's dial text */}
+      <text x="500" y="610" textAnchor="middle" fill="var(--ink-3)" style={{ fontSize: 13, letterSpacing: "0.14em", fontStretch: "125%", fontWeight: 600 }}>
+        12,000 A/h · Monad
+      </text>
+    </svg>
+  );
+});
+
 /** Escapement impulse: reach the new position in 40 ms, recoil 1.5%, rest by 90 ms. */
 function impulse(t: number): number {
   if (t <= 0) return 0;
@@ -47,9 +94,9 @@ function impulse(t: number): number {
 export function ResonanceDial({ market, seed = 11, className }: { market: MarketSpec; seed?: number; className?: string }) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
-  const pointer = useRef<SVGGElement>(null);
+  const pointer = useRef<HTMLDivElement>(null);
   const batchEl = useRef<HTMLSpanElement>(null);
-  const printsLayer = useRef<SVGGElement>(null);
+  const printsLayer = useRef<HTMLDivElement>(null);
   const lume = useRef<HTMLDivElement>(null);
   const emblem = useRef<EmblemHandle>(null);
   const [price, setPrice] = useState(() => Number(market.seedPrice) / 1e6);
@@ -88,6 +135,21 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
       paint(1);
     };
 
+    // The rings' angles never change, only their phases: tabulate the trigonometry once, and each ring costs two
+    // sines (sin(Lθ + φ) = sin Lθ·cos φ + cos Lθ·sin φ) instead of 723.
+    const N = 240;
+    const cosT = new Float64Array(N + 1);
+    const sinT = new Float64Array(N + 1);
+    const sinL = new Float64Array(N + 1);
+    const cosL = new Float64Array(N + 1);
+    for (let s = 0; s <= N; s++) {
+      const th = (s / N) * Math.PI * 2;
+      cosT[s] = Math.cos(th);
+      sinT[s] = Math.sin(th);
+      sinL[s] = Math.sin(LOBES * th);
+      cosL[s] = Math.cos(LOBES * th);
+    }
+
     function paint(k: number) {
       const S = size * dpr;
       if (!S) return;
@@ -99,13 +161,14 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
       for (let i = 0; i < RINGS; i++) {
         const r = S * (0.14 + (0.25 * i) / (RINGS - 1));
         const phase = from[i]! + (to[i]! - from[i]!) * k;
+        const cp = Math.cos(phase);
+        const sp = Math.sin(phase);
         ctx!.globalAlpha = 0.55 + 0.45 * Math.sin((Math.PI * (i + 0.5)) / RINGS);
         ctx!.beginPath();
-        for (let s = 0; s <= 240; s++) {
-          const th = (s / 240) * Math.PI * 2;
-          const rr = r + amp * Math.sin(LOBES * th + phase);
-          const x = c + rr * Math.cos(th);
-          const y = c + rr * Math.sin(th);
+        for (let s = 0; s <= N; s++) {
+          const rr = r + amp * (sinL[s]! * cp + cosL[s]! * sp);
+          const x = c + rr * cosT[s]!;
+          const y = c + rr * sinT[s]!;
           if (s === 0) ctx!.moveTo(x, y);
           else ctx!.lineTo(x, y);
         }
@@ -179,21 +242,24 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
         move(from.map((p, i) => p + (noise[i]! - 0.5) * spread));
       }
       charge *= 0.985;
-      if (lume.current) lume.current.style.opacity = String(0.15 + charge * 0.85);
+      // the lume only shows at night; by day there is nothing to update
+      if (lume.current && document.documentElement.dataset.theme === "night") lume.current.style.opacity = String(0.15 + charge * 0.85);
     };
+    /** A print lands on the band at 12 and fades: an HTML layer, so its rotation and fade run on the compositor. */
     const plotPrint = (p: number, ref: number) => {
       const layer = printsLayer.current;
       if (!layer || still) return;
       const deg = Math.max(-150, Math.min(150, ((p - ref) / ref) * 100 * DEG_PER_PCT));
-      const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      dot.setAttribute("r", "5");
-      dot.setAttribute("cx", "500");
-      dot.setAttribute("cy", String(500 - 442));
-      dot.setAttribute("transform", `rotate(${deg.toFixed(2)} 500 500)`);
-      dot.setAttribute("fill", "var(--accent)");
-      layer.appendChild(dot);
-      dot.animate([{ opacity: 1 }, { opacity: 1, offset: 0.1 }, { opacity: 0 }], { duration: 3000, easing: "ease-out" }).onfinish = () =>
-        dot.remove();
+      const arm = document.createElement("div");
+      arm.className = "absolute inset-0";
+      arm.style.transform = `rotate(${deg.toFixed(2)}deg)`;
+      const dot = document.createElement("span");
+      dot.className = "absolute rounded-full bg-accent";
+      // r 5 at (500, 58) on the 1000-unit dial
+      Object.assign(dot.style, { width: "1cqw", height: "1cqw", left: "49.5cqw", top: "5.3cqw" });
+      arm.appendChild(dot);
+      layer.appendChild(arm);
+      arm.animate([{ opacity: 1 }, { opacity: 1, offset: 0.1 }, { opacity: 0 }], { duration: 3000, easing: "ease-out" }).onfinish = () => arm.remove();
     };
 
     let timer = 0;
@@ -226,54 +292,24 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
   const forkReach = 0.355; // tine tops at 35.5% of the dial's width above the arbor
   const emblemPct = (forkReach * 48) / (ballCy - MARK_BOX.top);
   const bandDeg = Math.min(150, (regime.bandBps / 100) * DEG_PER_PCT);
-  const arc = (r: number, deg: number) => {
-    const a = (deg * Math.PI) / 180;
-    const x1 = 500 - r * Math.sin(a);
-    const y1 = 500 - r * Math.cos(a);
-    return `M${x1.toFixed(2)},${y1.toFixed(2)} A${r},${r} 0 ${deg > 90 ? 1 : 0} 1 ${(1000 - x1).toFixed(2)},${y1.toFixed(2)}`;
-  };
 
   return (
     <div
       ref={wrap}
-      className={`relative aspect-square w-full select-none [container-type:inline-size] ${className ?? ""}`}
+      // its own layer: what changes on a beat (the aperture, the batch number, the lume) repaints the dial, not the page
+      className={`relative aspect-square w-full select-none [container-type:inline-size] [will-change:transform] ${className ?? ""}`}
       role="img"
       aria-label={`${market.ticker} on Unison: one price every batch. ${REGIME_LABEL[regime.name]}, band ${bandLabel(regime.bandBps)}. Simulated order flow.`}
     >
       <canvas ref={canvas} className="absolute inset-0 h-full w-full" aria-hidden />
-      <svg viewBox="0 0 1000 1000" className="absolute inset-0 h-full w-full overflow-visible" aria-hidden>
-        <circle cx="500" cy="500" r="494" fill="none" stroke="var(--line-strong)" strokeWidth="1" />
-        {/* 200-step track: one step per batch, a minute per turn */}
-        <g stroke="var(--ink-3)">
-          {Array.from({ length: STEPS }, (_, i) => (
-            <line
-              key={i}
-              x1="500"
-              y1={i % 10 === 0 ? 16 : 22}
-              x2="500"
-              y2="34"
-              strokeWidth={i % 10 === 0 ? 1.8 : 0.8}
-              strokeOpacity={i % 10 === 0 ? 0.85 : 0.45}
-              transform={`rotate(${(i * 360) / STEPS} 500 500)`}
-            />
-          ))}
-        </g>
-        {/* Signed once, beneath twelve, as a maison signs a dial */}
-        <text x="500" y="132" textAnchor="middle" fill="var(--ink-2)" style={{ fontFamily: "var(--font-display)", fontSize: 22, letterSpacing: "0.34em" }}>
-          UNISON
-        </text>
-        {/* Band at 12: the half-width the venue would use right now; prints land on it */}
-        <path d={arc(442, bandDeg)} fill="none" stroke="var(--champagne)" strokeWidth="2" strokeLinecap="round" />
-        <path d="M500,48 l-6,-10 h12 z" fill="var(--ink-2)" />
-        <g ref={printsLayer} />
-        <g ref={pointer} style={{ transformOrigin: "500px 500px", transformBox: "view-box" }}>
+      <DialFace bandDeg={bandDeg} />
+      {/* Prints and the pointer move on their own layers, so a beat never repaints the face beneath them */}
+      <div ref={printsLayer} className="pointer-events-none absolute inset-0" aria-hidden />
+      <div ref={pointer} className="pointer-events-none absolute inset-0" aria-hidden>
+        <svg viewBox="0 0 1000 1000" className="h-full w-full overflow-visible">
           <path d="M500,40 l-5.5,-17 h11 z" fill="var(--accent)" />
-        </g>
-        {/* Engraved specification, like a calibre's dial text */}
-        <text x="500" y="610" textAnchor="middle" fill="var(--ink-3)" style={{ fontSize: 13, letterSpacing: "0.14em", fontStretch: "125%", fontWeight: 600 }}>
-          12,000 A/h · Monad
-        </text>
-      </svg>
+        </svg>
+      </div>
       {/* Lume: the ball charges with traded volume (night only) */}
       <div
         ref={lume}
