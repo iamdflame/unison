@@ -71,7 +71,8 @@ Components use semantic tokens only. Tailwind's default palette is removed (`tex
 ## Space, shape and materials
 
 - A 4-point grid. Radii are `xs 6`, `sm 10`, `md 14`, `lg 20`, `xl 28` and `2xl 36`. Nested shapes are concentric: outer radius = inner radius + padding.
-- Shadows `shadow-sm`, `md` and `lg` are layered and neutral by day; by night they are an inset highlight, a hairline ring and a deep drop.
+- A surface seated in the page (a board, a table, the ticket) takes `shadow-panel`: a hairline and a contact shadow, no drop. Only what floats over the page (sheets, menus, toasts, the thumb bar, the nav pill's `shadow-float`) casts a shadow.
+- Shadows `shadow-sm`, `md` and `lg` are layered and neutral by day; by night they are an inset highlight, a hairline ring and a deep drop. `shadow-sm` also lifts the selected thumb of a segmented control.
 - **Glass** (`glass`) is a 20 px blur with 180% saturation over a tinted fill, opaque under reduced transparency. Use one translucent layer at a time. In any rule with a prefixed pair, declare `-webkit-backdrop-filter` first and `backdrop-filter` last. The compiler keeps only the last of the pair and Chrome ignores the prefixed form, so the other order draws no blur in Chrome.
 - Engraved, not printed: large brand type on a surface is cut at engraving strength (`text-engrave`).
 
@@ -93,7 +94,7 @@ Easings: out `(.23,1,.32,1)`, in-out `(.77,0,.175,1)`, drawer `(.32,.72,0,1)`, s
 **Rules:**
 - Animate transform, opacity, filter and clip-path only. Never scale from 0: enter from 0.95 with opacity.
 - Prefer interruptible CSS transitions for state, and use keyframes only for one-shot sequences. Exits are softer and shorter than entrances.
-- Hover effects live under the `hover-fine:` variant (a fine pointer that can hover).
+- Hover effects live under the `hover-fine:` variant: the pointer is over the element, on a device with a fine pointer that can hover. For a child that reacts to its parent's hover, use `group-hover:`.
 - Never fade-slide every section up. Choose a reveal per section: a clip-path wipe, blur to sharp, a hairline drawing on.
 - **The beat is geometry, never a flash.** The 3.33 Hz beat moves a hand or locks rings into phase; it never pulses brightness (WCAG 2.3.1 allows at most three flashes a second). Between beats, nothing moves.
 - Every motion has a static cue as well (a color, a glyph, a word).
