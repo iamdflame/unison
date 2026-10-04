@@ -93,10 +93,13 @@ Unison is a venue for tokenized assets on Monad: US equities (Anchored aStocks),
 contracts/   Foundry. core/ (exchange, clearing, book), pricing/ (references), liquidity/ (vault),
              access/ (gateway), compliance/ (eligibility), script/ (DevNet, Deploy)
 packages/    engine/ (bit-exact TS clearing + book), sdk/ (viem client, signing, calendar, ABIs)
-services/    relay/ (signed references), keeper/ (clear jobs, vaults, auto-claim), relayer/ (gasless orders)
+services/    relay/ (signed references), keeper/ (clear jobs, vaults, auto-claim), relayer/ (gasless orders),
+             tape/ (indexer: prints, orders, receipts, live stream), mcp/ (tools for AI agents)
+apps/web/    the website and the trading app (Next.js); design system in apps/web/DESIGN.md
+bots/        house order flow for devnets
 research/    sniper-bench/ (fairness benchmark)
 deploy/      network configs (monad-mainnet.json: 11 tokens, 10 markets, every address verified on-chain)
-docs/        SPEC.md, evidence/
+docs/        SPEC.md, API.md, AGENTS.md, DEPLOY.md, evidence/
 ```
 
 ## Quickstart
@@ -117,13 +120,40 @@ anvil --fork-url https://rpc.monad.xyz --port 8546 --code-size-limit 131072 &
 cd contracts && forge test --fork-url http://127.0.0.1:8546 --match-contract MonadForkTest -vv
 ```
 
+## Website and app
+
+`apps/web` is the site and the trading app in one Next.js project:
+
+- **The site:** home, fairness, developers, status, brand and legal pages.
+- **The app:** trade, markets, portfolio, vaults, and agent keys.
+
+Accounts are passkeys (Face ID, Touch ID, Windows Hello), orders are gasless, and each fill comes with a certificate whose receipt the tape recomputes. With no venue running, the app runs every market in the browser on the real clearing engine, and labels itself as a simulation.
+
+```bash
+pnpm --filter @unison/web dev     # http://localhost:3000; with no venue running it simulates (or add ?demo=1)
+
+# a live local venue (chain, relay, keeper, relayer, tape), with the web app pointed at it:
+WEB_ENV_OUT=apps/web/.env.local node scripts/dev-stack.mjs
+pnpm --filter @unison/web dev
+```
+
+Quality gates, run from `apps/web`:
+
+| Gate | Command |
+|---|---|
+| Unit tests (contrast, facts, receipts, clearing window) | `pnpm test` |
+| Typecheck and lint | `pnpm typecheck`, `pnpm lint` |
+| JS budgets: 180 KB marketing, 250 KB app (first load, gzip) | `pnpm build && node scripts/weigh.mjs --check` |
+| Accessibility: WCAG 2.2 AA on every route, both lights | `pnpm a11y` |
+| Live flows on the devnet: passkey → buy → certificate; withdrawal; agent keys through MCP; the shell's controls | `node scripts/flow-live.mjs` (and `flow-portfolio`, `flow-agents`, `flow-shell`) |
+
 ## Status
 
 - **Built:** the full engine and every component listed above.
 - **Mainnet:** the deploy is rehearsed on a fork and needs the operator keys to go live.
 - **Live evidence:** the first weekend DISCOVERY cycle (Fri Oct 9 → Mon Oct 12) will be published in `docs/evidence/`.
 - **Equity references:** the dev relay uses Alpaca IEX, or a labelled simulation. Production equities use a licensed feed (Pyth Pro / Chainlink Data Streams adapters).
-- **Frontend:** in progress (mobile, Mera passkeys).
+- **Frontend:** built and running against the local devnet (passkeys, gasless orders, certificates, vaults, agent keys). The public testnet deploy is next.
 
 ## AI disclosure
 
