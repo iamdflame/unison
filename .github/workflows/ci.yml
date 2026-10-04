@@ -42,6 +42,85 @@ jobs:
       - run: pnpm -r --if-present typecheck
       - run: pnpm -r --if-present test
 
+  web:
+    name: Website and app (lint, build, budgets, accessibility, controls)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm --filter @unison/web lint
+      - name: Build, with source maps for attribution
+        run: SOURCE_MAPS=1 pnpm --filter @unison/web build
+      - name: JavaScript budgets (first load, gzip)
+        working-directory: apps/web
+        run: node scripts/weigh.mjs --check | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Chromium
+        working-directory: apps/web
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Accessibility (WCAG 2.2 AA, every route, both lights) and the shell's controls
+        working-directory: apps/web
+        run: |
+          pnpm start > ../../next.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:3000/ > /dev/null && break; sleep 1; done
+          pnpm a11y
+          node scripts/flow-shell.mjs
+      - name: Server log
+        if: failure()
+        run: tail -n 100 next.log || true
+
+  e2e:
+    name: Live flows on a devnet (passkey to certificate, withdrawal, agent keys)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Chromium
+        working-directory: apps/web
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Devnet (anvil, deploy, relay, keeper, relayer, tape)
+        run: |
+          WEB_ENV_OUT=apps/web/.env.local node scripts/dev-stack.mjs > stack.log 2>&1 &
+          for i in $(seq 1 300); do
+            curl -sf http://127.0.0.1:8790/health | grep -q '"ok":true' && curl -sf http://127.0.0.1:8788/health > /dev/null && break
+            sleep 2
+          done
+          curl -sf http://127.0.0.1:8790/health
+      - name: Build the app against the devnet
+        run: pnpm --filter @unison/web build
+      - name: Flows
+        working-directory: apps/web
+        run: |
+          pnpm start > ../../next.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:3000/ > /dev/null && break; sleep 1; done
+          node scripts/flow-live.mjs
+          node scripts/flow-portfolio.mjs
+          node scripts/flow-agents.mjs
+      - name: Logs
+        if: failure()
+        run: tail -n 60 stack.log next.log .dev-stack/*.log || true
+
   differential:
     name: Solidity vs TypeScript differential fuzz
     runs-on: ubuntu-latest
