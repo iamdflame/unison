@@ -106,14 +106,15 @@ export function NeverCloses() {
         <div className="order-2 lg:order-1 lg:col-span-6">
           <figure className="mx-auto max-w-[560px]">
             <svg viewBox="0 0 600 600" className="h-auto w-full" role="img" aria-label={`A week is ${facts.hours.week} hours. Wall Street trades ${facts.hours.regularPerWeek} of them; Unison trades all ${facts.hours.week}.`}>
-              {/* Unison: one unbroken ring */}
+              {/* Unison: the chapter ring, a double rule in champagne, unbroken all week */}
+              <circle cx="300" cy="300" r="256" fill="none" stroke="var(--champagne)" strokeWidth="0.75" />
               <circle
                 cx="300"
                 cy="300"
                 r="248"
                 fill="none"
-                stroke="var(--accent)"
-                strokeWidth="5"
+                stroke="var(--champagne)"
+                strokeWidth="2.5"
                 pathLength={1}
                 strokeDasharray="1"
                 style={{
@@ -124,15 +125,22 @@ export function NeverCloses() {
                 }}
                 className="motion-reduce:!transition-none"
               />
-              {/* Wall Street: sessions on the inner track */}
-              {runs.map((r) => (
+              {/* 168 hour graduations, longer every six hours, like a power reserve's scale */}
+              {Array.from({ length: facts.hours.week }, (_, h) => {
+                const [x1, y1] = polar(h % 6 === 0 ? 226 : 232, h * 2);
+                const [x2, y2] = polar(240, h * 2);
+                return <line key={h} x1={x1} y1={y1} x2={x2} y2={y2} stroke="var(--ink-3)" strokeWidth={h % 6 === 0 ? 0.9 : 0.5} strokeOpacity={h % 6 === 0 ? 0.8 : 0.5} />;
+              })}
+              {/* Wall Street: its sessions engraved on a hairline track; the hours it is shut are simply bare */}
+              <circle cx="300" cy="300" r="206" fill="none" stroke="var(--line-strong)" strokeWidth="1" />
+              {runs.filter((r) => r.kind !== "closed").map((r) => (
                 <path
                   key={r.from}
                   d={arcPath(206, r.from, r.to)}
                   fill="none"
-                  stroke={r.kind === "closed" ? "var(--line)" : "var(--ink)"}
-                  strokeOpacity={r.kind === "extended" ? 0.32 : 1}
-                  strokeWidth={r.kind === "closed" ? 22 : 22}
+                  stroke="var(--ink)"
+                  strokeOpacity={r.kind === "extended" ? 0.3 : 1}
+                  strokeWidth={10}
                   pathLength={1}
                   strokeDasharray="1"
                   style={{
@@ -159,8 +167,9 @@ export function NeverCloses() {
               {/* Now */}
               {hand && handFrom ? (
                 <g>
-                  <line x1={handFrom[0]} y1={handFrom[1]} x2={hand[0]} y2={hand[1]} stroke="var(--ink-2)" strokeWidth="1.4" strokeLinecap="round" />
-                  <circle cx={hand[0]} cy={hand[1]} r="7" fill="var(--ball-3)" />
+                  {/* the one moving hand, in blued steel */}
+                  <line x1={handFrom[0]} y1={handFrom[1]} x2={hand[0]} y2={hand[1]} stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" />
+                  <circle cx={hand[0]} cy={hand[1]} r="3.5" fill="var(--accent)" />
                 </g>
               ) : null}
               <text x="300" y="282" textAnchor="middle" className="font-display" fill="var(--ink)" style={{ fontSize: 76, fontVariationSettings: '"opsz" 72' }}>
@@ -173,7 +182,8 @@ export function NeverCloses() {
             <figcaption className="mt-2 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-ink-3">
               <span className="inline-flex items-center gap-2"><span aria-hidden className="h-1.5 w-5 rounded-full bg-ink" /> Wall Street, {facts.hours.regularPerWeek} h</span>
               <span className="inline-flex items-center gap-2"><span aria-hidden className="h-1.5 w-5 rounded-full bg-ink/30" /> Extended hours</span>
-              <span className="inline-flex items-center gap-2"><span aria-hidden className="h-1.5 w-5 rounded-full bg-accent" /> Unison, all {facts.hours.week}</span>
+              <span className="inline-flex items-center gap-2"><span aria-hidden className="h-0.5 w-5 rounded-full bg-champagne" /> Unison, all {facts.hours.week}</span>
+              <span className="inline-flex items-center gap-2"><span aria-hidden className="h-0.5 w-5 rounded-full bg-accent" /> Now</span>
             </figcaption>
           </figure>
         </div>
@@ -200,8 +210,9 @@ export function NeverCloses() {
                   </text>
                 </g>
               ))}
-              <path d={`${curve}L${cx(tMax)},${cy(0)}L${cx(0)},${cy(0)}Z`} fill="var(--accent-soft)" />
-              <path d={curve} fill="none" stroke="var(--accent)" strokeWidth="2" />
+              {/* the band as an engraved curve over a champagne wash; only "now" is in blued steel */}
+              <path d={`${curve}L${cx(tMax)},${cy(0)}L${cx(0)},${cy(0)}Z`} fill="var(--champagne)" fillOpacity="0.14" />
+              <path d={curve} fill="none" stroke="var(--ink)" strokeWidth="1.5" />
               <line x1="40" x2={CW - 20} y1={cy(0)} y2={cy(0)} stroke="var(--line-strong)" />
               {marks.map((m) => (
                 <g key={m.label}>
@@ -214,7 +225,7 @@ export function NeverCloses() {
               {sinceClose !== null && sinceClose <= tMax ? (
                 <g>
                   <line x1={cx(sinceClose)} x2={cx(sinceClose)} y1={cy(0)} y2={cy(nowBand)} stroke="var(--ink)" strokeDasharray="2 4" />
-                  <circle cx={cx(sinceClose)} cy={cy(nowBand)} r="6.5" fill="var(--ball-3)" />
+                  <circle cx={cx(sinceClose)} cy={cy(nowBand)} r="5" fill="var(--accent)" />
                   {/* up and to the left of the dot, where the rising band never is (flipped only near the close);
                       a halo in the page color keeps grid hairlines off the figures */}
                   <text
