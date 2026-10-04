@@ -48,17 +48,19 @@ export function Audited() {
     <section aria-labelledby="audited-title" className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-12 lg:py-24">
       <div ref={ref} className="grid grid-cols-1 items-center gap-x-16 gap-y-12 lg:grid-cols-12">
         <div className="lg:col-span-5">
+          {/* honest about today: one signer publishes the reference, and the check on it runs in a simulator */}
           <h2 id="audited-title" className="text-display-l text-ink">
-            Audited from outside, every&nbsp;{facts.cre.auditEverySec}&nbsp;seconds.
+            A second opinion on every&nbsp;price.
           </h2>
           <p className="text-lede mt-6 text-ink-2">
-            An independent Chainlink network re-prices every stock from separate market-data sources and compares the
-            result with the reference Unison clears against. If they disagree by more than{" "}
-            {(facts.cre.haltAboveBps / 100).toFixed(2)}%, trading halts and the signer&apos;s bond is slashed. Halts on
-            the primary market are mirrored within a minute.
+            Today one signer publishes the reference Unison clears against. A Chainlink workflow checks that signer
+            from outside. Every {facts.cre.auditEverySec} seconds it prices each stock from separate market-data
+            sources and compares. More than {(facts.cre.haltAboveBps / 100).toFixed(2)}% apart, trading halts and the
+            signer&apos;s bond is slashed.
           </p>
           <p className="mt-6 text-sm text-ink-3">
-            Running in Chainlink&apos;s CRE simulator today; deployed to the live network once access is granted.{" "}
+            The workflow runs in Chainlink&apos;s CRE simulator today and moves to the live network once access is granted.
+            Halts on the primary market are mirrored within a minute.{" "}
             <a className="underline decoration-line-strong underline-offset-4 hover-fine:text-ink" href={`${site.repo}/tree/main/cre/unison`}>
               The workflows
             </a>

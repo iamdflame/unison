@@ -2,7 +2,7 @@
 import { writeFileSync } from "node:fs";
 import { chromium } from "@playwright/test";
 import { formatHex } from "culori";
-import { BALL_FINISH, emblemSvg } from "./emblem.mjs";
+import { BALL, emblemSvg } from "./emblem.mjs";
 import { MARK, MARK_MID, MARK_SMALL } from "./mark.mjs";
 import { lockupSvg } from "./wordmark.mjs";
 import { dialSvg } from "./dial.mjs";
@@ -14,12 +14,7 @@ const C = {
   pearl: formatHex("oklch(0.95 0.006 250)"),
   lume: formatHex("oklch(0.88 0.075 228)"),
 };
-let gid = 0;
-const mark = (params, size, t) => {
-  const id = `g${gid++}`;
-  const finish = t === "day" ? BALL_FINISH.steel(id) : BALL_FINISH.lume(id);
-  return emblemSvg(params, { ink: t === "day" ? C.ink : C.pearl, ballFill: `url(#${id})`, defs: finish, size });
-};
+const mark = (params, size, t) => emblemSvg(params, { ink: t === "day" ? C.ink : C.pearl, ballFill: t === "day" ? BALL.steel : BALL.lume, size });
 const master = (s) => (s <= 20 ? MARK_SMALL : s < 44 ? MARK_MID : MARK);
 const ink = (t) => (t === "day" ? C.ink : C.pearl);
 const row = (t) => `<div class="pane" style="background:${t === "day" ? C.porcelain : C.onyx};color:${ink(t)}">

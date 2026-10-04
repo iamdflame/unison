@@ -127,12 +127,12 @@ export function WatchFace({ hours = 10, minutes = 10, seconds = 40, hacked = fal
       ) : null}
 
       {/* hands */}
-      <g transform={`translate(${C} ${C}) rotate(${hourDeg})`} fill="var(--ball-3)">
+      <g transform={`translate(${C} ${C}) rotate(${hourDeg})`} fill="var(--ball)">
         <path d={HOUR.shaft} />
         <path d={HOUR.ring} fillRule="evenodd" />
         <path d={HOUR.tip} />
       </g>
-      <g transform={`translate(${C} ${C}) rotate(${minDeg})`} fill="var(--ball-3)">
+      <g transform={`translate(${C} ${C}) rotate(${minDeg})`} fill="var(--ball)">
         <path d={MINUTE.shaft} />
         <path d={MINUTE.ring} fillRule="evenodd" />
         <path d={MINUTE.tip} />
@@ -142,7 +142,7 @@ export function WatchFace({ hours = 10, minutes = 10, seconds = 40, hacked = fal
           <line x1="0" y1="44" x2="0" y2="-168" stroke="var(--sell)" strokeWidth="1.1" strokeLinecap="round" />
           <circle cx="0" cy="34" r="4.2" fill="var(--sell)" />
         </g>
-        <circle r="6.5" fill="var(--ball-3)" />
+        <circle r="6.5" fill="var(--ball)" />
         <circle r="2.2" fill="var(--bg-raised)" />
       </g>
     </svg>

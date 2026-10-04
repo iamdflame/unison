@@ -1,7 +1,7 @@
 /**
  * The app icon: an onyx dial with one centre, the ball (the arbor). A fumé sunray of 200 rays (200 beats make a
  * minute) turns from it as sheen, a snailed sub-dial edged with one champagne hairline makes the stem read as a
- * small-seconds hand at 12, the body is polished rhodium and the ball is lume that glows inside its edge.
+ * small-seconds hand at 12, the body is polished rhodium and the ball is flat lume in a soft halo.
  */
 import { emblem } from "./emblem.mjs";
 
@@ -34,7 +34,7 @@ export function dialSvg(size, markParams, { maskable = false, colors }) {
   const body = parts
     .map((p) =>
       p.role === "ball" || p.role === "jewel"
-        ? `<path d="${p.d}" fill="url(#lumeBall)"/>`
+        ? `<path d="${p.d}" fill="${colors.lume}"/>`
         : `<path d="${p.d}" fill="url(#rhodium)"/>`,
     )
     .join("");
@@ -43,7 +43,6 @@ export function dialSvg(size, markParams, { maskable = false, colors }) {
 <defs>${clip}
 <radialGradient id="base" gradientUnits="userSpaceOnUse" cx="${cx}" cy="${cy.toFixed(2)}" r="240"><stop offset="0" stop-color="#22262f"/><stop offset="0.45" stop-color="#14161c"/><stop offset="1" stop-color="${colors.onyx}"/></radialGradient>
 <linearGradient id="rhodium" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6f8fb"/><stop offset="0.55" stop-color="#e3e7ee"/><stop offset="1" stop-color="#c3c9d4"/></linearGradient>
-<radialGradient id="lumeBall" cx="0.5" cy="0.62" r="0.62"><stop offset="0" stop-color="#ffffff"/><stop offset="0.25" stop-color="#e0f6ff"/><stop offset="0.5" stop-color="#cdeeff"/><stop offset="1" stop-color="#8fd0f6"/></radialGradient>
 <radialGradient id="halo" gradientUnits="userSpaceOnUse" cx="${cx}" cy="${cy.toFixed(2)}" r="${(rb * 1.5).toFixed(2)}"><stop offset="0.55" stop-color="${colors.lume}" stop-opacity="0.26"/><stop offset="1" stop-color="${colors.lume}" stop-opacity="0"/></radialGradient>
 </defs>
 <g${maskable ? "" : ' clip-path="url(#sq)"'}>

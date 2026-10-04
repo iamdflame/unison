@@ -49,7 +49,7 @@ Components use semantic tokens only. Tailwind's default palette is removed (`tex
 | `champagne` | the band arc, hairline engraving |
 | `engrave` | text cut into a surface (the footer wordmark) |
 | `glass`, `scrim` | the one translucent layer; behind dialogs |
-| `ball-1` to `ball-4` | the mark's ball: heat-blued steel by day, lume by night |
+| `ball` | the mark's ball, flat: blued steel by day, lume by night (the accent of each light) |
 
 - **Buy and sell** come in two palettes: verdigris and garnet (house), and steel and amber for color-vision deficiencies. The visitor picks one in the light switch (Appearance, then Buy and sell). Each light defines both palettes as data (`--buy-std`, `--buy-cvd` and so on); the tints derive from the active pair with `color-mix`, so everything switches together. Buy and sell always carry a word or a glyph as well as a color.
 - **Contrast is tested, not eyeballed.** `test/contrast.test.ts` reads the token blocks out of `globals.css` and checks every text pair, the labels on the buy and sell buttons, and buy/sell separation under protanopia, deuteranopia and tritanopia, in all four light and palette combinations.

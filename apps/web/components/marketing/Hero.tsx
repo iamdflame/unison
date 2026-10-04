@@ -22,8 +22,9 @@ export function Hero() {
           </h1>
           <div className="order-3 lg:order-none">
             <p className="text-lede max-w-xl text-ink-2 lg:mt-7">
-              Tokenized stocks on Monad. Every order in a batch clears at one price, so no one can trade ahead of you: in
-              session against a reference published after the batch closes, at night in a call auction.
+              {/* one idea a sentence; how the price is found belongs to the chapters below and to Developers */}
+              Tokenized stocks on Monad, traded day and night. Every order in a batch clears at one price. No one can
+              trade ahead of you.
             </p>
             <HeroSession />
             {/* what the venue is today, before anyone presses a button */}

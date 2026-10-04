@@ -30,13 +30,15 @@
   --ink-3: oklch(0.53 0.01 262);
   --line: oklch(0.19 0.012 262 / 0.1);
   --line-strong: oklch(0.19 0.012 262 / 0.2);
-  --accent: oklch(0.47 0.17 264);
+  /* Blued steel: the colour of a heat-blued screw, deep and a little violet, never a screen's bright indigo */
+  --accent: oklch(0.4 0.15 266);
   --accent-ink: oklch(0.99 0.002 250);
-  --accent-soft: oklch(0.47 0.17 264 / 0.09);
+  --accent-soft: oklch(0.4 0.15 266 / 0.08);
   /* Buy and sell, as two palettes: verdigris and garnet, or steel and amber for color-vision deficiencies (chosen in
      the light switch). Components use --buy and --sell; the -std / -cvd pairs exist so a swatch can show either. */
   --buy-std: oklch(0.48 0.095 185);
-  --sell-std: oklch(0.53 0.175 32);
+  /* garnet, as quiet as the verdigris: the same lightness and nearly its chroma, so neither side shouts */
+  --sell-std: oklch(0.47 0.12 34);
   --buy-cvd: oklch(0.48 0.15 255);
   --sell-cvd: oklch(0.52 0.13 52);
   --buy: var(--buy-std);
@@ -49,13 +51,10 @@
   --halt: oklch(0.5 0.115 62);
   --champagne: oklch(0.58 0.06 80);
   --engrave: oklch(0.19 0.012 262 / 0.095);
-  --glow: oklch(0.47 0.17 264 / 0);
-  --focus: oklch(0.47 0.17 264);
-  /* The mark's ball by day: heat-blued steel, lit from the upper left. */
-  --ball-1: #6f7fe0;
-  --ball-2: #3442b0;
-  --ball-3: #24318f;
-  --ball-4: #1a2366;
+  --glow: oklch(0.4 0.15 266 / 0);
+  --focus: oklch(0.4 0.15 266);
+  /* The mark's ball by day: blued steel, flat, the accent itself. One finish wherever the mark appears. */
+  --ball: oklch(0.4 0.15 266);
   --scrim: oklch(0.19 0.012 262 / 0.28);
   --glass: oklch(0.995 0.002 250 / 0.72);
   --shadow-sm-v: 0px 2px 3px -1px rgba(0, 0, 0, 0.1), 0px 1px 0px 0px rgba(25, 28, 33, 0.02),
@@ -87,7 +86,7 @@
   --accent-ink: oklch(0.17 0.02 258);
   --accent-soft: oklch(0.88 0.075 228 / 0.12);
   --buy-std: oklch(0.83 0.1 184);
-  --sell-std: oklch(0.72 0.15 32);
+  --sell-std: oklch(0.72 0.12 30);
   --buy-cvd: oklch(0.8 0.1 240);
   --sell-cvd: oklch(0.8 0.13 68);
   --buy: var(--buy-std);
@@ -105,11 +104,8 @@
   --engrave: oklch(0.82 0.05 85 / 0.12);
   --glow: oklch(0.88 0.08 228 / 0.55);
   --focus: oklch(0.88 0.075 228);
-  /* By night: lume, glowing inside its edge. */
-  --ball-1: #ffffff;
-  --ball-2: #e0f6ff;
-  --ball-3: #b6e4fd;
-  --ball-4: #86c9f2;
+  /* By night: lume, flat, the night accent. */
+  --ball: oklch(0.88 0.075 228);
   --scrim: oklch(0.05 0.005 265 / 0.6);
   --glass: oklch(0.2 0.008 265 / 0.66);
   --shadow-sm-v: inset 0 1px 0 0 oklch(1 0 0 / 0.05), 0 0 0 1px oklch(1 0 0 / 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.5);

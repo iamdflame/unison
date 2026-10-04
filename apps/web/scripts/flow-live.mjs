@@ -38,11 +38,11 @@ await p.keyboard.press("Escape");
   const cross = p.getByRole("button", { name: /^Cross \$/ });
   const last = p.getByRole("button", { name: /^Last \$/ });
   await ((await cross.count()) ? cross : (await last.count()) ? last : p.getByRole("button", { name: /^(Ref|Close) \$/ })).click();
-  const limit = p.locator("#limit");
+  const limit = p.locator('input[name="limit"]:visible');
   await limit.fill((Number(await limit.inputValue()) + 0.5).toFixed(2));
   await limit.press("Enter");
 }
-await p.locator("#qty").fill("1");
+await p.locator('input[name="qty"]:visible').fill("1");
 await p.getByRole("button", { name: /^Buy 1 aNVDA at/ }).click();
 await p.waitForTimeout(1500);
 await shot("4-placed");

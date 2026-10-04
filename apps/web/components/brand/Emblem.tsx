@@ -68,7 +68,8 @@ export const Emblem = forwardRef<EmblemHandle, EmblemProps>(function Emblem(
 
   const body = parts.filter((p) => p.role === "body").map((p) => p.d).join(" ");
   const ball = parts.filter((p) => p.role !== "body").map((p) => p.d).join(" ");
-  const ballFill = jewel ? `url(#${uid}-ball)` : "currentColor";
+  // blued steel by day, lume by night, flat: one finish everywhere (globals.css --ball)
+  const ballFill = jewel ? "var(--ball)" : "currentColor";
 
   return (
     <svg
@@ -84,13 +85,6 @@ export const Emblem = forwardRef<EmblemHandle, EmblemProps>(function Emblem(
     >
       {title ? <title>{title}</title> : null}
       <defs>
-        {/* Blued steel by day, lume by night: the stops read theme tokens (globals.css --ball-*). */}
-        <radialGradient id={`${uid}-ball`} cx="0.38" cy="0.34" r="0.72">
-          <stop offset="0" style={{ stopColor: "var(--ball-1)" }} />
-          <stop offset="0.4" style={{ stopColor: "var(--ball-2)" }} />
-          <stop offset="0.82" style={{ stopColor: "var(--ball-3)" }} />
-          <stop offset="1" style={{ stopColor: "var(--ball-4)" }} />
-        </radialGradient>
         <clipPath id={`${uid}-l`}>
           <rect x="-4" y="-4" width="28" height={yc + 4} />
         </clipPath>

@@ -13,8 +13,8 @@ export const metadata: Metadata = {
 const ASSETS: [string, string, string][] = [
   ["Mark, ink", "/brand/unison-mark-ink.svg", "SVG"],
   ["Mark, porcelain", "/brand/unison-mark-porcelain.svg", "SVG"],
-  ["Mark, blued steel (day)", "/brand/unison-mark-jewel-day.svg", "SVG"],
-  ["Mark, lume (night)", "/brand/unison-mark-jewel-night.svg", "SVG"],
+  ["Mark, blued steel (day)", "/brand/unison-mark-ink-finished.svg", "SVG"],
+  ["Mark, lume (night)", "/brand/unison-mark-porcelain-finished.svg", "SVG"],
   ["Mark, small master", "/brand/unison-mark-small-ink.svg", "SVG"],
   ["Mark, ink", "/brand/unison-mark-ink.png", "PNG"],
   ["Lockup, ink", "/brand/unison-lockup-ink.svg", "SVG"],
@@ -90,7 +90,7 @@ export default function BrandPage() {
         </div>
       </Section>
 
-      <Section id="finish-title" title="The light follows the market." lede="Porcelain while Wall Street trades, Nocturne while it sleeps. The ball is a material, never a flat color: heat-blued steel by day, lume by night.">
+      <Section id="finish-title" title="The light follows the market." lede="Porcelain while Wall Street trades, Nocturne while it sleeps. The ball takes the light's own accent, flat and the same wherever the mark appears: blued steel by day, lume by night.">
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <PaletteClient theme="day" name="Porcelain" note="Day: while the US market is open." />
           <PaletteClient theme="night" name="Nocturne" note="Night: nights, weekends and holidays." />

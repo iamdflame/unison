@@ -1,44 +1,15 @@
-"use client";
-
-import { KeyRound } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { useInView } from "@/components/motion/useInView";
+import { SessionKeyCard } from "@/components/agents/SessionKeyCard";
+import { Hallmark } from "@/components/ui/Hallmark";
+import { AgentsTerminal } from "./AgentsTerminal";
 
 /**
- * Chapter 7: built for agents, bounded by people. A real MCP session types itself out (the tool names and fields
- * are the ones services/mcp serves) beside the session key that bounds it.
+ * Chapter 7: built for agents, bounded by people. A real MCP session types itself out beside the session key that
+ * bounds it: the same card the Agents page shows for a key you hold. Only the terminal runs on the client.
  */
-const SCRIPT: { kind: "in" | "out"; text: string }[] = [
-  { kind: "in", text: 'unison.market({ symbol: "aNVDA/AUSD" })' },
-  { kind: "out", text: "reference $180.00 · live, band ±1.00% · fee 3 bp" },
-  { kind: "in", text: 'unison.place_order({ symbol: "aNVDA/AUSD", side: "buy", price: "180.10", qty: "2" })' },
-  { kind: "out", text: "signed with session key 0x8c3e…41d2 · inside its limits · relayed, no gas" },
-  { kind: "in", text: 'unison.order_status({ id: "5c1e…" })' },
-  { kind: "out", text: "filled 2.00 at $180.03 · same price as everyone in block 110,330,351" },
-];
-
-/** Where each line starts in the typed stream. */
-const STARTS = SCRIPT.map((_, i) => SCRIPT.slice(0, i).reduce((n, l) => n + l.text.length, 0));
-
 export function Agents() {
-  const ref = useRef<HTMLDivElement>(null);
-  const shown = useInView(ref, { threshold: 0.4 });
-  const [chars, setChars] = useState(0);
-  const total = SCRIPT.reduce((n, l) => n + l.text.length, 0);
-
-  useEffect(() => {
-    if (!shown) return;
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      const id = setTimeout(() => setChars(total), 0);
-      return () => clearTimeout(id);
-    }
-    const id = setInterval(() => setChars((c) => (c >= total ? c : c + 3)), 24);
-    return () => clearInterval(id);
-  }, [shown, total]);
-
   return (
     <section aria-labelledby="agents-title" className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-12 lg:py-24">
-      <div ref={ref} className="grid grid-cols-1 items-center gap-x-16 gap-y-12 lg:grid-cols-12">
+      <div className="grid grid-cols-1 items-center gap-x-16 gap-y-12 lg:grid-cols-12">
         <div className="lg:col-span-6">
           <h2 id="agents-title" className="text-display-l text-ink">
             Built for agents.
@@ -54,47 +25,18 @@ export function Agents() {
         </div>
 
         <div className="relative lg:col-span-6">
-          {/* The terminal is a night instrument in either light. */}
-          <div data-theme="night" className="rounded-[var(--radius-2xl)] bg-[oklch(0.15_0.007_265)] p-1.5 text-ink shadow-float">
-            <div className="flex items-center gap-2 px-4 py-3">
-              <span className="ml-3 text-xs text-ink-3">agent · unison mcp · illustration</span>
-            </div>
-            <pre
-              role="img"
-              className="min-h-[248px] rounded-[calc(var(--radius-2xl)-6px)] bg-[oklch(0.12_0.006_265)] p-6 font-mono text-[13px] leading-7 whitespace-pre-wrap [font-variant-ligatures:none]"
-              aria-label="An agent reads the market, places an order with its session key, and gets filled at the batch price."
-            >
-              {SCRIPT.map((l, i) => {
-                const take = Math.max(0, Math.min(l.text.length, chars - STARTS[i]!));
-                if (take === 0 && i > 0) return null;
-                return (
-                  <div key={i} className={l.kind === "in" ? "text-ink" : "text-ink-2"}>
-                    <span aria-hidden className="select-none text-ink-3">{l.kind === "in" ? "› " : "  "}</span>
-                    {l.text.slice(0, take)}
-                    {take < l.text.length && take > 0 ? <span aria-hidden className="ml-0.5 inline-block h-4 w-2 translate-y-0.5 bg-ink/70" /> : null}
-                  </div>
-                );
-              })}
-            </pre>
-          </div>
-
-          {/* the key that bounds it, beneath the session it signed: the same example as the Agents page */}
-          <div className="mt-4 ml-auto w-[min(100%,380px)] rounded-[var(--radius-xl)] bg-raised p-5 shadow-panel">
-            <div className="flex items-center gap-2 text-sm font-semibold text-ink">
-              <KeyRound size={16} strokeWidth={1.5} aria-hidden /> Session key
-              <span className="ml-auto text-xs font-normal text-ink-2">expires in 24 h</span>
-            </div>
-            <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-              <dt className="text-ink-3">Markets</dt>
-              <dd className="text-right text-ink">aNVDA, aSPY</dd>
-              <dt className="text-ink-3">Size per order</dt>
-              <dd className="figures text-right text-ink">up to 10</dd>
-              <dt className="text-ink-3">Notional per order</dt>
-              <dd className="figures text-right text-ink">up to $5,000</dd>
-              <dt className="text-ink-3">Withdraw</dt>
-              <dd className="text-right font-semibold text-ink">Never</dd>
-            </dl>
-          </div>
+          <AgentsTerminal />
+          {/* the key that bounds it, beneath the session it signed */}
+          <SessionKeyCard
+            className="mt-4 ml-auto w-[min(100%,420px)]"
+            address="0x8c3e…41d2"
+            label="Example session key 0x8c3e…41d2"
+            markets="aNVDA, aSPY"
+            expires="in 24 h"
+            size="up to 10"
+            notional="up to $5,000"
+            badge={<Hallmark>Example</Hallmark>}
+          />
         </div>
       </div>
     </section>

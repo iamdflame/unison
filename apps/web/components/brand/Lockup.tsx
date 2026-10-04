@@ -42,7 +42,7 @@ export function Lockup({ capHeight = 12, jewel = true, className, style, title =
       {title ? <title>{title}</title> : null}
       <g transform={`translate(${tx} ${ty}) scale(${m.scale})`} fill="currentColor">
         <path d={body} />
-        <path d={ball} fill={jewel ? "var(--ball-3)" : "currentColor"} />
+        <path d={ball} fill={jewel ? "var(--ball)" : "currentColor"} />
       </g>
       <path d={w.d} fill="currentColor" />
     </svg>

@@ -2,7 +2,7 @@
 
 import { buyLock } from "@unison/engine";
 import { Minus, Plus } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { BEAT_MS } from "@/lib/motion/tokens";
 import { toast } from "@/lib/ui/toast";
 import { useStore } from "@/lib/store/createStore";
@@ -30,6 +30,9 @@ export function OrderTicket({
   defaultSide?: "buy" | "sell";
   onPlaced?: () => void;
 }) {
+  // a phone can hold two tickets at once (the sheet, and the desktop one it hides): ids are per ticket
+  const uid = useId();
+  const ids = { limit: `${uid}limit`, qty: `${uid}qty`, help: `${uid}help`, duration: `${uid}duration` };
   const {
     market,
     value: m,
@@ -99,15 +102,19 @@ export function OrderTicket({
   const fillNote = !withYou
     ? "Buyers and sellers don't meet inside the band yet."
     : withYou.filled >= qty - 0.004
-      ? `All ${n(qty)} ${ticker} would fill${alone !== null && alone !== withYou.tick ? `; your order moves the price from ${fmt(alone)}` : ""}.`
+      ? withYou.tick === limit
+        ? // at the margin: the last price that clears is yours, and anyone else who arrives there shares it with you
+          `All ${n(qty)} ${ticker} would fill now, at your limit exactly. If more orders join at this price, they share what clears here pro rata.`
+        : `All ${n(qty)} ${ticker} would fill${alone !== null && alone !== withYou.tick ? `; your order moves the price from ${fmt(alone)}` : ""}.`
       : withYou.filled > 0
         ? `${n(withYou.filled)} of ${n(qty)} ${ticker} would fill, pro rata at the clearing price; ${n(qty - withYou.filled)} ${rests}.`
         : `None would fill: it clears ${side === "buy" ? "above" : "below"} your limit. Your order ${rests}.`;
   // What it would cost (or bring) if the auction ran now: the fill at the clearing price, plus or minus the fee.
-  const estimate =
-    withYou && withYou.filled > 0
-      ? withYou.filled * withYou.tick * unit * (side === "buy" ? 1 + spec.feeBps / 10_000 : 1 - spec.feeBps / 10_000)
-      : null;
+  const feeSign = side === "buy" ? 1 + spec.feeBps / 10_000 : 1 - spec.feeBps / 10_000;
+  const estimate = withYou && withYou.filled > 0 ? withYou.filled * withYou.tick * unit * feeSign : null;
+  // the whole order at its own limit: the most it can cost, or the least it can bring, whatever the auction does
+  const bound = qty * limit * unit * feeSign;
+  const partial = !withYou || withYou.filled < qty - 0.004;
 
   const maxQty =
     side === "buy" ? Math.floor((free.quote / (limit * unit * (1 + spec.maxFeeBps / 10_000))) * 100) / 100 : free.base;
@@ -209,7 +216,7 @@ export function OrderTicket({
           ))}
         </div>
 
-        <label className="mt-3.5 block text-xs font-medium text-ink-3" htmlFor="limit">
+        <label className="mt-3.5 block text-xs font-medium text-ink-3" htmlFor={ids.limit}>
           Limit price, {side === "buy" ? "the most you'll pay" : "the least you'll take"}
         </label>
         <div className="mt-2 flex items-center rounded-2xl bg-sunken p-1 focus-within:outline-2 focus-within:outline-focus">
@@ -224,7 +231,8 @@ export function OrderTicket({
           <div className="flex flex-1 items-baseline justify-center text-lg font-semibold text-ink">
             <span aria-hidden>$</span>
             <input
-              id="limit"
+              id={ids.limit}
+              name="limit"
               inputMode="decimal"
               autoComplete="off"
               value={text}
@@ -273,7 +281,7 @@ export function OrderTicket({
               className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-raised"
               style={{
                 left: `${Math.min(100, Math.max(0, ((limit - m.lo) / Math.max(1, m.hi - m.lo)) * 100))}%`,
-                background: "var(--ball-3)",
+                background: "var(--ball)",
               }}
             />
           </div>
@@ -289,20 +297,21 @@ export function OrderTicket({
           </p>
         ) : null}
 
-        <label className="mt-3.5 flex justify-between gap-3 text-xs font-medium text-ink-3" htmlFor="qty">
+        <label className="mt-3.5 flex justify-between gap-3 text-xs font-medium text-ink-3" htmlFor={ids.qty}>
           <span>Quantity ({ticker})</span>
           <span className="figures font-normal">
             {side === "buy" ? `${n(free.quote)} AUSD free` : `${free.base.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${ticker} free`}
           </span>
         </label>
         <input
-          id="qty"
+          id={ids.qty}
+          name="qty"
           inputMode="decimal"
           autoComplete="off"
           value={qtyText}
           onChange={(e) => setQtyText(e.target.value.replace(/[^\d.]/g, ""))}
           className="figures mt-2 w-full rounded-2xl bg-sunken px-4 py-2.5 text-center text-lg font-semibold text-ink outline-none focus-visible:outline-2 focus-visible:outline-focus"
-          aria-describedby="qty-help"
+          aria-describedby={ids.help}
         />
         <div className="mt-2 flex gap-1.5">
           {[0.25, 0.5, 0.75, 1].map((f) => (
@@ -318,12 +327,12 @@ export function OrderTicket({
         </div>
 
         {/* How long the order lives, said in words, with what happens to what doesn't fill. */}
-        <p className="mt-3.5 text-xs font-medium text-ink-3" id="duration-label">
+        <p className="mt-3.5 text-xs font-medium text-ink-3" id={ids.duration}>
           How long
         </p>
         <div
           role="radiogroup"
-          aria-labelledby="duration-label"
+          aria-labelledby={ids.duration}
           className="mt-2 grid grid-cols-2 gap-1 rounded-full bg-sunken p-1"
         >
           {(
@@ -352,9 +361,9 @@ export function OrderTicket({
               : "Joins every batch until it fills or you cancel."}
         </p>
 
-        <dl id="qty-help" className="mt-3.5 space-y-2 border-t border-line pt-3.5 text-sm">
+        <dl id={ids.help} className="mt-3.5 space-y-2 border-t border-line pt-3.5 text-sm">
           <div className="flex flex-wrap justify-between gap-x-4 gap-y-0.5">
-            <dt className="text-ink-3">Fills now at</dt>
+            <dt className="text-ink-3">Indicative fill</dt>
             <dd className="figures text-ink">{withYou ? fmt(withYou.tick) : "No cross yet"}</dd>
             <dd className="figures basis-full text-xs leading-relaxed text-ink-3">{fillNote}</dd>
           </div>
@@ -363,6 +372,7 @@ export function OrderTicket({
             <dd className="figures font-semibold text-ink">{estimate !== null ? money(estimate) : "None yet"}</dd>
             <dd className="figures basis-full text-xs leading-relaxed text-ink-3">
               {estimate !== null && withYou ? `For the ${n(withYou.filled)} ${ticker} that would fill, ${side === "buy" ? "with" : "less"} the ${spec.feeBps} bp fee.` : "Nothing would fill now."}
+              {partial && qty > 0 ? ` All ${n(qty)}: ${side === "buy" ? "at most" : "at least"} ${money(bound)}, at your limit.` : null}
             </dd>
           </div>
           <div className="flex flex-wrap justify-between gap-x-4 gap-y-0.5">

@@ -15,7 +15,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { chromium } from "@playwright/test";
 import { formatHex } from "culori";
-import { BALL_FINISH, emblem, emblemSvg } from "./emblem.mjs";
+import { BALL, emblem, emblemSvg } from "./emblem.mjs";
 import { MARK, MARK_MID, MARK_SMALL } from "./mark.mjs";
 import { CAP, lockupSvg, markInWordmarkUnits, UPM, wordmark, wordmarkSvg } from "./wordmark.mjs";
 import { dialSvg } from "./dial.mjs";
@@ -36,13 +36,13 @@ const C = {
 };
 
 // ------------------------------------------------------------------ vector downloads
-const finish = { ink: (id) => BALL_FINISH.steel(id), porcelain: (id) => BALL_FINISH.lume(id) };
+const finish = { ink: BALL.steel, porcelain: BALL.lume };
 for (const [name, ink] of Object.entries({ ink: C.ink, porcelain: C.pearl })) {
   // Monochrome (engraving, single-colour print) and finished (screen) versions.
   out(`public/brand/unison-mark-${name}.svg`, emblemSvg(MARK, { ink, size: 512, title: "Unison" }));
   out(
     `public/brand/unison-mark-${name}-finished.svg`,
-    emblemSvg(MARK, { ink, ballFill: "url(#ball)", defs: finish[name]("ball"), size: 512, title: "Unison" }),
+    emblemSvg(MARK, { ink, ballFill: finish[name], size: 512, title: "Unison" }),
   );
   out(`public/brand/unison-mark-small-${name}.svg`, emblemSvg(MARK_SMALL, { ink, size: 64, title: "Unison" }));
   out(`public/brand/unison-wordmark-${name}.svg`, wordmarkSvg({ ink }));
@@ -55,7 +55,7 @@ const smBody = sm.parts.filter((p) => p.role === "body").map((p) => p.d).join(" 
 const smBall = sm.parts.filter((p) => p.role !== "body").map((p) => p.d).join(" ");
 out(
   "app/icon.svg",
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><style>.b{fill:${C.ink}}.j{fill:#2b3aa8}@media (prefers-color-scheme:dark){.b{fill:${C.pearl}}.j{fill:#bfe7ff}}</style><path class="b" d="${smBody}"/><path class="j" d="${smBall}"/></svg>\n`,
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><style>.b{fill:${C.ink}}.j{fill:${BALL.steel}}@media (prefers-color-scheme:dark){.b{fill:${C.pearl}}.j{fill:${BALL.lume}}}</style><path class="b" d="${smBody}"/><path class="j" d="${smBall}"/></svg>\n`,
 );
 
 // ------------------------------------------------------------------ app icon art
@@ -121,7 +121,7 @@ await png(appIcon(512, { maskable: true }), 512, "public/icons/icon-maskable-512
 await png(appIcon(1024), 1024, "public/brand/unison-app-icon-1024.png");
 for (const [name, ink] of Object.entries({ ink: C.ink, porcelain: C.pearl })) {
   await png(
-    emblemSvg(MARK, { ink, ballFill: "url(#ball)", defs: finish[name]("ball"), size: 1024 }),
+    emblemSvg(MARK, { ink, ballFill: finish[name], size: 1024 }),
     1024,
     `public/brand/unison-mark-${name}.png`,
   );
@@ -131,7 +131,7 @@ for (const [name, ink] of Object.entries({ ink: C.ink, porcelain: C.pearl })) {
 const icoSizes = [16, 32, 48];
 const pngs = [];
 for (const s of icoSizes) {
-  pngs.push(await png(emblemSvg(s <= 20 ? MARK_SMALL : MARK_MID, { ink: C.ink, ballFill: "#2b3aa8", size: s }), s));
+  pngs.push(await png(emblemSvg(s <= 20 ? MARK_SMALL : MARK_MID, { ink: C.ink, ballFill: BALL.steel, size: s }), s));
 }
 const header = Buffer.alloc(6 + 16 * pngs.length);
 header.writeUInt16LE(0, 0);

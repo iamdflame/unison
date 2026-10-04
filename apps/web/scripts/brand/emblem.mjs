@@ -165,10 +165,8 @@ export function emblemSvg(params = {}, { ink = "currentColor", jewel = "currentC
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="${size}" height="${size}" role="img"${title ? ` aria-label="${title}"` : ' aria-hidden="true"'}>${t}${defs ? `<defs>${defs}</defs>` : ""}${paths}</svg>`;
 }
 
-/** Blued-steel sheen for the ball by day (heat-blued screw head) and lume by night (glows inside its edge). */
-export const BALL_FINISH = {
-  steel: (id) =>
-    `<radialGradient id="${id}" cx="0.36" cy="0.32" r="0.75"><stop offset="0" stop-color="#6f7fe0"/><stop offset="0.38" stop-color="#3442b0"/><stop offset="0.8" stop-color="#24318f"/><stop offset="1" stop-color="#1a2366"/></radialGradient>`,
-  lume: (id) =>
-    `<radialGradient id="${id}" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#f2fbff"/><stop offset="0.55" stop-color="#c8ecff"/><stop offset="0.86" stop-color="#9fd9fb"/><stop offset="1" stop-color="#7cc4ef"/></radialGradient>`,
-};
+/**
+ * The ball's one finish, flat: blued steel by day, lume by night. The same two colours as --ball in app/globals.css
+ * (oklch(0.4 0.15 266) and oklch(0.88 0.075 228)), so a download, the favicon and the live site never disagree.
+ */
+export const BALL = { steel: "#213e97", lume: "#a3e2ff" };

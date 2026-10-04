@@ -10,13 +10,14 @@ import { site } from "@/lib/content/site";
 /**
  * Chapter 2: speed buys nothing. The benchmark as an instrument: what a latency sniper takes per day from each
  * kind of venue, on the same simulated price path. Linear scale, so the gap is honest. Unison's column is a
- * hairline at zero with the ball resting on it.
+ * hairline at zero with the ball resting on it. Beneath the two venues that quote the same ±2 bp, a second reading:
+ * what that liquidity keeps once snipers have taken their cut, so the copy's 7.7× is on the figure, not only in it.
  */
 const VENUES = [
   { name: "Constant-product AMM", note: "fee 30 bp", value: facts.sniper.xyk },
-  { name: "Order book", note: "makers ±2 bp", value: facts.sniper.clob },
+  { name: "Order book", note: "makers ±2 bp", value: facts.sniper.clob, lp: facts.lp.clobMakers },
   { name: "Oracle AMM", note: "push oracle", value: facts.sniper.pushOracleAmm },
-  { name: "Unison", note: "batch + late reference", value: facts.sniper.unison, us: true },
+  { name: "Unison", note: "batch + late reference", value: facts.sniper.unison, us: true, lp: facts.lp.unisonVault },
 ] as const;
 
 /** The share of the plot the largest bar fills; the rest is headroom for its figure. */
@@ -50,9 +51,8 @@ export function FrontRun() {
             for.
           </p>
           <p className="text-lede mt-6 text-ink-2">
-            In the benchmark, liquidity quoting the same ±{facts.lp.spreadBps}&nbsp;bp keeps{" "}
-            <span className="text-ink">{facts.lp.multiple} times as much</span>: ${facts.lp.unisonVault} a day, against $
-            {facts.lp.clobMakers} on an order book after snipers take their cut.
+            Snipers take from whoever quotes. Where two venues quote the same ±{facts.lp.spreadBps}&nbsp;bp, liquidity on
+            Unison keeps <span className="text-ink">{facts.lp.multiple} times as much</span>.
           </p>
         </div>
 
@@ -94,6 +94,12 @@ export function FrontRun() {
                   <div className="mt-4 border-t border-line-strong pt-3">
                     <p className="text-sm font-medium text-ink">{v.name}</p>
                     <p className="text-xs text-ink-3">{v.note}</p>
+                    {"lp" in v ? (
+                      <p className="mt-3 text-xs text-ink-3">
+                        Liquidity keeps
+                        <span className="figures mt-0.5 block text-sm font-medium text-ink">${v.lp.toLocaleString("en-US")} a day</span>
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               );

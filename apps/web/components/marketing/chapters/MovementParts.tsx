@@ -81,7 +81,7 @@ function Clearing() {
         return <line key={a} x1={C} y1={C} x2={x} y2={y} {...LINE} />;
       })}
       <circle cx={C} cy={C} r={16} {...LINE} />
-      <circle cx={C} cy={C} r={5} fill="var(--ball-3)" />
+      <circle cx={C} cy={C} r={5} fill="var(--ball)" />
     </>
   );
 }
@@ -101,7 +101,7 @@ function References() {
         return <circle key={i} cx={x} cy={y} r={4} {...LINE} />;
       })}
       <path d={spiral(14, 104, 9)} {...FINE} />
-      <circle cx={C} cy={C} r={6} fill="var(--ball-3)" />
+      <circle cx={C} cy={C} r={6} fill="var(--ball)" />
     </>
   );
 }
@@ -145,7 +145,7 @@ function Compliance({ id }: { id: string }) {
         const [x, y] = polar(R - 30, a);
         return (
           <g key={a}>
-            <circle cx={x} cy={y} r={10} fill="var(--ball-3)" />
+            <circle cx={x} cy={y} r={10} fill="var(--ball)" />
             <line x1={x - 7} y1={y} x2={x + 7} y2={y} stroke="var(--bg-raised)" strokeWidth={2} transform={`rotate(${a} ${x} ${y})`} />
           </g>
         );

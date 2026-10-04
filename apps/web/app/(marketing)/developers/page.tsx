@@ -16,7 +16,7 @@ function Chapter({ id, title, lede, children, aside }: { id: string; title: stri
     <section aria-labelledby={id} className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-12 lg:py-24">
       <div className="grid grid-cols-1 gap-x-12 gap-y-10 lg:grid-cols-12">
         <div className="lg:col-span-5">
-          <h2 id={id} className="text-display-l text-ink">
+          <h2 id={id} className="text-display-m text-ink">
             {title}
           </h2>
           <div className="text-lede mt-5 text-ink-2">{lede}</div>
@@ -167,7 +167,7 @@ export default function DevelopersPage() {
 
       <section aria-labelledby="surface-title" className="border-t border-line">
         <div className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-12 lg:py-24">
-          <h2 id="surface-title" className="text-display-l text-ink">
+          <h2 id="surface-title" className="text-display-m text-ink">
             The surface.
           </h2>
           <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2">

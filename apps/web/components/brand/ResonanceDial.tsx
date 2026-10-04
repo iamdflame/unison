@@ -357,6 +357,10 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
       >
         <Emblem ref={emblem} size={0} master="display" jewel style={{ width: "100%", height: "100%" }} />
       </div>
+      {/* What the index at 12 marks, engraved beneath it: the price the band is centred on */}
+      <p className="dial-label absolute inset-x-0 text-center text-ink-3" style={{ top: "8.4cqw", fontSize: "max(9px, 1.1cqw)" }} aria-hidden>
+        {regime.name === "DISCOVERY" || regime.name === "REOPENING" ? "Last close" : "Reference"}
+      </p>
       {/* Engraved specification, like a calibre's dial text: the cadence this market keeps right now */}
       <p className="dial-label absolute inset-x-0 text-center text-ink-3" style={{ top: "59.6cqw", fontSize: "max(10px, 1.3cqw)" }} aria-hidden>
         {(12_000 / auctionEvery).toLocaleString("en-US")} A/h · {regime.name === "DISCOVERY" ? "Discovery" : "Monad"}
@@ -379,8 +383,14 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
             <span className="normal-case tracking-[0.04em]">{market.ticker}</span> · {REGIME_LABEL[regime.name]} {bandLabel(regime.bandBps)}
           </p>
         </div>
-        <p className="tnum mt-[1.4cqw] text-center text-ink-3" style={{ fontSize: "max(11px, 1.4cqw)" }}>
-          Block <span ref={batchEl}>—</span> · {flow === "live" ? "live" : "simulation"}
+        {/* the hand's own key: it steps once a block, so the blue mark beside the block number is the hand */}
+        <p className="tnum mt-[1.4cqw] flex items-center justify-center gap-[0.6cqw] whitespace-nowrap text-ink-3" style={{ fontSize: "max(11px, 1.4cqw)" }}>
+          <svg viewBox="0 0 11 17" className="h-[0.8em] w-auto shrink-0" aria-hidden>
+            <path d="M5.5,17 L0,0 h11 z" fill="var(--accent)" />
+          </svg>
+          <span>
+            Block <span ref={batchEl}>—</span>, one step each · {flow === "live" ? "live" : "simulation"}
+          </span>
         </p>
       </div>
     </div>

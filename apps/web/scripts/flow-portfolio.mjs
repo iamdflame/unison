@@ -35,11 +35,11 @@ await p.keyboard.press("Escape");
   const cross = p.getByRole("button", { name: /^Cross \$/ });
   const last = p.getByRole("button", { name: /^Last \$/ });
   await ((await cross.count()) ? cross : (await last.count()) ? last : p.getByRole("button", { name: /^(Ref|Close) \$/ })).click();
-  const limit = p.locator("#limit");
+  const limit = p.locator('input[name="limit"]:visible');
   await limit.fill((Number(await limit.inputValue()) + 0.5).toFixed(2));
   await limit.press("Enter");
 }
-await p.locator("#qty").fill("2");
+await p.locator('input[name="qty"]:visible').fill("2");
 await p.getByRole("button", { name: /^Buy 2 aNVDA at/ }).click();
 await toast(/Bought|Resting at|Not filled/).waitFor({ timeout: 60_000 });
 log.push(`trade: ${(await toast(/Bought|Resting at|Not filled/).innerText()).replace(/\s+/g, " ")}`);

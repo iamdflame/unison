@@ -23,9 +23,13 @@ There are three optical masters, the way a watch dial's printing changes with si
 ## Finish
 
 - **Monochrome** (engraving, print, single colour): ink or porcelain only.
-- **Screen.** The ball is a material, never flat UI colour:
-  - by day, heat-blued steel (`#24318F` family, lit from the upper left);
-  - by night, lume that glows inside its edge (halo no wider than 1.5× the ball).
+- **Screen.** The ball is one flat colour, the light's accent, the same on the site, the favicon and every download:
+  - by day, blued steel `oklch(0.4 0.15 266)` (`#213E97`);
+  - by night, lume `oklch(0.88 0.075 228)` (`#A3E2FF`).
+
+  An earlier finish lit the ball as a sphere (a radial gradient from the upper left). Round 6 of the design review
+  dropped it: every other jewel on the site is flat, and a gloss on the logo alone read as a different hand. Only
+  the app icon keeps a soft halo around its flat lume ball, the one place the mark sits on a dial.
 - **App icon:**
   - an onyx dial with one centre: the ball is the arbor;
   - a fumé sunray of 200 rays (200 beats make a minute) at 100 px and above;

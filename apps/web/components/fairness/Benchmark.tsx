@@ -14,7 +14,7 @@ export function Benchmark() {
     <section aria-labelledby="bench-title" className="border-t border-line">
       <div className="mx-auto max-w-[1440px] px-5 py-24 sm:px-8 lg:px-12 lg:py-28">
         <div className="max-w-3xl">
-          <h2 id="bench-title" className="text-display-l text-ink">
+          <h2 id="bench-title" className="text-display-m text-ink">
             Who pays the latency sniper?
           </h2>
           <p className="text-lede mt-5 text-ink-2">

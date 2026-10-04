@@ -38,7 +38,7 @@ export function BatchRing({ size = 22, block }: { size?: number; block: number |
       <g ref={pointer} style={{ transformOrigin: "12px 12px", transformBox: "view-box" }}>
         <line x1="12" y1="12" x2="12" y2="4.8" stroke="var(--ink)" strokeWidth="1.6" strokeLinecap="round" />
       </g>
-      <circle cx="12" cy="12" r="2.2" style={{ fill: "var(--ball-3)" }} />
+      <circle cx="12" cy="12" r="2.2" style={{ fill: "var(--ball)" }} />
     </svg>
   );
 }

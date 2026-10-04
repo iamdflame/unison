@@ -1,13 +1,14 @@
 "use client";
 
 import { TapeClient, type TapeSession } from "@unison/sdk/tape";
-import { Check, Copy, Eye, EyeOff, Fingerprint, LockKeyhole } from "lucide-react";
+import { Check, Copy, Eye, EyeOff, Fingerprint } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "@/lib/ui/toast";
 import type { Address, Hex } from "viem";
 import { preloadSignIn, SignInSheet } from "@/components/app/SignInSheet";
 import { Hallmark } from "@/components/ui/Hallmark";
+import { SessionKeyCard } from "./SessionKeyCard";
 import { MARKETS } from "@/lib/content/markets";
 import { useStore } from "@/lib/store/createStore";
 import { useVenue } from "@/lib/venue";
@@ -148,7 +149,7 @@ function SignInPanel() {
   );
 }
 
-/** The key as an object: who it is, what it may do, until when. */
+/** A key you hold, on the shared card: its caps read from the chain, its status from its expiry. */
 function KeyCard({ k, label, browser, onRevoke, busy }: { k: KeyView; label?: string; browser?: boolean; onRevoke?: () => void; busy?: boolean }) {
   const [now] = useState(() => Math.floor(Date.now() / 1000));
   const left = k.expiry === 0 ? null : until(k.expiry, now);
@@ -157,58 +158,30 @@ function KeyCard({ k, label, browser, onRevoke, busy }: { k: KeyView; label?: st
   const qty = Number(k.maxQty) / 1e18;
   const notional = Number(k.maxNotional) / 1e6;
   return (
-    <article className="relative overflow-hidden rounded-[var(--radius-xl)] bg-raised p-6 shadow-panel sm:p-7" aria-label={`Session key ${short(k.key)}, ${status.toLowerCase()}`}>
-      {/* engraved rose, as on a watch's papers: equal circles through one centre */}
-      <svg className="pointer-events-none absolute -right-24 -bottom-28 size-64 text-champagne opacity-[0.22]" viewBox="0 0 200 200" aria-hidden>
-        {Array.from({ length: 48 }, (_, i) => (
-          <circle key={i} cx={(100 + 44 * Math.cos((i / 48) * Math.PI * 2)).toFixed(2)} cy={(100 + 44 * Math.sin((i / 48) * Math.PI * 2)).toFixed(2)} r="44" fill="none" stroke="currentColor" strokeWidth="0.45" />
-        ))}
-      </svg>
-      <div className="relative flex items-center justify-between gap-3">
-        <span className="dial-label text-ink-3">Session key</span>
-        {label ? (
+    <SessionKeyCard
+      address={short(k.key)}
+      label={`Session key ${short(k.key)}, ${status.toLowerCase()}`}
+      markets={markets.length === MARKETS.length ? "All" : markets.join(", ") || "None"}
+      expires={status === "Active" ? `in ${left}` : status === "Revoked" ? "Revoked" : "Ended"}
+      size={`up to ${qty.toLocaleString("en-US", { maximumFractionDigits: 4 })}`}
+      notional={`up to $${notional.toLocaleString("en-US", { maximumFractionDigits: 2 })}`}
+      badge={
+        label ? (
           <Hallmark>{label}</Hallmark>
         ) : (
           <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${status === "Active" ? "bg-buy-soft text-buy" : "bg-ink/[0.06] text-ink-3"}`}>
             {browser ? `${status} · this browser` : status}
           </span>
-        )}
-      </div>
-      <p className="relative mt-4 font-mono text-[15px] text-ink">{short(k.key)}</p>
-      <dl className="relative mt-6 grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
-        <div>
-          <dt className="text-ink-3">Markets</dt>
-          <dd className="mt-0.5 text-ink">{markets.length === MARKETS.length ? "All" : markets.join(", ") || "None"}</dd>
-        </div>
-        <div>
-          <dt className="text-ink-3">Expires</dt>
-          <dd className="figures mt-0.5 text-ink">{status === "Active" ? `in ${left}` : status === "Revoked" ? "Revoked" : "Ended"}</dd>
-        </div>
-        <div>
-          <dt className="text-ink-3">Size per order</dt>
-          <dd className="figures mt-0.5 text-ink">up to {qty.toLocaleString("en-US", { maximumFractionDigits: 4 })}</dd>
-        </div>
-        <div>
-          <dt className="text-ink-3">Notional per order</dt>
-          <dd className="figures mt-0.5 text-ink">up to ${notional.toLocaleString("en-US", { maximumFractionDigits: 2 })}</dd>
-        </div>
-        {/* the limits are per order: say what that means for the total, plainly */}
-        <div className="col-span-2">
-          <dt className="text-ink-3">In total</dt>
-          <dd className="mt-0.5 text-ink">Not capped: any number of orders, as far as your free balance goes, until it expires.</dd>
-        </div>
-      </dl>
-      <div className="relative mt-6 flex items-center justify-between gap-4 border-t border-line pt-4">
-        <p className="flex items-center gap-2 text-sm text-ink-2">
-          <LockKeyhole size={15} strokeWidth={1.6} aria-hidden /> Places and cancels. Can never withdraw.
-        </p>
-        {onRevoke && status === "Active" ? (
+        )
+      }
+      action={
+        onRevoke && status === "Active" ? (
           <button type="button" disabled={busy} onClick={onRevoke} className="press shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold text-halt hairline disabled:opacity-50">
             {busy ? "Revoking…" : "Revoke"}
           </button>
-        ) : null}
-      </div>
-    </article>
+        ) : null
+      }
+    />
   );
 }
 

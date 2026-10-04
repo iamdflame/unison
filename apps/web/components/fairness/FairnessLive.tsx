@@ -29,7 +29,7 @@ export function FairnessLive() {
       <section aria-labelledby="chain-title" className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-12 lg:py-24">
         <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-6">
           <div className="max-w-2xl">
-            <h2 id="chain-title" className="text-display-l text-ink">
+            <h2 id="chain-title" className="text-display-m text-ink">
               The receipt chain.
             </h2>
             <p className="text-lede mt-5 text-ink-2">
@@ -63,7 +63,7 @@ export function FairnessLive() {
       <section aria-labelledby="dev-title" className="mx-auto max-w-[1440px] px-5 pb-24 sm:px-8 lg:px-12">
         <div className="grid grid-cols-1 gap-x-12 gap-y-10 lg:grid-cols-12">
           <div className="lg:col-span-4">
-            <h2 id="dev-title" className="text-display-l text-ink">
+            <h2 id="dev-title" className="text-display-m text-ink">
               How close to the reference.
             </h2>
             <p className="text-lede mt-5 text-ink-2">

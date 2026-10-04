@@ -98,7 +98,7 @@ export function QuoteInstrument({
           ) : null}
           {/* the reference: the hand everything is priced against */}
           <line x1={x(refTick) + tickW / 2} x2={x(refTick) + tickW / 2} y1={compact ? 6 : 22} y2={base} stroke="var(--champagne)" strokeWidth="1.5" />
-          <circle cx={x(refTick) + tickW / 2} cy={compact ? 6 : 22} r={compact ? 3 : 4.5} fill="var(--ball-3)" />
+          <circle cx={x(refTick) + tickW / 2} cy={compact ? 6 : 22} r={compact ? 3 : 4.5} fill="var(--ball)" />
           {!compact ? (
             <>
               <text x={x(refTick) + tickW / 2} y={12} textAnchor="middle" fill="var(--ink-2)" style={{ fontSize: 12 }}>

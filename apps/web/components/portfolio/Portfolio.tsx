@@ -141,7 +141,7 @@ function Account({ acct }: { acct: AccountState }) {
 
   return (
     <div className="mx-auto max-w-[1680px] px-4 py-8 sm:px-6 lg:py-12">
-      <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
+      <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-5 sm:items-end">
         <div className="min-w-0">
           <h1 className="text-display-m text-ink">Portfolio</h1>
           {live && id && v.net ? <AccountLine account={id.account} network={v.net.network} /> : <p className="mt-3 text-ink-2">Paper account · Simulation</p>}
@@ -162,24 +162,24 @@ function Account({ acct }: { acct: AccountState }) {
           {equity.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
         <Allocation holdings={holdings} equity={equity} />
-        <dl className="mt-5 flex flex-wrap gap-x-8 gap-y-2 text-sm">
-          <div className="flex gap-2">
+        <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:flex sm:flex-wrap sm:gap-x-8 sm:gap-y-2">
+          <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
             <dt className="text-ink-3">Cash</dt>
             <dd className="figures text-ink">${acct.quote.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
             <dt className="text-ink-3">Held by open orders</dt>
             <dd className="figures text-ink">${acct.lockedQuote.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
             <dt className="text-ink-3">Positions</dt>
             <dd className="figures text-ink">${(equity - acct.quote - acct.lockedQuote).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
             <dt className="text-ink-3">{partly ? "Unrealised P&L, where cost is known" : "Unrealised P&L"}</dt>
             <dd className={`figures ${tone(unrealized)}`}>{signedMoney(unrealized)}</dd>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
             <dt className="text-ink-3">Realised</dt>
             <dd className={`figures ${tone(realized)}`}>{signedMoney(realized)}</dd>
           </div>
@@ -231,9 +231,10 @@ function Actions({ live }: { live: boolean }) {
           resetPaperAccount();
           toast("Paper account reset", { description: "Orders cancelled and starting balances restored." });
         }}
-        className="press -ml-2 inline-flex items-center gap-1.5 sm:ml-0 sm:-mr-2 rounded-full px-2 py-1 text-sm font-medium text-ink-3 transition-colors hover-fine:text-ink"
+        className="press -mr-2 mt-2 inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-2 text-sm font-medium text-ink-3 transition-colors hover-fine:text-ink sm:mt-0 sm:min-h-0 sm:py-1"
+        aria-label="Reset paper account"
       >
-        <RotateCcw size={14} strokeWidth={1.75} aria-hidden /> Reset paper account
+        <RotateCcw size={14} strokeWidth={1.75} aria-hidden /> Reset<span className="hidden sm:inline">&nbsp;paper account</span>
       </button>
     );
   }

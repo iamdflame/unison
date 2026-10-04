@@ -11,7 +11,7 @@ import { toast } from "@/lib/ui/toast";
 import { certificate } from "./certificateStore";
 
 /** Interlaced sine bands along the paper's edge: the frame of a share certificate or a watch's papers. */
-function guillocheFrame(w: number, h: number, inset: number, r: number) {
+function guillocheFrame(w: number, h: number, inset: number, r: number, periods: number) {
   const perim: [number, number, number, number][] = []; // x, y, nx, ny
   const N = 1400;
   const iw = w - 2 * inset;
@@ -69,7 +69,7 @@ function guillocheFrame(w: number, h: number, inset: number, r: number) {
     const phase = (j / waves) * Math.PI * 2;
     let d = "";
     perim.forEach(([x, y, nx, ny], i) => {
-      const off = 6 * Math.sin((i / N) * Math.PI * 2 * 52 + phase);
+      const off = 6 * Math.sin((i / N) * Math.PI * 2 * periods + phase);
       d += `${i ? "L" : "M"}${(x + nx * off).toFixed(1)},${(y + ny * off).toFixed(1)}`;
     });
     paths.push(d + "Z");
@@ -103,14 +103,27 @@ function Seal() {
   );
 }
 
+const NY = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York",
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  second: "2-digit",
+});
+/** "Oct 4, 2:03:22 PM ET": the auction's time on Wall Street's clock, the one the market keeps */
+const cleared = (ts: number) => `${NY.format(new Date(ts))} ET`;
+
 /**
  * The certificate of execution: the moment a fill becomes an object. One engraved guilloché band at the paper's
  * edge, the fill in Bodoni numerals, what it cost and how it compares with the limit, the block it cleared in and
- * the reference and band it cleared against, and the venue's seal.
+ * the reference and band it cleared against, and the venue's seal. Landscape paper on wide screens, portrait on a
+ * phone: the same band, drawn for each.
  */
 export function CertificateDialog() {
   const data = useStore(certificate, (c) => c);
-  const frame = useMemo(() => guillocheFrame(760, 556, 18, 3), []);
+  const frame = useMemo(() => guillocheFrame(760, 556, 18, 3, 52), []);
+  const portrait = useMemo(() => guillocheFrame(380, 640, 12, 3, 38), []);
 
   // Live fills: ask the tape to check this batch's receipt chain and recompute the fill from its uniform price.
   useEffect(() => {
@@ -149,6 +162,9 @@ export function CertificateDialog() {
   const improvement = data ? Math.abs(data.limitTick - data.tick) : 0;
   const notional = data ? data.qty * data.tick * data.unit : 0;
   const fee = data ? (notional * data.feeBps) / 10_000 : 0;
+  // a buy reserves its size at its limit plus the fee cap; what the fill didn't use comes back
+  const returned = data && data.side === "buy" ? data.qty * data.limitTick * data.unit * (1 + data.maxFeeBps / 10_000) - (notional + fee) : 0;
+  const share = data && data.batchVolume > 0 ? (data.qty / data.batchVolume) * 100 : 0;
 
   return (
     <Dialog.Root open={!!data} onOpenChange={(o) => !o && certificate.set(null)}>
@@ -164,16 +180,23 @@ export function CertificateDialog() {
               >
                 <X size={16} strokeWidth={1.75} aria-hidden />
               </Dialog.Close>
-              <div className="relative aspect-[760/556] w-full overflow-hidden rounded-[6px] bg-raised text-ink shadow-lg">
-                <svg viewBox="0 0 760 556" className="absolute inset-0 h-full w-full" aria-hidden>
+              <div className="relative aspect-[380/640] w-full overflow-hidden rounded-[6px] bg-raised text-ink shadow-lg sm:aspect-[760/556]">
+                <svg viewBox="0 0 380 640" className="absolute inset-0 h-full w-full sm:hidden" aria-hidden>
+                  <g fill="none" stroke="var(--champagne)" strokeWidth="0.75" opacity="0.8">
+                    {portrait.map((d, i) => (
+                      <path key={i} d={d} />
+                    ))}
+                  </g>
+                </svg>
+                <svg viewBox="0 0 760 556" className="absolute inset-0 hidden h-full w-full sm:block" aria-hidden>
                   <g fill="none" stroke="var(--champagne)" strokeWidth="0.75" opacity="0.8">
                     {frame.map((d, i) => (
                       <path key={i} d={d} />
                     ))}
                   </g>
                 </svg>
-                <div className="absolute inset-x-[7%] top-[8%] bottom-[6.5%] flex flex-col">
-                  <div className="flex items-center justify-between">
+                <div className="absolute inset-x-[10%] top-[7%] bottom-[5.5%] flex flex-col sm:inset-x-[7%] sm:top-[8%] sm:bottom-[6.5%]">
+                  <div className="flex flex-col items-start gap-2.5 sm:flex-row sm:items-center sm:justify-between">
                     <Lockup capHeight={11} />
                     <Dialog.Title className="dial-label text-ink-3">Certificate of execution</Dialog.Title>
                   </div>
@@ -187,7 +210,7 @@ export function CertificateDialog() {
                       block {data.block.toLocaleString("en-US")}. {data.name}, quoted in AUSD.
                     </Dialog.Description>
                   </div>
-                  <dl className="mt-auto grid grid-cols-3 gap-x-6 gap-y-3 border-t border-line pt-4 text-[clamp(0.7rem,1.4vw,0.85rem)]">
+                  <dl className="mt-auto grid grid-cols-2 gap-x-5 gap-y-3 border-t border-line pt-4 text-[0.78rem] sm:grid-cols-4 sm:gap-x-5 sm:text-[clamp(0.7rem,1.1vw,0.8rem)]">
                     {[
                       [
                         "Order",
@@ -196,16 +219,19 @@ export function CertificateDialog() {
                           : `#${data.orderId}`,
                       ],
                       ["Your limit", `${data.side === "buy" ? "≤" : "≥"} ${fmt(data.limitTick)}`],
-                      ["Better than your limit by", improvement ? `${fmt(improvement)} a share` : "Nothing: at your limit"],
+                      ["Improvement", improvement ? `${fmt(improvement)} a share` : "None: at your limit"],
+                      [data.closed ? "Last close" : "Reference", fmt(data.refTick)],
                       ["Notional", money(notional)],
                       ["Fee", `${money(fee)} · ${data.feeBps} bp`],
                       [
                         data.side === "buy" ? "You paid" : "You received",
                         money(data.side === "buy" ? notional + fee : notional - fee),
                       ],
-                      [data.closed ? "Last close" : "Reference", fmt(data.refTick)],
+                      ...(data.side === "buy" ? [["Reserve returned", money(Math.max(0, returned))]] : []),
+                      ["Auction volume", `${qty(data.batchVolume)} ${data.ticker}`],
+                      ["Your share", share >= 99.95 ? "All of it" : `${share < 1 ? share.toFixed(1) : share.toFixed(0)}%`],
                       ["Band at this auction", `${fmt(data.bandLo)} – ${fmt(data.bandHi)}`],
-                      ["Cleared", new Date(data.ts).toISOString().replace("T", " ").slice(0, 19) + " UTC"],
+                      ["Cleared", cleared(data.ts)],
                     ].map(([k, v]) => (
                       <div key={k}>
                         <dt className="text-ink-3">{k}</dt>
@@ -214,7 +240,7 @@ export function CertificateDialog() {
                     ))}
                   </dl>
                   <div className="mt-[3%] flex items-end justify-between gap-6">
-                    <p className="max-w-[62%] text-[clamp(0.62rem,1.2vw,0.75rem)] leading-relaxed text-ink-3">
+                    <p className="max-w-[70%] text-[0.7rem] leading-relaxed text-ink-3 sm:max-w-[62%] sm:text-[clamp(0.62rem,1.2vw,0.75rem)]">
                       {data.receipt ? (
                         <>
                           Receipt{" "}
@@ -235,7 +261,7 @@ export function CertificateDialog() {
                         "Simulation: cleared by the real clearing engine in your browser. Live fills carry an on-chain receipt."
                       )}
                     </p>
-                    <div className="w-[13%] shrink-0">
+                    <div className="w-[20%] shrink-0 sm:w-[13%]">
                       <Seal />
                     </div>
                   </div>
