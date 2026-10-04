@@ -25,13 +25,19 @@
   --accent: oklch(0.47 0.17 264);
   --accent-ink: oklch(0.99 0.002 250);
   --accent-soft: oklch(0.47 0.17 264 / 0.09);
-  --buy: oklch(0.48 0.095 185); /* verdigris */
-  --sell: oklch(0.53 0.175 32); /* garnet */
-  --buy-soft: oklch(0.48 0.095 185 / 0.1);
-  /* filled actions: the buy/sell colours by day, a quieter, lower-chroma cut at night */
+  /* Buy and sell, as two palettes: verdigris and garnet, or steel and amber for color-vision deficiencies (chosen in
+     the light switch). Components use --buy and --sell; the -std / -cvd pairs exist so a swatch can show either. */
+  --buy-std: oklch(0.48 0.095 185);
+  --sell-std: oklch(0.53 0.175 32);
+  --buy-cvd: oklch(0.48 0.15 255);
+  --sell-cvd: oklch(0.52 0.13 52);
+  --buy: var(--buy-std);
+  --sell: var(--sell-std);
+  --buy-soft: color-mix(in oklch, var(--buy) 10%, transparent);
+  --sell-soft: color-mix(in oklch, var(--sell) 10%, transparent);
+  /* filled actions: the buy/sell colors by day, a quieter, lower-chroma cut at night */
   --buy-fill: var(--buy);
   --sell-fill: var(--sell);
-  --sell-soft: oklch(0.53 0.175 32 / 0.1);
   --halt: oklch(0.5 0.115 62);
   --champagne: oklch(0.58 0.06 80);
   --engrave: oklch(0.19 0.012 262 / 0.095);
@@ -67,12 +73,20 @@
   --accent: oklch(0.88 0.075 228);
   --accent-ink: oklch(0.17 0.02 258);
   --accent-soft: oklch(0.88 0.075 228 / 0.12);
-  --buy: oklch(0.83 0.1 184);
-  --sell: oklch(0.72 0.15 32);
-  --buy-soft: oklch(0.83 0.1 184 / 0.13);
-  --buy-fill: oklch(0.74 0.07 184);
-  --sell-fill: oklch(0.68 0.105 32);
-  --sell-soft: oklch(0.72 0.15 32 / 0.13);
+  --buy-std: oklch(0.83 0.1 184);
+  --sell-std: oklch(0.72 0.15 32);
+  --buy-cvd: oklch(0.8 0.1 240);
+  --sell-cvd: oklch(0.8 0.13 68);
+  --buy: var(--buy-std);
+  --sell: var(--sell-std);
+  --buy-soft: color-mix(in oklch, var(--buy) 13%, transparent);
+  --sell-soft: color-mix(in oklch, var(--sell) 13%, transparent);
+  --buy-fill-std: oklch(0.74 0.07 184);
+  --sell-fill-std: oklch(0.68 0.105 32);
+  --buy-fill-cvd: oklch(0.72 0.07 240);
+  --sell-fill-cvd: oklch(0.72 0.09 68);
+  --buy-fill: var(--buy-fill-std);
+  --sell-fill: var(--sell-fill-std);
   --halt: oklch(0.82 0.12 75);
   --champagne: oklch(0.82 0.05 85);
   --engrave: oklch(0.82 0.05 85 / 0.12);
@@ -92,16 +106,19 @@
     0 40px 80px -20px rgba(0, 0, 0, 0.7);
 }
 
-/* Colorblind-safe buy/sell (steel and amber), chosen in settings. */
+/* Colorblind-safe buy/sell (steel and amber), chosen in the light switch. The soft tints follow --buy and --sell on
+   their own (color-mix); the night fills have their own cut. */
 [data-palette="cvd"][data-theme="day"],
 [data-palette="cvd"] [data-theme="day"] {
-  --buy: oklch(0.48 0.15 255);
-  --sell: oklch(0.52 0.13 52);
+  --buy: var(--buy-cvd);
+  --sell: var(--sell-cvd);
 }
 [data-palette="cvd"][data-theme="night"],
 [data-palette="cvd"] [data-theme="night"] {
-  --buy: oklch(0.8 0.1 240);
-  --sell: oklch(0.8 0.13 68);
+  --buy: var(--buy-cvd);
+  --sell: var(--sell-cvd);
+  --buy-fill: var(--buy-fill-cvd);
+  --sell-fill: var(--sell-fill-cvd);
 }
 
 @theme {
