@@ -1,0 +1,20 @@
+{
+  "name": "@unison/bots",
+  "version": "0.1.0",
+  "private": true,
+  "description": "House flow for devnet and testnet: funded trader accounts quote both sides around the reference and sometimes cross, so live demos print real trades. Labelled as house liquidity.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "flow": "node --conditions=development src/flow.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@unison/sdk": "workspace:*",
+    "viem": "^2.37.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}
