@@ -13,7 +13,7 @@ Typed clients live in `@unison/sdk` (`TapeClient`, `RelayerClient`).
 - **Prices** are decimal strings of quote units per one whole base token, so AUSD has 6 decimals and `"181200000"` = $181.20.
 - **Times** are milliseconds since the epoch. Block timestamps are whole seconds on Monad, so `ts = timestamp × 1000`.
 - **Addresses** are lowercased on output and accepted in any case.
-- **Errors** look like `{ "error": { "code": "NotEligible", "message": "Your account isn't eligible …" } }`, with HTTP 400, 404, 429 or 503. The `code` is the decoded custom-error name (see `@unison/sdk` `decodeUnisonError`) or one of `INVALID`, `RATE_LIMITED`, `NOT_FOUND`, `FAUCET_DISABLED`, `UNAVAILABLE`.
+- **Errors** look like `{ "error": { "code": "NotEligible", "message": "Your account isn't eligible …" } }`, with HTTP 400, 404, 429 or 503. The `code` is the decoded custom-error name (see `@unison/sdk` `decodeUnisonError`) or one of `INVALID`, `RATE_LIMITED`, `NOT_FOUND`, `FAUCET_DISABLED`, `UNAVAILABLE`, `UNKNOWN` (an on-chain failure with no decodable reason).
 - **CORS** is an allowlist (`CORS_ORIGINS`, comma-separated) and sends `Vary: Origin`.
 
 ---
@@ -29,7 +29,7 @@ Typed clients live in `@unison/sdk` (`TapeClient`, `RelayerClient`).
 
 #### `GET /v1/markets`
 
-Returns one `MarketSummary` per market.
+Returns `{ markets: MarketSummary[] }`, one per market.
 
 ```ts
 interface MarketSummary {
@@ -49,13 +49,15 @@ interface MarketSummary {
 }
 ```
 
+`regime` is `"HALTED"` while a `HaltSet` halt is in force, even before the next print. `ref` comes from the relay's `/prices` when the tape runs with `RELAY_URL` (`publishTimeMs` is when the tape observed it). Otherwise it is the newer of the last `ReferenceAccepted` and the last print's reference. `prints24h` counts traded prints.
+
 #### `GET /v1/markets/:id`
 
 Returns one `MarketSummary`.
 
 #### `GET /v1/markets/:id/prints?limit=100&before=<upTo>&traded=1`
 
-Returns `{ prints: Print[] }`, newest first. `traded=1` drops empty batches.
+Returns `{ prints: Print[] }`, newest first. `traded=1` drops empty batches. `limit` is capped at 1000.
 
 ```ts
 interface Print {
@@ -71,11 +73,11 @@ interface Print {
 
 #### `GET /v1/markets/:id/prints.csv?from=&to=`
 
-The same rows as CSV.
+The same rows as CSV, oldest first. `from` and `to` are times in ms.
 
 #### `GET /v1/markets/:id/candles?res=1m|5m|15m|1h|1d&from=&to=`
 
-Returns `{ candles: { t: number; o: string; h: string; l: string; c: string; v: string; n: number }[] }`. Only traded prints count. `n` is the number of prints.
+Returns `{ candles: { t: number; o: string; h: string; l: string; c: string; v: string; n: number }[] }`. Only traded prints count. `n` is the number of prints. The defaults are `res=1m` and the last 500 candles; one request returns at most 5000.
 
 #### `GET /v1/markets/:id/fairness?window=1h|24h|7d`
 
@@ -88,6 +90,8 @@ Returns `{ candles: { t: number; o: string; h: string; l: string; c: string; v: 
   histogram: { bps: number; count: number }[];                         // deviation buckets of 1 bp, ±50
 }
 ```
+
+The batch close is the timestamp of block `upTo`. The histogram always has 101 buckets, from −50 to +50; deviations beyond them count in the edge buckets.
 
 #### `GET /v1/markets/:id/pending`
 
@@ -109,6 +113,13 @@ Returns orders placed after the last clear and not yet cancelled:
     claims: { tx: string; ts: number; baseAmount: string; quoteAmount: string; fee: string; done: boolean }[];
 } [] }
 ```
+
+`status` defaults to `open` (pending and open orders). Amounts come from the order's `Claimed` events, which the keeper sends every block:
+
+- **Bids** receive base as they fill. When the order is done they settle quote: `quote` = lock − refund − fee, excluding the fee.
+- **Asks** receive net quote as they fill. `quote` is gross, net + fee. The unfilled base comes back when the order is done.
+
+Until an order is done, a bid's `quote` and an ask's `filled` are estimated at the volume-weighted price of the auctions that filled it.
 
 #### `GET /v1/accounts/:addr/fills?limit=`
 
@@ -134,7 +145,7 @@ Returns `{ points: { t; nav; supply; sharePrice; spreadPnl; inventoryPnl; base; 
 
 #### `GET /v1/vaults/:addr/flows?owner=`
 
-Returns `{ flows: { id; owner; kind: "deposit" | "redeem"; amount; requestedTx; requestedTs; executed: null | { tx; ts; shares?; baseOut?; quoteOut?; swingFee } }[] }`.
+Returns `{ flows: { id; owner; kind: "deposit" | "redeem"; amount; requestedTx; requestedTs; executed: null | { tx; ts; shares?; baseOut?; quoteOut?; swingFee } }[] }`, newest first. `amount` is quote units for a deposit and shares for a redeem. `swingFee` is the fee in quote units for a deposit, and the rate in bps for a redeem, because `Redeemed.swingFee` is a rate.
 
 ### Receipts (fill certificates)
 
@@ -144,11 +155,16 @@ Returns `{ flows: { id; owner; kind: "deposit" | "redeem"; amount; requestedTx; 
   verification: { chainOk: boolean; recomputed: boolean | null } }
 ```
 
+The receipt describes the slot's latest order.
+
+- `chainOk`: every listed print links into the receipt hash chain.
+- `recomputed`: for a settled order that a single auction filled, whether its quote equals `filled × price / baseUnit` within the valuation's rounding (3 units). It is `null` while the order is open, or when several auctions filled it.
+
 ### Live stream (SSE)
 
 `GET /v1/stream?topics=heads,prints,regime,account:0xabc…`
 
-Each event's `id` is `"<block>:<logIndex>"`. The server replays everything after `Last-Event-ID` for up to 10 minutes, and sends a keepalive comment every 15 s.
+Each event's `id` is `"<block>:<logIndex>"`; heads use `"<block>:-1"`. The server replays everything after `Last-Event-ID` for up to 10 minutes, and sends a keepalive comment every 15 s. Browsers can't set that header on the first connection, so it is also accepted as `?lastEventId=`. At least one topic is required.
 
 | event | data |
 |---|---|
@@ -163,7 +179,12 @@ Topics may be scoped: `prints:0`, `regime:0`.
 
 ## Relayer
 
-Every action is checked by an `eth_call` simulation before it's accepted. Jobs are persisted and flushed in at most one batch transaction per block, with gas estimated per batch (Monad charges the gas limit).
+Every action is checked by an `eth_call` simulation before it's accepted. Jobs are persisted and each queue is flushed once per block, with gas estimated per transaction × 1.2 (Monad charges the gas limit):
+
+- **Orders** go in one `placeBatch`. Its limit is never below the sum of the orders' own estimates, because `placeBatch` catches failing orders.
+- **Cancels, withdrawals, session grants and claims** are one transaction each, because the gateway has no batch entry point for them.
+
+An expired deadline, a nonce already in flight (`NonceUsed`) and a session-signed withdrawal (`SessionNotAllowed`) are refused before simulation.
 
 | Method and path | Body | Response |
 |---|---|---|
@@ -178,6 +199,8 @@ Every action is checked by an `eth_call` simulation before it's accepted. Jobs a
 | `GET /v1/orders/:id` | | Alias of `/v1/jobs/:id` (legacy) |
 | `GET /health` | | `{ ok, relayer, chainId, queued, faucet }` |
 
-**Rate limits.** Token buckets per IP and per account. Exceeding them returns `429 { error: { code: "RATE_LIMITED" } }`.
+**Rate limits.** Token buckets per IP and per account. Exceeding them returns `429 { error: { code: "RATE_LIMITED" } }`, with `Retry-After`. The faucet's own limits answer the same way: 1 per account per 24 h, 3 per IP per 24 h, and a global daily budget (`FAUCET_DAILY_BUDGET`).
+
+`RelayerClient.waitForJob` throws a `RelayerError`: the job's `error` code when it fails, and `TIMEOUT` when it outlives its timeout.
 
 **Warning.** A passkey account (`OrderGateway.passkeyAccount(qx, qy)`) has no private key. Fund it only through `UnisonExchange.depositFor`. Tokens sent straight to that address cannot be recovered.

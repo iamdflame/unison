@@ -27,6 +27,10 @@ __pycache__/
 services/indexer/generated/
 services/indexer/.envio/
 
+# service state (tape index, relayer jobs) and the local stack (scripts/dev-stack.mjs)
+services/*/data/
+.dev-stack/
+
 # secrets
 .env
 .env.*

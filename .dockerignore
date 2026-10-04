@@ -1,0 +1,29 @@
+# The service images (ops/docker/service.Dockerfile) only need the lockfile, the workspace manifest,
+# packages/, services/<name>/, deployments/ and ops/docker/.
+**/node_modules
+**/dist
+**/coverage
+**/.vite
+**/.vite-temp
+**/*.tsbuildinfo
+**/data
+**/*.db
+**/*.db-wal
+**/*.db-shm
+.git
+.github
+.claude
+.outlier
+.dev-stack
+.env
+.env.*
+apps
+bots
+contracts
+cre
+deploy
+docs
+research
+scripts
+**/test
+**/*.test.ts
