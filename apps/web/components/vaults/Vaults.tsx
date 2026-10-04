@@ -21,7 +21,7 @@ const SIM_NAV = 2_000_000;
 const AXIS_BP = 100;
 const at = (bp: number) => Math.min(100, Math.max(0, 50 + (bp / AXIS_BP) * 50));
 // one layout, live or simulated: the simulation keeps each vault's books too
-const COLS = "md:grid-cols-[minmax(0,1fr)_minmax(220px,1.5fr)_112px_112px_112px_168px_16px]";
+const COLS = "md:grid-cols-[minmax(0,1fr)_minmax(220px,1.5fr)_128px_112px_112px_168px_16px]";
 
 /** The live part of /vaults: every vault on one board. The title and the lede are drawn by the server. */
 export function VaultIndex() {
@@ -89,7 +89,8 @@ function VaultRow({ spec, cols }: { spec: MarketSpec; cols: string }) {
   const side = (Number(q.perTick) / 1e18) * px * p.widthTicks;
   const nav = vault ? vault.quote + vault.base * px : null;
   // the multiplier said as arithmetic on the in-session spread, so 40 bp never reads as 40 × 4
-  const regimeNote = status === "EXTENDED" ? `${p.extMult} × ${p.spreadBps} bp, extended hours` : status === "CLOSED" ? `${p.closedMult} × ${p.spreadBps} bp, while closed` : "";
+  // short enough for one line under the figure: the multiple of the base spread, and why
+  const regimeNote = status === "EXTENDED" ? `${p.extMult}×, extended` : status === "CLOSED" ? `${p.closedMult}×, closed` : "";
 
   return (
     <Link
