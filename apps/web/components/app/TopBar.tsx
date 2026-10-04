@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Emblem } from "@/components/brand/Emblem";
+import type { ReactNode } from "react";
 import { ThemeMenu } from "@/components/ui/ThemeMenu";
 import dynamic from "next/dynamic";
 import { AccountButton } from "./AccountButton";
@@ -18,15 +18,15 @@ const NAV = [
   { href: "/keys", label: "Agents", match: "/keys" },
 ];
 
-/** The app's instrument bar: home, navigation, the beat of the active market, and you. */
-export function TopBar() {
+/** The app's instrument bar: home, navigation, the beat of the active market, and you. `mark` is drawn by the server. */
+export function TopBar({ mark }: { mark: ReactNode }) {
   const path = usePathname();
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg/80 backdrop-blur-xl [@media(prefers-reduced-transparency:reduce)]:bg-bg">
       <div className="mx-auto flex h-14 max-w-[1680px] items-center gap-3 px-4 sm:px-6">
         <Link href="/" aria-label="Unison home" className="rounded-full p-1">
-          <Emblem size={26} jewel />
+          {mark}
         </Link>
         <nav aria-label="App" className="ml-2 hidden items-center gap-0.5 sm:flex">
           {NAV.map((n) => {

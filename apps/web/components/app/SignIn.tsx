@@ -1,14 +1,14 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { RelayerClient } from "@unison/sdk";
+import { RelayerClient } from "@unison/sdk/relayer";
 import { Droplets, Fingerprint, KeyRound, LogOut, X, Zap } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
+import { useEffect, useState } from "react";
+import { toast } from "@/lib/ui/toast";
 import { Emblem } from "@/components/brand/Emblem";
 import { MARKETS } from "@/lib/content/markets";
 import { useStore } from "@/lib/store/createStore";
-import { createPasskey, identity, session, signInWithPasskey, signOut, startSession } from "@/lib/venue/identity";
+import { createPasskey, identity, session, signInWithPasskey, signOut, startSession, warmSigner } from "@/lib/venue/identity";
 import { useVenue, useVenueAccount } from "@/lib/venue";
 import { refreshAccount } from "@/lib/venue/live";
 
@@ -23,6 +23,10 @@ export function SignIn({ open, onOpenChange }: { open: boolean; onOpenChange: (o
   const quote = useVenueAccount((a) => a.quote);
   const [busy, setBusy] = useState<string | null>(null);
   const net = v.net;
+  // the passkey prompt must not wait on the network (and lose its user activation): load the signer as the sheet opens
+  useEffect(() => {
+    if (open && v.mode === "live") warmSigner();
+  }, [open, v.mode]);
 
   const run = (label: string, fn: () => Promise<unknown>, done?: string) => async () => {
     setBusy(label);

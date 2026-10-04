@@ -3,13 +3,13 @@
 import { buyLock } from "@unison/engine";
 import { Minus, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/ui/toast";
 import { useStore } from "@/lib/store/createStore";
 import { useMarket, useVenue, useVenueAccount } from "@/lib/venue";
 import { identity } from "@/lib/venue/identity";
 import { watchOrder } from "@/lib/venue/orderWatch";
-import { SignIn } from "@/components/app/SignIn";
-import { certificate, certificateFor } from "./Certificate";
+import { preloadSignIn, SignInSheet } from "@/components/app/SignInSheet";
+import { certificate, certificateFor } from "./certificateStore";
 import { priceFormat } from "@/lib/content/markets";
 import { clearBatch } from "@/lib/sim/batch";
 import { simulatedVault } from "./charts";
@@ -210,15 +210,15 @@ export function OrderTicket({ ticker, defaultSide = "buy", onPlaced }: { ticker:
       </p>
 
       <dl id="qty-help" className="mt-4 space-y-2 border-t border-line pt-4 text-sm">
-        <div className="flex justify-between">
+        <div className="flex flex-wrap justify-between gap-y-1">
           <dt className="text-ink-3">{side === "buy" ? "You lock at most" : "You lock"}</dt>
-          <dd className="tnum text-ink">{side === "buy" ? `$${lock.toFixed(2)}` : `${lock} ${ticker}`}</dd>
+          <dd className="tnum text-ink">{side === "buy" ? `${lock.toFixed(2)}` : `${lock} ${ticker}`}</dd>
+          {side === "buy" ? (
+            <dd className="basis-full text-xs leading-relaxed text-ink-3">
+              Your limit plus the {spec.maxFeeBps} bp fee cap. You pay the batch&apos;s price and a {spec.feeBps} bp fee; the rest comes back.
+            </dd>
+          ) : null}
         </div>
-        {side === "buy" ? (
-          <p className="-mt-1 text-xs leading-relaxed text-ink-3">
-            Your limit plus the {spec.maxFeeBps} bp fee cap. You pay the batch&apos;s price and a {spec.feeBps} bp fee; the rest comes back.
-          </p>
-        ) : null}
         <div className="flex justify-between">
           <dt className="text-ink-3">If the batch cleared now</dt>
           <dd className="tnum text-ink">{indicative ? `${indicative.filled.toFixed(2)} at ${fmt(indicative.tick)}` : "No cross yet"}</dd>
@@ -232,6 +232,8 @@ export function OrderTicket({ ticker, defaultSide = "buy", onPlaced }: { ticker:
       <button
         type="button"
         onClick={submit}
+        onPointerEnter={needsSignIn ? preloadSignIn : undefined}
+        onFocus={needsSignIn ? preloadSignIn : undefined}
         disabled={!needsSignIn && (qty <= 0 || !affordable)}
         className={`press mt-5 w-full rounded-full py-3.5 text-[15px] font-semibold text-bg shadow-md transition-opacity disabled:opacity-40 ${side === "buy" ? "bg-buy-fill" : "bg-sell-fill"}`}
       >
@@ -245,7 +247,7 @@ export function OrderTicket({ ticker, defaultSide = "buy", onPlaced }: { ticker:
               ? `Confirm: ${caution}`
               : `${side === "buy" ? "Buy" : "Sell"} ${qty || ""} ${ticker}`}
       </button>
-      <SignIn open={signInOpen} onOpenChange={setSignInOpen} />
+      <SignInSheet open={signInOpen} onOpenChange={setSignInOpen} />
       <p className="mt-3 text-center text-xs text-ink-3">Fee {spec.feeBps} bp. Everyone in the batch gets the same price.</p>
     </section>
   );

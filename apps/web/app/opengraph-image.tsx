@@ -1,7 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
-import { MARK_PARTS, WORDMARK } from "@/components/brand/geometry";
+import { MARK_PARTS } from "@/components/brand/geometry";
+import { WORDMARK } from "@/components/brand/glyphs";
 
 /** The card a link unfurls into: Nocturne, the mark with a lume ball, the wordmark, and the one sentence. */
 export const alt = "Unison: the market that never closes. Tokenized stocks on Monad, one price for everyone, every 300 ms.";

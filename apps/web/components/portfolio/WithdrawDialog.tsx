@@ -1,14 +1,13 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { decodeUnisonError } from "@unison/sdk";
 import { Fingerprint, X } from "lucide-react";
 import { useId, useMemo, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/ui/toast";
 import { isAddress, parseUnits, type Address } from "viem";
 import { shallowEqual, useStore } from "@/lib/store/createStore";
 import { useVenue, useVenueAccount } from "@/lib/venue";
-import { identity, withdrawFunds } from "@/lib/venue/identity";
+import { describeError, identity, withdrawFunds } from "@/lib/venue/identity";
 import { refreshAccount } from "@/lib/venue/live";
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -64,7 +63,7 @@ export function WithdrawDialog({ open, onOpenChange, onDone }: { open: boolean; 
       onOpenChange(false);
       onDone?.();
     } catch (e) {
-      setError(decodeUnisonError(e).message);
+      setError(await describeError(e).catch(() => (e as Error).message));
     } finally {
       setBusy(false);
     }

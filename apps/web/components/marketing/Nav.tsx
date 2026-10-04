@@ -1,9 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Emblem } from "@/components/brand/Emblem";
-import { Lockup } from "@/components/brand/Lockup";
+import { useEffect, useState, type ReactNode } from "react";
 import { ThemeMenu } from "@/components/ui/ThemeMenu";
 import { MobileMenu } from "./MobileMenu";
 
@@ -13,8 +11,11 @@ const LINKS = [
   { href: "/developers", label: "Developers" },
 ];
 
-/** A single sapphire pill. It tightens a little once the page scrolls; it never hides the content it sits over. */
-export function Nav() {
+/**
+ * A single sapphire pill. It tightens a little once the page scrolls; it never hides the content it sits over.
+ * `brand` is drawn by the (server) layout, so the lockup's outlines reach the page as markup, not JavaScript.
+ */
+export function Nav({ brand }: { brand: ReactNode }) {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 24);
@@ -31,8 +32,7 @@ export function Nav() {
         className="glass pointer-events-auto flex w-full max-w-[760px] items-center gap-2 rounded-full py-1.5 pr-1.5 pl-4 shadow-md transition-[padding,box-shadow] duration-[240ms] ease-[cubic-bezier(0.23,1,0.32,1)] data-[scrolled]:shadow-lg"
       >
         <Link href="/" className="flex items-center rounded-full py-1.5 pr-2 outline-offset-4" aria-label="Unison, home">
-          <Lockup capHeight={11.5} className="hidden translate-y-[2px] sm:block" title="" />
-          <Emblem size={24} jewel className="sm:hidden" />
+          {brand}
         </Link>
         <ul className="mx-auto hidden items-center gap-1 md:flex">
           {LINKS.map((l) => (

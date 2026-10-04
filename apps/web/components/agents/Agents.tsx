@@ -1,16 +1,16 @@
 "use client";
 
-import { decodeUnisonError, TapeClient, type TapeSession } from "@unison/sdk";
+import { TapeClient, type TapeSession } from "@unison/sdk/tape";
 import { Check, Copy, Eye, EyeOff, Fingerprint, LockKeyhole } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { toast } from "sonner";
-import { getAddress, isAddress, type Address, type Hex } from "viem";
-import { SignIn } from "@/components/app/SignIn";
+import { toast } from "@/lib/ui/toast";
+import type { Address, Hex } from "viem";
+import { preloadSignIn, SignInSheet } from "@/components/app/SignInSheet";
 import { MARKETS } from "@/lib/content/markets";
 import { useStore } from "@/lib/store/createStore";
 import { useVenue } from "@/lib/venue";
 import type { NetConfig } from "@/lib/venue/config";
-import { grantAgentKey, identity, revokeKey, session } from "@/lib/venue/identity";
+import { describeError, grantAgentKey, identity, revokeKey, session } from "@/lib/venue/identity";
 
 /**
  * Agents. Every order in a batch gets the same price, so speed buys nothing: a person can let software trade for
@@ -34,10 +34,7 @@ interface KeyView {
 }
 
 const tickersOf = (mask: bigint) => MARKETS.filter((m) => m.id < 256 && (mask >> BigInt(m.id)) & 1n).map((m) => m.ticker);
-const short = (a: string) => {
-  const c = isAddress(a) ? getAddress(a) : a;
-  return `${c.slice(0, 6)}…${c.slice(-4)}`;
-};
+const short = (a: string) => `${a.slice(0, 6).toLowerCase()}…${a.slice(-4).toLowerCase()}`;
 
 function until(expiry: number, now: number) {
   const s = expiry - now;
@@ -112,10 +109,16 @@ function SignInPanel() {
   return (
     <Panel title="Sign in to mint a key">
       <p className="text-ink-2">Keys are granted by your passkey account: one Face ID, Touch ID or Windows Hello signature each.</p>
-      <button type="button" onClick={() => setOpen(true)} className="press mt-6 inline-flex items-center gap-2.5 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-bg">
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        onPointerEnter={preloadSignIn}
+        onFocus={preloadSignIn}
+        className="press mt-6 inline-flex items-center gap-2.5 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-bg"
+      >
         <Fingerprint size={17} strokeWidth={1.5} aria-hidden /> Sign in
       </button>
-      <SignIn open={open} onOpenChange={setOpen} />
+      <SignInSheet open={open} onOpenChange={setOpen} />
     </Panel>
   );
 }
@@ -209,7 +212,7 @@ function Mint({ net, onMinted }: { net: NetConfig; onMinted: (m: { privateKey: H
       onMinted({ ...r, caps: { key: r.address, expiry: r.expiry, maxQty, maxNotional, marketMask } });
       toast.success("Key minted", { description: "Copy it into your agent now. It's shown once." });
     } catch (e) {
-      toast.error(decodeUnisonError(e).message);
+      toast.error(await describeError(e).catch(() => (e as Error).message));
     } finally {
       setBusy(false);
     }
@@ -392,7 +395,7 @@ function YourKeys({ net, account, refresh }: { net: NetConfig; account: string; 
                   toast.success("Key revoked", { description: "It can't place or cancel anything now." });
                   setTick((t) => t + 1);
                 } catch (e) {
-                  toast.error(decodeUnisonError(e).message);
+                  toast.error(await describeError(e).catch(() => (e as Error).message));
                 } finally {
                   setBusy(null);
                 }

@@ -1,52 +1,35 @@
 "use client";
 
-import { Dialog } from "@base-ui/react/dialog";
-import { X } from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
+import dynamic from "next/dynamic";
 
-const LINKS = [
-  ["/markets", "Markets"],
-  ["/fairness", "Fairness"],
-  ["/developers", "Developers"],
-  ["/status", "Status"],
-  ["/brand", "Brand"],
-] as const;
+export const MENU_TRIGGER = "press tap grid size-9 place-items-center rounded-full text-ink-2 hover-fine:bg-ink/[0.06] md:hidden";
 
-/** Phones: the site's sections as a contents page, set large, one tap from anywhere. */
-export function MobileMenu() {
-  const [open, setOpen] = useState(false);
+export function MenuGlyph() {
   return (
-    <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Dialog.Trigger className="press tap grid size-9 place-items-center rounded-full text-ink-2 hover-fine:bg-ink/[0.06] md:hidden" aria-label="Menu">
-        <svg viewBox="0 0 20 20" className="size-[18px]" aria-hidden>
-          <path d="M3 7h14M3 13h14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-        </svg>
-      </Dialog.Trigger>
-      <Dialog.Portal>
-        <Dialog.Popup className="fixed inset-0 z-[90] flex flex-col bg-bg px-6 pt-[max(20px,env(safe-area-inset-top))] pb-[max(24px,env(safe-area-inset-bottom))] outline-none transition-[opacity,transform] duration-[260ms] ease-[cubic-bezier(0.23,1,0.32,1)] data-[ending-style]:-translate-y-2 data-[ending-style]:opacity-0 data-[starting-style]:-translate-y-2 data-[starting-style]:opacity-0">
-          <div className="flex items-center justify-between">
-            <Dialog.Title className="text-sm text-ink-3">Unison</Dialog.Title>
-            <Dialog.Close className="press tap grid size-10 place-items-center rounded-full text-ink-2 hover-fine:bg-ink/[0.06]" aria-label="Close">
-              <X size={18} strokeWidth={1.75} aria-hidden />
-            </Dialog.Close>
-          </div>
-          <nav aria-label="Sections" className="mt-10">
-            <ul className="divide-y divide-line border-y border-line">
-              {LINKS.map(([href, label]) => (
-                <li key={href}>
-                  <Link href={href} onClick={() => setOpen(false)} className="text-display-m block py-4 text-ink">
-                    {label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-          <Link href="/trade/aNVDA" onClick={() => setOpen(false)} className="press mt-auto rounded-full bg-ink py-4 text-center text-[16px] font-semibold text-bg shadow-md">
-            Start trading
-          </Link>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <svg viewBox="0 0 20 20" className="size-[18px]" aria-hidden>
+      <path d="M3 7h14M3 13h14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
   );
 }
+
+/** A focus or tap that reached the button before the sheet did, for the sheet to pick up. */
+export const menuHandoff = { focused: false, open: false };
+
+function Standby() {
+  return (
+    <button
+      type="button"
+      aria-label="Menu"
+      aria-haspopup="dialog"
+      className={MENU_TRIGGER}
+      onFocus={() => (menuHandoff.focused = true)}
+      onBlur={() => (menuHandoff.focused = false)}
+      onClick={() => (menuHandoff.open = true)}
+    >
+      <MenuGlyph />
+    </button>
+  );
+}
+
+/** Phones: the site's contents. The sheet arrives just after the page is interactive; this button stands in. */
+export const MobileMenu = dynamic(() => import("./MobileMenuSheet").then((m) => m.MobileMenuSheet), { ssr: false, loading: Standby });

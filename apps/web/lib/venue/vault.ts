@@ -1,6 +1,6 @@
 "use client";
 
-import type { VaultFlow, VaultPoint } from "@unison/sdk";
+import type { VaultFlow, VaultPoint } from "@unison/sdk/tape";
 import { useEffect, useState } from "react";
 import type { Address } from "viem";
 import type { MarketSpec } from "../content/markets.ts";
@@ -35,11 +35,13 @@ export function useVaultLive(spec: MarketSpec): VaultLive | null {
 
   useEffect(() => {
     if (!address || !v.net) return;
-    const { chain, tape } = liveClients(v.net);
+    const net = v.net;
+    const { tape } = liveClients(net);
     let alive = true;
     const load = async () => {
+      const { chainClient } = await import("./chain.ts");
       const [vault, history, flows] = await Promise.all([
-        chain.vault(address as Address),
+        chainClient(net).vault(address as Address),
         tape.vaultHistory(address, { res: "1h" }).catch(() => [] as VaultPoint[]),
         tape.vaultFlows(address).catch(() => [] as VaultFlow[]),
       ]);

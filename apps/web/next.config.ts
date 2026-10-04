@@ -24,6 +24,8 @@ const securityHeaders = [
 const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // `SOURCE_MAPS=1 pnpm build` lets `scripts/weigh.mjs` attribute every first-load byte to its source.
+  productionBrowserSourceMaps: process.env.SOURCE_MAPS === "1",
   // Workspace packages ship TypeScript sources (the `development` export condition); compile them in place.
   transpilePackages: ["@unison/sdk", "@unison/engine"],
   outputFileTracingRoot: root,
@@ -34,6 +36,10 @@ const config: NextConfig = {
       // light entry points, so pages that only need the market calendar don't pull viem in through the barrel
       "@unison/sdk/calendar": "./../../packages/sdk/src/calendar.ts",
       "@unison/sdk/types": "./../../packages/sdk/src/types.ts",
+      "@unison/sdk/tape": "./../../packages/sdk/src/tape.ts",
+      "@unison/sdk/relayer": "./../../packages/sdk/src/relayer.ts",
+      "@unison/sdk/light": "./../../packages/sdk/src/light.ts",
+      "@unison/sdk/errors": "./../../packages/sdk/src/errors.ts",
       "@unison/engine": "./../../packages/engine/src/index.ts",
     },
   },

@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
-import { LOCKUP_MARK, MARK_MID_PARTS, WORDMARK, WORDMARK_CAP } from "./geometry";
+import { MARK_MID_PARTS } from "./geometry";
+import { LOCKUP_MARK, WORDMARK, WORDMARK_CAP } from "./glyphs";
 
 interface LockupProps {
   /** Cap height of the wordmark in px; the mark's tines meet the cap line and its bowl sits on the baseline. */

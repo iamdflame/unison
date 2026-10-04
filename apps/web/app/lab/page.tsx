@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { statusName } from "@unison/sdk";
+import { statusName } from "@unison/sdk/types";
 import { heroLine, marketMoment } from "@/lib/time/market";
 import { BrandLab } from "./BrandLab";
 

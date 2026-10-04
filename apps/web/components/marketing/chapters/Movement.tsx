@@ -1,54 +1,26 @@
 "use client";
 
-import { useGSAP } from "@gsap/react";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useRef, useState } from "react";
-import { facts } from "@/lib/content/facts";
-import { MovementPart } from "./MovementParts";
-
-gsap.registerPlugin(ScrollTrigger, useGSAP);
+import { useRef, useState, type ReactNode } from "react";
+import { useScrollProgress } from "@/components/motion/useScrollProgress";
+import { PLATES } from "./movementPlates";
 
 /**
  * Chapter 5: the movement. The system's six layers drawn as the watch parts that do the same job (jewelled top
  * plate, striped plate, escape wheel, balance, barrel, main plate), exploded on one axis as you scroll, the way a
  * maison's catalogue shows a calibre. The copy follows the part in focus. Reduced motion: shown already exploded.
+ * The six drawings arrive as `plates`, in PLATES order, drawn by the server: they are static SVG.
  */
-const PLATES = [
-  { name: "Gateway", line: "Orders signed with a passkey, a wallet, or an agent key with limits. Relayed without gas." },
-  { name: "Book", line: `Every price level of a batch, aggregated in page-aligned storage, so an order costs about $${facts.gas.orderUsd}.` },
-  { name: "Clearing", line: "One uniform price: the most volume, then the least imbalance, then the closest to the reference." },
-  { name: "References", line: "Signed after the batch closes, bound to it, and checked by Chainlink every 30 seconds (in simulation today)." },
-  { name: "Vault", line: "Liquidity that quotes around the reference and has nothing to lose to snipers." },
-  { name: "Compliance", line: "Volume caps, eligibility and halts from the SEC's tokenized-venue rules, written as code." },
-] as const;
-
-export function Movement() {
+export function Movement({ plates }: { plates: ReactNode[] }) {
   const scope = useRef<HTMLElement>(null);
+  const stage = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
 
-  useGSAP(
-    () => {
-      const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const stage = scope.current?.querySelector<HTMLElement>("[data-stage]");
-      if (!stage) return;
-      if (reduce) {
-        stage.style.setProperty("--p", "1");
-        return;
-      }
-      ScrollTrigger.create({
-        trigger: scope.current,
-        start: "top top",
-        end: "bottom bottom",
-        scrub: 0.6,
-        onUpdate: (self) => {
-          stage.style.setProperty("--p", self.progress.toFixed(4));
-          setActive(Math.min(PLATES.length - 1, Math.floor(self.progress * PLATES.length * 0.999)));
-        },
-      });
-    },
-    { scope },
-  );
+  // The plates part as the pinned scene runs; the copy follows the part in focus. Under reduced motion the hook
+  // stands down and the stage is drawn already exploded (motion-reduce:[--p:1]).
+  useScrollProgress(scope, (p) => {
+    stage.current?.style.setProperty("--p", p.toFixed(4));
+    setActive(Math.min(PLATES.length - 1, Math.floor(p * PLATES.length * 0.999)));
+  });
 
   return (
     <section ref={scope} aria-labelledby="movement-title" className="relative lg:h-[320vh]">
@@ -77,7 +49,7 @@ export function Movement() {
         </div>
 
         <div className="mt-16 lg:col-span-7 lg:mt-0">
-          <div data-stage className="relative mx-auto aspect-square w-full max-w-[640px] [--p:0] [perspective:1800px]" aria-hidden>
+          <div ref={stage} data-stage className="relative mx-auto aspect-square w-full max-w-[640px] [--p:0] [perspective:1800px] motion-reduce:[--p:1]" aria-hidden>
             <div className="absolute inset-0 [transform-style:preserve-3d] [transform:rotateX(58deg)_rotateZ(-38deg)]">
               {PLATES.map((p, i) => {
                 const fromTop = PLATES.length - 1 - i;
@@ -87,7 +59,7 @@ export function Movement() {
                     className="absolute inset-[10%] transition-opacity duration-300"
                     style={{ transform: `translateZ(calc((${fromTop} - 2.5) * (10px + var(--p) * 62px)))`, opacity: i === active ? 1 : 0.62 }}
                   >
-                    <MovementPart name={p.name} />
+                    {plates[i]}
                   </div>
                 );
               })}

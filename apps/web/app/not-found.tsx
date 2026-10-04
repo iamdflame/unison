@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Lockup } from "@/components/brand/Lockup";
-import { WatchFace } from "@/components/brand/WatchFace";
+import { LazyWatchFace } from "@/components/brand/LazyWatchFace";
 
 export const metadata: Metadata = { title: "Closed", robots: { index: false } };
 
@@ -35,7 +35,7 @@ export default function NotFound() {
           </div>
         </div>
         <div className="order-1 flex justify-center lg:order-2">
-          <WatchFace hacked caption="Hacking seconds" className="w-[min(74vw,460px)]" />
+          <LazyWatchFace hacked caption="Hacking seconds" className="w-[min(74vw,460px)]" />
         </div>
       </main>
     </div>

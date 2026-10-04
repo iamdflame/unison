@@ -1,6 +1,6 @@
 "use client";
 
-import { toast } from "sonner";
+import { toast } from "@/lib/ui/toast";
 import { account as demoAccount, type MyFill } from "../demo/engine.ts";
 import { venue } from "./index.ts";
 import { liveAccount, orderAliases } from "./live.ts";

@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { WORDMARK, WORDMARK_CAP } from "./geometry";
+import { WORDMARK, WORDMARK_CAP } from "./glyphs";
 
 type Master = keyof typeof WORDMARK;
 

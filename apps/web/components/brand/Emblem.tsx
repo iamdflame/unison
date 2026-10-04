@@ -2,13 +2,12 @@
 
 import { forwardRef, useId, useImperativeHandle, useRef, type CSSProperties } from "react";
 import { MARK_BOX, MARK_MID_BOX, MARK_MID_PARTS, MARK_PARTS, MARK_SMALL_PARTS } from "./geometry";
+import { masterForSize, type Master } from "./master";
 
 export interface EmblemHandle {
   /** A fill: the tines flex in antiphase (≤ 1 px at the rendered size) and settle within three beats. */
   strike: (intensity?: number) => void;
 }
-
-type Master = "display" | "mid" | "small";
 
 interface EmblemProps {
   /** Rendered size in px (also picks the optical master when `master` is "auto"). */
@@ -22,8 +21,6 @@ interface EmblemProps {
 }
 
 const reduced = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-export const masterForSize = (px: number): Master => (px <= 20 ? "small" : px < 44 ? "mid" : "display");
 
 /** A struck tuning fork is a damped oscillator; sampled into WAAPI keyframes so each strike can interrupt the last. */
 function flex(amplitudeDeg: number, sign: 1 | -1): Keyframe[] {

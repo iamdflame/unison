@@ -1,12 +1,12 @@
 "use client";
 
-import { TapeClient } from "@unison/sdk";
+import { TapeClient } from "@unison/sdk/tape";
 import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { marketByTicker, type MarketSpec } from "../content/markets.ts";
 import { account as demoAccount, demoMarket, type AccountState, type MarketState, type MyOrder } from "../demo/engine.ts";
 import { createStore, shallowEqual, useStore, type Store } from "../store/createStore.ts";
 import { netConfig, type NetConfig } from "./config.ts";
-import { restoreIdentity } from "./identity.ts";
+import { identity, restoreIdentity, warmSigner } from "./identity.ts";
 import { liveAccount, liveMarket, watchAccount } from "./live.ts";
 
 /**
@@ -38,10 +38,16 @@ export async function bootVenue() {
     restoreIdentity(net);
     venue.set({ mode: "live", net, ready: true });
     watchAccount(net);
+    // a signed-in trader will sign soon: fetch the signer once the page is idle, not with it
+    const warm = () => identity.get() && idle(warmSigner);
+    warm();
+    identity.subscribe(warm);
   } catch {
     venue.set({ mode: "demo", net, ready: true });
   }
 }
+
+const idle = (fn: () => void) => ("requestIdleCallback" in window ? requestIdleCallback(fn, { timeout: 4000 }) : setTimeout(fn, 1500));
 
 export interface VenueMarket {
   store: Store<MarketState>;

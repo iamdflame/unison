@@ -10,7 +10,7 @@ import { BatchRing } from "@/components/app/BatchRing";
 import { useMarket, useVenue, useVenueAccount } from "@/lib/venue";
 import { priceFormat } from "@/lib/content/markets";
 import type { MyFill, MyOrder } from "@/lib/demo/engine";
-import { certificate, certificateFor } from "./Certificate";
+import { certificate, certificateFor } from "./certificateStore";
 import { OrderTicket } from "./OrderTicket";
 import { clearBatch } from "@/lib/sim/batch";
 import { CrossChart, DepthLadder, PrintsChart, simulatedVault } from "./charts";

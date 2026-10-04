@@ -5,48 +5,9 @@ import { X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Lockup } from "@/components/brand/Lockup";
 import { MARK_PARTS } from "@/components/brand/geometry";
-import { priceFormat, type MarketSpec } from "@/lib/content/markets";
-import type { MyFill } from "@/lib/demo/engine";
-import { TapeClient } from "@unison/sdk";
-import { createStore, useStore } from "@/lib/store/createStore";
-import type { NetConfig } from "@/lib/venue/config";
-import { identity } from "@/lib/venue/identity";
-
-/**
- * The certificate of execution: the moment a fill becomes an object. An engraved guilloché frame (interlaced
- * waves traced along the card's perimeter, banknote-style), the fill in Bodoni numerals, the batch it cleared in,
- * the reference and band it cleared against, and a signature that writes itself once.
- */
-export interface CertificateData extends MyFill {
-  ticker: string;
-  name: string;
-  unit: number;
-  decimals: number;
-  /** live fills: where the tape can check the receipt */
-  live?: { tapeUrl: string; marketId: number; account: string; slot: number; explorer?: string };
-  /**
-   * The tape's check (live): "recomputed" when the receipt chain links through this batch and the fill recomputes
-   * from its uniform price; "linked" when only the chain could be checked; "unverified" when the check failed.
-   */
-  check?: "recomputed" | "linked" | "unverified";
-}
-
-export const certificate = createStore<CertificateData | null>(null);
-
-/** A fill → its certificate. Live fills (net given, signed in) carry where to verify their receipt. */
-export function certificateFor(fill: MyFill, spec: MarketSpec, net: NetConfig | null): CertificateData {
-  const { unit, decimals } = priceFormat(spec);
-  const account = identity.get()?.account;
-  const marketId = net?.deployment.markets[spec.symbol]?.id;
-  return {
-    ...fill,
-    ticker: spec.ticker,
-    name: spec.name,
-    unit,
-    decimals,
-    ...(net && account && marketId !== undefined ? { live: { tapeUrl: net.tapeUrl, marketId, account, slot: fill.orderId, explorer: net.explorer } } : {}),
-  };
-}
+import { TapeClient } from "@unison/sdk/tape";
+import { useStore } from "@/lib/store/createStore";
+import { certificate } from "./certificateStore";
 
 /** Interlaced sine bands along a rounded rectangle: the frame of a share certificate or a watch's papers. */
 function guillocheFrame(w: number, h: number, inset: number, r: number) {
@@ -90,6 +51,11 @@ function guillocheFrame(w: number, h: number, inset: number, r: number) {
   return paths;
 }
 
+/**
+ * The certificate of execution: the moment a fill becomes an object. An engraved guilloché frame (interlaced
+ * waves traced along the card's perimeter, banknote-style), the fill in Bodoni numerals, the batch it cleared in,
+ * the reference and band it cleared against, and a signature that writes itself once.
+ */
 export function CertificateDialog() {
   const data = useStore(certificate, (c) => c);
   const [sig, setSig] = useState<string | null>(null);

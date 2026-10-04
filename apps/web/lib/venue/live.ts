@@ -1,39 +1,34 @@
 "use client";
 
-import {
-  buildCancel,
-  buildOrder,
-  decodeUnisonError,
-  RelayerClient,
-  Side,
-  TapeClient,
-  UnisonClient,
-  type MarketSummary,
-  type Print as TapePrint,
-} from "@unison/sdk";
 import { buyLock } from "@unison/engine";
-import { createPublicClient, http, type Address } from "viem";
+import { LightReader } from "@unison/sdk/light";
+import { RelayerClient } from "@unison/sdk/relayer";
+import { TapeClient, type MarketSummary, type Print as TapePrint } from "@unison/sdk/tape";
+import { Side } from "@unison/sdk/types";
+import type { Address } from "viem";
 import { marketByTicker, type MarketSpec } from "../content/markets.ts";
 import type { AccountState, BookOrder, MarketState, MyFill, MyOrder, Print } from "../demo/engine.ts";
 import { createStore, type Store } from "../store/createStore.ts";
 import { regimeNow } from "../unison/regimeNow.ts";
 import type { NetConfig } from "./config.ts";
-import { identity, signAction } from "./identity.ts";
+import { describeError, identity, loadSigner } from "./identity.ts";
 
 /**
  * Live venue: the same MarketState / AccountState the simulation produces, filled from the tape (prints, heads,
  * pending orders, account history over SSE), the chain (ledger balances, resting depth) and the relayer (every
  * action, gasless). Components can't tell the difference, which is the point.
+ *
+ * Watching costs no contract toolkit: the tape is fetch and SSE, and the two chain reads are hand-encoded
+ * eth_calls (`LightReader`). The signing half loads when a signature is near (`identity.loadSigner`).
  */
-let clients: { net: NetConfig; tape: TapeClient; relayer: RelayerClient; chain: UnisonClient } | null = null;
+let clients: { net: NetConfig; tape: TapeClient; relayer: RelayerClient; reader: LightReader } | null = null;
 export function liveClients(net: NetConfig) {
   if (!clients || clients.net !== net) {
-    const publicClient = createPublicClient({ chain: net.chain, transport: http(net.rpcUrl) });
     clients = {
       net,
       tape: new TapeClient(net.tapeUrl),
       relayer: new RelayerClient(net.relayerUrl),
-      chain: new UnisonClient({ publicClient: publicClient as never, deployment: net.deployment }),
+      reader: new LightReader(net.rpcUrl, net.deployment.exchange as Address),
     };
   }
   return clients;
@@ -157,15 +152,15 @@ export class LiveMarket {
 
   /** Pending orders (tape) and resting depth (chain) near the reference: the batch now forming. */
   private startBook() {
-    const { tape, chain } = liveClients(this.net);
+    const { tape, reader } = liveClients(this.net);
     let alive = true;
     const refreshBook = async () => {
       const m = this.store.get();
       const span = 40;
       const [pending, bids, asks] = await Promise.all([
         tape.pending(this.marketId),
-        chain.depthRange(BigInt(this.marketId), Side.BID, BigInt(m.refTick - span), BigInt(m.refTick + span)).catch(() => [] as readonly bigint[]),
-        chain.depthRange(BigInt(this.marketId), Side.ASK, BigInt(m.refTick - span), BigInt(m.refTick + span)).catch(() => [] as readonly bigint[]),
+        reader.depthRange(BigInt(this.marketId), Side.BID, BigInt(m.refTick - span), BigInt(m.refTick + span)).catch(() => [] as bigint[]),
+        reader.depthRange(BigInt(this.marketId), Side.ASK, BigInt(m.refTick - span), BigInt(m.refTick + span)).catch(() => [] as bigint[]),
       ]);
       if (!alive) return;
       const me = identity.get()?.account.toLowerCase();
@@ -193,21 +188,12 @@ export class LiveMarket {
 
   /** Signs (session key, or one Face ID) and relays an order. */
   async place(side: "buy" | "sell", tick: number, qty: number, ioc: boolean): Promise<MyOrder | { error: string }> {
-    const id = identity.get();
-    if (!id) return { error: "Sign in with a passkey first." };
+    if (!identity.get()) return { error: "Sign in with a passkey first." };
     const { relayer } = liveClients(this.net);
     try {
-      const order = buildOrder({
-        account: id.account,
-        marketId: BigInt(this.marketId),
-        side: side === "buy" ? Side.BID : Side.ASK,
-        tick,
-        qty: BigInt(Math.round(qty * Number(this.baseUnit))),
-        ioc,
-      });
-      const sig = await signAction(this.net, id, "Order", order);
-      const { id: job } = await relayer.postOrder(order, sig);
-      const placed: MyOrder = { id: Number(order.nonce % 1_000_000_000n), side, tick, qty, filled: 0, quote: 0, fee: 0, ioc, status: "pending", placedBlock: this.store.get().block, batches: [], locked: 0 };
+      const { relayOrder } = await loadSigner();
+      const { job, nonce } = await relayOrder(this.net, { marketId: this.marketId, side, tick, qty: BigInt(Math.round(qty * Number(this.baseUnit))), ioc });
+      const placed: MyOrder = { id: Number(nonce % 1_000_000_000n), side, tick, qty, filled: 0, quote: 0, fee: 0, ioc, status: "pending", placedBlock: this.store.get().block, batches: [], locked: 0 };
       liveAccount.set((a) => ({ ...a, orders: { ...a.orders, [this.spec.ticker]: [placed, ...(a.orders[this.spec.ticker] ?? [])] } }));
       relayer
         .waitForJob(job)
@@ -216,27 +202,23 @@ export class LiveMarket {
           if (slot !== undefined && slot !== null) orderAliases.set((a) => ({ ...a, [placed.id]: Number(slot) }));
           return refreshAccount(this.net);
         })
-        .catch((e) => {
+        .catch(async (e: unknown) => {
           liveAccount.set((a) => ({
             ...a,
             orders: { ...a.orders, [this.spec.ticker]: (a.orders[this.spec.ticker] ?? []).map((o) => (o.id === placed.id ? { ...o, status: "expired" } : o)) },
           }));
-          console.warn(decodeUnisonError(e).message);
+          console.warn(await describeError(e).catch(() => e));
         });
       return placed;
     } catch (e) {
-      return { error: decodeUnisonError(e).message };
+      return { error: await describeError(e).catch(() => (e instanceof Error ? e.message : "The order could not be sent.")) };
     }
   }
 
   async cancel(slot: number) {
-    const id = identity.get();
-    if (!id) return;
-    const { relayer } = liveClients(this.net);
-    const c = buildCancel({ account: id.account, slot });
-    const sig = await signAction(this.net, id, "Cancel", c);
-    const { id: job } = await relayer.postCancel(c, sig);
-    await relayer.waitForJob(job);
+    if (!identity.get()) return;
+    const { relayCancel } = await loadSigner();
+    await relayCancel(this.net, slot);
     await refreshAccount(this.net);
   }
 }
@@ -268,15 +250,15 @@ export function refreshAccount(net: NetConfig): Promise<void> {
 async function loadAccount(net: NetConfig) {
   const id = identity.get();
   if (!id) return;
-  const { tape, chain } = liveClients(net);
+  const { tape, reader } = liveClients(net);
   const tokens = net.deployment.tokens ?? {};
   const quoteToken = tokens.AUSD;
   const [quote, orders, ...bases] = await Promise.all([
-    quoteToken ? chain.balanceOf(id.account, quoteToken.address as Address).catch(() => 0n) : Promise.resolve(0n),
+    quoteToken ? reader.balanceOf(id.account, quoteToken.address as Address).catch(() => 0n) : Promise.resolve(0n),
     tape.orders(id.account, { status: "all" }).catch(() => null),
     ...Object.entries(tokens)
       .filter(([sym]) => sym !== "AUSD")
-      .map(([sym, t]) => chain.balanceOf(id.account, t.address as Address).then((b) => [sym, units(b, t.decimals)] as const).catch(() => [sym, 0] as const)),
+      .map(([sym, t]) => reader.balanceOf(id.account, t.address as Address).then((b) => [sym, units(b, t.decimals)] as const).catch(() => [sym, 0] as const)),
   ]);
   if (identity.get()?.account !== id.account) return; // signed out or switched while this was in flight
   const quoteDecimals = quoteToken?.decimals ?? 6;

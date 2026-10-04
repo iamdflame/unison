@@ -7,9 +7,13 @@
  */
 import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { chromium } from "@playwright/test";
 
-const out = process.argv[2] ?? "agent-key.json";
+// The minted key is a secret (devnet or not): it goes to the temp directory, never into the repo, and the MCP
+// step (run from services/mcp) gets an absolute path.
+const out = resolve(process.argv[2] ?? join(tmpdir(), "unison-agent-key.json"));
 const base = process.env.SHOOT_BASE ?? "http://localhost:3000";
 const b = await chromium.launch();
 const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: "dark" });

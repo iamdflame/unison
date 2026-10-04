@@ -1,9 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
-import { Lockup } from "@/components/brand/Lockup";
-import { WatchFace } from "@/components/brand/WatchFace";
+import { lazy, Suspense, useEffect, type ComponentType } from "react";
+
+// This boundary is part of every route, so its drawings are fetched only when a page actually fails, and skipped if
+// that fetch fails too (it may be the network that broke): the words and the two ways out stand on their own.
+const art = () => import("@/components/system/ErrorArt");
+const nothing: { default: ComponentType } = { default: () => null };
+const Lockup = lazy(() => art().then((m) => ({ default: m.ErrorLockup }), () => nothing));
+const Watch = lazy(() => art().then((m) => ({ default: m.ErrorWatch }), () => nothing));
 
 /** A route failed to render. Calm, honest, and two ways out. */
 export default function RouteError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
@@ -15,7 +20,9 @@ export default function RouteError({ error, reset }: { error: Error & { digest?:
     <div className="flex min-h-dvh flex-col bg-bg">
       <header className="mx-auto flex w-full max-w-[1440px] items-center px-5 py-6 sm:px-8 lg:px-12">
         <Link href="/" aria-label="Unison, home" className="rounded-full py-1.5 text-ink outline-offset-4">
-          <Lockup capHeight={13} />
+          <Suspense fallback={<span className="block h-5 w-28" />}>
+            <Lockup />
+          </Suspense>
         </Link>
       </header>
       <main id="main" className="mx-auto grid w-full max-w-[1440px] flex-1 items-center gap-10 px-5 pb-20 sm:px-8 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:px-12">
@@ -39,7 +46,9 @@ export default function RouteError({ error, reset }: { error: Error & { digest?:
           {error.digest ? <p className="mt-8 font-mono text-xs text-ink-3">Reference {error.digest}</p> : null}
         </div>
         <div className="order-1 flex justify-center lg:order-2">
-          <WatchFace hacked className="w-[min(74vw,460px)]" />
+          <Suspense fallback={<div className="aspect-square w-[min(74vw,460px)]" />}>
+            <Watch />
+          </Suspense>
         </div>
       </main>
     </div>
