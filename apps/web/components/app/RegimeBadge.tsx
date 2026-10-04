@@ -33,7 +33,7 @@ export function RegimeBadge({ name, bandBps, className = "" }: { name: RegimeNam
     <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${TONE[name]} ${className}`}>
       <Glyph name={name} />
       {REGIME_LABEL[name]}
-      {bandBps !== undefined ? <span className="tnum font-medium opacity-80">{bandLabel(bandBps)}</span> : null}
+      {bandBps !== undefined ? <span className="tnum font-normal">{bandLabel(bandBps)}</span> : null}
     </span>
   );
 }

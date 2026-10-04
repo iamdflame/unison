@@ -77,12 +77,12 @@ export function TradeView({ ticker }: { ticker: string }) {
               <RegimeBadge name={m.regime.name} bandBps={m.regime.bandBps} />
             </dd>
           </div>
-          <div className="flex items-center gap-2">
-            <BatchRing size={26} block={m.block} />
-            <div>
-              <dt className="text-xs text-ink-3">Batch</dt>
-              <dd className="tnum text-ink">{m.block.toLocaleString("en-US")}</dd>
-            </div>
+          <div>
+            <dt className="text-xs text-ink-3">Batch</dt>
+            <dd className="tnum flex items-center gap-2 text-ink">
+              <BatchRing size={18} block={m.block} />
+              {m.block.toLocaleString("en-US")}
+            </dd>
           </div>
         </dl>
       </header>

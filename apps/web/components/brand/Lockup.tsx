@@ -34,12 +34,11 @@ export function Lockup({ capHeight = 12, jewel = true, className, style, title =
       viewBox={`${markX} ${top} ${vbW} ${vbH}`}
       width={vbW * k}
       height={vbH * k}
-      role="img"
-      aria-label={title}
+      {...(title ? { role: "img", "aria-label": title } : { "aria-hidden": true })}
       className={className}
       style={{ overflow: "visible", ...style }}
     >
-      <title>{title}</title>
+      {title ? <title>{title}</title> : null}
       <g transform={`translate(${tx} ${ty}) scale(${m.scale})`} fill="currentColor">
         <path d={body} />
         <path d={ball} fill={jewel ? "var(--ball-3)" : "currentColor"} />

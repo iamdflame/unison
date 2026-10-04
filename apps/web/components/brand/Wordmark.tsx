@@ -25,12 +25,11 @@ export function Wordmark({ capHeight = 18, master = "auto", title = "Unison", cl
       viewBox={`${w.left} ${w.top} ${w.width} ${height}`}
       width={w.width * scale}
       height={height * scale}
-      role="img"
-      aria-label={title}
+      {...(title ? { role: "img", "aria-label": title } : { "aria-hidden": true })}
       className={className}
       style={style}
     >
-      <title>{title}</title>
+      {title ? <title>{title}</title> : null}
       <path d={w.d} fill="currentColor" />
     </svg>
   );

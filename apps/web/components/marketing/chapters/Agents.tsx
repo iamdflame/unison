@@ -63,6 +63,7 @@ export function Agents() {
               <span className="ml-3 text-xs text-ink-3">agent · unison mcp</span>
             </div>
             <pre
+              role="img"
               className="min-h-[300px] overflow-x-auto rounded-[calc(var(--radius-2xl)-6px)] bg-[oklch(0.12_0.006_265)] p-6 font-mono text-[13px] leading-7"
               aria-label="An agent reads the market, places an order with its session key, and gets filled at the batch price."
             >
@@ -80,10 +81,10 @@ export function Agents() {
             </pre>
           </div>
 
-          <div className="glass relative -mt-10 ml-auto w-[min(100%,360px)] rounded-[var(--radius-xl)] p-5 shadow-lg sm:mr-8 lg:-mt-16">
+          <div className="relative -mt-10 ml-auto w-[min(100%,360px)] rounded-[var(--radius-xl)] bg-raised/95 p-5 shadow-lg backdrop-blur-xl sm:mr-8 lg:-mt-16 [@media(prefers-reduced-transparency:reduce)]:bg-raised">
             <div className="flex items-center gap-2 text-sm font-semibold text-ink">
               <KeyRound size={16} strokeWidth={1.5} aria-hidden /> Session key
-              <span className="ml-auto text-xs font-normal text-ink-3">expires in 59 min</span>
+              <span className="ml-auto text-xs font-normal text-ink-2">expires in 59 min</span>
             </div>
             <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
               <dt className="text-ink-3">Markets</dt>
