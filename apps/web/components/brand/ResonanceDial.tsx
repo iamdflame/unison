@@ -252,7 +252,8 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
       }
       charge *= 0.985;
       // the lume only shows at night; by day there is nothing to update
-      if (lume.current && document.documentElement.dataset.theme === "night") lume.current.style.opacity = String(0.15 + charge * 0.85);
+      // a thin edge of lume, never an orb
+      if (lume.current && document.documentElement.dataset.theme === "night") lume.current.style.opacity = String(0.12 + charge * 0.4);
     };
     /** A print lands on the band at 12 and fades: an HTML layer, so its rotation and fade run on the compositor. */
     const plotPrint = (p: number, ref: number) => {
@@ -343,7 +344,7 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
         ref={lume}
         aria-hidden
         className="pointer-events-none absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 rounded-full night:block"
-        style={{ width: "4.6cqw", height: "4.6cqw", background: "radial-gradient(closest-side, var(--glow), transparent)", opacity: 0.15, transition: "opacity 600ms linear" }}
+        style={{ width: "3.2cqw", height: "3.2cqw", background: "radial-gradient(closest-side, var(--glow), transparent)", opacity: 0.15, transition: "opacity 600ms linear" }}
       />
       <div
         className="absolute"
@@ -362,8 +363,8 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
       </p>
       {/* The 6 o'clock aperture: the price everyone in this batch got */}
       <div className="absolute left-1/2 -translate-x-1/2" style={{ top: "66.5cqw" }}>
-        {/* an aperture cut into the dial: an opaque window, a bevel of two hairlines, no shadow */}
-        <div className="flex flex-col items-center rounded-[1.2cqw] bg-raised px-[3.2cqw] py-[1.6cqw] ring-1 ring-line-strong outline outline-1 outline-offset-[0.45cqw] outline-line">
+        {/* an aperture cut into the dial: a sunken window, lit from above, edged in one champagne hairline */}
+        <div className="flex flex-col items-center rounded-[0.8cqw] bg-sunken px-[3.2cqw] py-[1.6cqw] shadow-[inset_0_1px_2px_oklch(0_0_0/0.18)] ring-1 ring-champagne/60">
           <div className="numerals leading-none" style={{ fontSize: "6.2cqw" }}>
             <NumberFlow
               value={price}
