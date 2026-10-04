@@ -36,7 +36,7 @@ export function OnlyOnMonad() {
       <div ref={ref} className="grid grid-cols-1 gap-x-16 gap-y-12 lg:grid-cols-12">
         <div className="lg:col-span-5">
           <h2 id="monad-title" className="text-display-l text-ink">
-            Only possible on Monad.
+            Made for Monad.
           </h2>
           <p className="text-lede mt-6 text-ink-2">
             A batch every 300 milliseconds needs a chain that keeps that beat, and storage priced by the page. Unison

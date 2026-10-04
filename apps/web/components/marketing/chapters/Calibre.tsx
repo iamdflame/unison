@@ -11,7 +11,7 @@ const SPECS: [string, string, string?][] = [
   ["Escapement", "Frequent batch auction", "Most volume, then least imbalance, then closest to the reference. Orders at that price share it pro rata"],
   // one complication a line, as a catalogue lists them: no separator left to dangle at either end of a line
   ["Complications", "Discovery\nReopening cross\nHalts\nAudit", "Each with its own price band"],
-  ["Fairness", "One price per batch", "Against a reference published after the batch closes"],
+  ["Fairness", "One price per batch", "In session, against a reference published after the batch closes; while closed, around the last close"],
   ["Gas per clear", `${(facts.gas.clearMonad / 1e6).toFixed(2)}M`, `${facts.gas.savingPct}% less than under Ethereum's rules`],
   ["Cost", `≈ $${facts.gas.batch200Usd} per batch`, `200 orders; about $${facts.gas.orderUsd} per order`],
   ["Case", "Monad", "Testnet today, mainnet after an external audit. Open source, MIT"],

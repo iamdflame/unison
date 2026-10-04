@@ -58,9 +58,9 @@ export function CrossChart({
   // Scaled to the meeting point, not to the deep walls at the window's edges (the vault's ladder, resting orders):
   // the cross is what this view is for. Deeper levels run off the top; the scale says how far up it goes.
   const peak = Math.max(1, ...demand, ...supply);
-  // two and a half times what would clear: the meeting point fills the plot, and deeper levels fade out above it
+  // 1.6 times what would clear: the meeting point sits two-thirds up the plot, and deeper levels fade out above it
   // with their totals printed at the edges
-  const focus = cross ? Math.min(peak, Math.max(cross.volume * 2.5, 1)) : peak;
+  const focus = cross ? Math.min(peak, Math.max(cross.volume * 1.6, 1)) : peak;
   const qStep = niceStep(focus * 1.08, 3);
   const maxQ = Math.ceil((focus * 1.08) / qStep) * qStep;
   const tStep = Math.max(1, Math.round(niceStep(hi - lo, W < 560 ? 3 : 5)));

@@ -50,12 +50,12 @@ export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick:
   const vaultAsk = m.vault.reduce((a, o) => (o.side === "sell" && o.qty > 0 && (a === null || o.tick < a) ? o.tick : a), null as number | null);
   const closedWho = stock ? "Wall Street is closed" : m.spec.kind === "fx" ? "The currency market is closed" : "Its reference is closed";
 
-  // the vault's quote and the last trade: in the strip on wide screens, behind "Details" on a phone
+  // the vault's quote and the last trade: cells on wide screens, behind "Details" on a phone
   const details = (
     <>
       {vaultBid !== null && vaultAsk !== null ? (
         <p className="figures text-sm text-ink-2">
-          Vault <span className="text-ink">{fmt(vaultBid)}</span> × <span className="text-ink">{fmt(vaultAsk)}</span>
+          Vault bid <span className="text-ink">{fmt(vaultBid)}</span> · ask <span className="text-ink">{fmt(vaultAsk)}</span>
         </p>
       ) : null}
       <p className="figures text-sm text-ink-2">
@@ -69,30 +69,67 @@ export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick:
       </p>
     </>
   );
+  const escapement = discovery ? (
+    // the escapement: one step per block, the auction on the last
+    <span className="flex items-end gap-[3px]" aria-hidden>
+      {Array.from({ length: cadence }, (_, i) => (
+        <span
+          key={i}
+          className={`w-[5px] rounded-[1px] transition-colors duration-150 ${i === cadence - 1 ? "h-[18px]" : "h-3.5"} ${i === elapsed - 1 ? "bg-accent" : i < elapsed ? "bg-ink/70" : "bg-ink/[0.12]"}`}
+        />
+      ))}
+    </span>
+  ) : (
+    <BatchRing size={18} block={regime === "HALTED" ? null : m.block} />
+  );
+  const nextLabel = regime === "HALTED" ? "Paused while halted" : discovery ? `${((Math.max(1, left) * BEAT_MS) / 1000).toFixed(1)} s` : "Every block";
+  const imbalance = indicative
+    ? Math.abs(indicative.imbalance) >= 0.01
+      ? `${indicative.imbalance > 0 ? "buyers" : "sellers"} left with ${qty(Math.abs(indicative.imbalance))}`
+      : "balanced"
+    : "";
+  // one cell: a small label over its figure, and a quiet line under it
+  const cell = (label: string, value: React.ReactNode, sub?: React.ReactNode) => (
+    <div className="min-w-0">
+      <p className="text-xs text-ink-3">{label}</p>
+      <p className="figures mt-0.5 text-[15px] font-semibold text-ink">{value}</p>
+      {sub ? <p className="figures mt-0.5 truncate text-xs text-ink-3">{sub}</p> : null}
+    </div>
+  );
 
   return (
-    <section aria-label="Auctions" className="mt-5 rounded-[var(--radius-xl)] bg-raised px-5 py-3.5 shadow-panel">
-      <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
-        <div className="flex items-center gap-3">
-          {discovery ? (
-            // the escapement: one step per block, the auction on the last
-            <span className="flex items-end gap-[3px]" aria-hidden>
-              {Array.from({ length: cadence }, (_, i) => (
-                <span
-                  key={i}
-                  className={`w-[5px] rounded-[1px] transition-colors duration-150 ${i === cadence - 1 ? "h-[18px]" : "h-3.5"} ${i === elapsed - 1 ? "bg-accent" : i < elapsed ? "bg-ink/70" : "bg-ink/[0.12]"}`}
-                />
-              ))}
-            </span>
+    <section aria-label="Auctions" className="mt-5 rounded-[var(--radius-xl)] bg-raised px-5 py-4 shadow-panel">
+      {/* wide screens: four readings in fixed cells */}
+      <div className="hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,1.2fr)_minmax(0,1.2fr)] gap-x-6 sm:grid" aria-live="off">
+        <div className="flex items-start gap-3">
+          <span className="mt-1">{escapement}</span>
+          {cell(discovery ? "Next auction in" : "Auctions", nextLabel, discovery ? plural(m.forming, "new order") : "about 0.3 s each")}
+        </div>
+        {cell("Clears now", indicative ? fmt(indicative.tick) : "No cross yet", indicative ? `${qty(indicative.volume)} ${unit} · ${imbalance}` : "buyers and sellers don't meet")}
+        {cell(
+          "Vault",
+          vaultBid !== null && vaultAsk !== null ? (
+            <>
+              {fmt(vaultBid)} <span className="font-normal text-ink-3">·</span> {fmt(vaultAsk)}
+            </>
           ) : (
-            <BatchRing size={18} block={regime === "HALTED" ? null : m.block} />
-          )}
+            "Not quoting"
+          ),
+          vaultBid !== null && vaultAsk !== null ? "bid · ask" : undefined,
+        )}
+        {cell("Last trade", last ? fmt(last.tick) : "None yet", last ? `${qty(last.volume)} ${unit} · ${ago}` : undefined)}
+      </div>
+
+      {/* phones: when, and where it clears now; the rest waits behind one disclosure */}
+      <div className="flex flex-wrap items-center gap-x-8 gap-y-2 sm:hidden">
+        <div className="flex items-center gap-3">
+          {escapement}
           <p className="text-sm font-medium text-ink" aria-live="off">
             {regime === "HALTED" ? (
               "Auctions paused while the market is halted"
             ) : discovery ? (
               <>
-                Next auction in <span className="tnum">{((Math.max(1, left) * BEAT_MS) / 1000).toFixed(1)} s</span>
+                Next auction in <span className="tnum">{nextLabel}</span>
                 <span className="figures font-normal text-ink-2"> · {plural(m.forming, "new order")}</span>
               </>
             ) : (
@@ -100,24 +137,16 @@ export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick:
             )}
           </p>
         </div>
-        {/* the batch now forming, cleared as it stands */}
         <p className="figures text-sm text-ink-2" aria-live="off">
           {indicative ? (
             <>
               Clears now <span className="font-medium text-ink">{fmt(indicative.tick)}</span> · {qty(indicative.volume)} {unit}
-              <span className="hidden sm:inline">
-                {Math.abs(indicative.imbalance) >= 0.01
-                  ? ` · ${indicative.imbalance > 0 ? "buyers" : "sellers"} left with ${qty(Math.abs(indicative.imbalance))} ${unit}`
-                  : " · balanced"}
-              </span>
             </>
           ) : (
             "No cross yet: buyers and sellers don't meet inside the band"
           )}
         </p>
-        <div className="hidden sm:contents">{details}</div>
       </div>
-      {/* phones read two lines (when, and where it clears now); the rest waits behind one disclosure */}
       <details className="group mt-2 sm:hidden">
         <summary className="flex min-h-9 cursor-pointer list-none items-center gap-1.5 text-xs font-medium text-ink-2 [&::-webkit-details-marker]:hidden">
           Details
@@ -133,19 +162,22 @@ export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick:
           ) : null}
         </div>
       </details>
+
       {discovery ? (
-        // one idea a sentence: why, how often, around what, and when it ends
-        <p className="mt-2 hidden text-xs leading-relaxed text-ink-3 sm:block">
-          {closedWho}. {unit} trades in a call auction every {cadence} blocks, about {(cadence * BEAT_MS) / 1000} s. Its
-          band is centred on the last close, {fmt(m.refTick)}, and widens the longer the market stays closed.
-          {reopens ? (
-            <>
-              {" "}
-              Pre-market opens {reopens}. Its first auction is a reopening cross, with a ±
-              {(m.spec.regime.reopenBandBps / 100).toFixed(2)}% band.
-            </>
-          ) : null}
-        </p>
+        // wide screens: the regime in one line, how it works one tap away
+        <details className="group mt-3 hidden border-t border-line pt-3 text-xs text-ink-3 sm:block">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 [&::-webkit-details-marker]:hidden">
+            <span>
+              {closedWho} · a call auction every {cadence} blocks{reopens ? ` · reopening cross ${reopens}` : ""}
+            </span>
+            <span aria-hidden className="text-ink-2 transition-transform duration-150 group-open:rotate-90">›</span>
+          </summary>
+          <p className="mt-2 max-w-3xl leading-relaxed">
+            {unit} trades in a call auction every {cadence} blocks, about {(cadence * BEAT_MS) / 1000} s. Its band is centred
+            on the last close, {fmt(m.refTick)}, and widens the longer the market stays closed.
+            {reopens ? ` Its first auction after pre-market opens is a reopening cross, with a ±${(m.spec.regime.reopenBandBps / 100).toFixed(2)}% band.` : ""}
+          </p>
+        </details>
       ) : null}
     </section>
   );

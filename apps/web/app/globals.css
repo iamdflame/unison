@@ -25,6 +25,8 @@
   --bg: oklch(0.985 0.003 250);
   --bg-raised: oklch(1 0 0);
   --bg-sunken: oklch(0.962 0.004 252);
+  /* the selected segment of a control: the brightest surface, so the choice reads at a glance */
+  --thumb: oklch(1 0 0);
   --ink: oklch(0.19 0.012 262);
   --ink-2: oklch(0.43 0.012 262);
   --ink-3: oklch(0.53 0.01 262);
@@ -82,6 +84,7 @@
   --bg-raised: oklch(0.18 0.008 265);
   /* a well cut into a raised panel: below the panel, never below the page, so it reads as enamel, not a hole */
   --bg-sunken: oklch(0.148 0.008 265);
+  --thumb: oklch(0.29 0.012 265);
   --ink: oklch(0.95 0.006 250);
   --ink-2: oklch(0.76 0.01 255);
   --ink-3: oklch(0.64 0.01 255);
@@ -186,6 +189,7 @@
   --color-buy-fill: var(--buy-fill);
   --color-sell-fill: var(--sell-fill);
   --color-on-fill: var(--on-fill);
+  --color-thumb: var(--thumb);
   --color-sell-soft: var(--sell-soft);
   --color-halt: var(--halt);
   --color-champagne: var(--champagne);

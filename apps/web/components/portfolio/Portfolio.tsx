@@ -347,16 +347,19 @@ function Holdings({ holdings, equity }: { holdings: Holding[]; equity: number })
                 <span aria-hidden className="size-2.5 shrink-0 rounded-full ring-1 ring-line-strong" style={{ background: h.color }} />
                 <div className="min-w-0">
                   <p className="text-[15px] font-semibold text-ink">{h.label}</p>
-                  <p className="line-clamp-2 text-[13px] text-ink-3 md:truncate">{h.sub}</p>
+                  {/* phones: the quantity leads the name on one line; wide screens give it its own column */}
+                  <p className="truncate text-[13px] text-ink-3">
+                    <span className="figures md:hidden">{h.qty.toLocaleString("en-US", { maximumFractionDigits: h.spec ? qtyDigits : 2 })} · </span>
+                    {h.sub}
+                  </p>
                 </div>
               </div>
-              <div className="text-right">
+              <div className="hidden text-right md:block">
                 <p className="tnum text-ink">{h.qty.toLocaleString("en-US", { maximumFractionDigits: h.spec ? qtyDigits : 2 })}</p>
-                {/* phones have no column header: the unit rides under the figure */}
                 {h.locked > 1e-9 ? <p className="tnum text-xs text-ink-3">{h.locked.toLocaleString("en-US", { maximumFractionDigits: 2 })} in orders</p> : null}
               </div>
               <p className="tnum hidden text-right text-ink-2 md:block">
-                {h.avg !== null ? `$${h.avg.toFixed(decimals)}` : <span className="text-[13px] text-ink-3">{h.spec ? "Not known" : ""}</span>}
+                {h.avg !== null ? `$${h.avg.toFixed(decimals + 1)}` : <span className="text-[13px] text-ink-3">{h.spec ? "Not known" : ""}</span>}
               </p>
               <div className="hidden text-right md:block">
                 <p className="tnum text-ink-2">{h.spec ? `$${h.price.toFixed(decimals)}` : "$1.00"}</p>
@@ -378,11 +381,14 @@ function Holdings({ holdings, equity }: { holdings: Holding[]; equity: number })
                 <p className={`tnum text-xs ${h.pnl === null ? "text-ink-3" : tone(h.pnl)}`}>
                   {h.pnl !== null ? `P&L ${signedMoney(h.pnl)}` : `${share.toFixed(1)}% of total`}
                 </p>
+                {h.pnl !== null && h.avg !== null && h.lastPrice !== null ? (
+                  <p className="tnum text-[11px] text-ink-3">{signedMoney(h.qty * (h.lastPrice - h.avg))} at last trade</p>
+                ) : null}
               </div>
             </>
           );
-          // fixed numeric columns on phones too, aligned on the first line, so every quantity and value shares an edge
-          const cls = "grid grid-cols-[minmax(0,1fr)_76px_108px] items-start gap-x-4 px-6 py-3.5 md:grid-cols-[minmax(0,1.3fr)_1fr_1fr_1fr_1fr_1fr_72px] md:items-center md:gap-x-5";
+          // phones: two columns, the asset and its quantity on the left, its value and P&L on the right
+          const cls = "grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 px-6 py-3.5 md:grid-cols-[minmax(0,1.3fr)_1fr_1fr_1fr_1fr_1fr_72px] md:items-center md:gap-x-5";
           return (
             <li key={h.key}>
               {h.spec ? (

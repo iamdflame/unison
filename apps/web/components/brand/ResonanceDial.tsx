@@ -363,7 +363,8 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
       </p>
       {/* Engraved specification, like a calibre's dial text: the cadence this market keeps right now */}
       <p className="dial-label absolute inset-x-0 text-center text-ink-3" style={{ top: "59.6cqw", fontSize: "max(10px, 1.3cqw)" }} aria-hidden>
-        {(12_000 / auctionEvery).toLocaleString("en-US")} A/h · {regime.name === "DISCOVERY" ? "Discovery" : "Monad"}
+        {/* in words, not a watchmaker's unit: A/h is explained in the calibre chapter, not here */}
+        {auctionEvery > 1 ? `An auction every ${(auctionEvery * 0.3).toFixed(0)} s` : "A batch every block"} · {regime.name === "DISCOVERY" ? "Discovery" : "Monad"}
       </p>
       {/* The 6 o'clock aperture: the price everyone in this batch got */}
       <div className="absolute left-1/2 -translate-x-1/2" style={{ top: "66.5cqw" }}>
@@ -391,7 +392,7 @@ export function ResonanceDial({ market, seed = 11, className }: { market: Market
           <span>
             Block <span ref={batchEl}>—</span>
             {/* a narrow dial keeps the caption inside its track */}
-            <span className="hidden @min-[480px]:inline">, one step each</span> · {flow === "live" ? "live" : "simulation"}
+            {" "}· {flow === "live" ? "live" : "simulation"}
           </span>
         </p>
       </div>

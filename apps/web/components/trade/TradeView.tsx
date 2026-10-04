@@ -122,6 +122,7 @@ export function TradeView({ ticker }: { ticker: string }) {
                     <span className="whitespace-nowrap text-ink-3">
                       {" "}
                       · ${(held * m.refTick * unit).toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                      <span className="sm:hidden"> at close</span>
                       <span className="hidden sm:inline"> at {refName(m).toLowerCase()}</span>
                     </span>
                   ) : null}

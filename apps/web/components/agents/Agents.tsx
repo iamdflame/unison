@@ -235,7 +235,7 @@ function Mint({ net, onMinted }: { net: NetConfig; onMinted: (m: { privateKey: H
               role="checkbox"
               aria-checked={picked.has(m.id)}
               onClick={() => toggle(m.id)}
-              className={`press rounded-[var(--radius-sm)] px-3 py-1.5 text-sm font-medium transition-colors ${picked.has(m.id) ? "bg-raised text-ink shadow-sm" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
+              className={`press rounded-[var(--radius-sm)] px-3 py-1.5 text-sm font-medium transition-colors ${picked.has(m.id) ? "bg-thumb text-ink shadow-sm" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
             >
               {m.ticker}
             </button>
@@ -262,7 +262,7 @@ function Mint({ net, onMinted }: { net: NetConfig; onMinted: (m: { privateKey: H
               role="radio"
               aria-checked={ttl === s}
               onClick={() => setTtl(s)}
-              className={`press rounded-[var(--radius-sm)] py-2 text-sm font-medium transition-colors ${ttl === s ? "bg-raised text-ink shadow-sm" : "text-ink-2 hover-fine:text-ink"}`}
+              className={`press rounded-[var(--radius-sm)] py-2 text-sm font-medium transition-colors ${ttl === s ? "bg-thumb text-ink shadow-sm" : "text-ink-2 hover-fine:text-ink"}`}
             >
               {label}
             </button>

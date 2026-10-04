@@ -45,7 +45,7 @@ export function FairnessLive() {
                 role="radio"
                 aria-checked={m.ticker === spec.ticker}
                 onClick={() => setTicker(m.ticker)}
-                className={`press tap rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${m.ticker === spec.ticker ? "bg-raised text-ink shadow-sm" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
+                className={`press tap rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${m.ticker === spec.ticker ? "bg-thumb text-ink shadow-sm" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
               >
                 {m.ticker}
               </button>
@@ -80,7 +80,7 @@ export function FairnessLive() {
                     role="radio"
                     aria-checked={window === w}
                     onClick={() => setWindow(w)}
-                    className={`press rounded-full px-4 py-2 text-sm font-medium transition-colors ${window === w ? "bg-raised text-ink shadow-sm" : "text-ink-2 hover-fine:text-ink"}`}
+                    className={`press rounded-full px-4 py-2 text-sm font-medium transition-colors ${window === w ? "bg-thumb text-ink shadow-sm" : "text-ink-2 hover-fine:text-ink"}`}
                   >
                     {label}
                   </button>
@@ -219,8 +219,15 @@ function Deviation({ stats }: { stats: FairStats }) {
           <dd className="tnum mt-0.5 text-ink">{stats.traded.toLocaleString("en-US")}</dd>
         </div>
         <div>
-          <dt className="text-ink-3">Reference published after close</dt>
-          <dd className="tnum mt-0.5 text-ink">{stats.refLagMean === null ? "Enforced by contract" : `${lag(stats.refLagP95)} p95`}</dd>
+          {/* the rule only applies in session: say so when every batch here cleared against the last close */}
+          <dt className="text-ink-3">{stats.closedShare === 1 ? "Reference" : "Reference published after close"}</dt>
+          <dd className="tnum mt-0.5 text-ink">
+            {stats.closedShare === 1
+              ? `The last close, all ${stats.batches.toLocaleString("en-US")} (market closed)`
+              : stats.refLagMean === null
+                ? "Enforced by contract, in session"
+                : `${lag(stats.refLagP95)} p95`}
+          </dd>
         </div>
         <div>
           <dt className="text-ink-3">Receipt chain</dt>

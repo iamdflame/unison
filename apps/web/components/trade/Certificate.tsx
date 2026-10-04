@@ -221,9 +221,16 @@ export function CertificateDialog() {
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-ink-3">{data.side === "buy" ? "Under your limit" : "Over your limit"}</dt>
+                        <dt className="text-xs text-ink-3">Price improvement</dt>
                         <dd className="figures mt-0.5 text-[clamp(1rem,2vw,1.25rem)] font-medium text-ink">
-                          {improvement ? `${fmt(improvement)} a share` : "At your limit"}
+                          {improvement ? (
+                            <>
+                              {fmt(improvement)} a share{" "}
+                              {Math.abs(data.qty - 1) > 1e-9 ? <span className="text-ink-3">({money(improvement * data.unit * data.qty)} in all)</span> : null}
+                            </>
+                          ) : (
+                            "None: at your limit"
+                          )}
                         </dd>
                       </div>
                     </dl>
@@ -243,7 +250,7 @@ export function CertificateDialog() {
                       ["Fee", `${money(fee)} · ${data.feeBps} bp`],
                       ...(data.side === "buy" ? [["Reserve returned", money(Math.max(0, returned))]] : []),
                       ["Auction volume", `${qty(data.batchVolume)} ${data.ticker}`],
-                      ["Your share", share >= 99.95 ? "All of it" : `${share.toFixed(1)}%`],
+                      ["Of auction volume", share >= 99.95 ? "All of it" : `${share.toFixed(1)}%`],
                       ["Band at this auction", `${fmt(data.bandLo)} – ${fmt(data.bandHi)}`],
                       ["Cleared", cleared(data.ts)],
                     ].map(([k, v]) => (

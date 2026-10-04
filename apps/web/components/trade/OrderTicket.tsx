@@ -3,6 +3,7 @@
 import { buyLock } from "@unison/engine";
 import { Minus, Plus } from "lucide-react";
 import { useEffect, useId, useMemo, useState } from "react";
+import { nextAuction } from "@/lib/demo/engine";
 import { BEAT_MS } from "@/lib/motion/tokens";
 import { toast } from "@/lib/ui/toast";
 import { useStore } from "@/lib/store/createStore";
@@ -47,6 +48,8 @@ export function OrderTicket({
     regime: s.regime.name,
     last: s.last?.tick ?? null,
     block: s.block,
+    // the auction this order would join, if it lands in time
+    next: nextAuction(s),
   }));
   const free = useVenueAccount((a) => ({ quote: a.quote, base: a.base[ticker] ?? 0 }));
   const v = useVenue();
@@ -215,8 +218,8 @@ export function OrderTicket({
               className={`press rounded-[var(--radius-sm)] py-2.5 text-sm font-semibold capitalize transition-colors duration-150 ${
                 side === s
                   ? s === "buy"
-                    ? "bg-raised text-buy shadow-sm"
-                    : "bg-raised text-sell shadow-sm"
+                    ? "bg-thumb text-buy shadow-sm"
+                    : "bg-thumb text-sell shadow-sm"
                   : "text-ink-2 hover-fine:text-ink"
               }`}
             >
@@ -275,7 +278,7 @@ export function OrderTicket({
               key={label}
               type="button"
               onClick={() => setPrice(t)}
-              className={`press tap figures rounded-[var(--radius-sm)] px-2.5 py-1 text-xs font-medium transition-colors ${limit === t ? "bg-raised text-ink shadow-sm" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
+              className={`press tap figures rounded-[var(--radius-sm)] px-2.5 py-1 text-xs font-medium transition-colors ${limit === t ? "bg-thumb text-ink shadow-sm" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
             >
               {label} {fmt(t)}
             </button>
@@ -358,18 +361,20 @@ export function OrderTicket({
               role="radio"
               aria-checked={ioc === val}
               onClick={() => setIoc(val)}
-              className={`press min-h-9 rounded-[var(--radius-sm)] text-sm font-medium transition-colors duration-150 ${ioc === val ? "bg-raised text-ink shadow-sm" : "text-ink-2 hover-fine:text-ink"}`}
+              className={`press min-h-9 rounded-[var(--radius-sm)] text-sm font-medium transition-colors duration-150 ${ioc === val ? "bg-thumb text-ink shadow-sm" : "text-ink-2 hover-fine:text-ink"}`}
             >
               {label}
             </button>
           ))}
         </div>
-        <p className="mt-2 text-xs leading-relaxed text-ink-3">
+        {/* which auction it joins (the next, if it lands in time), and what happens after it */}
+        <p className="figures mt-2 text-xs leading-relaxed text-ink-3">
+          Joins the {discovery ? "auction" : "batch"} at block {m.next.toLocaleString("en-US")} if it lands in time
           {ioc
-            ? "What doesn't fill then is cancelled, and its funds come back."
+            ? "; what doesn't fill there is cancelled, and its funds come back."
             : discovery
-              ? "Joins every auction until it fills, the reopening included."
-              : "Joins every batch until it fills or you cancel."}
+              ? ", then every one until it fills, the reopening included."
+              : ", then every one until it fills or you cancel."}
         </p>
 
         <dl id={ids.help} className="mt-3.5 space-y-2 border-t border-line pt-3.5 text-sm">
@@ -390,7 +395,7 @@ export function OrderTicket({
             <dt className="text-ink-3">Held while it rests</dt>
             <dd className="figures text-ink">{side === "buy" ? money(lock) : `${n(lock)} ${ticker}`}</dd>
             <dd className="basis-full text-xs text-ink-3">
-              {side === "buy" ? `At your limit + the ${spec.maxFeeBps} bp fee cap; what isn't used comes back.` : "Until it fills or you cancel."}
+              {side === "buy" ? `Reserved at the ${spec.maxFeeBps} bp cap; you pay ${spec.feeBps} bp, and the rest comes back.` : "Until it fills or you cancel."}
             </dd>
           </div>
         </dl>

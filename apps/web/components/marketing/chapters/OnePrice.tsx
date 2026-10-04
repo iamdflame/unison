@@ -139,7 +139,7 @@ export function OnePrice() {
                       setLimit(s === "buy" ? REF + 10 : REF - 10);
                     }}
                     className={`press rounded-[var(--radius-sm)] px-4 py-2 text-sm font-semibold capitalize transition-colors duration-150 ${
-                      side === s ? (s === "buy" ? "bg-raised text-buy shadow-sm" : "bg-raised text-sell shadow-sm") : "text-ink-2 hover-fine:text-ink"
+                      side === s ? (s === "buy" ? "bg-thumb text-buy shadow-sm" : "bg-thumb text-sell shadow-sm") : "text-ink-2 hover-fine:text-ink"
                     }`}
                   >
                     {s}

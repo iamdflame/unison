@@ -76,7 +76,7 @@ export function Benchmark() {
 
         <div className="mt-14 grid grid-cols-1 gap-10 md:grid-cols-3">
           {[
-            ["Sniping doesn't pay.", "The auction prices against a reference published after the batch closed. A mid-batch edge only fills when the price has already moved against it, so the sniper stops trading."],
+            ["Sniping doesn't pay.", "In session, the auction prices against a reference published after the batch closed. A mid-batch edge only fills when the price has already moved against it, so the sniper stops trading."],
             ["Liquidity keeps what snipers took.", `At the vault's shipped setting (±10 bp, 3 bp fee) it keeps $${shipped.vault.lp.toLocaleString("en-US")} a day; order-book makers keep $${shipped.clob.lp}. Takers pay for the width: ${shipped.vault.noiseBps.toFixed(1)} bp against ${shipped.clob.noiseBps.toFixed(1)} bp. At an identical ±${facts.lp.spreadBps} bp quote, a setting no live vault runs yet, it would keep ${facts.lp.multiple}× as much ($${facts.lp.unisonVault}) and takers would pay ${facts.noiseCostBps.unison} bp. All of it in market hours.`],
             ["The rule is the mechanism.", "Break it on purpose, pricing against a reference published before the close, and the sniper's edge returns at once. So the venue enforces it on-chain: each reference is bound to its batch, and one published too early is rejected."],
           ].map(([title, body]) => (

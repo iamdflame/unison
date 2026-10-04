@@ -230,7 +230,7 @@ export function NeverCloses() {
                       a halo in the page color keeps grid hairlines off the figures */}
                   <text
                     x={cx(sinceClose) + (cx(sinceClose) > CW * 0.3 ? -12 : 12)}
-                    y={cy(nowBand) - 14}
+                    y={cy(nowBand) - 24}
                     textAnchor={cx(sinceClose) > CW * 0.3 ? "end" : "start"}
                     className="tnum"
                     fill="var(--ink)"
