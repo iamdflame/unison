@@ -113,10 +113,11 @@ export function TradeView({ ticker }: { ticker: string }) {
                 <dt className="text-xs text-ink-3">You hold</dt>
                 <dd className="figures text-ink">
                   {held.toLocaleString("en-US", { maximumFractionDigits: 2 })} {spec.ticker}
-                  {held > 0 && last ? (
-                    <span className="text-ink-3">
+                  {/* valued as the portfolio values it: at the reference (at night, the last close) */}
+                  {held > 0 && m.refTick > 0 ? (
+                    <span className="text-ink-3" title={`Valued at the ${refName(m).toLowerCase()}, as on Portfolio`}>
                       {" "}
-                      · ${(held * last.tick * unit).toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                      · ${(held * m.refTick * unit).toLocaleString("en-US", { maximumFractionDigits: 0 })}
                     </span>
                   ) : null}
                 </dd>
