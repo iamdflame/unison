@@ -14,7 +14,7 @@ function Card({ m, regime }: { m: MarketSpec; regime: RegimeNow | null }) {
   return (
     <Link
       href={`/trade/${m.ticker}`}
-      className="group press flex items-center gap-4 rounded-[var(--radius-xl)] bg-raised p-4 shadow-sm transition-shadow duration-200 hover-fine:shadow-md"
+      className="group flex items-center gap-4 border-t border-line py-4 transition-colors duration-150 hover-fine:bg-ink/[0.02]"
     >
       <BandDial bandBps={regime ? regime.bandBps : null} regime={regime?.name} />
       <div className="min-w-0">
@@ -24,9 +24,6 @@ function Card({ m, regime }: { m: MarketSpec; regime: RegimeNow | null }) {
         </p>
         <p className="mt-1 text-sm text-ink-2">
           {regime ? `${REGIME_LABEL[regime.name]} · ${bandLabel(regime.bandBps)}` : " "}
-        </p>
-        <p className="mt-0.5 text-xs text-ink-3">
-          {m.reference === "operator" ? "Signed reference · Chainlink audit, simulated" : "Chainlink price feed"}
         </p>
       </div>
     </Link>
@@ -47,7 +44,7 @@ export function Markets() {
 
   return (
     <section aria-labelledby="markets-title" className="mx-auto max-w-[1440px] px-5 py-28 sm:px-8 lg:px-12 lg:py-32">
-      <div className="max-w-2xl">
+      <div className="max-w-3xl">
         <h2 id="markets-title" className="text-display-l text-ink">
           Ten markets.
           <br />
@@ -58,11 +55,16 @@ export function Markets() {
           shows the band its next auction would use right now.
         </p>
       </div>
-      <div className="mt-14 grid grid-cols-1 gap-4 md:grid-cols-2">
+      {/* hairline rows, two columns: the structure is in the rules, not in ten raised tiles */}
+      <div className="mt-14 grid grid-cols-1 gap-x-12 border-b border-line md:grid-cols-2">
         {MARKETS.map((m, i) => (
           <Card key={m.ticker} m={m} regime={regimes[i] ?? null} />
         ))}
       </div>
+      <p className="mt-4 max-w-3xl text-sm text-ink-3">
+        Stocks, funds and gold clear against a reference the venue signs after each batch, checked against Chainlink
+        (in simulation today); the pound and MON clear against Chainlink price feeds.
+      </p>
     </section>
   );
 }

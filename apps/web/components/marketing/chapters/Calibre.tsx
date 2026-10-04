@@ -9,7 +9,7 @@ const SPECS: [string, string, string?][] = [
   ["Frequency", `${facts.batchesPerHour.toLocaleString("en-US")} A/h · ${(facts.batchesPerHour / 3600).toFixed(2)} a second`, `A/h, alternations an hour, is how a watchmaker counts beats; here each one is an auction. A batch every Monad block while Wall Street trades; a call auction every ${facts.discoveryBlocks} blocks (${(facts.batchesPerHour / facts.discoveryBlocks).toLocaleString("en-US")} A/h) while it is closed`],
   ["Power reserve", `${facts.hours.week} h a week`, "Every night and every weekend; a market stops only when its rules halt it"],
   ["Escapement", "Frequent batch auction", "Most volume, then least imbalance, then closest to the reference"],
-  ["Complications", "Discovery · Reopening cross · Halts · Audit", "Each with its own price band"],
+  ["Complications", "Discovery · Reopening cross · Halts · Audit", "Each with its own price band"],
   ["Fairness", "One price per batch", "Against a reference published after the batch closes"],
   ["Gas per clear", `${(facts.gas.clearMonad / 1e6).toFixed(2)}M`, `${facts.gas.savingPct}% less than under Ethereum's rules`],
   ["Cost", `≈ $${facts.gas.batch200Usd} per batch`, `200 orders; about $${facts.gas.orderUsd} per order`],
@@ -43,10 +43,10 @@ export function Calibre() {
               <line x1={b.ball.cx + b.ball.r + 1.6} x2={b.ball.cx + 14} y1={b.ball.cy} y2={b.ball.cy} />
               <line x1={24 + b.R + 1} x2={24 + b.R + 9} y1={b.yc} y2={b.yc} />
             </g>
-            <g fill="var(--ink-3)" style={{ fontSize: 1.9, fontFamily: "var(--font-sans)", letterSpacing: "0.04em" }}>
+            <g fill="var(--ink-2)" style={{ fontSize: 2.3, fontFamily: "var(--font-sans)", letterSpacing: "0.02em" }}>
               <text x="24" y={b.top - 2.6} textAnchor="middle">{(2 * b.R).toFixed(1)} u</text>
-              <text x={b.ball.cx + 14.6} y={b.ball.cy + 0.6}>ball Ø {(2 * b.ball.r).toFixed(1)} u · the price point</text>
-              <text x={24 + b.R + 9.6} y={b.yc + 0.6}>bowl · Didone stress</text>
+              <text x={b.ball.cx + 14.6} y={b.ball.cy + 0.7}>the ball: the one price</text>
+              <text x={24 + b.R + 9.6} y={b.yc + 0.7}>the tines: buyers and sellers, joined</text>
             </g>
           </svg>
         </div>
