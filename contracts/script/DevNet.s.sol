@@ -12,7 +12,9 @@ import {MockERC20} from "../test/mocks/MockERC20.sol";
 
 /// @notice Full local devnet: mock tokens, exchange, operator-signed reference (relay = anvil account 1),
 ///         aNVDA/AUSD and aSPY/AUSD markets calibrated from research/, a seeded LiquidityVault per market and
-///         three funded traders. Writes ../deployments/<chainId>.json for the services, SDK and mock server.
+///         three funded traders. Writes ../deployments/<DEVNET_OUT>.json for the services, SDK and mock server:
+///         by default <chainId>.json, except on an anvil with Monad testnet's chain id (the CRE simulation),
+///         which writes cre-local.json so it is never mistaken for the public testnet's monad-testnet.json.
 ///
 ///   anvil --code-size-limit 131072 --block-time 1
 ///   forge script script/DevNet.s.sol --rpc-url http://127.0.0.1:8545 --broadcast
@@ -38,10 +40,12 @@ contract DevNet is Script {
         LiquidityVault nvdaVault;
         LiquidityVault spyVault;
         OrderGateway gateway;
+        uint256 startBlock;
     }
 
     function run() external {
         Deployed memory d;
+        d.startBlock = vm.getBlockNumber(); // indexers start here
         address deployer = vm.addr(PK_DEPLOYER);
         vm.startBroadcast(PK_DEPLOYER);
         d.ausd = new MockERC20("Agora USD (dev)", "AUSD", 6);
@@ -83,7 +87,7 @@ contract DevNet is Script {
         for (uint256 i = 0; i < 3; ++i) {
             address t = vm.addr(PK_TRADERS[i]);
             d.ausd.mint(t, 1_000_000e6);
-            d.nvda.mint(t, 1_000e18);
+            d.nvda.mint(t, 1000e18);
             d.spy.mint(t, 500e18);
         }
         vm.stopBroadcast();
@@ -138,13 +142,22 @@ contract DevNet is Script {
                 depthBps: 40,
                 widthTicks: 10,
                 maxSkewTicks: 15,
-                maxAuctionBps: 1_000,
+                maxAuctionBps: 1000,
                 swingBps: 30,
                 extMult: 2,
                 closedMult: 4,
                 paused: false
             })
         );
+    }
+
+    /// Token metadata for deployments/*.json `tokens`.
+    function _token(MockERC20 t) internal returns (string memory) {
+        string memory k = string.concat("token.", t.symbol());
+        vm.serializeAddress(k, "address", address(t));
+        vm.serializeString(k, "symbol", t.symbol());
+        vm.serializeString(k, "name", t.name());
+        return vm.serializeUint(k, "decimals", t.decimals());
     }
 
     function _write(Deployed memory d) internal {
@@ -177,17 +190,26 @@ contract DevNet is Script {
         vm.serializeAddress(ac, "trader2", vm.addr(PK_TRADERS[1]));
         string memory accounts = vm.serializeAddress(ac, "trader3", vm.addr(PK_TRADERS[2]));
 
+        string memory tk = "tokens";
+        vm.serializeString(tk, "AUSD", _token(d.ausd));
+        vm.serializeString(tk, "aNVDA", _token(d.nvda));
+        string memory tokens = vm.serializeString(tk, "aSPY", _token(d.spy));
+
         string memory root = "root";
         vm.serializeUint(root, "chainId", block.chainid);
+        vm.serializeUint(root, "startBlock", d.startBlock);
         vm.serializeAddress(root, "exchange", address(d.ex));
         vm.serializeAddress(root, "operatorReference", address(d.osr));
         vm.serializeAddress(root, "gateway", address(d.gateway));
         vm.serializeAddress(root, "AUSD", address(d.ausd));
         vm.serializeAddress(root, "aNVDA", address(d.nvda));
         vm.serializeAddress(root, "aSPY", address(d.spy));
+        vm.serializeString(root, "tokens", tokens);
         vm.serializeString(root, "accounts", accounts);
         string memory out = vm.serializeString(root, "markets", markets);
-        string memory path = string.concat("../deployments/", vm.toString(block.chainid), ".json");
+        string memory label =
+            vm.envOr("DEVNET_OUT", block.chainid == 10_143 ? string("cre-local") : vm.toString(block.chainid));
+        string memory path = string.concat("../deployments/", label, ".json");
         vm.writeJson(out, path);
         console.log("UnisonExchange", address(d.ex));
         console.log("written", path);

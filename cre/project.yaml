@@ -1,5 +1,9 @@
 # Chainlink CRE project settings for the Unison workflows (see unison/workflows/*/workflow.yaml).
-# `simulation-settings` targets a local anvil with Monad testnet's chain id (10143) running the Unison devnet.
+# `simulation-settings` targets a local anvil with Monad testnet's chain id (10143) running the Unison devnet,
+# whose addresses are recorded in deployments/cre-local.json (DevNet.s.sol writes that file on chain 10143):
+#   anvil --chain-id 10143 --code-size-limit 131072 --block-time 1 --port 8547
+#   cd contracts && forge script script/DevNet.s.sol --rpc-url http://127.0.0.1:8547 --broadcast
+# The public testnet deployment (staging) is deployments/monad-testnet.json, written by Testnet.s.sol.
 simulation-settings:
   rpcs:
     - chain-name: monad-testnet
