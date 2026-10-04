@@ -71,6 +71,8 @@ export interface MyFill {
   limitTick: number;
   bandLo: number;
   bandHi: number;
+  /** the market was closed: the band was centred on the last close, and the auction was a call auction */
+  closed?: boolean;
   /** live: the auction's on-chain receipt hash */
   receipt?: string;
 }
@@ -321,7 +323,7 @@ export class DemoMarket {
       forming: 0,
       lastAuction: block,
     });
-    if (!warmup && mine.length) settle(this.spec, mine, print, out.tick, refTick, block, now, book.length, lo, hi);
+    if (!warmup && mine.length) settle(this.spec, mine, print, out.tick, refTick, block, now, book.length, lo, hi, discovery);
   }
 
   /** Your order joins the batch now forming. */
@@ -406,6 +408,7 @@ function settle(
   participants: number,
   bandLo: number,
   bandHi: number,
+  closed: boolean,
 ) {
   const ticker = spec.ticker;
   const unit = Number(spec.tickSize) / 1e6;
@@ -454,6 +457,7 @@ function settle(
           limitTick: o.tick,
           bandLo,
           bandHi,
+          closed,
         });
       }
       const complete = next.filled >= next.qty - 0.004;

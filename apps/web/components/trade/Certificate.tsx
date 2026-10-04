@@ -138,7 +138,7 @@ export function CertificateDialog() {
                     ["Batch", data.block.toLocaleString("en-US")],
                     ["Cleared", new Date(data.ts).toISOString().replace("T", " ").slice(0, 19) + " UTC"],
                     data.participants > 0 ? ["Orders in batch", String(data.participants)] : ["Batch volume", `${data.batchVolume.toFixed(2)} ${data.ticker}`],
-                    ["Reference", fmt(data.refTick)],
+                    [data.closed ? "Last close" : "Reference", fmt(data.refTick)],
                     ["Band", `${fmt(data.bandLo)} – ${fmt(data.bandHi)}`],
                     ["Better than your limit by", improvement ? fmt(improvement) : "—"],
                   ].map(([k, v]) => (

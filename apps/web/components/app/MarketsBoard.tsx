@@ -32,7 +32,7 @@ export function MarketsBoard() {
           <span>Market</span>
           <span>Recent prints</span>
           <span className="text-right">Last price</span>
-          <span>Regime and band</span>
+          <span>Regime</span>
           <span />
         </div>
         <ul className="divide-y divide-line">
@@ -59,12 +59,16 @@ function Row({ spec }: { spec: MarketSpec }) {
   const ticks = useMemo(() => sample(m.prints.slice(-180).map((p) => p.tick)), [m.prints]);
   const tick = m.last ?? m.ref;
   const simulated = v.mode === "live" && !live;
+  // At night every market shares a regime and nearly a band; what differs is how far each has moved since its close.
+  const closed = m.regime === "DISCOVERY";
+  const move = closed && m.last !== null && m.ref > 0 ? ((m.last - m.ref) / m.ref) * 100 : null;
+  const moveLabel = move === null ? null : `${move >= 0 ? "+" : "−"}${Math.abs(move).toFixed(2)}% since the close`;
 
   return (
     <Link
       href={`/trade/${spec.ticker}`}
       className="group grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-x-4 px-4 py-3.5 transition-colors duration-150 outline-none hover-fine:bg-ink/[0.03] focus-visible:bg-ink/[0.04] md:grid-cols-[48px_minmax(0,1.5fr)_120px_minmax(120px,1fr)_minmax(170px,1fr)_20px] md:gap-x-5 md:px-6"
-      aria-label={`${spec.ticker}, ${spec.name}: ${fmt(tick)}, ${m.regime.toLowerCase()}${simulated ? ", simulated" : ""}`}
+      aria-label={`${spec.ticker}, ${spec.name}: ${fmt(tick)}, ${m.regime.toLowerCase()}${moveLabel ? `, ${moveLabel}` : ""}${simulated ? ", simulated" : ""}`}
     >
       <BandDial bandBps={m.band} regime={m.regime} needle={m.last !== null && m.ref > 0 && m.band > 0 ? (((m.last - m.ref) / m.ref) * 10_000) / m.band : 0} className="size-10 md:size-12" />
       <div className="min-w-0">
@@ -84,7 +88,14 @@ function Row({ spec }: { spec: MarketSpec }) {
         </span>
       </div>
       <div className="hidden md:block">
-        <RegimeBadge name={m.regime} bandBps={m.band} />
+        {closed ? (
+          <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <RegimeBadge name={m.regime} />
+            {moveLabel ? <span className="figures text-[13px] text-ink-2">{moveLabel}</span> : null}
+          </span>
+        ) : (
+          <RegimeBadge name={m.regime} bandBps={m.band} />
+        )}
       </div>
       <ChevronRight size={16} strokeWidth={1.75} aria-hidden className="hidden text-ink-3 transition-colors group-hover:text-ink md:block" />
     </Link>
