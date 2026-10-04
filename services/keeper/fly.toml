@@ -1,0 +1,25 @@
+# Unison keeper: a background worker with no HTTP service (so nothing for the proxy to stop: one machine runs
+# continuously and restarts on failure). Deploy from the repo root (docs/DEPLOY.md):
+#   fly deploy . --config services/keeper/fly.toml --dockerfile ops/docker/service.Dockerfile
+app = "unison-keeper"
+primary_region = "iad"
+
+[build]
+  dockerfile = "../../ops/docker/service.Dockerfile"
+  [build.args]
+    SERVICE = "keeper"
+
+[env]
+  DEPLOYMENT = "/app/deployments/monad-testnet.json"
+  RELAY_URL = "http://unison-relay.internal:8787"
+  CLEAR_GAS = "8000000"
+  REPRICE_EVERY = "5"
+  AUTO_CLAIM = "1"
+  # secrets: RPC_URL, KEEPER_PRIVATE_KEY
+
+[[restart]]
+  policy = "always"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

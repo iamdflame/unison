@@ -3,20 +3,28 @@
  *
  * Per new block, per market:
  *   1. a job is running            → continue it (no payload needed; the reference was bound at open)
- *   2. pending batches exist, or   → fetch the relay's signed report for batch = head - 1 and open a job
- *      `repriceEvery` blocks passed   (re-pricing lets resting orders cross the moving band and the vault curve)
+ *   2. pending batches exist, or   → open a job for batch = head - 1 with its reference: the relay's signed
+ *      `repriceEvery` blocks passed   report for operator markets, "0x" for push/pull feeds (Chainlink, Pyth,
+ *                                     manual). Re-pricing lets resting orders cross the moving band and the curve.
  *   3. after a completed job       → process the market's vault queue if requests wait
  *   4. optionally                  → claim orders whose level closed (frees slots, credits balances)
- * Monad charges the gas LIMIT: clear calls use a fixed, explicit limit; the job pauses itself well before it.
+ * Monad charges the gas LIMIT: clear calls use a fixed, explicit limit (the job pauses itself well before it), or
+ * with `clearGas: "auto"` the call's estimate × 1.2.
  */
-import { decodeEventLog, type Address, type Hex } from "viem";
-import { JobPhase, Status, unisonExchangeAbi, type UnisonClient } from "@unison/sdk";
+import { decodeEventLog, parseAbi, type Address, type Hex } from "viem";
+import { JobPhase, Status, unisonExchangeAbi, type MarketState, type UnisonClient } from "@unison/sdk";
+
+/** IReferenceAdapter.read: a view on ChainlinkReference / ManualReference; eth_call works for every adapter. */
+const adapterReadAbi = parseAbi([
+  "function read(uint256 marketId, uint256 batch, bytes payload) view returns (uint256 price, uint256 publishTimeMs, uint8 status)",
+]);
 
 export interface KeeperConfig {
   client: UnisonClient;
   relayUrl: string;
   marketIds: bigint[];
-  clearGas: bigint;
+  /** explicit gas limit for clear calls, or "auto" = estimateGas × 1.2 */
+  clearGas: bigint | "auto";
   repriceEvery: bigint;
   /** pending batches older than this many blocks are merged even if the auction would not trade */
   maxPendingAge: bigint;
@@ -60,6 +68,47 @@ export class Keeper {
     }
   }
 
+  /** Operator-signed markets need the relay's report; every other adapter reads its own feed (payload "0x"). */
+  isOperatorMarket(marketId: bigint): boolean {
+    const dep = Object.values(this.cfg.client.deployment.markets).find((x) => BigInt(x.id) === marketId);
+    return (dep?.reference ?? "operator") === "operator";
+  }
+
+  /** Payload and reference status for opening a job covering `upTo`. */
+  async reference(marketId: bigint, m: MarketState, upTo: bigint): Promise<{ payload: Hex; status: number }> {
+    if (this.isOperatorMarket(marketId)) return this.fetchPayload(marketId, upTo);
+    return { payload: "0x", status: await this.adapterStatus(marketId, m, upTo) };
+  }
+
+  /** The adapter's current status (for the DISCOVERY cadence), else the status of the market's last clear. */
+  async adapterStatus(marketId: bigint, m: MarketState, upTo: bigint): Promise<number> {
+    try {
+      const [, , status] = await this.cfg.client.publicClient.readContract({
+        address: m.refAdapter,
+        abi: adapterReadAbi,
+        functionName: "read",
+        args: [marketId, upTo, "0x"],
+      });
+      return Number(status);
+    } catch {
+      return Number(m.lastStatus);
+    }
+  }
+
+  /** Gas limit for a clear call: the configured one, or the estimate × 1.2. */
+  async clearGasFor(functionName: "clear" | "clearUpTo", args: readonly unknown[]): Promise<bigint> {
+    if (this.cfg.clearGas !== "auto") return this.cfg.clearGas;
+    const c = this.cfg.client;
+    const est = await c.publicClient.estimateContractGas({
+      address: c.exchange,
+      abi: unisonExchangeAbi,
+      functionName,
+      args: args as never,
+      account: c.walletClient!.account,
+    });
+    return (est * 12n + 9n) / 10n;
+  }
+
   async fetchPayload(marketId: bigint, batch: bigint): Promise<{ payload: Hex; status: number }> {
     const r = await fetch(`${this.cfg.relayUrl}/reference/${marketId}?batch=${batch}`, {
       signal: AbortSignal.timeout(3_000),
@@ -90,7 +139,8 @@ export class Keeper {
     try {
       const phase = await c.jobPhase(marketId);
       if (phase !== JobPhase.IDLE) {
-        await this.send(c.clear(marketId, "0x", this.cfg.clearGas), { marketId, action: "clear.continue" });
+        const gas = await this.clearGasFor("clear", [marketId, "0x"]);
+        await this.send(c.clear(marketId, "0x", gas), { marketId, action: "clear.continue" });
         sent++;
       } else {
         const m = await c.market(marketId);
@@ -100,7 +150,7 @@ export class Keeper {
         const age = upTo - m.lastCleared;
         const vaultWaiting = await this.vaultWaiting(marketId);
         if (!pending && !vaultWaiting && age < this.cfg.repriceEvery) return 0;
-        const { payload, status } = await this.fetchPayload(marketId, upTo);
+        const { payload, status } = await this.reference(marketId, m, upTo);
         if (status === Status.CLOSED) {
           const g = await c.regime(marketId);
           if (g.discCadence > 1 && g.lastDiscoveryBatch !== 0n && upTo < g.lastDiscoveryBatch + BigInt(g.discCadence)) {
@@ -112,7 +162,8 @@ export class Keeper {
         const sim = await c.simulateClearUpTo(marketId, upTo, payload);
         const mustMerge = pending && age >= this.cfg.maxPendingAge;
         if (sim.volume === 0n && !mustMerge && !vaultWaiting) return 0;
-        await this.send(c.clearUpTo(marketId, upTo, payload, this.cfg.clearGas), {
+        const gas = await this.clearGasFor("clearUpTo", [marketId, upTo, payload]);
+        await this.send(c.clearUpTo(marketId, upTo, payload, gas), {
           marketId,
           action: "clear.open",
           upTo,

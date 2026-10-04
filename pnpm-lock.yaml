@@ -410,6 +410,9 @@ importers:
         specifier: ^2.37.0
         version: 2.57.2(typescript@5.9.3)(zod@3.25.76)
     devDependencies:
+      '@noble/curves':
+        specifier: 1.9.1
+        version: 1.9.1
       '@types/node':
         specifier: ^24.0.0
         version: 24.19.1
@@ -419,6 +422,9 @@ importers:
       '@unison/relayer':
         specifier: workspace:*
         version: link:../relayer
+      '@unison/tape':
+        specifier: workspace:*
+        version: link:../tape
       typescript:
         specifier: ^5.9.0
         version: 5.9.3

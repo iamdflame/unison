@@ -215,7 +215,7 @@ async function main() {
 
   server.registerTool(
     "order_status",
-    { description: "Status of a relayed order (queued, sent, placed, failed).", inputSchema: { id: z.string() } },
+    { description: "Status of a relayed order (queued, sent, done, failed).", inputSchema: { id: z.string() } },
     async ({ id }) => text(await (await fetch(`${relayer}/v1/orders/${id}`)).json()),
   );
 

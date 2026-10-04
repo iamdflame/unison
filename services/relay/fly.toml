@@ -1,0 +1,39 @@
+# Unison reference relay: INTERNAL ONLY. No public ports and no public IPs: the keeper and the tape reach it over
+# Fly's private network at http://unison-relay.internal:8787 (the server listens on [::]).
+# Deploy from the repo root (docs/DEPLOY.md):
+#   fly deploy . --config services/relay/fly.toml --dockerfile ops/docker/service.Dockerfile
+app = "unison-relay"
+primary_region = "iad"
+
+[build]
+  dockerfile = "../../ops/docker/service.Dockerfile"
+  [build.args]
+    SERVICE = "relay"
+
+[env]
+  PORT = "8787"
+  DEPLOYMENT = "/app/deployments/monad-testnet.json"
+  PROVIDER = "alpaca"
+  SESSION = "us-equity"
+  CORS_ORIGINS = "https://unison.trade,https://www.unison.trade"
+  # secrets: RPC_URL, RELAY_PRIVATE_KEY, ALPACA_KEY_ID, ALPACA_SECRET_KEY, RELAY_ADMIN_TOKEN
+
+# a service without [[services.ports]] gets no public exposure; it carries the machine policy and the check
+[[services]]
+  internal_port = 8787
+  protocol = "tcp"
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[services.http_checks]]
+    grace_period = "20s"
+    interval = "15s"
+    method = "get"
+    path = "/health"
+    protocol = "http"
+    timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

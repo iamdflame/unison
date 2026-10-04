@@ -7,7 +7,8 @@
  *
  * Env: RPC_URL, DEPLOYMENT (path to deployments/<chainId>.json), RELAY_PRIVATE_KEY, RELAY_SIGNER_ID (0),
  *      PORT (8787), PROVIDER (sim|alpaca|yahoo), SESSION (us-equity|always), ALPACA_KEY_ID, ALPACA_SECRET_KEY,
- *      RELAY_ADMIN_TOKEN, SESSION_OVERRIDE (OPEN|EXTENDED|CLOSED — dev only)
+ *      RELAY_ADMIN_TOKEN, SESSION_OVERRIDE (OPEN|EXTENDED|CLOSED — dev only),
+ *      CORS_ORIGINS (http://localhost:3000; browsers may read /prices and /health only)
  */
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { createPublicClient, http, type Hex } from "viem";
@@ -59,16 +60,38 @@ export async function startRelay() {
   });
 
   const adminToken = process.env.RELAY_ADMIN_TOKEN;
-  const send = (res: ServerResponse, code: number, body: unknown) => {
-    res.writeHead(code, { "content-type": "application/json", "access-control-allow-origin": "*" });
+  const allowed = new Set(
+    env("CORS_ORIGINS", "http://localhost:3000")
+      .split(",")
+      .map((o) => o.trim())
+      .filter(Boolean),
+  );
+  // only the public, read-only endpoints are readable cross-origin; signing and admin stay server-to-server
+  const cors = (req: IncomingMessage, path: string): Record<string, string> => {
+    if (path !== "/prices" && path !== "/health") return {};
+    const origin = req.headers.origin;
+    return origin && allowed.has(origin) ? { "access-control-allow-origin": origin, vary: "Origin" } : { vary: "Origin" };
+  };
+  const send = (res: ServerResponse, code: number, body: unknown, headers: Record<string, string> = {}) => {
+    res.writeHead(code, { "content-type": "application/json", ...headers });
     res.end(JSON.stringify(body));
   };
   const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
+    const url = new URL(req.url ?? "/", "http://relay");
+    const h = cors(req, url.pathname);
     try {
-      const url = new URL(req.url ?? "/", "http://relay");
       const parts = url.pathname.split("/").filter(Boolean);
-      if (req.method === "GET" && url.pathname === "/health") return send(res, 200, { ok: true, signer: signer.address });
-      if (req.method === "GET" && url.pathname === "/prices") return send(res, 200, await relay.snapshot());
+      if (req.method === "OPTIONS" && (url.pathname === "/prices" || url.pathname === "/health")) {
+        res.writeHead(204, {
+          ...h,
+          ...(h["access-control-allow-origin"]
+            ? { "access-control-allow-methods": "GET, OPTIONS", "access-control-allow-headers": "content-type", "access-control-max-age": "600" }
+            : {}),
+        });
+        return res.end();
+      }
+      if (req.method === "GET" && url.pathname === "/health") return send(res, 200, { ok: true, signer: signer.address }, h);
+      if (req.method === "GET" && url.pathname === "/prices") return send(res, 200, await relay.snapshot(), h);
       if (req.method === "GET" && parts[0] === "reference" && parts[1]) {
         const batch = url.searchParams.get("batch");
         if (!batch || !/^\d+$/.test(batch)) throw new RelayError(400, "batch query parameter required");
@@ -83,7 +106,7 @@ export async function startRelay() {
       send(res, 404, { error: "not found" });
     } catch (e) {
       const code = e instanceof RelayError ? e.status : 500;
-      send(res, code, { error: (e as Error).message });
+      send(res, code, { error: (e as Error).message }, h);
     }
   });
   const port = Number(env("PORT", "8787"));
