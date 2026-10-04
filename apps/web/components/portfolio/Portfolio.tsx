@@ -12,7 +12,8 @@ import { toast } from "@/lib/ui/toast";
 import { preloadSignIn, SignInSheet } from "@/components/app/SignInSheet";
 import { certificate, certificateFor } from "@/components/trade/certificateStore";
 import { MARKETS, marketByTicker, priceFormat, type MarketSpec } from "@/lib/content/markets";
-import { resetPaperAccount, type AccountState, type MyOrder } from "@/lib/demo/engine";
+import { PAPER_HOLDINGS, resetPaperAccount, type AccountState, type MyOrder } from "@/lib/demo/engine";
+import { costBasis } from "@/lib/unison/costBasis";
 import { useStore } from "@/lib/store/createStore";
 import { marketFor, useMarks, useVenue, useVenueAccount } from "@/lib/venue";
 import { identity } from "@/lib/venue/identity";
@@ -47,6 +48,12 @@ function useSampled<T>(value: T, ms = 1000): T {
   return shown;
 }
 
+const signedMoney = (n: number) =>
+  `${n > 0.004 ? "+" : n < -0.004 ? "−" : ""}$${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** gains in the buy colour, losses in the sell colour, nothing in ink */
+const tone = (n: number) => (Math.abs(n) < 0.005 ? "text-ink-2" : n > 0 ? "text-buy" : "text-sell");
+
 interface Holding {
   key: string;
   label: string;
@@ -57,6 +64,10 @@ interface Holding {
   value: number;
   spec: MarketSpec | null;
   color: string;
+  /** average cost a share, fees included; null when the fills don't explain the position */
+  avg: number | null;
+  /** unrealised P&L at the reference mark; null when the cost isn't known */
+  pnl: number | null;
 }
 
 export function Portfolio() {
@@ -92,21 +103,39 @@ function Account({ acct }: { acct: AccountState }) {
     .join(",");
   const held = useMemo(() => (heldKey ? heldKey.split(",").map((t) => marketByTicker(t)!) : []), [heldKey]);
   const marks = useSampled(useMarks(held));
+  // what each position cost: the fills, oldest first, from the paper account's opening references (live: from nothing)
+  const basis = useMemo(() => {
+    const start = live
+      ? {}
+      : Object.fromEntries(Object.entries(PAPER_HOLDINGS).map(([t, q]) => [t, { qty: q, price: Number(marketByTicker(t)!.seedPrice) / 1e6 }]));
+    return costBasis(
+      acct.fills,
+      start,
+      (f) => f.tick * (Number(marketByTicker(f.ticker)!.tickSize) / 1e6),
+      (t) => marketByTicker(t)?.feeBps ?? 0,
+    );
+  }, [acct.fills, live]);
 
   const holdings = useMemo(() => {
     const positions: Holding[] = held.map((spec) => {
       const qty = (acct.base[spec.ticker] ?? 0) + (acct.lockedBase[spec.ticker] ?? 0);
       const { unit } = priceFormat(spec);
       const price = (marks[spec.ticker]?.refTick ?? 0) * unit;
-      return { key: spec.ticker, label: spec.ticker, sub: spec.name, qty, locked: acct.lockedBase[spec.ticker] ?? 0, price, value: qty * price, spec, color: "" };
+      const b = basis[spec.ticker];
+      // a cost is known only when the fills (and the start) explain the whole position
+      const known = !!b && Math.abs(b.qty - qty) < 1e-6 && qty > 0;
+      const avg = known ? b.avg : null;
+      return { key: spec.ticker, label: spec.ticker, sub: spec.name, qty, locked: acct.lockedBase[spec.ticker] ?? 0, price, value: qty * price, spec, color: "", avg, pnl: avg !== null && price > 0 ? qty * (price - avg) : null };
     });
     positions.sort((a, b) => b.value - a.value);
     positions.forEach((p, i) => (p.color = swatch(i)));
-    const cash: Holding = { key: "AUSD", label: "AUSD", sub: "Cash", qty: acct.quote + acct.lockedQuote, locked: acct.lockedQuote, price: 1, value: acct.quote + acct.lockedQuote, spec: null, color: "var(--champagne)" };
+    const cash: Holding = { key: "AUSD", label: "AUSD", sub: "Cash", qty: acct.quote + acct.lockedQuote, locked: acct.lockedQuote, price: 1, value: acct.quote + acct.lockedQuote, spec: null, color: "var(--champagne)", avg: null, pnl: null };
     return [cash, ...positions];
-  }, [held, marks, acct.base, acct.lockedBase, acct.quote, acct.lockedQuote]);
+  }, [held, marks, basis, acct.base, acct.lockedBase, acct.quote, acct.lockedQuote]);
 
   const equity = holdings.reduce((s, h) => s + h.value, 0);
+  const unrealized = holdings.reduce((s, h) => s + (h.pnl ?? 0), 0);
+  const realized = Object.values(basis).reduce((s, b) => s + b.realized, 0);
   const halted = held.filter((s) => marks[s.ticker]?.regime === "HALTED");
 
   return (
@@ -150,7 +179,16 @@ function Account({ acct }: { acct: AccountState }) {
             <dt className="text-ink-3">Positions</dt>
             <dd className="figures text-ink">${(equity - acct.quote - acct.lockedQuote).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd>
           </div>
+          <div className="flex gap-2">
+            <dt className="text-ink-3">Unrealised P&amp;L</dt>
+            <dd className={`figures ${tone(unrealized)}`}>{signedMoney(unrealized)}</dd>
+          </div>
+          <div className="flex gap-2">
+            <dt className="text-ink-3">Realised</dt>
+            <dd className={`figures ${tone(realized)}`}>{signedMoney(realized)}</dd>
+          </div>
         </dl>
+        {!live ? <p className="mt-3 text-xs text-ink-3">Starting positions are costed at their opening reference; every fill since is counted, fees included.</p> : null}
       </section>
 
       <Holdings holdings={holdings} equity={equity} />
@@ -266,11 +304,13 @@ function Holdings({ holdings, equity }: { holdings: Holding[]; equity: number })
       <h2 id="holdings-title" className="px-6 pt-5 pb-3 text-[15px] font-semibold text-ink">
         Holdings
       </h2>
-      <div className="hidden grid-cols-[minmax(0,1.4fr)_1fr_1fr_1fr_80px] gap-x-5 border-y border-line px-6 py-2.5 text-xs text-ink-3 md:grid" aria-hidden>
+      <div className="hidden grid-cols-[minmax(0,1.3fr)_1fr_1fr_1fr_1fr_1fr_72px] gap-x-5 border-y border-line px-6 py-2.5 text-xs text-ink-3 md:grid" aria-hidden>
         <span>Asset</span>
         <span className="text-right">Quantity</span>
+        <span className="text-right">Average cost</span>
         <span className="text-right">Reference price</span>
         <span className="text-right">Value</span>
+        <span className="text-right">Unrealised P&amp;L</span>
         <span className="text-right">Share</span>
       </div>
       <ul className="divide-y divide-line border-t border-line md:border-t-0">
@@ -293,17 +333,23 @@ function Holdings({ holdings, equity }: { holdings: Holding[]; equity: number })
                 <p className="text-[11px] text-ink-3 md:hidden">{h.spec ? h.spec.ticker : "AUSD"}</p>
                 {h.locked > 1e-9 ? <p className="tnum text-xs text-ink-3">{h.locked.toLocaleString("en-US", { maximumFractionDigits: 2 })} in orders</p> : null}
               </div>
+              <p className="tnum hidden text-right text-ink-2 md:block">
+                {h.avg !== null ? `$${h.avg.toFixed(decimals)}` : <span className="text-[13px] text-ink-3">{h.spec ? "Not known" : ""}</span>}
+              </p>
               <p className="tnum hidden text-right text-ink-2 md:block">{h.spec ? `$${h.price.toFixed(decimals)}` : "$1.00"}</p>
               <p className="tnum hidden text-right font-semibold text-ink md:block">{money(h.value)}</p>
+              <p className={`tnum hidden text-right md:block ${h.pnl === null ? "text-ink-3" : tone(h.pnl)}`}>{h.pnl !== null ? signedMoney(h.pnl) : ""}</p>
               <p className="tnum hidden text-right text-ink-3 md:block">{share.toFixed(1)}%</p>
               <div className="text-right md:hidden">
                 <p className="tnum font-semibold text-ink">{money(h.value)}</p>
-                <p className="tnum text-xs text-ink-3">{share.toFixed(1)}%</p>
+                <p className={`tnum text-xs ${h.pnl === null ? "text-ink-3" : tone(h.pnl)}`}>
+                  {h.pnl !== null ? signedMoney(h.pnl) : `${share.toFixed(1)}%`}
+                </p>
               </div>
             </>
           );
           // fixed numeric columns on phones too, aligned on the first line, so every quantity and value shares an edge
-          const cls = "grid grid-cols-[minmax(0,1fr)_76px_108px] items-start gap-x-4 px-6 py-3.5 md:grid-cols-[minmax(0,1.4fr)_1fr_1fr_1fr_80px] md:items-center md:gap-x-5";
+          const cls = "grid grid-cols-[minmax(0,1fr)_76px_108px] items-start gap-x-4 px-6 py-3.5 md:grid-cols-[minmax(0,1.3fr)_1fr_1fr_1fr_1fr_1fr_72px] md:items-center md:gap-x-5";
           return (
             <li key={h.key}>
               {h.spec ? (

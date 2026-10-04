@@ -159,6 +159,9 @@ const PAPER: AccountState = {
   fills: [],
 };
 
+/** What the paper account starts with, by ticker: costed at each market's opening reference on Portfolio. */
+export const PAPER_HOLDINGS: Readonly<Record<string, number>> = PAPER.base;
+
 /** The simulation's paper account. */
 export const account: Store<AccountState> = createStore<AccountState>(structuredClone(PAPER));
 
