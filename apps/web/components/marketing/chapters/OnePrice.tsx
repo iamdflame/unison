@@ -21,11 +21,13 @@ const usd = (tick: number) => `$${(tick / 100).toFixed(2)}`;
 const reduced = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 type Phase = "forming" | "cleared";
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export function OnePrice() {
   const [seed, setSeed] = useState(3);
-  const [arrived, setArrived] = useState(0);
-  const [phase, setPhase] = useState<Phase>("forming");
+  // At rest it shows a finished batch (the watch at 10:10): every order in, one price struck through both sides.
+  const [arrived, setArrived] = useState(12);
+  const [phase, setPhase] = useState<Phase>("cleared");
   const [mine, setMine] = useState<SimOrder[]>([]);
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [limit, setLimit] = useState(REF + 10);
@@ -136,7 +138,7 @@ export function OnePrice() {
                       setLimit(s === "buy" ? REF + 10 : REF - 10);
                     }}
                     className={`press rounded-full px-4 py-2 text-sm font-semibold capitalize transition-colors duration-150 ${
-                      side === s ? (s === "buy" ? "bg-buy text-bg" : "bg-sell text-bg") : "text-ink-2 hover-fine:text-ink"
+                      side === s ? (s === "buy" ? "bg-buy-fill text-bg" : "bg-sell-fill text-bg") : "text-ink-2 hover-fine:text-ink"
                     }`}
                   >
                     {s}
@@ -183,7 +185,7 @@ export function OnePrice() {
               aria-label={
                 t !== null
                   ? `This batch: ${buyers} buyers and ${sellers} sellers cleared ${vol.toFixed(1)} shares at one price, ${usd(t)}.`
-                  : `A batch forming: ${buyers} buyers and ${sellers} sellers so far.`
+                  : `A batch forming: ${plural(buyers, "buyer")} and ${plural(sellers, "seller")} so far.`
               }
             >
               {/* Faint quantity rules */}
@@ -253,7 +255,7 @@ export function OnePrice() {
                 <span aria-hidden className="h-0.5 w-5 rounded bg-sell" /> Sellers, by limit
               </span>
               <span className="tnum">
-                {phase === "forming" ? `Batch forming · ${orders.length} orders` : `Cleared · ${buyers} buyers, ${sellers} sellers, one price`}
+                {phase === "forming" ? `Batch forming · ${plural(orders.length, "order")}` : `Cleared · ${plural(buyers, "buyer")}, ${plural(sellers, "seller")}, one price`}
               </span>
             </figcaption>
           </figure>

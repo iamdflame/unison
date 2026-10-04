@@ -13,7 +13,7 @@ const SPECS: [string, string, string?][] = [
   ["Accuracy", "One price per batch", "Against a reference published after the batch closes"],
   ["Gas per clear", `${(facts.gas.clearMonad / 1e6).toFixed(2)}M`, `${facts.gas.savingPct}% less than under Ethereum's rules`],
   ["Cost", `≈ $${facts.gas.batch200Usd} per batch`, `200 orders; about $${facts.gas.orderUsd} per order`],
-  ["Case", "Monad mainnet", "Open source, MIT. Not yet externally audited"],
+  ["Case", "Monad", "Testnet today, mainnet after an external audit. Open source, MIT"],
 ];
 
 export function Calibre() {

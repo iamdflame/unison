@@ -14,21 +14,26 @@ export function AccountButton() {
   const quote = useVenueAccount((a) => a.quote);
   const [open, setOpen] = useState(false);
   const signedOut = v.mode === "live" && !id;
+  const paper = v.ready && v.mode === "demo";
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="press inline-flex items-center gap-2 rounded-full bg-ink px-3.5 py-2 text-sm font-semibold text-bg"
-        aria-label={signedOut ? "Sign in" : `Account: ${quote.toFixed(2)} AUSD available`}
+        className="press inline-flex min-h-11 items-center gap-2 rounded-full bg-ink px-4 text-sm font-semibold text-bg sm:min-h-10"
+        aria-label={signedOut ? "Sign in" : paper ? `Paper account: ${quote.toFixed(2)} AUSD, simulated` : `Account: ${quote.toFixed(2)} AUSD available`}
       >
-        <Fingerprint size={15} strokeWidth={1.6} aria-hidden />
+        {paper ? (
+          <span className="rounded-full bg-bg/20 px-1.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase">Paper</span>
+        ) : (
+          <Fingerprint size={15} strokeWidth={1.6} aria-hidden />
+        )}
         {signedOut ? (
           "Sign in"
         ) : (
           <>
-            <span className="tnum">{quote.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
-            <span className="opacity-70">AUSD</span>
+            <span className="figures">{quote.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
+            <span className="hidden opacity-70 sm:inline">AUSD</span>
           </>
         )}
       </button>

@@ -18,11 +18,11 @@ export function Hero() {
             <br />
             that never closes.
           </h1>
-          <HeroSession />
-          <p className="mt-10 max-w-md text-[13px] leading-relaxed text-ink-3">
-            Tokenized stocks on Monad. Every 300 milliseconds, every order in a market clears at one price, set
-            against a reference published after the batch closes.
+          <p className="text-lede mt-7 max-w-xl text-ink-2">
+            Tokenized stocks on Monad. Every 300 milliseconds, every order in a market clears at one price, against a
+            reference published after the batch closes, so no one can trade ahead of you.
           </p>
+          <HeroSession />
         </div>
         <div className="order-1 mx-auto w-full max-w-[min(92vw,600px)] lg:order-2 lg:col-span-6 lg:max-w-[680px] lg:justify-self-end">
           <ResonanceDial market={nvda} />

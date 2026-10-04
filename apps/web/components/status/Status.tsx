@@ -108,7 +108,7 @@ export function Status() {
   return (
     <>
       <section className="mx-auto max-w-[1440px] px-5 pt-36 pb-10 sm:px-8 lg:px-12 lg:pt-44">
-        <h1 className="text-display-xl max-w-4xl text-ink">{tape === null ? "Checking…" : issues === 0 ? "Every market is clearing." : "Something is degraded."}</h1>
+        <h1 className="text-display-xl max-w-4xl text-ink">{tape === null ? "Checking…" : issues === 0 ? "Everything is running." : "Something is degraded."}</h1>
         <p className="text-lede mt-7 max-w-2xl text-ink-2">Live from {network}, checked every five seconds.</p>
       </section>
 
@@ -143,7 +143,7 @@ export function Status() {
               <tr className="border-b border-line text-xs text-ink-3">
                 <th scope="col" className="px-6 py-3 font-medium">Market</th>
                 <th scope="col" className="px-4 py-3 font-medium">Regime</th>
-                <th scope="col" className="px-4 py-3 text-right font-medium">Last clear</th>
+                <th scope="col" className="px-4 py-3 text-right font-medium">Last batch</th>
                 <th scope="col" className="px-4 py-3 text-right font-medium">Last trade</th>
                 <th scope="col" className="px-6 py-3 text-right font-medium">Batches, 24 h</th>
               </tr>
@@ -180,6 +180,7 @@ export function Status() {
             </tbody>
           </table>
         </div>
+        <p className="mt-4 text-sm text-ink-3">A market clears when it has orders to clear; a quiet one waits, so its last batch can be minutes old.</p>
       </section>
     </>
   );

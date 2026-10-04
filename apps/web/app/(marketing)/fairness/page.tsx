@@ -13,7 +13,7 @@ export default function FairnessPage() {
   return (
     <>
       <section className="mx-auto max-w-[1440px] px-5 pt-36 pb-6 sm:px-8 lg:px-12 lg:pt-44">
-        <h1 className="text-display-xl max-w-4xl text-ink">Proof, every 300 ms.</h1>
+        <h1 className="text-display-xl max-w-4xl text-ink">Proof, batch by batch.</h1>
         <p className="text-lede mt-7 max-w-2xl text-ink-2">
           Every batch clears at one price, inside a band, against a reference published after the batch closed. This page
           is the record as it happens, and the research behind the rule.

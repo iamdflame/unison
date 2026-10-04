@@ -36,7 +36,7 @@ export function TradeView({ ticker }: { ticker: string }) {
   };
 
   return (
-    <div className="mx-auto max-w-[1680px] px-4 pt-5 pb-28 sm:px-6 lg:py-7">
+    <div className="mx-auto max-w-[1680px] px-4 pt-5 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-6 lg:py-7">
       <header className="flex flex-wrap items-end gap-x-8 gap-y-4">
         <div>
           <h1 className="flex items-baseline gap-3">
@@ -137,10 +137,10 @@ export function TradeView({ ticker }: { ticker: string }) {
       {/* Under the thumb on phones and tablets: buy or sell opens the ticket as a sheet. */}
       <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 px-4 pb-3 sm:bottom-[env(safe-area-inset-bottom)] sm:pb-4 lg:hidden">
         <div className="mx-auto flex max-w-md gap-1.5 rounded-full bg-raised/90 p-1.5 shadow-lg backdrop-blur-xl hairline [@media(prefers-reduced-transparency:reduce)]:bg-raised">
-          <button type="button" onClick={() => openSheet("buy")} className="press flex-1 rounded-full bg-buy py-3 text-[15px] font-semibold text-bg">
+          <button type="button" onClick={() => openSheet("buy")} className="press flex-1 rounded-full bg-buy-fill py-3 text-[15px] font-semibold text-bg">
             Buy
           </button>
-          <button type="button" onClick={() => openSheet("sell")} className="press flex-1 rounded-full bg-sell py-3 text-[15px] font-semibold text-bg">
+          <button type="button" onClick={() => openSheet("sell")} className="press flex-1 rounded-full bg-sell-fill py-3 text-[15px] font-semibold text-bg">
             Sell
           </button>
         </div>

@@ -9,8 +9,10 @@ export function HeroSession() {
   const m = useMarketMoment();
   return (
     <>
-      <p className="text-lede mt-7 max-w-xl text-ink-2" aria-live="off">
-        {m ? heroLine(m) : "Open every night and every weekend, at one fair price per batch."}
+      {/* the session, as a small complication: where Wall Street is, and that Unison is open regardless */}
+      <p className="mt-7 flex min-h-6 items-center gap-2.5 text-[15px] font-medium text-ink" aria-live="off">
+        <span aria-hidden className="lume size-1.5 shrink-0 rounded-full bg-accent" />
+        {m ? heroLine(m) : "Open every night and every weekend."}
       </p>
       <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
         <Link

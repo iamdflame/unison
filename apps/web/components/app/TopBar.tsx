@@ -8,7 +8,6 @@ import dynamic from "next/dynamic";
 import { AccountButton } from "./AccountButton";
 import { MarketSwitcher } from "./MarketSwitcher";
 
-const LiveBeat = dynamic(() => import("./LiveBeat"), { ssr: false });
 const VenuePill = dynamic(() => import("./VenuePill"), { ssr: false });
 
 const NAV = [
@@ -22,7 +21,6 @@ const NAV = [
 /** The app's instrument bar: home, navigation, the beat of the active market, and you. */
 export function TopBar() {
   const path = usePathname();
-  const ticker = path.startsWith("/trade/") ? decodeURIComponent(path.split("/")[2] ?? "aNVDA") : "aNVDA";
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg/80 backdrop-blur-xl [@media(prefers-reduced-transparency:reduce)]:bg-bg">
@@ -47,7 +45,6 @@ export function TopBar() {
         </nav>
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
           <MarketSwitcher />
-          <LiveBeat ticker={ticker} />
           <VenuePill />
           <ThemeMenu />
           <AccountButton />

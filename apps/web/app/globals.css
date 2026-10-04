@@ -28,6 +28,9 @@
   --buy: oklch(0.48 0.095 185); /* verdigris */
   --sell: oklch(0.53 0.175 32); /* garnet */
   --buy-soft: oklch(0.48 0.095 185 / 0.1);
+  /* filled actions: the buy/sell colours by day, a quieter, lower-chroma cut at night */
+  --buy-fill: var(--buy);
+  --sell-fill: var(--sell);
   --sell-soft: oklch(0.53 0.175 32 / 0.1);
   --halt: oklch(0.5 0.115 62);
   --champagne: oklch(0.58 0.06 80);
@@ -67,6 +70,8 @@
   --buy: oklch(0.83 0.1 184);
   --sell: oklch(0.72 0.15 32);
   --buy-soft: oklch(0.83 0.1 184 / 0.13);
+  --buy-fill: oklch(0.74 0.07 184);
+  --sell-fill: oklch(0.68 0.105 32);
   --sell-soft: oklch(0.72 0.15 32 / 0.13);
   --halt: oklch(0.82 0.12 75);
   --champagne: oklch(0.82 0.05 85);
@@ -139,6 +144,8 @@
   --color-buy: var(--buy);
   --color-sell: var(--sell);
   --color-buy-soft: var(--buy-soft);
+  --color-buy-fill: var(--buy-fill);
+  --color-sell-fill: var(--sell-fill);
   --color-sell-soft: var(--sell-soft);
   --color-halt: var(--halt);
   --color-champagne: var(--champagne);
@@ -371,4 +378,18 @@
 [data-theme="night"] {
   --code-token-string: var(--champagne);
   --code-token-string-expression: var(--champagne);
+}
+
+/* A 44 × 44 px touch target around a smaller-looking control (Apple HIG), without changing how it looks. */
+@utility tap {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
 }

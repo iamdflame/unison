@@ -20,7 +20,7 @@ export function ThemeMenu() {
     <Menu.Root>
       <Menu.Trigger
         aria-label="Appearance"
-        className="press grid size-9 place-items-center rounded-full text-ink-2 outline-none hover-fine:bg-ink/[0.06] hover-fine:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus data-[popup-open]:bg-ink/[0.06]"
+        className="press tap grid size-9 place-items-center rounded-full text-ink-2 outline-none hover-fine:bg-ink/[0.06] hover-fine:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus data-[popup-open]:bg-ink/[0.06]"
       >
         <Current size={17} strokeWidth={1.5} aria-hidden />
       </Menu.Trigger>

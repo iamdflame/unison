@@ -21,8 +21,11 @@ import { WithdrawDialog } from "./WithdrawDialog";
 const STRENGTH = [82, 64, 50, 40, 32, 26, 21, 17, 14, 12];
 const swatch = (i: number) => `color-mix(in oklch, var(--ink) ${STRENGTH[Math.min(i, STRENGTH.length - 1)]}%, transparent)`;
 
-/** Shows a fast-moving number at most once a second, so the figure reads as a figure, not a ticker. */
-function useSampled(value: number, ms = 1000) {
+/**
+ * Holds a fast-moving value for a second at a time. The page samples the marks, not the totals, so every figure
+ * on it (equity, breakdown, rows) comes from the same prices and always adds up.
+ */
+function useSampled<T>(value: T, ms = 1000): T {
   const [shown, setShown] = useState(value);
   const latest = useRef(value);
   useEffect(() => {
@@ -84,7 +87,7 @@ function Account({ acct }: { acct: AccountState }) {
     .map((m) => m.ticker)
     .join(",");
   const held = useMemo(() => (heldKey ? heldKey.split(",").map((t) => marketByTicker(t)!) : []), [heldKey]);
-  const marks = useMarks(held);
+  const marks = useSampled(useMarks(held));
 
   const holdings = useMemo(() => {
     const positions: Holding[] = held.map((spec) => {
@@ -100,7 +103,6 @@ function Account({ acct }: { acct: AccountState }) {
   }, [held, marks, acct.base, acct.lockedBase, acct.quote, acct.lockedQuote]);
 
   const equity = holdings.reduce((s, h) => s + h.value, 0);
-  const shown = useSampled(equity);
   const halted = held.filter((s) => marks[s.ticker]?.regime === "HALTED");
 
   return (
@@ -123,7 +125,7 @@ function Account({ acct }: { acct: AccountState }) {
         <p className="text-sm text-ink-3">Equity at reference prices</p>
         <p className="numerals mt-2 text-[clamp(2.5rem,7vw,4.75rem)] leading-none text-ink">
           <NumberFlow
-            value={shown}
+            value={equity}
             locales="en-US"
             format={{ style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 }}
             transformTiming={{ duration: 420, easing: "cubic-bezier(0.23, 1, 0.32, 1)" }}

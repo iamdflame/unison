@@ -26,7 +26,7 @@ function Card({ m, regime }: { m: MarketSpec; regime: RegimeNow | null }) {
           {regime ? `${REGIME_LABEL[regime.name]} · ${bandLabel(regime.bandBps)}` : " "}
         </p>
         <p className="mt-0.5 text-xs text-ink-3">
-          {m.reference === "operator" ? "Signed reference, Chainlink-audited" : "Chainlink price feed"}
+          {m.reference === "operator" ? "Signed reference · Chainlink audit, simulated" : "Chainlink price feed"}
         </p>
       </div>
     </Link>

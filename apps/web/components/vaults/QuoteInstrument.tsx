@@ -108,12 +108,12 @@ export function QuoteInstrument({
               {!halted ? (
                 <>
                   <g style={{ transform: `translateX(${x(q.bidTop) + tickW}px)`, transition: EASE }} className="motion-reduce:transition-none">
-                    <text x={0} y={base + 18} textAnchor="end" className="tnum" fill="var(--buy)" style={{ fontSize: 12 }}>
+                    <text x={0} y={base + 18} textAnchor={x(q.bidTop) + tickW < 96 ? "start" : "end"} className="tnum" fill="var(--buy)" style={{ fontSize: 12 }}>
                       bid {fmt(q.bidTop)}
                     </text>
                   </g>
                   <g style={{ transform: `translateX(${x(q.askBottom)}px)`, transition: EASE }} className="motion-reduce:transition-none">
-                    <text x={0} y={base + 18} textAnchor="start" className="tnum" fill="var(--sell)" style={{ fontSize: 12 }}>
+                    <text x={0} y={base + 18} textAnchor={x(q.askBottom) > W - 96 ? "end" : "start"} className="tnum" fill="var(--sell)" style={{ fontSize: 12 }}>
                       ask {fmt(q.askBottom)}
                     </text>
                   </g>
@@ -131,7 +131,7 @@ export function QuoteInstrument({
       {!compact ? (
         <>
           <div className="mt-5 grid gap-5 md:grid-cols-[auto_minmax(0,1fr)] md:items-end md:gap-8">
-            <div role="radiogroup" aria-label="Regime" className="grid grid-cols-4 gap-1 rounded-full bg-sunken p-1">
+            <div role="radiogroup" aria-label="Regime" className="grid grid-cols-2 gap-1 rounded-[22px] bg-sunken p-1 sm:grid-cols-4 sm:rounded-full">
               {REGIMES.map(([s, label]) => (
                 <button
                   key={s}
@@ -139,7 +139,7 @@ export function QuoteInstrument({
                   role="radio"
                   aria-checked={status === s}
                   onClick={() => setStatus(s)}
-                  className={`press rounded-full px-3.5 py-2 text-sm font-medium transition-colors ${status === s ? "bg-raised text-ink shadow-sm" : "text-ink-2 hover-fine:text-ink"}`}
+                  className={`press min-h-10 rounded-full px-3 text-sm font-medium transition-colors ${status === s ? "bg-ink text-bg shadow-sm" : "text-ink-2 hover-fine:text-ink"}`}
                 >
                   {label}
                 </button>

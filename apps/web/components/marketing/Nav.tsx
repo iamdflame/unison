@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Emblem } from "@/components/brand/Emblem";
 import { Lockup } from "@/components/brand/Lockup";
 import { ThemeMenu } from "@/components/ui/ThemeMenu";
+import { MobileMenu } from "./MobileMenu";
 
 const LINKS = [
   { href: "/markets", label: "Markets" },
@@ -46,10 +47,11 @@ export function Nav() {
           ))}
         </ul>
         <div className="ml-auto flex items-center gap-1 md:ml-0">
+          <MobileMenu />
           <ThemeMenu />
           <Link
             href="/trade/aNVDA"
-            className="press rounded-full bg-ink px-4 py-2.5 text-[13.5px] font-semibold text-bg shadow-sm hover-fine:opacity-90"
+            className="press tap rounded-full bg-ink px-4 py-2.5 text-[13.5px] font-semibold text-bg shadow-sm hover-fine:opacity-90"
           >
             Start trading
           </Link>

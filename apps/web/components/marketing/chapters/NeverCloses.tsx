@@ -184,8 +184,8 @@ export function NeverCloses() {
           </h2>
           <p className="text-lede mt-6 max-w-xl text-ink-2">
             Wall Street trades {facts.hours.regularPerWeek} of the week&apos;s {facts.hours.week} hours. When it closes,
-            Unison keeps pricing in call auctions every few seconds, inside a band that opens the longer the market has
-            been shut.
+            Unison keeps pricing in a call auction every {nvda.regime.discCadence} blocks (about{" "}
+            {((nvda.regime.discCadence * facts.beatMs) / 1000).toFixed(0)} seconds), inside a band that opens the longer the market has been shut.
           </p>
 
           <figure className="mt-10">

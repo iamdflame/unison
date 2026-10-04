@@ -18,7 +18,8 @@ const STEPS = NODES + 4; // nodes report, consensus, compare, verdict, rest
 export function Audited() {
   const ref = useRef<HTMLDivElement>(null);
   const live = useInView(ref, { threshold: 0.35, once: false });
-  const [step, setStep] = useState(0);
+  // At rest (and with reduced motion) it shows the finished audit, never a network that hasn't reported.
+  const [step, setStep] = useState(STEPS - 1);
 
   useEffect(() => {
     if (!live) return;
@@ -26,8 +27,12 @@ export function Audited() {
       const id = setTimeout(() => setStep(STEPS - 1), 0);
       return () => clearTimeout(id);
     }
+    const first = setTimeout(() => setStep(0), BEAT_MS * 2);
     const id = setInterval(() => setStep((s) => (s + 1) % (STEPS + 6)), BEAT_MS * 2);
-    return () => clearInterval(id);
+    return () => {
+      clearTimeout(first);
+      clearInterval(id);
+    };
   }, [live]);
 
   const reported = Math.min(step, NODES);
@@ -93,6 +98,7 @@ export function Audited() {
               {verdict ? "Within 0.75%: trading continues" : "Auditing"}
             </span>
             <span className="text-ink-3">Outside it: halt the market, slash the signer.</span>
+            <span className="ml-auto shrink-0 rounded-full px-2.5 py-1 text-xs font-medium text-ink-2 hairline">CRE simulator</span>
           </figcaption>
         </figure>
       </div>

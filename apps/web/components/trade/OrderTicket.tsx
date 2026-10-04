@@ -2,7 +2,7 @@
 
 import { buyLock } from "@unison/engine";
 import { Minus, Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useStore } from "@/lib/store/createStore";
 import { useMarket, useVenue, useVenueAccount } from "@/lib/venue";
@@ -19,7 +19,7 @@ import { simulatedVault } from "./charts";
  * the market's fee cap), and the indicative fill runs the clearing engine on the live book with your order added.
  */
 export function OrderTicket({ ticker, defaultSide = "buy", onPlaced }: { ticker: string; defaultSide?: "buy" | "sell"; onPlaced?: () => void }) {
-  const { market, value: m, spec, live } = useMarket(ticker, (s) => ({ refTick: s.refTick, lo: s.lo, hi: s.hi, book: s.book }));
+  const { market, value: m, spec, live } = useMarket(ticker, (s) => ({ refTick: s.refTick, lo: s.lo, hi: s.hi, book: s.book, regime: s.regime.name }));
   const free = useVenueAccount((a) => ({ quote: a.quote, base: a.base[ticker] ?? 0 }));
   const v = useVenue();
   const signedIn = !!useStore(identity, (x) => x);
@@ -51,12 +51,28 @@ export function OrderTicket({ ticker, defaultSide = "buy", onPlaced }: { ticker:
   }, [m.book, m.refTick, m.lo, m.hi, side, limit, qty, live]);
 
   const maxQty = side === "buy" ? Math.floor((free.quote / (limit * unit * 1.001)) * 100) / 100 : free.base;
+  // Fat-finger guard: a limit far from the reference, or most of what you have, takes a second, explicit tap.
+  const deviation = m.refTick > 0 ? (limit - m.refTick) / m.refTick : 0;
+  const share = side === "buy" ? (free.quote > 0 ? lock / free.quote : 0) : free.base > 0 ? qty / free.base : 0;
+  const caution = Math.abs(deviation) > 0.01 ? `${(Math.abs(deviation) * 100).toFixed(1)}% ${deviation > 0 ? "above" : "below"} the reference` : share > 0.5 ? `${Math.round(share * 100)}% of your ${side === "buy" ? "AUSD" : ticker}` : null;
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    if (!armed) return;
+    const t = setTimeout(() => setArmed(false), 4000);
+    return () => clearTimeout(t);
+  }, [armed]);
+
   const submit = async () => {
     if (needsSignIn) {
       setSignInOpen(true);
       return;
     }
     if (qty <= 0 || !affordable) return;
+    if (caution && !armed) {
+      setArmed(true);
+      return;
+    }
+    setArmed(false);
     const r = await market.place(side, limit, Math.round(qty * 100) / 100, ioc);
     if ("error" in r) {
       toast.error(r.error);
@@ -93,7 +109,7 @@ export function OrderTicket({ ticker, defaultSide = "buy", onPlaced }: { ticker:
             aria-checked={side === s}
             onClick={() => setSide(s)}
             className={`press rounded-full py-2.5 text-sm font-semibold capitalize transition-colors duration-150 ${
-              side === s ? (s === "buy" ? "bg-buy text-bg shadow-sm" : "bg-sell text-bg shadow-sm") : "text-ink-2 hover-fine:text-ink"
+              side === s ? (s === "buy" ? "bg-buy-fill text-bg shadow-sm" : "bg-sell-fill text-bg shadow-sm") : "text-ink-2 hover-fine:text-ink"
             }`}
           >
             {s}
@@ -121,7 +137,7 @@ export function OrderTicket({ ticker, defaultSide = "buy", onPlaced }: { ticker:
             key={c}
             type="button"
             onClick={() => setOffsetTicks(c)}
-            className={`press rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${offsetTicks === c ? "bg-ink text-bg" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
+            className={`press tap rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${offsetTicks === c ? "bg-ink text-bg" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
           >
             {c === 0 ? "Reference" : `${side === "buy" ? "+" : "−"}${fmt(c).replace("$", "$")}`}
           </button>
@@ -158,30 +174,51 @@ export function OrderTicket({ ticker, defaultSide = "buy", onPlaced }: { ticker:
       />
       <div className="mt-2 flex gap-1.5">
         {[0.25, 0.5, 0.75, 1].map((f) => (
-          <button key={f} type="button" onClick={() => setQtyText(String(Math.floor(maxQty * f * 100) / 100))} className="press flex-1 rounded-full bg-sunken py-1 text-xs font-medium text-ink-2 hover-fine:text-ink">
+          <button key={f} type="button" onClick={() => setQtyText(String(Math.floor(maxQty * f * 100) / 100))} className="press tap flex-1 rounded-full bg-sunken py-1 text-xs font-medium text-ink-2 hover-fine:text-ink">
             {f === 1 ? "Max" : `${f * 100}%`}
           </button>
         ))}
       </div>
 
-      <button
-        type="button"
-        role="switch"
-        aria-checked={ioc}
-        onClick={() => setIoc((v) => !v)}
-        className="mt-4 flex w-full items-center justify-between rounded-2xl px-1 py-1 text-sm text-ink-2"
-      >
-        This batch only
-        <span className={`relative h-6 w-10 rounded-full transition-colors duration-200 ${ioc ? "bg-ink" : "bg-sunken"}`}>
-          <span className={`absolute top-0.5 size-5 rounded-full bg-raised shadow-sm transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] ${ioc ? "translate-x-[18px]" : "translate-x-0.5"}`} />
-        </span>
-      </button>
+      {/* How long the order lives, said in words, with what happens to what doesn't fill. */}
+      <p className="mt-5 text-xs font-medium text-ink-3" id="duration-label">
+        How long
+      </p>
+      <div role="radiogroup" aria-labelledby="duration-label" className="mt-2 grid grid-cols-2 gap-1 rounded-full bg-sunken p-1">
+        {([
+          [false, "Until cancelled"],
+          [true, "This batch only"],
+        ] as const).map(([v, label]) => (
+          <button
+            key={label}
+            type="button"
+            role="radio"
+            aria-checked={ioc === v}
+            onClick={() => setIoc(v)}
+            className={`press min-h-9 rounded-full text-sm font-medium transition-colors duration-150 ${ioc === v ? "bg-ink text-bg shadow-sm" : "text-ink-2 hover-fine:text-ink"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <p className="mt-2 text-xs leading-relaxed text-ink-3">
+        {ioc
+          ? "Whatever doesn't fill in the next batch is cancelled, and its funds come back."
+          : m.regime === "DISCOVERY"
+            ? "It joins every batch until it fills or you cancel. Wall Street is closed: it can also fill when trading reopens, at a different price."
+            : "It joins every batch until it fills or you cancel."}
+      </p>
 
       <dl id="qty-help" className="mt-4 space-y-2 border-t border-line pt-4 text-sm">
         <div className="flex justify-between">
           <dt className="text-ink-3">{side === "buy" ? "You lock at most" : "You lock"}</dt>
-          <dd className="tnum text-ink">{side === "buy" ? `$${lock.toFixed(2)}` : `${lock} ${ticker}`}</dd>
+          <dd className="tnum text-ink">{side === "buy" ? `${lock.toFixed(2)}` : `${lock} ${ticker}`}</dd>
         </div>
+        {side === "buy" ? (
+          <p className="-mt-1 text-xs leading-relaxed text-ink-3">
+            Your limit plus the {spec.maxFeeBps} bp fee cap. You pay the batch&apos;s price and a {spec.feeBps} bp fee; the rest comes back.
+          </p>
+        ) : null}
         <div className="flex justify-between">
           <dt className="text-ink-3">If the batch cleared now</dt>
           <dd className="tnum text-ink">{indicative ? `${indicative.filled.toFixed(2)} at ${fmt(indicative.tick)}` : "No cross yet"}</dd>
@@ -196,7 +233,7 @@ export function OrderTicket({ ticker, defaultSide = "buy", onPlaced }: { ticker:
         type="button"
         onClick={submit}
         disabled={!needsSignIn && (qty <= 0 || !affordable)}
-        className={`press mt-5 w-full rounded-full py-3.5 text-[15px] font-semibold text-bg shadow-md transition-opacity disabled:opacity-40 ${side === "buy" ? "bg-buy" : "bg-sell"}`}
+        className={`press mt-5 w-full rounded-full py-3.5 text-[15px] font-semibold text-bg shadow-md transition-opacity disabled:opacity-40 ${side === "buy" ? "bg-buy-fill" : "bg-sell-fill"}`}
       >
         {needsSignIn
           ? "Sign in to trade"
@@ -204,7 +241,9 @@ export function OrderTicket({ ticker, defaultSide = "buy", onPlaced }: { ticker:
             ? side === "buy"
               ? "Not enough AUSD"
               : `Not enough ${ticker}`
-            : `${side === "buy" ? "Buy" : "Sell"} ${qty || ""} ${ticker}`}
+            : armed && caution
+              ? `Confirm: ${caution}`
+              : `${side === "buy" ? "Buy" : "Sell"} ${qty || ""} ${ticker}`}
       </button>
       <SignIn open={signInOpen} onOpenChange={setSignInOpen} />
       <p className="mt-3 text-center text-xs text-ink-3">Fee {spec.feeBps} bp. Everyone in the batch gets the same price.</p>
