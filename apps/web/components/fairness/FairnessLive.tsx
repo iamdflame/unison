@@ -171,7 +171,14 @@ function Deviation({ stats }: { stats: FairStats }) {
     <div>
       <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4">
         <div className="col-span-2">
-          <dt className="text-sm text-ink-3">Mean distance from the reference</dt>
+          {/* which price the distance is from: in session the reference; while closed the last close, which is discovery */}
+          <dt className="text-sm text-ink-3">
+            {stats.closedShare === 1
+              ? "Mean distance from the last close: discovery, not slippage"
+              : stats.closedShare === 0
+                ? "Mean distance from the reference"
+                : "Mean distance from the reference, or the last close while closed"}
+          </dt>
           <dd className="numerals mt-1 text-[clamp(2.5rem,5vw,3.5rem)] leading-none text-ink">
             {stats.meanAbs.toFixed(2)} <span className="font-sans text-base text-ink-3">bp</span>
           </dd>

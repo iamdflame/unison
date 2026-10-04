@@ -37,6 +37,11 @@ export interface FairStats {
   refLagP95: number | null;
   chainOk: boolean;
   histogram: { bps: number; count: number }[];
+  /**
+   * Of the traded batches, the share that cleared while the market was closed (against the last close, so their
+   * distance is price discovery, not slippage); null where the source doesn't say.
+   */
+  closedShare: number | null;
 }
 
 const LINKS = 12;
@@ -44,7 +49,7 @@ const LINKS = 12;
 /** Simulated receipt hashes, per market and batch: computed once, as the chain grows (the markets are singletons too). */
 const simHashes = new Map<string, Hex>();
 
-function statsOf(devs: number[], batches: number): FairStats {
+function statsOf(devs: number[], batches: number, closedShare: number | null): FairStats {
   const abs = devs.map(Math.abs).sort((a, b) => a - b);
   const hist = new Map<number, number>();
   for (const d of devs) {
@@ -61,6 +66,7 @@ function statsOf(devs: number[], batches: number): FairStats {
     refLagP95: null,
     chainOk: true,
     histogram: Array.from({ length: 101 }, (_, i) => ({ bps: i - 50, count: hist.get(i - 50) ?? 0 })),
+    closedShare,
   };
 }
 
@@ -118,6 +124,7 @@ export function useFairnessFeed(spec: MarketSpec, window: FairnessWindow) {
             refLagP95: f.p95RefLagMs,
             chainOk: f.chainOk,
             histogram: f.histogram,
+            closedShare: null,
           }),
         )
         .catch(() => undefined);
@@ -164,8 +171,10 @@ export function useFairnessFeed(spec: MarketSpec, window: FairnessWindow) {
       chain.push({ upTo: p.block, ts: p.ts, tick: p.tick, refTick: p.refTick, traded: p.volume > 0, devBps: p.volume > 0 ? ((p.tick - p.refTick) / p.refTick) * 10_000 : null, hash: h, prev, ok: true, closed: simClosed });
       prev = h;
     }
-    const devs = chain.filter((c) => c.devBps !== null).map((c) => c.devBps!);
-    return { links: chain.slice(-LINKS), stats: statsOf(devs, chain.length) };
+    const traded = chain.filter((c) => c.devBps !== null);
+    const devs = traded.map((c) => c.devBps!);
+    const closedShare = traded.length ? traded.filter((c) => c.closed).length / traded.length : null;
+    return { links: chain.slice(-LINKS), stats: statsOf(devs, chain.length, closedShare) };
   }, [live, prints, spec, simClosed]);
 
   return live ? { links, stats, live } : { links: simFeed?.links ?? [], stats: simFeed?.stats ?? null, live };

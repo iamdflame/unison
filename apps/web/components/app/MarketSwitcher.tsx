@@ -59,11 +59,12 @@ export function MarketSwitcher() {
         onClick={() => setOpen(true)}
         onPointerEnter={MarketPalette.preload}
         onFocus={MarketPalette.preload}
-        className="press hidden items-center gap-2 rounded-[var(--radius-sm)] bg-sunken px-3 py-1.5 text-sm text-ink-3 transition-colors hover-fine:text-ink md:inline-flex"
+        className="press hidden items-center gap-2 rounded-[var(--radius-sm)] px-3 py-1.5 text-sm text-ink-3 transition-colors hairline hover-fine:text-ink md:inline-flex"
         aria-label="Search markets"
       >
         <Search size={14} strokeWidth={1.5} aria-hidden /> Search
-        <kbd className="ml-3 rounded-md border border-line px-1.5 text-[11px] text-ink-3">{mac ? "⌘K" : "Ctrl K"}</kbd>
+        {/* the shortcut as text, not a keycap */}
+        <kbd className="ml-3 font-sans text-[11px] text-ink-3">{mac ? "⌘K" : "Ctrl K"}</kbd>
       </button>
       {mounted ? (
         <Suspense fallback={null}>

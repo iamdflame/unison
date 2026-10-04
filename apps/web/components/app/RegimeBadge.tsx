@@ -3,12 +3,13 @@ import { facts } from "@/lib/content/facts";
 import { bandLabel, REGIME_LABEL } from "@/lib/unison/regimeNow";
 
 /** Regime chip: a glyph and a word, never colour alone. HALTED shows the stopped hand (a watch's stop-seconds). */
+// drawn like the hallmarks: an outline and the words, no fill; only a halt keeps its hatching, as the alarm it is
 const TONE: Record<RegimeName, string> = {
-  LIVE: "text-ink bg-ink/[0.06]",
-  EXTENDED: "text-[oklch(0.5_0.12_300)] night:text-[oklch(0.8_0.09_300)] bg-[oklch(0.5_0.12_300/0.1)]",
-  // the venue's night: an engraved champagne wash, ink text; blue is kept for the moving hand
-  DISCOVERY: "text-ink bg-champagne/25",
-  REOPENING: "text-[oklch(0.52_0.11_75)] night:text-[oklch(0.84_0.1_80)] bg-[oklch(0.6_0.12_75/0.12)]",
+  LIVE: "text-ink border border-line-strong",
+  EXTENDED: "text-[oklch(0.5_0.12_300)] night:text-[oklch(0.8_0.09_300)] border border-[oklch(0.5_0.12_300/0.4)]",
+  // the venue's night: a champagne outline, ink text; blue is kept for the moving hand
+  DISCOVERY: "text-ink border border-champagne",
+  REOPENING: "text-[oklch(0.52_0.11_75)] night:text-[oklch(0.84_0.1_80)] border border-[oklch(0.6_0.12_75/0.45)]",
   HALTED: "text-halt bg-[repeating-linear-gradient(135deg,var(--sell-soft)_0_4px,transparent_4px_8px)]",
 };
 
