@@ -30,7 +30,8 @@ export function Footer() {
             </nav>
           ))}
         </div>
-        <div className="mt-24 text-ink" aria-hidden>
+        {/* engraved, not printed: the name cut into the caseback, at engraving strength */}
+        <div className="mt-24 text-engrave" aria-hidden>
           <Wordmark capHeight={200} master="display" title="" className="h-auto w-full" />
         </div>
         <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6 text-xs text-ink-3">

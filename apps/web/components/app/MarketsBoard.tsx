@@ -72,7 +72,7 @@ function Row({ spec }: { spec: MarketSpec }) {
       className="group grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-x-4 px-4 py-3.5 transition-colors duration-150 outline-none hover-fine:bg-ink/[0.03] focus-visible:bg-ink/[0.04] md:grid-cols-[48px_minmax(0,1.5fr)_120px_minmax(120px,1fr)_minmax(170px,1fr)_20px] md:gap-x-5 md:px-6"
       aria-label={`${spec.ticker}, ${spec.name}: ${fmt(tick)}, ${m.regime.toLowerCase()}${simulated ? ", simulated" : ""}`}
     >
-      <BandDial bandBps={m.band} regime={m.regime} className="size-10 md:size-12" />
+      <BandDial bandBps={m.band} regime={m.regime} needle={m.last !== null && m.ref > 0 && m.band > 0 ? (((m.last - m.ref) / m.ref) * 10_000) / m.band : 0} className="size-10 md:size-12" />
       <div className="min-w-0">
         <p className="flex items-center gap-2 text-[15px] font-semibold text-ink">
           {spec.ticker}

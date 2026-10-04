@@ -57,9 +57,6 @@ export function Agents() {
           {/* The terminal is a night instrument in either light. */}
           <div data-theme="night" className="rounded-[var(--radius-2xl)] bg-[oklch(0.15_0.007_265)] p-1.5 text-ink shadow-lg">
             <div className="flex items-center gap-2 px-4 py-3">
-              {[0, 1, 2].map((i) => (
-                <span key={i} className="size-2.5 rounded-full bg-white/10" />
-              ))}
               <span className="ml-3 text-xs text-ink-3">agent · unison mcp</span>
             </div>
             <pre

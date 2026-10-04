@@ -1,11 +1,22 @@
 import type { RegimeName } from "@unison/engine";
 
 /**
- * A market's band as a small dial: the reference at twelve o'clock (the hand), the band its next auction may
- * clear in drawn as a champagne arc around it. The arc opens with the band, so discovery reads at a glance; a
- * halted market shows no arc and a stopped, crossed hand.
+ * A market's band as a small dial: the reference at twelve o'clock, the band its next auction may clear in drawn
+ * as a champagne arc around it, and the hand on the last clear inside that band. The arc opens with the band, so
+ * discovery reads at a glance; a halted market shows no arc and a stopped, crossed hand.
  */
-export function BandDial({ bandBps, regime, className = "size-16" }: { bandBps: number | null; regime?: RegimeName; className?: string }) {
+export function BandDial({
+  bandBps,
+  regime,
+  needle = 0,
+  className = "size-16",
+}: {
+  bandBps: number | null;
+  regime?: RegimeName;
+  /** where the last clear sat inside the band: -1 (low edge) to 1 (high edge); the hand points there */
+  needle?: number;
+  className?: string;
+}) {
   const halted = regime === "HALTED";
   const pct = bandBps === null ? 1 : bandBps / 100;
   const deg = Math.min(150, Math.max(4, pct * 16));
@@ -29,7 +40,17 @@ export function BandDial({ bandBps, regime, className = "size-16" }: { bandBps: 
         />
       ) : null}
       <circle cx="50" cy="50" r="5" fill={halted ? "var(--halt)" : "var(--ball-3)"} />
-      <line x1="50" y1="45" x2="50" y2="18" stroke={halted ? "var(--halt)" : "var(--ink)"} strokeWidth="2" strokeLinecap="round" />
+      <line
+        x1="50"
+        y1="45"
+        x2="50"
+        y2="18"
+        stroke={halted ? "var(--halt)" : "var(--ink)"}
+        strokeWidth="2"
+        strokeLinecap="round"
+        transform={`rotate(${halted ? 0 : (Math.max(-1, Math.min(1, needle)) * deg).toFixed(2)} 50 50)`}
+        style={{ transition: "transform 240ms cubic-bezier(0.23, 1, 0.32, 1)" }}
+      />
       {halted ? <line x1="30" y1="30" x2="70" y2="70" stroke="var(--halt)" strokeWidth="1.5" strokeLinecap="round" /> : null}
     </svg>
   );
