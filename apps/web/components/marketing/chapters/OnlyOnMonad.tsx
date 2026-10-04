@@ -10,7 +10,7 @@ import { BEAT_MS } from "@/lib/motion/tokens";
  * Chapter 8: only possible on Monad. Three instruments, no stat row: a strip of blocks advancing one cell per beat
  * (dead-beat), the gas a clear costs against a ghost of the same clear under Ethereum's rules, and what a batch costs.
  */
-const CELLS = 24;
+const CELLS = 60;
 
 export function OnlyOnMonad() {
   const ref = useRef<HTMLDivElement>(null);
@@ -46,15 +46,16 @@ export function OnlyOnMonad() {
         </div>
         <div className="flex flex-col gap-12 lg:col-span-7">
           <figure>
-            <div className="flex gap-1.5" aria-hidden>
+            {/* a beat counter: one graduation per block, the beat that just struck in blued steel, the last ten fading */}
+            <div className="flex h-14 items-end justify-between border-b border-line-strong" aria-hidden>
               {Array.from({ length: CELLS }, (_, i) => {
                 const head = block === null ? -1 : block % CELLS;
                 const age = head < 0 ? CELLS : (head - i + CELLS) % CELLS;
                 return (
                   <div
                     key={i}
-                    className={`h-14 flex-1 rounded-[5px] ${age === 0 ? "bg-accent" : age < 10 ? "bg-ink" : "border border-line-strong"}`}
-                    style={{ opacity: age === 0 ? 1 : age < 10 ? 0.62 - age * 0.055 : 1 }}
+                    className={`w-[3px] rounded-t-[1px] ${age === 0 ? "h-full bg-accent" : age < 10 ? "h-9 bg-ink" : i % 5 === 0 ? "h-6 bg-ink-3/60" : "h-4 bg-ink-3/40"}`}
+                    style={{ opacity: age > 0 && age < 10 ? 0.9 - age * 0.07 : 1 }}
                   />
                 );
               })}
@@ -72,8 +73,8 @@ export function OnlyOnMonad() {
                   <span className="text-ink">Clear on Monad</span>
                   <span className="figures text-ink">{facts.gas.clearMonad.toLocaleString("en-US")} gas</span>
                 </div>
-                <div className="mt-2 h-3 rounded-full bg-sunken">
-                  <div className="h-full rounded-full bg-accent" style={{ width: `${monad * 100}%` }} />
+                <div className="mt-2 h-1.5 rounded-[1px] bg-sunken">
+                  <div className="h-full rounded-[1px] bg-ink" style={{ width: `${monad * 100}%` }} />
                 </div>
               </div>
               <div>
@@ -81,7 +82,8 @@ export function OnlyOnMonad() {
                   <span className="text-ink-3">Same clear, Ethereum&apos;s rules</span>
                   <span className="figures text-ink-3">{facts.gas.clearEthereumRules.toLocaleString("en-US")} gas</span>
                 </div>
-                <div className="mt-2 h-3 rounded-full border border-dashed border-line-strong" />
+                {/* filled, in a pale ink: the larger figure must never read as nothing */}
+                <div className="mt-2 h-1.5 rounded-[1px] bg-ink/25" />
               </div>
             </div>
             <figcaption className="mt-4 text-sm text-ink-3">Measured with the same contracts on both EVMs.</figcaption>
