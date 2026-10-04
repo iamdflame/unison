@@ -212,7 +212,7 @@ export function OrderTicket({ ticker, defaultSide = "buy", onPlaced }: { ticker:
       <dl id="qty-help" className="mt-4 space-y-2 border-t border-line pt-4 text-sm">
         <div className="flex flex-wrap justify-between gap-y-1">
           <dt className="text-ink-3">{side === "buy" ? "You lock at most" : "You lock"}</dt>
-          <dd className="tnum text-ink">{side === "buy" ? `${lock.toFixed(2)}` : `${lock} ${ticker}`}</dd>
+          <dd className="tnum text-ink">{side === "buy" ? `$${lock.toFixed(2)}` : `${lock} ${ticker}`}</dd>
           {side === "buy" ? (
             <dd className="basis-full text-xs leading-relaxed text-ink-3">
               Your limit plus the {spec.maxFeeBps} bp fee cap. You pay the batch&apos;s price and a {spec.feeBps} bp fee; the rest comes back.

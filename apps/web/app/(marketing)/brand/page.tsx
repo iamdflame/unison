@@ -90,7 +90,7 @@ export default function BrandPage() {
         </div>
       </Section>
 
-      <Section id="finish-title" title="The light follows the market." lede="Porcelain while Wall Street trades, Nocturne while it sleeps. The ball is a material, never a flat colour: heat-blued steel by day, lume by night.">
+      <Section id="finish-title" title="The light follows the market." lede="Porcelain while Wall Street trades, Nocturne while it sleeps. The ball is a material, never a flat color: heat-blued steel by day, lume by night.">
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <PaletteClient theme="day" name="Porcelain" note="Day: while the US market is open." />
           <PaletteClient theme="night" name="Nocturne" note="Night: nights, weekends and holidays." />

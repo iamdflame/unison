@@ -90,12 +90,11 @@ export function QuoteInstrument({
               </g>
             </g>
           ) : null}
+          {/* the spread's value sits beside the reference, never on it: the hand passes through the middle of the gap */}
           {!halted && !compact ? (
-            <g style={{ transform: `translateX(${(x(q.bidTop) + x(q.askBottom) + tickW) / 2}px)`, transition: EASE }} className="motion-reduce:transition-none">
-              <text x={0} y={base - barH - 26} textAnchor="middle" className="tnum" fill="var(--ink-3)" style={{ fontSize: 11.5 }}>
-                spread {fmt(spreadTicks).replace("$", "$")}
-              </text>
-            </g>
+            <text x={x(refTick) + tickW / 2 + 8} y={base - barH - 23} className="tnum" fill="var(--ink-3)" style={{ fontSize: 11.5 }}>
+              spread {fmt(spreadTicks)}
+            </text>
           ) : null}
           {/* the reference: the hand everything is priced against */}
           <line x1={x(refTick) + tickW / 2} x2={x(refTick) + tickW / 2} y1={compact ? 6 : 22} y2={base} stroke="var(--champagne)" strokeWidth="1.5" />
@@ -167,11 +166,11 @@ export function QuoteInstrument({
           <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-line pt-5 text-sm md:grid-cols-4">
             <div>
               <dt className="text-ink-3">Half-spread</dt>
-              <dd className="tnum mt-0.5 text-ink">{halted ? "None" : `${(q.half * unit).toFixed(decimals)} · ${bp.toFixed(0)} bp`}</dd>
+              <dd className="tnum mt-0.5 text-ink">{halted ? "None" : `$${(q.half * unit).toFixed(decimals)} · ${bp.toFixed(0)} bp`}</dd>
             </div>
             <div>
               <dt className="text-ink-3">Inventory lean</dt>
-              <dd className="mt-0.5 text-ink">{halted ? "None" : q.skew === 0 ? "Centred" : q.skew > 0 ? `${q.skew} ticks down, to sell ${spec.ticker}` : `${-q.skew} ticks up, to buy ${spec.ticker}`}</dd>
+              <dd className="mt-0.5 text-ink">{halted ? "None" : q.skew === 0 ? "Centered" : q.skew > 0 ? `${q.skew} ticks down, to sell ${spec.ticker}` : `${-q.skew} ticks up, to buy ${spec.ticker}`}</dd>
             </div>
             <div>
               <dt className="text-ink-3">Depth per tick</dt>

@@ -18,7 +18,7 @@ Unison is a venue for tokenized assets on Monad: US equities (Anchored aStocks),
 | Today | Unison |
 |---|---|
 | Tokenized stocks are 59% of permissioned-asset market cap but 0.2% of volume (Pantera, Sep 2026). Liquidity is the bottleneck. | A vault quotes every block, and its LPs are not taxed by latency arbitrage (below). |
-| The reference market is open about 32 of the week's 168 hours. NVDA opened more than 2% away from Friday's close on **23%** of Mondays, and MSTR on **53%** (5-year study). | DISCOVERY mode keeps trading inside a √t-widening band. The opening cross clears weekend orders at the open. |
+| The reference market is open about 32 of the week's 168 hours. NVDA opened more than 2% away from Friday's close on **24%** of Mondays, and MSTR on **53%** (5-year study). | DISCOVERY mode keeps trading inside a √t-widening band. The opening cross clears weekend orders at the open. |
 | Continuous venues pay whoever is fastest: snipers drain LPs and widen spreads. | Frequent batch auctions per block: the sniper earned **$0 in 0 fills**, against $487–$6,171/day on the alternatives ([evidence](docs/evidence/fairness.md)). |
 | SEC Release 34-106402 (Sep 2026) lets tokenized-securities venues run permissioned AMM pools, under conditions. | The conditions are code: daily ADV caps inside the auction, LULD tier limits, eligibility routing, halt mirroring, and a hash-chained tape. |
 

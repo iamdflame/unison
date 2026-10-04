@@ -3,6 +3,7 @@
 import { Fingerprint } from "lucide-react";
 import { useState } from "react";
 import { useStore } from "@/lib/store/createStore";
+import { signInRequests } from "@/lib/ui/signInRequest";
 import { identity } from "@/lib/venue/identity";
 import { useVenue, useVenueAccount } from "@/lib/venue";
 import { preloadSignIn, SignInSheet } from "./SignInSheet";
@@ -13,6 +14,14 @@ export function AccountButton() {
   const id = useStore(identity, (x) => x);
   const quote = useVenueAccount((a) => a.quote);
   const [open, setOpen] = useState(false);
+  // a page asked for the sheet (arriving from "Continue with a passkey"): open it once the venue is known, so it
+  // shows the right thing (passkeys when live, the paper account in the simulation)
+  const requests = useStore(signInRequests, (n) => n);
+  const [answered, setAnswered] = useState(requests);
+  if (requests !== answered && v.ready) {
+    setAnswered(requests);
+    setOpen(true);
+  }
   const signedOut = v.mode === "live" && !id;
   const paper = v.ready && v.mode === "demo";
   return (

@@ -213,7 +213,20 @@ export function NeverCloses() {
                 <g>
                   <line x1={cx(sinceClose)} x2={cx(sinceClose)} y1={cy(0)} y2={cy(band(sinceClose))} stroke="var(--ink)" strokeDasharray="2 4" />
                   <circle cx={cx(sinceClose)} cy={cy(band(sinceClose))} r="6.5" fill="var(--ball-3)" />
-                  <text x={cx(sinceClose) + 12} y={cy(band(sinceClose)) - 12} className="tnum" fill="var(--ink)" style={{ fontSize: 13, fontWeight: 600 }}>
+                  {/* up and to the left of the dot, where the rising band never is (flipped only near the close);
+                      a halo in the page color keeps grid hairlines off the figures */}
+                  <text
+                    x={cx(sinceClose) + (cx(sinceClose) > CW * 0.3 ? -12 : 12)}
+                    y={cy(band(sinceClose)) - 14}
+                    textAnchor={cx(sinceClose) > CW * 0.3 ? "end" : "start"}
+                    className="tnum"
+                    fill="var(--ink)"
+                    stroke="var(--bg)"
+                    strokeWidth={5}
+                    strokeLinejoin="round"
+                    paintOrder="stroke"
+                    style={{ fontSize: 13, fontWeight: 600 }}
+                  >
                     Now ±{band(sinceClose).toFixed(2)}%
                   </text>
                 </g>

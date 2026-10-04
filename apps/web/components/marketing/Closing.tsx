@@ -1,11 +1,11 @@
 "use client";
 
-import { Fingerprint, Wallet } from "lucide-react";
+import { ChartSpline, Fingerprint } from "lucide-react";
 import Link from "next/link";
 import { useMarketMoment } from "@/lib/time/useMarketMoment";
 import { ctaLabel } from "@/lib/time/market";
 
-/** The close: one sentence for this moment, and two ways in. */
+/** The close: one sentence for this moment, and two ways in: your own account, or a paper one in the simulation. */
 export function Closing() {
   const m = useMarketMoment();
   const verb = m ? ctaLabel(m) : "Start trading";
@@ -22,8 +22,8 @@ export function Closing() {
         <Link href="/trade/aNVDA?onboard=passkey" className="press inline-flex items-center gap-2.5 rounded-full bg-ink px-6 py-3.5 text-[15px] font-semibold text-bg shadow-md">
           <Fingerprint size={18} strokeWidth={1.5} aria-hidden /> Continue with a passkey
         </Link>
-        <Link href="/trade/aNVDA?onboard=wallet" className="press inline-flex items-center gap-2.5 rounded-full bg-raised px-6 py-3.5 text-[15px] font-semibold text-ink shadow-sm hairline">
-          <Wallet size={18} strokeWidth={1.5} aria-hidden /> Connect a wallet
+        <Link href="/trade/aNVDA?demo=1" className="press inline-flex items-center gap-2.5 rounded-full bg-raised px-6 py-3.5 text-[15px] font-semibold text-ink shadow-sm hairline">
+          <ChartSpline size={18} strokeWidth={1.5} aria-hidden /> Trade on paper
         </Link>
       </div>
       <p className="mt-8 text-xs text-ink-3">Monad testnet with mock assets. Not yet externally audited. Not available to US persons.</p>

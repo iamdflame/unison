@@ -1,6 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useEffect } from "react";
+import { requestSignIn } from "@/lib/ui/signInRequest";
 import { early } from "@/components/app/screens/early";
 
 /**
@@ -11,6 +13,15 @@ const load = early(() => import("./TradeView").then((m) => m.TradeView));
 const TradeView = dynamic(() => load(), { ssr: false, loading: () => <TradeSkeleton /> });
 
 export function TradeClient({ ticker }: { ticker: string }) {
+  // "Continue with a passkey" lands here with ?onboard=passkey: ask for the sign-in sheet, once, and tidy the URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("onboard") !== "passkey") return;
+    params.delete("onboard");
+    const rest = params.toString();
+    window.history.replaceState(null, "", `${location.pathname}${rest ? `?${rest}` : ""}`);
+    requestSignIn();
+  }, []);
   return <TradeView ticker={ticker} />;
 }
 

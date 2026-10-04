@@ -3,14 +3,15 @@
 import type { MarketSummary, TapeHealth } from "@unison/sdk";
 import { useEffect, useState } from "react";
 import { RegimeBadge } from "@/components/app/RegimeBadge";
-import { MARKETS, priceFormat } from "@/lib/content/markets";
-import { useVenue } from "@/lib/venue";
+import { MARKETS, priceFormat, type MarketSpec } from "@/lib/content/markets";
+import { shallowEqual } from "@/lib/store/createStore";
+import { useMarket, useVenue } from "@/lib/venue";
 import { liveClients } from "@/lib/venue/live";
 
 type Level = "ok" | "slow" | "down";
 const LEVEL: Record<Level, { word: string; dot: string }> = {
   ok: { word: "Operational", dot: "bg-buy" },
-  slow: { word: "Lagging", dot: "bg-[oklch(0.72_0.14_75)]" },
+  slow: { word: "Lagging", dot: "bg-halt" },
   down: { word: "Not answering", dot: "bg-sell" },
 };
 
@@ -75,17 +76,7 @@ export function Status() {
 
   if (!v.ready) return <div className="h-[600px]" aria-busy="true" />;
 
-  if (!net) {
-    return (
-      <section className="mx-auto max-w-[1440px] px-5 pt-36 pb-28 sm:px-8 lg:px-12 lg:pt-44">
-        <h1 className="text-display-xl max-w-4xl text-ink">Running the simulation.</h1>
-        <p className="text-lede mt-7 max-w-2xl text-ink-2">
-          This copy of the site isn&apos;t connected to a Unison network, so every market here clears on the real clearing
-          engine in your browser, every 300 ms. Live status appears when the site is pointed at a network.
-        </p>
-      </section>
-    );
-  }
+  if (!net) return <SimulatedStatus />;
 
   const head = tape?.data?.head;
   // A quiet market may go minutes without a clear (the keeper only pays for one that trades or merges). Lagging
@@ -183,5 +174,92 @@ export function Status() {
         <p className="mt-4 text-sm text-ink-3">A market clears when it has orders to clear; a quiet one waits, so its last batch can be minutes old.</p>
       </section>
     </>
+  );
+}
+
+/**
+ * The same board for the simulation: what runs (the clearing engine, in this browser), what is simulated (the
+ * references and the order flow), what isn't connected, and every market's last batch, all labelled as such.
+ */
+function SimulatedStatus() {
+  const rows: [string, string, string, string, string][] = [
+    ["Clearing engine", "The contracts' auction, bit-exact, in your browser", "every 300 ms", "Running", "bg-buy"],
+    ["Reference prices", "A simulated feed for each market", "labelled on every screen", "Simulated", "bg-accent"],
+    ["Network", "No chain, tape or relayer connected to this copy of the site", "—", "Not connected", "bg-ink-3"],
+  ];
+  return (
+    <>
+      <section className="mx-auto max-w-[1440px] px-5 pt-36 pb-10 sm:px-8 lg:px-12 lg:pt-44">
+        <h1 className="text-display-xl max-w-4xl text-ink">Running the simulation.</h1>
+        <p className="text-lede mt-7 max-w-2xl text-ink-2">
+          This copy of the site isn&apos;t connected to a Unison network, so every market here clears on the real clearing
+          engine in your browser, every 300 ms. Live status appears when the site is pointed at a network.
+        </p>
+      </section>
+
+      <section aria-label="Services" className="mx-auto max-w-[1440px] px-5 pb-10 sm:px-8 lg:px-12">
+        <ul className="divide-y divide-line overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-md">
+          {rows.map(([name, what, detail, word, dot]) => (
+            <li key={name} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-6 py-4 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto]">
+              <div>
+                <p className="text-[15px] font-semibold text-ink">{name}</p>
+                <p className="text-sm text-ink-3">{what}</p>
+              </div>
+              <p className="hidden text-sm text-ink-2 sm:block">{detail}</p>
+              <p className="inline-flex items-center gap-2 text-sm font-medium text-ink">
+                <span aria-hidden className={`size-2 rounded-full ${dot}`} />
+                {word}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section aria-labelledby="markets-status" className="mx-auto max-w-[1440px] px-5 pb-28 sm:px-8 lg:px-12">
+        <h2 id="markets-status" className="text-[17px] font-semibold text-ink">
+          Markets, simulated
+        </h2>
+        <div className="mt-4 overflow-x-auto rounded-[var(--radius-xl)] bg-raised shadow-md">
+          <table className="w-full min-w-[720px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-line text-xs text-ink-3">
+                <th scope="col" className="px-6 py-3 font-medium">Market</th>
+                <th scope="col" className="px-4 py-3 font-medium">Regime and band</th>
+                <th scope="col" className="px-4 py-3 text-right font-medium">Last batch</th>
+                <th scope="col" className="px-6 py-3 text-right font-medium">Last trade</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {MARKETS.map((spec) => (
+                <SimulatedRow key={spec.ticker} spec={spec} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-4 text-sm text-ink-3">Order flow, references and prints are generated in your browser; the auctions are the real ones.</p>
+      </section>
+    </>
+  );
+}
+
+function SimulatedRow({ spec }: { spec: MarketSpec }) {
+  const { value: m } = useMarket(
+    spec.ticker,
+    (s) => ({ block: s.last?.block ?? null, tick: s.last?.tick ?? null, regime: s.regime.name, band: s.regime.bandBps }),
+    shallowEqual,
+    { book: false },
+  );
+  const { fmt } = priceFormat(spec);
+  return (
+    <tr>
+      <th scope="row" className="px-6 py-3.5 font-semibold text-ink">
+        {spec.ticker}
+      </th>
+      <td className="px-4 py-3.5">
+        <RegimeBadge name={m.regime} bandBps={m.band} />
+      </td>
+      <td className="tnum px-4 py-3.5 text-right text-ink-2">{m.block !== null ? `#${m.block.toLocaleString("en-US")}` : "—"}</td>
+      <td className="tnum px-6 py-3.5 text-right text-ink">{m.tick !== null ? fmt(m.tick) : "—"}</td>
+    </tr>
   );
 }

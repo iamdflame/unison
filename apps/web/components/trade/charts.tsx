@@ -106,6 +106,21 @@ export function CrossChart({ m, fmt, live = false, w = 900, h = 420 }: { m: Mark
         <g>
           <line x1={x(last.tick)} x2={x(last.tick)} y1={y(0)} y2={y(lastQ)} stroke="var(--ink)" strokeDasharray="2 4" />
           <Ball x={x(last.tick)} y={y(lastQ)} />
+          {/* named, so the last batch's price is never read as this batch's cross */}
+          <text
+            x={x(last.tick) + (x(last.tick) > W - P.r - 110 ? -14 : 14)}
+            y={y(lastQ) - 12}
+            textAnchor={x(last.tick) > W - P.r - 110 ? "end" : "start"}
+            className="tnum"
+            fill="var(--ink-2)"
+            stroke="var(--bg-raised)"
+            strokeWidth={4}
+            strokeLinejoin="round"
+            paintOrder="stroke"
+            style={{ fontSize: 12 }}
+          >
+            last {fmt(last.tick)}
+          </text>
         </g>
       ) : null}
       <title>{`Band ${fmt(bandLo)} to ${fmt(bandHi)}`}</title>

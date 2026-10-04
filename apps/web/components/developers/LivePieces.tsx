@@ -13,12 +13,14 @@ interface Line {
   data: string;
 }
 
-const MAX = 14;
+/** lines the console holds: its height (22.5rem) at 11.5/18.4 px, so it is always full */
+const MAX = 18;
 const short = (h: string) => `${h.slice(0, 10)}…${h.slice(-4)}`;
 
 /**
  * The tape's SSE stream, as it arrives: one line per event, the same JSON a client receives. In the simulation,
- * events of the same shape from the in-browser venue, labelled as such.
+ * events of the same shape from the in-browser venue, labelled as such. It opens with the recent past (the last
+ * prints, each after its block's head), so it arrives full rather than filling from empty.
  */
 export function TapeConsole() {
   const v = useVenue();
@@ -31,8 +33,24 @@ export function TapeConsole() {
     const push = (event: Line["event"], data: unknown) =>
       setLines((l) => [...l.slice(-(MAX - 1)), { id: ++seq.current, event, data: JSON.stringify(data) }]);
     if (live) {
-      const stream = liveClients(v.net!).tape.stream(["heads", "prints"], {
-        head: (h) => push("head", { block: h.block, ts: h.ts }),
+      const { tape } = liveClients(v.net!);
+      const firstId = v.net!.deployment.markets[marketByTicker("aNVDA")!.symbol]?.id ?? 0;
+      let streaming = false;
+      tape
+        .prints(firstId, { limit: MAX / 2, traded: true })
+        .then((ps) => {
+          if (streaming) return; // the live stream got there first
+          for (const p of [...ps].reverse()) {
+            push("head", { block: p.upTo, ts: p.ts });
+            push("print", { marketId: p.marketId, upTo: p.upTo, tick: p.tick, price: p.price, volume: p.volume, refPrice: p.refPrice, regime: p.regime, receiptHash: short(p.receiptHash), chainOk: p.chainOk });
+          }
+        })
+        .catch(() => undefined);
+      const stream = tape.stream(["heads", "prints"], {
+        head: (h) => {
+          streaming = true;
+          push("head", { block: h.block, ts: h.ts });
+        },
         print: (p) => push("print", { marketId: p.marketId, upTo: p.upTo, tick: p.tick, price: p.price, volume: p.volume, refPrice: p.refPrice, regime: p.regime, receiptHash: short(p.receiptHash), chainOk: p.chainOk }),
       });
       return () => stream.close();
@@ -41,15 +59,36 @@ export function TapeConsole() {
     const release = m.retain({ book: false });
     let lastBlock = 0;
     let lastPrint = m.store.get().last?.block ?? 0;
+    let seeded = false;
+    const printLine = (p: { block: number; tick: number; volume: number; refTick: number }, regime: string) => ({
+      marketId: 0,
+      upTo: p.block,
+      tick: p.tick,
+      price: String(p.tick * 10_000),
+      volume: String(Math.round(p.volume * 1e6)) + "000000000000",
+      refPrice: String(p.refTick * 10_000),
+      regime,
+    });
     const off = m.store.subscribe(() => {
       const s = m.store.get();
+      if (!seeded) {
+        // the recent past first: the simulation's last prints, each after its block's head
+        seeded = true;
+        for (const p of s.prints.slice(-MAX / 2)) {
+          push("head", { block: p.block, ts: p.ts });
+          push("print", printLine(p, s.regime.name));
+        }
+        lastBlock = s.block;
+        lastPrint = s.last?.block ?? lastPrint;
+        return;
+      }
       if (s.block !== lastBlock) {
         lastBlock = s.block;
         push("head", { block: s.block, ts: Date.now() });
       }
       if (s.last && s.last.block !== lastPrint) {
         lastPrint = s.last.block;
-        push("print", { marketId: 0, upTo: s.last.block, tick: s.last.tick, price: String(s.last.tick * 10_000), volume: String(Math.round(s.last.volume * 1e6)) + "000000000000", refPrice: String(s.last.refTick * 10_000), regime: s.regime.name });
+        push("print", printLine(s.last, s.regime.name));
       }
     });
     return () => {

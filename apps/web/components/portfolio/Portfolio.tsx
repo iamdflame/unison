@@ -140,15 +140,15 @@ function Account({ acct }: { acct: AccountState }) {
         <dl className="mt-5 flex flex-wrap gap-x-8 gap-y-2 text-sm">
           <div className="flex gap-2">
             <dt className="text-ink-3">Cash</dt>
-            <dd className="tnum text-ink">${acct.quote.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd>
+            <dd className="figures text-ink">${acct.quote.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd>
           </div>
           <div className="flex gap-2">
             <dt className="text-ink-3">Held by open orders</dt>
-            <dd className="tnum text-ink">${acct.lockedQuote.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd>
+            <dd className="figures text-ink">${acct.lockedQuote.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd>
           </div>
           <div className="flex gap-2">
             <dt className="text-ink-3">Positions</dt>
-            <dd className="tnum text-ink">${(equity - acct.quote - acct.lockedQuote).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd>
+            <dd className="figures text-ink">${(equity - acct.quote - acct.lockedQuote).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd>
           </div>
         </dl>
       </section>

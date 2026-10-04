@@ -29,7 +29,7 @@ export function Nav({ brand }: { brand: ReactNode }) {
       <nav
         aria-label="Primary"
         data-scrolled={scrolled || undefined}
-        className="glass pointer-events-auto flex w-full max-w-[760px] items-center gap-2 rounded-full py-1.5 pr-1.5 pl-4 shadow-md transition-[padding,box-shadow] duration-[240ms] ease-[cubic-bezier(0.23,1,0.32,1)] data-[scrolled]:shadow-lg"
+        className="glass pointer-events-auto flex w-full max-w-[760px] items-center gap-2 rounded-full py-1.5 pr-1.5 pl-4 shadow-float transition-[padding,box-shadow] duration-[240ms] ease-[cubic-bezier(0.23,1,0.32,1)]"
       >
         <Link href="/" className="flex items-center rounded-full py-1.5 pr-2 outline-offset-4" aria-label="Unison, home">
           {brand}
