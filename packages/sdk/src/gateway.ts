@@ -11,10 +11,15 @@ import {
   encodeAbiParameters,
   hashTypedData,
   toHex,
+  type Account,
   type Address,
+  type Chain,
   type Hex,
   type LocalAccount,
+  type Transport,
+  type WalletClient,
 } from "viem";
+import { webauthnAssertionToResult, type AssertionResponseLike } from "./passkey.ts";
 
 export const SIG_ACCOUNT = 0;
 export const SIG_SESSION = 1;
@@ -130,6 +135,77 @@ export function buildOrder(
   };
 }
 
+interface Freshness {
+  /** default: a random 256-bit unordered nonce */
+  nonce?: bigint;
+  /** default: 120 s */
+  ttlSeconds?: number;
+}
+
+const deadlineIn = (ttlSeconds = 120): bigint => BigInt(Math.floor(Date.now() / 1000) + ttlSeconds);
+
+/** A cancel of the account's order `slot` (random nonce, 120 s deadline — as `buildOrder`). */
+export function buildCancel(c: { account: Address; slot: bigint | number } & Freshness): GatewayCancel {
+  return { account: c.account, slot: BigInt(c.slot), nonce: c.nonce ?? randomNonce(), deadline: deadlineIn(c.ttlSeconds) };
+}
+
+/**
+ * A withdrawal (needs the account's own signature: EOA, ERC-1271 or passkey — never a session key). `to` is
+ * explicit on purpose: a passkey account has no private key, so tokens sent to its own address are lost.
+ */
+export function buildWithdraw(
+  w: { account: Address; token: Address; amount: bigint; to: Address } & Freshness,
+): GatewayWithdraw {
+  return {
+    account: w.account,
+    token: w.token,
+    amount: w.amount,
+    to: w.to,
+    nonce: w.nonce ?? randomNonce(),
+    deadline: deadlineIn(w.ttlSeconds),
+  };
+}
+
+/**
+ * A session-key grant for `grantSessionSigned`: the key may place and cancel within the caps until `expiry`
+ * (default: 1 hour from now; `expiry: 0n` revokes). Markets as a bit mask or a list of ids (0..255).
+ */
+export function buildSession(s: {
+  account: Address;
+  key: Address;
+  /** base units per order */
+  maxQty: bigint;
+  /** quote units per order */
+  maxNotional: bigint;
+  marketMask?: bigint;
+  marketIds?: readonly (bigint | number)[];
+  /** unix seconds; overrides ttlSeconds */
+  expiry?: bigint;
+  /** default 3,600 */
+  ttlSeconds?: number;
+  nonce?: bigint;
+}): GatewaySession {
+  let mask = s.marketMask;
+  if (mask === undefined) {
+    if (!s.marketIds) throw new Error("buildSession: marketMask or marketIds is required");
+    mask = 0n;
+    for (const id of s.marketIds) {
+      const i = BigInt(id);
+      if (i < 0n || i > 255n) throw new Error(`buildSession: market ${i} outside 0..255`);
+      mask |= 1n << i;
+    }
+  }
+  return {
+    account: s.account,
+    key: s.key,
+    expiry: s.expiry ?? deadlineIn(s.ttlSeconds ?? 3_600),
+    maxQty: s.maxQty,
+    maxNotional: s.maxNotional,
+    marketMask: mask,
+    nonce: s.nonce ?? randomNonce(),
+  };
+}
+
 export function gatewayDigest<P extends Primary>(
   chainId: number,
   gateway: Address,
@@ -159,8 +235,34 @@ async function signTyped(
   });
 }
 
-const encodeSig = (kind: number, data: Hex): Hex =>
+/** The gateway's signature envelope: abi.encode(uint8 kind, bytes data). */
+export const encodeSig = (kind: number, data: Hex): Hex =>
   encodeAbiParameters([{ type: "uint8" }, { type: "bytes" }], [kind, data]);
+
+/**
+ * Signature by the account through a wallet client — e.g. an injected browser wallet (`eth_signTypedData_v4`).
+ * The signer is `account` if given, else the client's account; it must be the action's account (or the owner key
+ * of an ERC-1271 wallet).
+ */
+export async function signTypedForGateway<T extends Transport, C extends Chain | undefined, A extends Account | undefined>(
+  walletClient: WalletClient<T, C, A>,
+  chainId: number,
+  gateway: Address,
+  primaryType: Primary,
+  message: GatewayOrder | GatewayCancel | GatewayWithdraw | GatewaySession,
+  account?: Account | Address,
+): Promise<Hex> {
+  const signer = account ?? walletClient.account;
+  if (!signer) throw new Error("signTypedForGateway: the wallet client has no account");
+  const sig = await walletClient.signTypedData({
+    account: signer,
+    domain: gatewayDomain(chainId, gateway),
+    types: gatewayTypes,
+    primaryType,
+    message,
+  } as never);
+  return encodeSig(SIG_ACCOUNT, sig);
+}
 
 /** Signature by the account itself (EOA, Mera-derived key, or an ERC-1271 wallet's owner key). */
 export async function signAsAccount(
@@ -230,6 +332,14 @@ export function encodePasskeyAssertion(a: WebAuthnResult): Hex {
   return encodeSig(SIG_PASSKEY, data);
 }
 
+/**
+ * A passkey signature for the gateway straight from `navigator.credentials.get(...).response`, requested with
+ * `challenge: challengeFromDigest(digest)`.
+ */
+export function passkeySignatureFromWebAuthn(response: AssertionResponseLike): Hex {
+  return encodePasskeyAssertion(webauthnAssertionToResult(response));
+}
+
 /** Parses a DER-encoded ECDSA signature (what WebAuthn returns) into r, s. */
 export function parseDerSignature(der: Uint8Array): { r: bigint; s: bigint } {
   if (der[0] !== 0x30) throw new Error("not DER");
@@ -262,6 +372,60 @@ export const orderFromJson = (j: ReturnType<typeof orderToJson>): { order: Gatew
     qty: BigInt(j.order.qty),
     nonce: BigInt(j.order.nonce),
     deadline: BigInt(j.order.deadline),
+  },
+  sig: j.sig,
+});
+
+export const cancelToJson = (c: GatewayCancel, sig: Hex) => ({
+  cancel: { ...c, slot: c.slot.toString(), nonce: c.nonce.toString(), deadline: c.deadline.toString() },
+  sig,
+});
+
+export const cancelFromJson = (j: ReturnType<typeof cancelToJson>): { cancel: GatewayCancel; sig: Hex } => ({
+  cancel: {
+    ...j.cancel,
+    slot: BigInt(j.cancel.slot),
+    nonce: BigInt(j.cancel.nonce),
+    deadline: BigInt(j.cancel.deadline),
+  },
+  sig: j.sig,
+});
+
+export const withdrawToJson = (w: GatewayWithdraw, sig: Hex) => ({
+  withdraw: { ...w, amount: w.amount.toString(), nonce: w.nonce.toString(), deadline: w.deadline.toString() },
+  sig,
+});
+
+export const withdrawFromJson = (j: ReturnType<typeof withdrawToJson>): { withdraw: GatewayWithdraw; sig: Hex } => ({
+  withdraw: {
+    ...j.withdraw,
+    amount: BigInt(j.withdraw.amount),
+    nonce: BigInt(j.withdraw.nonce),
+    deadline: BigInt(j.withdraw.deadline),
+  },
+  sig: j.sig,
+});
+
+export const sessionToJson = (s: GatewaySession, sig: Hex) => ({
+  session: {
+    ...s,
+    expiry: s.expiry.toString(),
+    maxQty: s.maxQty.toString(),
+    maxNotional: s.maxNotional.toString(),
+    marketMask: s.marketMask.toString(),
+    nonce: s.nonce.toString(),
+  },
+  sig,
+});
+
+export const sessionFromJson = (j: ReturnType<typeof sessionToJson>): { session: GatewaySession; sig: Hex } => ({
+  session: {
+    ...j.session,
+    expiry: BigInt(j.session.expiry),
+    maxQty: BigInt(j.session.maxQty),
+    maxNotional: BigInt(j.session.maxNotional),
+    marketMask: BigInt(j.session.marketMask),
+    nonce: BigInt(j.session.nonce),
   },
   sig: j.sig,
 });

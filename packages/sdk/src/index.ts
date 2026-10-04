@@ -7,3 +7,7 @@ export * from "./client.ts";
 export * from "./deployments.ts";
 export * as engine from "@unison/engine";
 export * from "./gateway.ts";
+export * from "./passkey.ts";
+export * from "./errors.ts";
+export * from "./tape.ts";
+export * from "./relayer.ts";

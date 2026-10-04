@@ -87,9 +87,23 @@ export interface MarketDeployment {
   seedPrice?: number;
 }
 
+/** Token metadata in a deployment document. */
+export interface DeploymentToken {
+  address: Address;
+  symbol: string;
+  name: string;
+  decimals: number;
+}
+
 /** Shape of deployments/<chainId>.json (written by contracts/script). */
 export interface Deployment {
   chainId: number;
+  /** e.g. "monad-testnet" */
+  label?: string;
+  /** block the deployment script started at: indexers start here */
+  startBlock?: number;
+  /** token metadata keyed by symbol */
+  tokens?: Record<string, DeploymentToken>;
   exchange: Address;
   operatorReference?: Address;
   gateway?: Address;

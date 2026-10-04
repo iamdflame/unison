@@ -16,6 +16,21 @@
       "development": "./src/node.ts",
       "types": "./dist/node.d.ts",
       "import": "./dist/node.js"
+    },
+    "./errors": {
+      "development": "./src/errors.ts",
+      "types": "./dist/errors.d.ts",
+      "import": "./dist/errors.js"
+    },
+    "./tape": {
+      "development": "./src/tape.ts",
+      "types": "./dist/tape.d.ts",
+      "import": "./dist/tape.js"
+    },
+    "./relayer": {
+      "development": "./src/relayer.ts",
+      "types": "./dist/relayer.d.ts",
+      "import": "./dist/relayer.js"
     }
   },
   "files": [

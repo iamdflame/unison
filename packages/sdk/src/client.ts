@@ -8,8 +8,10 @@ import {
   type WalletClient,
   erc20Abi,
 } from "viem";
+import type { Curve } from "@unison/engine";
 import { unisonExchangeAbi } from "./abis/UnisonExchange.ts";
 import { liquidityVaultAbi } from "./abis/LiquidityVault.ts";
+import { orderGatewayAbi } from "./abis/OrderGateway.ts";
 import type {
   Deployment,
   MarketState,
@@ -22,6 +24,52 @@ import type {
 
 /** Gas headroom on top of estimates — Monad charges the gas LIMIT, so keep it tight but safe. */
 const GAS_HEADROOM_BPS = 1_200n;
+
+/** Ticks per `depth` call in `depthRange` (the contract accepts at most hi - lo = 4,096). */
+export const DEPTH_CHUNK_TICKS = 4_096n;
+
+/** TSV volume-cap state of a market (`capsOf`). */
+export interface CapsState {
+  /** LULD tier 1 or 2 (0 = untiered) */
+  tier: number;
+  /** UTC day `traded` refers to */
+  day: bigint;
+  /** base units executed on `day` */
+  traded: bigint;
+  /** base units per UTC day (0 = no cap) */
+  dailyCap: bigint;
+  /** what the market may still trade today (2^256 - 1 = uncapped) */
+  remainingToday: bigint;
+}
+
+/** Raw words of one book level (`levelOf`). */
+export interface LevelState {
+  remaining: bigint;
+  epoch: bigint;
+  scale: bigint;
+  closed: boolean;
+  survival: bigint;
+  pot: bigint;
+  acc: bigint;
+}
+
+/** A session-key grant (`OrderGateway.sessions`); expiry 0 = never granted or revoked. */
+export interface SessionGrant {
+  expiry: bigint;
+  maxQty: bigint;
+  maxNotional: bigint;
+  marketMask: bigint;
+}
+
+/** A queued LiquidityVault request (`request(id)`); deleted (zeroed) once executed. */
+export interface VaultRequest {
+  owner: Address;
+  redeem: boolean;
+  /** unix seconds of the request */
+  time: bigint;
+  /** deposit: quote units; redeem: shares */
+  amount: bigint;
+}
 
 export interface UnisonClientConfig {
   publicClient: PublicClient<Transport, Chain | undefined>;
@@ -135,6 +183,118 @@ export class UnisonClient {
     return this.read("sourcesOf", [marketId]);
   }
 
+  /** Listed tokens, by ledger index. */
+  tokens(): Promise<readonly Address[]> {
+    return this.read("tokens");
+  }
+
+  /** Price scale: price = tick · tickSize quote units per `baseUnit` base units. */
+  async marketPricing(marketId: bigint): Promise<{ tickSize: bigint; baseUnit: bigint }> {
+    const [tickSize, baseUnit] = await this.read<readonly [bigint, bigint]>("marketPricing", [marketId]);
+    return { tickSize, baseUnit };
+  }
+
+  /** TSV cap state and what the market may still trade today. */
+  async capsOf(marketId: bigint): Promise<CapsState> {
+    const [caps, remainingToday] = await this.read<
+      readonly [{ tier: number; day: bigint; traded: bigint; dailyCap: bigint }, bigint]
+    >("capsOf", [marketId]);
+    return { tier: caps.tier, day: caps.day, traded: caps.traded, dailyCap: caps.dailyCap, remainingToday };
+  }
+
+  /** Total resting quantity of one side across every book (main + IOC). */
+  bookTotal(marketId: bigint, side: SideCode): Promise<bigint> {
+    return this.read("bookTotal", [marketId, BigInt(side)]);
+  }
+
+  /** One level's raw words. `shard` is the book: 0..7 main books, 8..15 IOC books. */
+  levelOf(marketId: bigint, side: SideCode, shard: number | bigint, tick: bigint): Promise<LevelState> {
+    return this.read("levelOf", [marketId, BigInt(side), BigInt(shard), tick]);
+  }
+
+  /** `depth` over any range: requests of at most 4,096 ticks, in parallel, concatenated (index i = tick lo + i). */
+  async depthRange(marketId: bigint, side: SideCode, lo: bigint, hi: bigint): Promise<bigint[]> {
+    if (hi < lo) return [];
+    const parts: Promise<readonly bigint[]>[] = [];
+    for (let a = lo; a <= hi; a += DEPTH_CHUNK_TICKS) {
+      const b = a + DEPTH_CHUNK_TICKS - 1n < hi ? a + DEPTH_CHUNK_TICKS - 1n : hi;
+      parts.push(this.depth(marketId, side, a, b));
+    }
+    return (await Promise.all(parts)).flat();
+  }
+
+  /**
+   * A vault's curve for an auction (`LiquidityVault.curve`), as the engine's `Curve` — clip it with `clipCurve` /
+   * draw it with `slotLevels` from `@unison/engine` exactly as the exchange will use it.
+   */
+  async vaultCurve(
+    vault: Address,
+    marketId: bigint,
+    refPrice: bigint,
+    status: StatusCode | number,
+    refTick: bigint,
+    lo: bigint,
+    hi: bigint,
+  ): Promise<Curve> {
+    const c = await this.publicClient.readContract({
+      address: vault,
+      abi: liquidityVaultAbi,
+      functionName: "curve",
+      args: [marketId, refPrice, status, refTick, lo, hi],
+    });
+    return {
+      bidTop: BigInt(c.bidTop),
+      bidTicks: BigInt(c.bidTicks),
+      bidPerTick: c.bidPerTick,
+      askBottom: BigInt(c.askBottom),
+      askTicks: BigInt(c.askTicks),
+      askPerTick: c.askPerTick,
+    };
+  }
+
+  /** LP shares of `owner` in a vault. */
+  vaultShares(vault: Address, owner: Address): Promise<bigint> {
+    return this.publicClient.readContract({ address: vault, abi: liquidityVaultAbi, functionName: "balanceOf", args: [owner] });
+  }
+
+  /** A queued deposit / redeem request of a vault. */
+  async vaultRequest(vault: Address, id: bigint): Promise<VaultRequest> {
+    const r = await this.publicClient.readContract({
+      address: vault,
+      abi: liquidityVaultAbi,
+      functionName: "request",
+      args: [id],
+    });
+    return { owner: r.owner, redeem: r.redeem, time: r.time, amount: r.amount };
+  }
+
+  private gatewayAddress(): Address {
+    if (!this.deployment.gateway) throw new Error("UnisonClient: the deployment has no gateway");
+    return this.deployment.gateway;
+  }
+
+  /** The session key grant `account` gave `key` on the gateway. */
+  async sessions(account: Address, key: Address): Promise<SessionGrant> {
+    const [expiry, maxQty, maxNotional, marketMask] = await this.publicClient.readContract({
+      address: this.gatewayAddress(),
+      abi: orderGatewayAbi,
+      functionName: "sessions",
+      args: [account, key],
+    });
+    return { expiry, maxQty, maxNotional, marketMask };
+  }
+
+  /** The passkey registered for a passkey account (qx = 0x0…0: none). */
+  async passkeys(account: Address): Promise<{ qx: Hex; qy: Hex }> {
+    const [qx, qy] = await this.publicClient.readContract({
+      address: this.gatewayAddress(),
+      abi: orderGatewayAbi,
+      functionName: "passkeys",
+      args: [account],
+    });
+    return { qx, qy };
+  }
+
   async vault(address: Address) {
     const c = { address, abi: liquidityVaultAbi } as const;
     const [balances, spreadPnl, inventoryPnl, totalSupply, head, queueLength, params] = await Promise.all([
@@ -178,19 +338,48 @@ export class UnisonClient {
     return w.writeContract({ ...(req as object), gas: (gas * (10_000n + GAS_HEADROOM_BPS)) / 10_000n } as never) as Promise<Hex>;
   }
 
-  async approveAndDeposit(token: Address, amount: bigint): Promise<Hex> {
+  /** Approves `spender` for `amount` of `token` (waiting for the receipt) unless the allowance already covers it. */
+  private async ensureAllowance(token: Address, spender: Address, amount: bigint): Promise<void> {
     const w = this.wallet();
     const allowance = await this.publicClient.readContract({
       address: token,
       abi: erc20Abi,
       functionName: "allowance",
-      args: [w.account.address, this.exchange],
+      args: [w.account.address, spender],
     });
     if (allowance < amount) {
-      const h = await this.write(token, erc20Abi, "approve", [this.exchange, amount]);
+      const h = await this.write(token, erc20Abi, "approve", [spender, amount]);
       await this.publicClient.waitForTransactionReceipt({ hash: h });
     }
+  }
+
+  async approveAndDeposit(token: Address, amount: bigint): Promise<Hex> {
+    await this.ensureAllowance(token, this.exchange, amount);
     return this.write(this.exchange, unisonExchangeAbi, "deposit", [token, amount]);
+  }
+
+  /**
+   * Credits `account`'s venue balance from the wallet (approves first). The only safe way to fund a passkey
+   * account, which has no key to move tokens sent to its address.
+   */
+  async depositFor(account: Address, token: Address, amount: bigint): Promise<Hex> {
+    await this.ensureAllowance(token, this.exchange, amount);
+    return this.write(this.exchange, unisonExchangeAbi, "depositFor", [account, token, amount]);
+  }
+
+  /**
+   * Queues an LP deposit of `assets` quote units into a vault (approves the vault's quote token first). It executes
+   * at the first reference published after the request, when anyone (the keeper) calls `process()`.
+   */
+  async requestDeposit(vault: Address, assets: bigint): Promise<Hex> {
+    const quote = await this.publicClient.readContract({ address: vault, abi: liquidityVaultAbi, functionName: "quote" });
+    await this.ensureAllowance(quote, vault, assets);
+    return this.write(vault, liquidityVaultAbi, "requestDeposit", [assets]);
+  }
+
+  /** Queues a redemption of `shares` (escrowed by the vault; paid in kind at the next reference). */
+  requestRedeem(vault: Address, shares: bigint): Promise<Hex> {
+    return this.write(vault, liquidityVaultAbi, "requestRedeem", [shares]);
   }
 
   withdraw(token: Address, amount: bigint, to?: Address): Promise<Hex> {
