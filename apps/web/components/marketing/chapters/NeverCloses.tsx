@@ -101,7 +101,7 @@ export function NeverCloses() {
   ];
 
   return (
-    <section aria-labelledby="never-closes-title" className="mx-auto max-w-[1440px] px-5 py-28 sm:px-8 lg:px-12 lg:py-32">
+    <section aria-labelledby="never-closes-title" className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-12 lg:py-24">
       <div ref={wrap} className="grid grid-cols-1 items-center gap-x-16 gap-y-14 lg:grid-cols-12">
         <div className="order-2 lg:order-1 lg:col-span-6">
           <figure className="mx-auto max-w-[560px]">

@@ -32,7 +32,7 @@ export function OnlyOnMonad() {
   const monad = facts.gas.clearMonad / facts.gas.clearEthereumRules;
 
   return (
-    <section aria-labelledby="monad-title" className="mx-auto max-w-[1440px] px-5 py-28 sm:px-8 lg:px-12 lg:py-32">
+    <section aria-labelledby="monad-title" className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-12 lg:py-24">
       <div ref={ref} className="grid grid-cols-1 gap-x-16 gap-y-12 lg:grid-cols-12">
         <div className="lg:col-span-5">
           <h2 id="monad-title" className="text-display-l text-ink">

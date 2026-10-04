@@ -21,7 +21,7 @@ export function Calibre() {
   const ball = MARK_PARTS.filter((p) => p.role !== "body").map((p) => p.d).join(" ");
   const b = MARK_BOX;
   return (
-    <section aria-labelledby="calibre-title" className="mx-auto max-w-[1440px] px-5 py-28 sm:px-8 lg:px-12 lg:py-32">
+    <section aria-labelledby="calibre-title" className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-12 lg:py-24">
       <div className="grid grid-cols-1 gap-x-16 gap-y-14 lg:grid-cols-12">
         <div className="lg:col-span-5">
           <p className="text-sm text-ink-3">The specification</p>

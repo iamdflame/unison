@@ -43,7 +43,7 @@ export function Markets() {
   }, []);
 
   return (
-    <section aria-labelledby="markets-title" className="mx-auto max-w-[1440px] px-5 py-28 sm:px-8 lg:px-12 lg:py-32">
+    <section aria-labelledby="markets-title" className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-12 lg:py-24">
       <div className="max-w-3xl">
         <h2 id="markets-title" className="text-display-l text-ink">
           Ten markets.

@@ -38,7 +38,7 @@ export function FrontRun() {
   }, [shown]);
 
   return (
-    <section aria-labelledby="front-run-title" className="mx-auto max-w-[1440px] px-5 py-28 sm:px-8 lg:px-12 lg:py-32">
+    <section aria-labelledby="front-run-title" className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-12 lg:py-24">
       <div className="grid grid-cols-1 gap-x-12 gap-y-14 lg:grid-cols-12">
         <div className="lg:col-span-5">
           <h2 id="front-run-title" className="text-display-l text-ink">
