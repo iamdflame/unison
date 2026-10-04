@@ -1,0 +1,48 @@
+# Unison gasless relayer: public HTTP; its job store (JOBS_DB) lives on a small volume so queued and in-flight
+# jobs survive deploys. Deploy from the repo root (docs/DEPLOY.md):
+#   fly deploy . --config services/relayer/fly.toml --dockerfile ops/docker/service.Dockerfile
+app = "unison-relayer"
+primary_region = "iad"
+
+[build]
+  dockerfile = "../../ops/docker/service.Dockerfile"
+  [build.args]
+    SERVICE = "relayer"
+
+[env]
+  PORT = "8788"
+  DEPLOYMENT = "/app/deployments/monad-testnet.json"
+  JOBS_DB = "/data/relayer.db"
+  # testnet / devnet only: mints mock tokens. Set "0" on mainnet.
+  FAUCET = "1"
+  CORS_ORIGINS = "https://unison.trade,https://www.unison.trade"
+  TRUST_PROXY = "1"
+  # secrets: RPC_URL, RELAYER_PRIVATE_KEY
+
+[mounts]
+  source = "relayer_data"
+  destination = "/data"
+  initial_size = "1gb"
+
+[http_service]
+  internal_port = 8788
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+  [[http_service.checks]]
+    grace_period = "20s"
+    interval = "15s"
+    method = "GET"
+    path = "/health"
+    timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
