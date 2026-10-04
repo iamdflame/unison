@@ -87,9 +87,9 @@ export function Agents() {
               <dt className="text-ink-3">Markets</dt>
               <dd className="text-right text-ink">aNVDA, aSPY</dd>
               <dt className="text-ink-3">Size per order</dt>
-              <dd className="tnum text-right text-ink">5 shares</dd>
+              <dd className="figures text-right text-ink">5 shares</dd>
               <dt className="text-ink-3">Notional</dt>
-              <dd className="tnum text-right text-ink">$2,000</dd>
+              <dd className="figures text-right text-ink">$2,000</dd>
               <dt className="text-ink-3">Withdraw</dt>
               <dd className="text-right font-semibold text-ink">Never</dd>
             </dl>

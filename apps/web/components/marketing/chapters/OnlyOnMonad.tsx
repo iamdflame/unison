@@ -70,7 +70,7 @@ export function OnlyOnMonad() {
               <div>
                 <div className="flex items-baseline justify-between text-sm">
                   <span className="text-ink">Clear on Monad</span>
-                  <span className="tnum text-ink">{facts.gas.clearMonad.toLocaleString("en-US")} gas</span>
+                  <span className="figures text-ink">{facts.gas.clearMonad.toLocaleString("en-US")} gas</span>
                 </div>
                 <div className="mt-2 h-3 rounded-full bg-sunken">
                   <div className="h-full rounded-full bg-accent" style={{ width: `${monad * 100}%` }} />
@@ -79,7 +79,7 @@ export function OnlyOnMonad() {
               <div>
                 <div className="flex items-baseline justify-between text-sm">
                   <span className="text-ink-3">Same clear, Ethereum&apos;s rules</span>
-                  <span className="tnum text-ink-3">{facts.gas.clearEthereumRules.toLocaleString("en-US")} gas</span>
+                  <span className="figures text-ink-3">{facts.gas.clearEthereumRules.toLocaleString("en-US")} gas</span>
                 </div>
                 <div className="mt-2 h-3 rounded-full border border-dashed border-line-strong" />
               </div>

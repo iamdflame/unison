@@ -144,7 +144,7 @@ export function CertificateDialog() {
                   ].map(([k, v]) => (
                     <div key={k}>
                       <dt className="text-ink-3">{k}</dt>
-                      <dd className="tnum mt-0.5 text-ink">{v}</dd>
+                      <dd className="figures mt-0.5 text-ink">{v}</dd>
                     </div>
                   ))}
                 </dl>

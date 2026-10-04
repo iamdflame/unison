@@ -101,7 +101,7 @@ export function WithdrawDialog({ open, onOpenChange, onDone }: { open: boolean; 
           <label htmlFor={amountId} className="mt-5 flex items-baseline justify-between text-xs font-medium text-ink-3">
             Amount
             {asset ? (
-              <span className="tnum">
+              <span className="figures">
                 {asset.free.toLocaleString("en-US", { maximumFractionDigits: 6 })} {asset.sym} free
               </span>
             ) : null}

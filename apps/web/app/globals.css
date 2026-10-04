@@ -317,14 +317,16 @@
 }
 
 /* Sapphire: one translucent layer at most. Opaque when the user asks for less transparency. */
+/* The prefixed declaration must come first: the compiler (Lightning CSS) keeps only the last of a prefixed pair, and
+   Chrome ignores the -webkit- form, so in the other order Chrome drew the glass with no blur at all. */
 @utility glass {
   background: var(--glass);
-  backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
   @media (prefers-reduced-transparency: reduce) {
     background: var(--bg-raised);
-    backdrop-filter: none;
     -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 }
 

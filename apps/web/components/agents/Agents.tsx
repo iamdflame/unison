@@ -155,15 +155,15 @@ function KeyCard({ k, label, browser, onRevoke, busy }: { k: KeyView; label?: st
         </div>
         <div>
           <dt className="text-ink-3">Expires</dt>
-          <dd className="tnum mt-0.5 text-ink">{status === "Active" ? `in ${left}` : status === "Revoked" ? "Revoked" : "Ended"}</dd>
+          <dd className="figures mt-0.5 text-ink">{status === "Active" ? `in ${left}` : status === "Revoked" ? "Revoked" : "Ended"}</dd>
         </div>
         <div>
           <dt className="text-ink-3">Size per order</dt>
-          <dd className="tnum mt-0.5 text-ink">up to {qty.toLocaleString("en-US", { maximumFractionDigits: 4 })}</dd>
+          <dd className="figures mt-0.5 text-ink">up to {qty.toLocaleString("en-US", { maximumFractionDigits: 4 })}</dd>
         </div>
         <div>
           <dt className="text-ink-3">Notional per order</dt>
-          <dd className="tnum mt-0.5 text-ink">up to ${notional.toLocaleString("en-US", { maximumFractionDigits: 2 })}</dd>
+          <dd className="figures mt-0.5 text-ink">up to ${notional.toLocaleString("en-US", { maximumFractionDigits: 2 })}</dd>
         </div>
       </dl>
       <div className="relative mt-6 flex items-center justify-between gap-4 border-t border-line pt-4">

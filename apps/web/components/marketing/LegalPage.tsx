@@ -46,9 +46,10 @@ export function LegalPage({ path, title, updated, intro, sections }: { path: str
           <ol className="sticky top-28 space-y-2 text-sm">
             {sections.map((s, i) => (
               <li key={s.id}>
-                <a href={`#${s.id}`} className="text-ink-3 transition-colors hover-fine:text-ink">
-                  <span className="tnum mr-2">{String(i + 1).padStart(2, "0")}</span>
-                  {s.title}
+                <a href={`#${s.id}`} className="flex items-baseline gap-2 text-ink-3 transition-colors hover-fine:text-ink">
+                  {/* a hanging indent: a title that wraps stays under its title, not its number */}
+                  <span className="figures min-w-[1.4em] shrink-0">{String(i + 1).padStart(2, "0")}</span>
+                  <span>{s.title}</span>
                 </a>
               </li>
             ))}
@@ -58,7 +59,7 @@ export function LegalPage({ path, title, updated, intro, sections }: { path: str
           {sections.map((s, i) => (
             <section key={s.id} id={s.id} aria-labelledby={`${s.id}-h`} className="scroll-mt-28">
               <h2 id={`${s.id}-h`} className="text-[22px] font-semibold tracking-tight text-ink">
-                <span className="tnum mr-3 text-ink-3">{String(i + 1).padStart(2, "0")}</span>
+                <span className="figures mr-3 text-ink-3">{String(i + 1).padStart(2, "0")}</span>
                 {s.title}
               </h2>
               <div className="mt-4 space-y-4 leading-relaxed text-ink-2 [&_a]:text-ink [&_a]:underline [&_a]:decoration-line-strong [&_a]:underline-offset-4 [&_li]:ml-5 [&_li]:list-disc [&_strong]:font-semibold [&_strong]:text-ink">{s.body}</div>
