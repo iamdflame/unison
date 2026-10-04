@@ -95,6 +95,20 @@ export interface MarketState {
   lastAuction: number;
   /** the vault's quotes in the batch now forming (the simulation's; live, the chain's depth is the book) */
   vault: SimOrder[];
+  /** the simulated vault's books, kept as LiquidityVault reports them (absent live: the chain has the real ones) */
+  vaultBook?: VaultBook;
+}
+
+export interface VaultBook {
+  /** shares and AUSD it holds */
+  base: number;
+  quote: number;
+  /** what auctions paid it to be there: each fill against the reference */
+  spreadPnl: number;
+  /** what its holdings did as the reference moved */
+  inventoryPnl: number;
+  auctionsTraded: number;
+  tradedBase: number;
 }
 
 export interface AccountState {
@@ -165,6 +179,12 @@ export class DemoMarket {
   /** the simulated vault's inventory: shares, and AUSD */
   private vaultBase: number;
   private vaultQuote: number;
+  private vaultSpread = 0;
+  private vaultInventory = 0;
+  private vaultAuctions = 0;
+  private vaultTraded = 0;
+  /** the reference the vault's holdings were last valued at */
+  private markedAt = 0;
 
   constructor(readonly spec: MarketSpec) {
     this.rand = mulberry(spec.id * 7919 + 17);
@@ -191,6 +211,7 @@ export class DemoMarket {
       lastAuction: 0,
       vault: [],
     });
+    this.markedAt = tick;
     // Warm up a history so charts aren't empty on arrival: about a hundred auctions, whatever the cadence.
     const beats = regime.name === "DISCOVERY" ? 100 * spec.regime.discCadence : 240;
     for (let i = 0; i < beats; i++) this.beat(Date.now() - (beats - i) * BEAT_MS, true);
@@ -217,6 +238,10 @@ export class DemoMarket {
   private normal() {
     const u = Math.max(this.rand(), 1e-12);
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * this.rand());
+  }
+
+  private vaultBook(): VaultBook {
+    return { base: this.vaultBase, quote: this.vaultQuote, spreadPnl: this.vaultSpread, inventoryPnl: this.vaultInventory, auctionsTraded: this.vaultAuctions, tradedBase: this.vaultTraded };
   }
 
   /** The vault's quotes for this reference and regime: LiquidityVault.curve, for the inventory it holds now. */
@@ -259,6 +284,9 @@ export class DemoMarket {
     }
     const refTick = Math.round(this.ref);
     const fairTick = Math.round(this.fair);
+    // the vault's holdings, revalued as the reference moves: its inventory P&L
+    if (this.markedAt > 0 && refTick !== this.markedAt) this.vaultInventory += this.vaultBase * (refTick - this.markedAt) * (Number(this.spec.tickSize) / 1e6);
+    this.markedAt = refTick;
     const half = Math.max(2, Math.round((refTick * regime.bandBps) / 10_000));
     const lo = refTick - half;
     const hi = refTick + half;
@@ -288,7 +316,7 @@ export class DemoMarket {
 
     // Between call auctions orders only gather (one auction a block at most); the auction takes all that gathered.
     if (block - this.lastAuction < cadence) {
-      this.store.set({ ...s, ...common, book, vault, forming: s.forming + arrivals });
+      this.store.set({ ...s, ...common, book, vault, forming: s.forming + arrivals, vaultBook: this.vaultBook() });
       return;
     }
     this.lastAuction = block;
@@ -306,12 +334,21 @@ export class DemoMarket {
       print = { block, ts: now, tick: out.tick, volume: Math.round(out.volume * 100) / 100, refTick };
       // The vault's fills move its inventory, and its next quotes lean to rebalance.
       const at = out.tick * unit;
+      const refAt = refTick * unit;
+      let filled = 0;
       for (const o of vault) {
         const f = out.fills.get(o.id) ?? 0;
         if (f <= 0) continue;
         const d = o.side === "buy" ? f : -f;
         this.vaultBase += d;
         this.vaultQuote -= d * at;
+        // its spread: bought below the reference, or sold above it
+        this.vaultSpread += o.side === "buy" ? f * (refAt - at) : f * (at - refAt);
+        filled += f;
+      }
+      if (filled > 0) {
+        this.vaultAuctions += 1;
+        this.vaultTraded += filled;
       }
     }
     const prints = print ? [...s.prints.slice(-(MAX_PRINTS - 1)), print] : s.prints;
@@ -324,6 +361,7 @@ export class DemoMarket {
       last: print ?? s.last,
       forming: 0,
       lastAuction: block,
+      vaultBook: this.vaultBook(),
     });
     // the orders that traded at the one price (not every order present)
     const traded = out.traded ? book.filter((o) => (out.fills.get(o.id) ?? 0) > 0).length : 0;

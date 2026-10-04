@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { marketByTicker } from "../lib/content/markets.ts";
-import { DemoMarket, nextAuction } from "../lib/demo/engine.ts";
+import { DemoMarket, nextAuction, SIM_VAULT_NAV } from "../lib/demo/engine.ts";
 import { BEAT_MS } from "../lib/motion/tokens.ts";
 
 /**
@@ -71,6 +71,21 @@ describe("the simulation at night (DISCOVERY)", () => {
     expect(bottom - top).toBe(2 * half);
     expect(Math.abs(s.refTick - half - top)).toBeLessThanOrEqual(p.maxSkewTicks);
   });
+});
+
+describe("the simulated vault keeps its books", () => {
+  for (const [label, at] of [["at night", "2026-10-03T16:00:00Z"], ["in session", "2026-10-06T15:00:00Z"]] as const) {
+    it(`adds up ${label}: its value is where it started, plus spread, plus inventory`, () => {
+      const s = run(at, 500).at(-1)!;
+      const b = s.vaultBook!;
+      const unit = Number(nvda.tickSize) / 1e6;
+      const nav = b.quote + b.base * s.refTick * unit;
+      expect(b.auctionsTraded).toBeGreaterThan(0);
+      expect(nav).toBeCloseTo(SIM_VAULT_NAV + b.spreadPnl + b.inventoryPnl, 4);
+      // it only ever buys below the reference and sells above it
+      expect(b.spreadPnl).toBeGreaterThanOrEqual(0);
+    });
+  }
 });
 
 describe("the simulation in session (LIVE)", () => {

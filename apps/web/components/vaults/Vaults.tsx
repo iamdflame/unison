@@ -8,7 +8,7 @@ import { MARKETS, marketByTicker, priceFormat, type MarketSpec } from "@/lib/con
 import { shallowEqual } from "@/lib/store/createStore";
 import { statusOfRegime, vaultCurve } from "@/lib/unison/vaultCurve";
 import { useMarket, useVenue } from "@/lib/venue";
-import { useVaultLive, type VaultLive } from "@/lib/venue/vault";
+import { useVaultView, type VaultLive } from "@/lib/venue/vault";
 import { QuoteInstrument } from "./QuoteInstrument";
 
 const money = (n: number, d = 2) => `$${n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d })}`;
@@ -20,20 +20,17 @@ const SIM_NAV = 2_000_000;
 /** One scale for every vault's quote, ±1% of its reference, so a tighter vault always looks tighter. */
 const AXIS_BP = 100;
 const at = (bp: number) => Math.min(100, Math.max(0, 50 + (bp / AXIS_BP) * 50));
-const COLS = {
-  sim: "md:grid-cols-[minmax(0,1fr)_minmax(260px,2fr)_180px_16px]",
-  live: "md:grid-cols-[minmax(0,1fr)_minmax(220px,1.5fr)_112px_112px_112px_112px_16px]",
-};
+// one layout, live or simulated: the simulation keeps each vault's books too
+const COLS = "md:grid-cols-[minmax(0,1fr)_minmax(220px,1.5fr)_112px_112px_112px_112px_16px]";
 
 /** The live part of /vaults: every vault on one board. The title and the lede are drawn by the server. */
 export function VaultIndex() {
   const v = useVenue();
-  const live = v.ready && v.mode === "live";
-  const cols = live ? COLS.live : COLS.sim;
+  const cols = COLS;
   return (
     <>
       <p className="mt-2 min-h-5 max-w-3xl text-sm text-ink-3">
-        {v.ready && v.mode === "demo" ? `Simulation: each vault's real parameters around a simulated reference, for a ${money(SIM_NAV, 0)} vault.` : ""}
+        {v.ready && v.mode === "demo" ? `Simulation: each vault's real parameters, starting at ${money(SIM_NAV, 0)}, trading on the simulated market since this page opened.` : ""}
       </p>
       <div className="mt-8 overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-panel">
         <div className={`hidden items-end gap-x-5 border-b border-line px-6 pt-4 pb-3 text-xs text-ink-3 md:grid ${cols}`} aria-hidden>
@@ -47,13 +44,9 @@ export function VaultIndex() {
             </span>
           </span>
           <span className="text-right">Half-spread</span>
-          {live ? (
-            <>
-              <span className="text-right">Each side</span>
-              <span className="text-right">Value</span>
-              <span className="text-right">Spread earned</span>
-            </>
-          ) : null}
+          <span className="text-right">Each side</span>
+          <span className="text-right">Value</span>
+          <span className="text-right">Spread earned</span>
           <span />
         </div>
         <ul className="divide-y divide-line">
@@ -74,7 +67,7 @@ export function VaultIndex() {
  */
 function VaultRow({ spec, cols }: { spec: MarketSpec; cols: string }) {
   const { value: m } = useMarket(spec.ticker, (s) => ({ refTick: s.refTick, regime: s.regime.name }), shallowEqual, { book: false });
-  const vault = useVaultLive(spec);
+  const vault = useVaultView(spec);
   const p = spec.vault!;
   const { unit, decimals } = priceFormat(spec);
   const ref = m.refTick;
@@ -179,7 +172,7 @@ function QuoteGauge({ bid, ask, width }: { bid: number; ask: number; width: numb
 export function VaultDetail({ ticker }: { ticker: string }) {
   const spec = marketByTicker(ticker)!;
   const { value: m } = useMarket(ticker, (s) => ({ refTick: s.refTick, regime: s.regime.name }), shallowEqual, { book: false });
-  const vault = useVaultLive(spec);
+  const vault = useVaultView(spec);
   const { unit } = priceFormat(spec);
   const p = spec.vault!;
   const px = m.refTick * unit;
@@ -209,7 +202,11 @@ export function VaultDetail({ ticker }: { ticker: string }) {
         <div className="mt-6">
           <QuoteInstrument key={`${m.regime}-${vault ? "live" : "sim"}`} spec={spec} refTick={m.refTick} regime={m.regime} initialWeight={weight} nav={nav ?? 2_000_000} />
         </div>
-        {!vault ? <p className="mt-4 text-xs text-ink-3">Simulated reference; depth drawn for a $2,000,000 vault.</p> : null}
+        {vault?.address === "simulation" ? (
+          <p className="mt-4 text-xs text-ink-3">Simulation: this vault&apos;s own books, starting at $2,000,000, on the simulated market.</p>
+        ) : !vault ? (
+          <p className="mt-4 text-xs text-ink-3">Simulated reference; depth drawn for a $2,000,000 vault.</p>
+        ) : null}
       </section>
 
       {vault && nav !== null ? <Live vault={vault} nav={nav} px={px} ticker={spec.ticker} /> : null}
@@ -279,7 +276,7 @@ function Live({ vault, nav, px, ticker }: { vault: VaultLive; nav: number; px: n
           </dl>
         </div>
         <div>
-          <p className="text-sm text-ink-3">Where its P&amp;L came from, on-chain</p>
+          <p className="text-sm text-ink-3">Where its P&amp;L came from, {vault.address === "simulation" ? "in the simulation" : "on-chain"}</p>
           <div className="mt-4 space-y-4">
             {[
               ["Spread", "What every auction paid it to be there: fill price against the reference.", vault.spreadPnl],

@@ -1,10 +1,11 @@
 "use client";
 
 import type { VaultFlow, VaultPoint } from "@unison/sdk/tape";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { SIM_VAULT_NAV } from "../demo/engine.ts";
 import type { Address } from "viem";
 import type { MarketSpec } from "../content/markets.ts";
-import { useVenue } from "./index.ts";
+import { useMarket, useVenue } from "./index.ts";
 import { liveClients } from "./live.ts";
 
 /** A market's vault as the chain and the tape report it. Amounts in AUSD and base units as plain numbers. */
@@ -26,6 +27,35 @@ export interface VaultLive {
 
 const Q = 1e6; // AUSD decimals
 const SHARE_DECIMALS = 12; // quote decimals + 6 (LiquidityVault.decimals)
+
+/**
+ * A market's vault as the page should show it: the chain's (live), or the simulation's own books, kept by the
+ * in-browser venue as LiquidityVault keeps them (address "simulation", shares issued at $1 for its starting value).
+ */
+export function useVaultView(spec: MarketSpec): VaultLive | null {
+  const v = useVenue();
+  const live = useVaultLive(spec);
+  const { value: book } = useMarket(spec.ticker, (s) => s.vaultBook ?? null, undefined, { book: false });
+  return useMemo(() => {
+    if (v.mode === "live") return live;
+    if (!book) return null;
+    return {
+      address: "simulation",
+      baseBalance: BigInt(Math.round(book.base * 1e6)) * 10n ** 12n,
+      quoteBalance: BigInt(Math.round(book.quote * 1e6)),
+      base: book.base,
+      quote: book.quote,
+      supply: SIM_VAULT_NAV,
+      spreadPnl: book.spreadPnl,
+      inventoryPnl: book.inventoryPnl,
+      pending: 0,
+      auctionsTraded: book.auctionsTraded,
+      tradedBase: book.tradedBase,
+      history: [],
+      flows: [],
+    };
+  }, [v.mode, live, book]);
+}
 
 /** Polls the vault every 10 s while mounted; null in the simulation or for a market without a deployed vault. */
 export function useVaultLive(spec: MarketSpec): VaultLive | null {
