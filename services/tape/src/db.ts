@@ -228,6 +228,8 @@ export interface TapeStore {
   printCount(marketId: number): number;
   /** Prints (traded or not) with upTo >= fromUpTo, oldest first. */
   printsFromUpTo(marketId: number, fromUpTo: number, limit: number): PrintRow[];
+  /** Traded prints with upTo >= fromUpTo at a price a limit at `tick` accepts (bids: <= tick, asks: >= tick), oldest first. */
+  crossingPrints(marketId: number, fromUpTo: number, side: number, tick: number, limit: number): PrintRow[];
 
   ordersPlaced(account: string, marketId?: number): OrderPlacedRow[];
   /** Everything that happened in one order slot (placements, claims, cancels), oldest first. */
@@ -637,6 +639,18 @@ export class SqliteTapeStore implements TapeStore {
       "SELECT * FROM prints WHERE market_id = ? AND up_to >= ? ORDER BY block ASC, log_index ASC LIMIT ?",
       marketId,
       fromUpTo,
+      limit,
+    );
+  }
+
+  crossingPrints(marketId: number, fromUpTo: number, side: number, tick: number, limit: number): PrintRow[] {
+    return this.rows(
+      "prints",
+      `SELECT * FROM prints WHERE market_id = ? AND up_to >= ? AND volume != '0' AND tick ${side === 0 ? "<=" : ">="} ?
+       ORDER BY block ASC, log_index ASC LIMIT ?`,
+      marketId,
+      fromUpTo,
+      tick,
       limit,
     );
   }

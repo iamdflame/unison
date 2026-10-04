@@ -116,6 +116,26 @@ export interface OrderClaim {
   done: boolean;
 }
 
+/** One auction's fill of an order, at that auction's uniform price. */
+export interface OrderFill {
+  /** the auction: every batch up to this block */
+  upTo: number;
+  block: number;
+  ts: number;
+  tick: number;
+  price: string;
+  /** base units this order received in the auction */
+  qty: string;
+  /** the auction's total volume */
+  volume: string;
+  refPrice: string;
+  bandLo: number;
+  bandHi: number;
+  receiptHash: string;
+  /** false when one claim paid out several auctions and this one's share is apportioned by volume */
+  exact: boolean;
+}
+
 export interface AccountOrder {
   marketId: number;
   slot: number;
@@ -133,6 +153,10 @@ export interface AccountOrder {
   fee: string;
   avgPrice: string | null;
   claims: OrderClaim[];
+  /** settled fills, one per auction, oldest first */
+  fills: OrderFill[];
+  /** an auction since the last claim crossed this order's limit: a fill is being settled */
+  settling: boolean;
 }
 
 export interface Fill {

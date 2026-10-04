@@ -8,6 +8,7 @@ import {
   derivePrint,
   fairness,
   fillingPrints,
+  orderFills,
   groupOrderEvents,
   orderView,
   percentile,
@@ -219,8 +220,10 @@ describe("order lifecycle", () => {
     )[0]!;
     const v = orderView(o, { pricing, lastCleared: 12, prints: [pr(12)] });
     expect(v).toMatchObject({ status: "closed", filled: (3n * E18).toString(), quote: "539700000", fee: "161910", avgPrice: "179900000" });
-    expect(recomputeFill(v, fillingPrints(o, [pr(12)]), E18)).toBe(true);
-    expect(recomputeFill({ ...v, quote: "539800000" }, [pr(12)], E18)).toBe(false);
+    expect(v.fills.map((f) => [f.upTo, f.tick, f.qty, f.exact])).toEqual([[11, 17_990, (3n * E18).toString(), true]]);
+    const f = orderFills(o, [pr(12)], E18);
+    expect(recomputeFill(v, f, E18)).toBe(true);
+    expect(recomputeFill({ ...v, quote: "539800000" }, f, E18)).toBe(false);
   });
 
   it("estimates an open ask from its auctions until it settles, then reads base returned", () => {
@@ -258,18 +261,81 @@ describe("order lifecycle", () => {
     ]);
   });
 
-  it("finds the auctions that filled an order", () => {
+  it("finds the auctions that may have filled an order", () => {
     const bid = groupOrderEvents([placed({ batch: 10 })], [], [])[0]!;
     const prints = [
       pr(11, { upTo: 9 }), // before the order's batch
-      pr(12, { upTo: 10, tick: 18_000 }), // at the limit: partial
+      pr(12, { upTo: 10, tick: 18_000 }), // at the limit
       pr(13, { upTo: 12, tick: 18_010 }), // above a bid's limit: no fill
-      pr(14, { upTo: 13, tick: 17_950 }), // strictly better, limit in band: filled in full
+      pr(14, { upTo: 13, tick: 17_950 }), // better than the limit: still only a candidate (a marginal bid is rationed)
       pr(15, { upTo: 14, tick: 17_900 }),
+      pr(16, { upTo: 15, tick: 0, price: "0", volume: "0" }), // no trade
     ];
-    expect(fillingPrints(bid, prints).map((p) => p.block)).toEqual([12, 14]);
+    expect(fillingPrints(bid, prints).map((p) => p.block)).toEqual([12, 14, 15]);
     const ioc = groupOrderEvents([placed({ batch: 10, flags: 1 })], [], [])[0]!;
     expect(fillingPrints(ioc, prints).map((p) => p.block)).toEqual([12]); // one auction only
+    // a cancel ends the order: later auctions are not its own
+    const cancelled = groupOrderEvents([placed({ batch: 10 })], [], [cancelRow(13)])[0]!;
+    expect(fillingPrints(cancelled, prints).map((p) => p.block)).toEqual([12]);
+  });
+
+  it("splits a fill across the auctions that gave it, one claim each", () => {
+    // From a devnet run: a bid for 1 @ 180.34 was the marginal bid at 180.27 (0.82 filled), rested, and got the last
+    // 0.18 two auctions later at 179.86. A price better than the limit, and still not a full fill.
+    const q = (hundredths: bigint) => ((hundredths * E18) / 100n).toString();
+    const bid = placed({ block: 668, batch: 668, tick: 18_034, qty: E18.toString() });
+    const prints = [
+      pr(670, { upTo: 668, tick: 18_027, price: "180270000", volume: q(82n) }),
+      pr(686, { upTo: 684, tick: 0, price: "0", volume: "0" }),
+      pr(691, { upTo: 689, tick: 17_986, price: "179860000", volume: q(18n) }),
+    ];
+    const first = claimRow(672, { baseAmount: q(82n) });
+    const last = claimRow(692, { baseAmount: q(18n), quoteAmount: "270085", fee: "54059", done: true });
+
+    const mid = orderView(groupOrderEvents([bid], [first], [])[0]!, { pricing, lastCleared: 689, prints });
+    expect(mid).toMatchObject({ status: "open", filled: q(82n), quote: "147821400", settling: true });
+    expect(mid.fills.map((f) => [f.upTo, f.tick, f.qty, f.exact])).toEqual([[668, 18_027, q(82n), true]]);
+
+    const o = groupOrderEvents([bid], [first, last], [])[0]!;
+    const v = orderView(o, { pricing, lastCleared: 689, prints });
+    expect(v).toMatchObject({ status: "closed", filled: E18.toString(), quote: "180196200", settling: false });
+    expect(v.fills.map((f) => [f.upTo, f.price, f.qty])).toEqual([
+      [668, "180270000", q(82n)],
+      [689, "179860000", q(18n)],
+    ]);
+    expect(recomputeFill(v, orderFills(o, prints, E18), E18)).toBe(true);
+  });
+
+  it("apportions one claim over several auctions by volume, and won't vouch for the split", () => {
+    const prints = [pr(12, { upTo: 10, tick: 18_000, price: "180000000", volume: E18.toString() }), pr(13, { upTo: 11, tick: 18_000, price: "180000000", volume: (3n * E18).toString() })];
+    const o = groupOrderEvents([placed()], [claimRow(14, { baseAmount: (2n * E18).toString(), quoteAmount: "540004", fee: "108000", done: true })], [])[0]!;
+    const f = orderFills(o, prints, E18);
+    expect(f.fills.map((x) => [x.print.block, x.qty, x.exact])).toEqual([
+      [12, E18 / 2n, false],
+      [13, (3n * E18) / 2n, false],
+    ]);
+    expect(recomputeFill(orderView(o, { pricing, lastCleared: 11, prints }), f, E18)).toBeNull();
+  });
+
+  it("reads an ask's fills from the gross quote it was paid", () => {
+    const ask = placed({ side: 1, tick: 17_970, qty: (2n * E18).toString() });
+    const prints = [pr(12), pr(14, { upTo: 12, tick: 17_980, price: "179800000" })];
+    const claims = [
+      claimRow(13, { side: 1, quoteAmount: "179846030", fee: "53970" }), // 1 @ 179.90 gross
+      claimRow(15, { side: 1, quoteAmount: "179746060", fee: "53940", done: true }), // 1 @ 179.80 gross, fee on the cumulative gross
+    ];
+    const o = groupOrderEvents([ask], claims, [])[0]!;
+    const v = orderView(o, { pricing, lastCleared: 14, prints });
+    expect(v).toMatchObject({ status: "closed", filled: (2n * E18).toString(), quote: "359700000", avgPrice: "179850000" });
+    expect(v.fills.map((f) => [f.tick, f.qty, f.exact])).toEqual([
+      [17_990, E18.toString(), true],
+      [17_980, E18.toString(), true],
+    ]);
+    expect(recomputeFill(v, orderFills(o, prints, E18), E18)).toBe(true);
+    // a claim with no auction in view can't be attributed, so the receipt can't be checked
+    const lost = orderFills(o, [pr(14, { upTo: 12, tick: 17_980, price: "179800000" })], E18);
+    expect(lost.unattributed).toBe(true);
+    expect(recomputeFill(v, lost, E18)).toBeNull();
   });
 });
 

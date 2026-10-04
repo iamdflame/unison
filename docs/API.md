@@ -111,6 +111,9 @@ Returns orders placed after the last clear and not yet cancelled:
     status: "pending" | "open" | "closed" | "cancelled";   // closed = fully filled or IOC remainder released
     filled: string; quote: string; fee: string; avgPrice: string | null;
     claims: { tx: string; ts: number; baseAmount: string; quoteAmount: string; fee: string; done: boolean }[];
+    fills: { upTo: number; block: number; ts: number; tick: number; price: string; qty: string; volume: string;
+             refPrice: string; bandLo: number; bandHi: number; receiptHash: string; exact: boolean }[];
+    settling: boolean;   // an auction since the last claim crossed this order: a fill is on its way
 } [] }
 ```
 
@@ -119,7 +122,11 @@ Returns orders placed after the last clear and not yet cancelled:
 - **Bids** receive base as they fill. When the order is done they settle quote: `quote` = lock − refund − fee, excluding the fee.
 - **Asks** receive net quote as they fill. `quote` is gross, net + fee. The unfilled base comes back when the order is done.
 
-Until an order is done, a bid's `quote` and an ask's `filled` are estimated at the volume-weighted price of the auctions that filled it.
+`fills` lists what each auction gave the order, at that auction's uniform price, oldest first. The keeper claims after every clear, so each claim pays out the order's crossing auctions since the previous claim: a bid's claim carries the base it bought, an ask's the gross quote it sold for. A claim that covers one auction gives an exact fill. A claim that covers several is apportioned by auction volume, and those fills have `exact: false`. Auctions that crossed the order but haven't been claimed yet don't appear; `settling` is true while one is outstanding.
+
+A price better than your limit is not always a full fill. When your order is the marginal one on the long side, it is rationed, keeps its place, and joins later auctions.
+
+Until an order is done, a bid's `quote` and an ask's `filled` are summed from `fills`.
 
 #### `GET /v1/accounts/:addr/fills?limit=`
 
@@ -158,7 +165,7 @@ Returns `{ flows: { id; owner; kind: "deposit" | "redeem"; amount; requestedTx; 
 The receipt describes the slot's latest order.
 
 - `chainOk`: every listed print links into the receipt hash chain.
-- `recomputed`: for a settled order that a single auction filled, whether its quote equals `filled × price / baseUnit` within the valuation's rounding (3 units). It is `null` while the order is open, or when several auctions filled it.
+- `recomputed`: for a settled order, whether it recomputes from the uniform prices of the auctions that filled it, within the valuation's rounding (3 units per auction). For a bid, what it paid must equal Σ `qty × price / baseUnit`, rounded up per auction. For an ask, its fills plus the base returned must add up to the order. It is `null` while the order is open, when nothing filled, when a claim covered several auctions, or when a claim can't be matched to an auction in view.
 
 ### Live stream (SSE)
 

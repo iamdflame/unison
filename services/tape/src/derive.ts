@@ -6,6 +6,7 @@ import { encodeAbiParameters, keccak256, type Hex } from "viem";
 import { bpsDiff, Status } from "@unison/sdk";
 import type {
   AccountOrder,
+  OrderFill,
   Candle,
   Fairness,
   OrderStatus,
@@ -281,9 +282,10 @@ export function endOf(o: OrderEvents): Pos | undefined {
 }
 
 /**
- * The traded auctions that (may have) filled an order: prints from its batch on, before it ended, at a price its
- * limit accepts. IOC orders live for one auction; a print strictly better than an in-band limit fills it in full.
- * `prints` are the market's prints with upTo >= batch, oldest first.
+ * The traded auctions that may have filled an order: prints from its batch on, before it ended, at a price its
+ * limit accepts. An IOC order lives for one auction. `prints` are the market's prints with upTo >= batch, oldest
+ * first. A price better than the limit is not a full fill: an order that is the marginal one on the long side is
+ * rationed and keeps joining later auctions. Claims say what it actually received (orderFills).
  */
 export function fillingPrints(o: OrderEvents, prints: readonly PrintRow[]): PrintRow[] {
   const p = o.placed;
@@ -293,33 +295,65 @@ export function fillingPrints(o: OrderEvents, prints: readonly PrintRow[]): Prin
   for (const pr of prints) {
     if (pr.upTo < p.batch) continue;
     if (end && cmpPos(pr, end) > 0) break;
-    const traded = pr.volume !== "0";
-    const crosses = traded && (isBid ? pr.tick <= p.tick : pr.tick >= p.tick);
-    if (crosses) out.push(pr);
+    if (pr.volume !== "0" && (isBid ? pr.tick <= p.tick : pr.tick >= p.tick)) out.push(pr);
     if ((p.flags & 1) === 1) break;
-    const better = isBid ? pr.tick < p.tick && p.tick <= pr.bandHi : pr.tick > p.tick && p.tick >= pr.bandLo;
-    if (crosses && better) break;
   }
   return out;
 }
 
-const vwap = (prints: readonly PrintRow[]): bigint | undefined => {
-  let v = 0n;
-  let pv = 0n;
-  for (const p of prints) {
-    v += BigInt(p.volume);
-    pv += BigInt(p.price) * BigInt(p.volume);
-  }
-  return v === 0n ? undefined : pv / v;
-};
+export interface OrderFillRow {
+  print: PrintRow;
+  /** base units received in this auction */
+  qty: bigint;
+  /** false when one claim paid out several auctions and this one's share is apportioned by volume */
+  exact: boolean;
+}
 
 const ceilDiv = (a: bigint, b: bigint) => (a + b - 1n) / b;
 
 /**
+ * What each auction gave an order, read from its claims. The keeper claims after every clear, so a claim pays out
+ * the order's crossing auctions since the previous claim: bids receive the base they bought, asks the gross quote
+ * they sold for (net + fee). One auction in that window: exact. Several: the claim is apportioned by auction
+ * volume and marked inexact. `settling`: an auction after the last claim crossed the order, so a fill is on its
+ * way. `unattributed`: a claim paid out with no crossing auction in view (prints missing from the scan).
+ */
+export function orderFills(
+  o: OrderEvents,
+  prints: readonly PrintRow[],
+  unit: bigint,
+): { fills: OrderFillRow[]; settling: boolean; unattributed: boolean } {
+  const isBid = o.placed.side === 0;
+  const candidates = fillingPrints(o, prints);
+  const fills: OrderFillRow[] = [];
+  let unattributed = false;
+  let i = 0;
+  for (const c of o.claims) {
+    const amount = isBid ? BigInt(c.baseAmount) : BigInt(c.quoteAmount) + BigInt(c.fee);
+    const window: PrintRow[] = [];
+    while (i < candidates.length && cmpPos(candidates[i]!, c) < 0) window.push(candidates[i++]!);
+    if (amount === 0n) continue;
+    if (window.length === 0) {
+      unattributed = true;
+      continue;
+    }
+    const total = window.reduce((a, pr) => a + BigInt(pr.volume), 0n);
+    let left = amount;
+    window.forEach((pr, k) => {
+      const share = k === window.length - 1 ? left : (amount * BigInt(pr.volume)) / total;
+      left -= share;
+      if (share === 0n) return;
+      fills.push({ print: pr, qty: isBid ? share : ceilDiv(share * unit, BigInt(pr.price)), exact: window.length === 1 });
+    });
+  }
+  return { fills, settling: i < candidates.length, unattributed };
+}
+
+/**
  * The account-facing view of one order. Amounts come from its Claimed events (the keeper auto-claims every
- * block): bids receive base as they fill and settle quote (refund, fee) when done; asks receive net quote as they
- * fill and get their unfilled base back when done. Until an order is done, a bid's quote and an ask's filled base
- * are estimated at the volume-weighted price of the auctions that filled it.
+ * block): bids receive base as they fill and settle quote (refund, fee) when done; asks receive gross quote as
+ * they fill and get their unfilled base back when done. Until an order is done, a bid's quote and an ask's filled
+ * base come from its per-auction fills at each auction's uniform price.
  */
 export function orderView(
   o: OrderEvents,
@@ -338,7 +372,7 @@ export function orderView(
   const fee = o.claims.reduce((a, c) => a + BigInt(c.fee), 0n);
   const unit = ctx.pricing?.baseUnit ?? 10n ** 18n;
   const settled = doneClaim !== undefined;
-  const avg = settled ? undefined : vwap(fillingPrints(o, ctx.prints));
+  const { fills, settling } = orderFills(o, ctx.prints, unit);
 
   let filled: bigint;
   let quote: bigint;
@@ -349,12 +383,11 @@ export function orderView(
       quote = lock - quoteAmt - fee;
       if (quote < 0n) quote = 0n;
     } else {
-      quote = avg && filled > 0n ? ceilDiv(filled * avg, unit) : 0n;
+      quote = fills.reduce((a, f) => a + ceilDiv(f.qty * BigInt(f.print.price), unit), 0n);
     }
   } else {
     quote = quoteAmt + fee;
-    if (settled) filled = qty - base;
-    else filled = avg && quote > 0n ? (quote * unit) / avg : 0n;
+    filled = settled ? qty - base : fills.reduce((a, f) => a + f.qty, 0n);
     if (filled > qty) filled = qty;
     if (filled < 0n) filled = 0n;
   }
@@ -381,23 +414,52 @@ export function orderView(
       fee: c.fee,
       done: c.done,
     })),
+    fills: fills.map(toOrderFill),
+    settling: settling && !settled && !o.cancel,
   };
 }
 
+export const toOrderFill = (f: OrderFillRow): OrderFill => ({
+  upTo: f.print.upTo,
+  block: f.print.block,
+  ts: f.print.ts,
+  tick: f.print.tick,
+  price: f.print.price,
+  qty: f.qty.toString(),
+  volume: f.print.volume,
+  refPrice: f.print.refPrice,
+  bandLo: f.print.bandLo,
+  bandHi: f.print.bandHi,
+  receiptHash: f.print.receiptHash,
+  exact: f.exact,
+});
+
 /**
- * Recomputes a settled order's exchange from the uniform price of the one auction that filled it: the quote must
- * equal filled × price / baseUnit within the valuation's rounding (≤ 3 units). null when it can't be checked
- * (still open, or filled across several auctions).
+ * Recomputes a settled order's exchange from the uniform prices of the auctions that filled it. Bids: what it
+ * paid must equal Σ qty × price / baseUnit, rounded up per auction. Asks: its fills plus the base returned must
+ * add up to the order. Each within the valuation's rounding (≤ 3 units per auction). null when it can't be
+ * checked (not settled, nothing filled, a claim that covered several auctions, or prints missing from view).
  */
-export function recomputeFill(view: AccountOrder, prints: readonly PrintRow[], baseUnit: bigint): boolean | null {
+export function recomputeFill(
+  view: AccountOrder,
+  f: { fills: readonly OrderFillRow[]; unattributed: boolean },
+  baseUnit: bigint,
+): boolean | null {
   if (view.status !== "closed" && view.status !== "cancelled") return null;
   const filled = BigInt(view.filled);
-  if (filled === 0n || prints.length !== 1) return null;
+  if (filled === 0n || f.fills.length === 0 || f.unattributed || f.fills.some((x) => !x.exact)) return null;
   if (filled > BigInt(view.qty)) return false;
-  const price = BigInt(prints[0]!.price);
-  const exact = view.side === 0 ? ceilDiv(filled * price, baseUnit) : (filled * price) / baseUnit;
-  const diff = BigInt(view.quote) - exact;
-  return diff >= -3n && diff <= 3n;
+  const n = BigInt(f.fills.length);
+  const sumQty = f.fills.reduce((a, x) => a + x.qty, 0n);
+  if (view.side === 0) {
+    const paid = f.fills.reduce((a, x) => a + ceilDiv(x.qty * BigInt(x.print.price), baseUnit), 0n);
+    const diff = BigInt(view.quote) - paid;
+    return sumQty === filled && diff >= -3n * n && diff <= 3n * n;
+  }
+  // an ask's per-auction qty is its gross quote over the price, so it can sit one price step off the truth
+  const slack = f.fills.reduce((a, x) => a + baseUnit / BigInt(x.print.price) + 1n, 0n);
+  const diff = sumQty - filled;
+  return diff >= -slack && diff <= slack;
 }
 
 // ---------------------------------------------------------------------------------------------- vaults

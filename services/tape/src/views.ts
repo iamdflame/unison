@@ -15,8 +15,8 @@ import type {
 } from "@unison/sdk/tape";
 import type { ClaimRow, SessionRow, TapeStore, TransferRow } from "./db.ts";
 import {
-  fillingPrints,
   groupOrderEvents,
+  orderFills,
   orderView,
   recomputeFill,
   toPrint,
@@ -55,12 +55,20 @@ export interface TapeState {
 
 const PRINT_SCAN = 500;
 
+/** The auctions that can have filled an order: its first one for IOC, else every traded print its limit accepts. */
+function auctionsFor(store: TapeStore, o: OrderEvents) {
+  const p = o.placed;
+  return (p.flags & 1) === 1
+    ? store.printsFromUpTo(p.marketId, p.batch, 1)
+    : store.crossingPrints(p.marketId, p.batch, p.side, p.tick, PRINT_SCAN);
+}
+
 export function viewOf(store: TapeStore, state: TapeState, o: OrderEvents): AccountOrder {
   const meta = state.markets.get(o.placed.marketId);
   return orderView(o, {
     ...(meta ? { pricing: meta } : {}),
     lastCleared: state.lastCleared(o.placed.marketId),
-    prints: store.printsFromUpTo(o.placed.marketId, o.placed.batch, PRINT_SCAN),
+    prints: auctionsFor(store, o),
   });
 }
 
@@ -110,15 +118,18 @@ export function receiptOf(
 ): Receipt | undefined {
   const o = slotOrder(store, account, marketId, slot);
   if (!o) return undefined;
-  const order = viewOf(store, state, o);
-  const prints = fillingPrints(o, store.printsFromUpTo(marketId, o.placed.batch, PRINT_SCAN));
   const meta = state.markets.get(marketId);
+  const auctions = auctionsFor(store, o);
+  const order = orderView(o, { ...(meta ? { pricing: meta } : {}), lastCleared: state.lastCleared(marketId), prints: auctions });
+  const f = orderFills(o, auctions, meta?.baseUnit ?? 10n ** 18n);
+  // the auctions that filled it, once each
+  const prints = [...new Map(f.fills.map((x) => [`${x.print.block}:${x.print.logIndex}`, x.print])).values()];
   return {
     order,
     prints: prints.map(toPrint),
     verification: {
       chainOk: prints.every((p) => p.chainOk),
-      recomputed: meta ? recomputeFill(order, prints, meta.baseUnit) : null,
+      recomputed: meta ? recomputeFill(order, f, meta.baseUnit) : null,
     },
   };
 }
