@@ -184,7 +184,7 @@ export function Status() {
 function SimulatedStatus() {
   const rows: [string, string, string, string, string][] = [
     ["Clearing engine", "The contracts' auction, bit-exact, in your browser", "every block in session, every 10 overnight", "Running", "bg-buy"],
-    ["Reference prices", "A simulated feed for each market", "labelled on every screen", "Simulated", "bg-accent"],
+    ["Reference prices", "A simulated feed for each market", "labelled on every screen", "Simulated", "bg-champagne"],
     ["Network", "No chain, tape or relayer connected to this copy of the site", "—", "Not connected", "bg-ink-3"],
   ];
   return (

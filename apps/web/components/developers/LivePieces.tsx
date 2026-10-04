@@ -133,7 +133,7 @@ export function TapeConsole() {
       <div className="flex h-[22.5rem] flex-col justify-end overflow-hidden p-4 font-mono text-[11.5px] leading-[1.6] [font-variant-ligatures:none]" aria-live="off">
         {lines.map((l) => (
           <div key={l.id} title={l.raw} className="truncate motion-safe:animate-[fade-in_240ms_ease-out]">
-            <span className={`inline-block w-[6ch] ${l.event === "print" ? "text-accent" : "text-ink-3"}`}>{l.event}</span>
+            <span className={`inline-block w-[6ch] ${l.event === "print" ? "text-ink" : "text-ink-3"}`}>{l.event}</span>
             <span className={l.event === "print" ? "text-ink" : "text-ink-3"}>{l.text}</span>
           </div>
         ))}

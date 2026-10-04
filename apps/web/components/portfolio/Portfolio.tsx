@@ -67,7 +67,7 @@ export function Portfolio() {
 
   if (v.ready && v.mode === "live" && !id) {
     return (
-      <div className="mx-auto max-w-[1680px] px-4 py-8 sm:px-6 lg:py-12">
+      <div className="mx-auto max-w-[1680px] px-4 py-8 sm:px-6 lg:py-12 [&>*]:max-w-[1200px]">
         <h1 className="text-display-m text-ink">Portfolio</h1>
         <div className="mt-8 rounded-[var(--radius-xl)] bg-raised px-6 py-14 text-center shadow-panel sm:py-20">
           <p className="text-display-m text-ink">Your account is your passkey.</p>
@@ -110,7 +110,7 @@ function Account({ acct }: { acct: AccountState }) {
   const halted = held.filter((s) => marks[s.ticker]?.regime === "HALTED");
 
   return (
-    <div className="mx-auto max-w-[1680px] px-4 py-8 sm:px-6 lg:py-12">
+    <div className="mx-auto max-w-[1680px] px-4 py-8 sm:px-6 lg:py-12 [&>*]:max-w-[1200px]">
       <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
         <div className="min-w-0">
           <h1 className="text-display-m text-ink">Portfolio</h1>

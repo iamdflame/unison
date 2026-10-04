@@ -6,7 +6,8 @@ import { bandLabel, REGIME_LABEL } from "@/lib/unison/regimeNow";
 const TONE: Record<RegimeName, string> = {
   LIVE: "text-ink bg-ink/[0.06]",
   EXTENDED: "text-[oklch(0.5_0.12_300)] night:text-[oklch(0.8_0.09_300)] bg-[oklch(0.5_0.12_300/0.1)]",
-  DISCOVERY: "text-accent bg-accent-soft",
+  // the venue's night: an engraved champagne wash, ink text; blue is kept for the moving hand
+  DISCOVERY: "text-ink bg-champagne/25",
   REOPENING: "text-[oklch(0.52_0.11_75)] night:text-[oklch(0.84_0.1_80)] bg-[oklch(0.6_0.12_75/0.12)]",
   HALTED: "text-halt bg-[repeating-linear-gradient(135deg,var(--sell-soft)_0_4px,transparent_4px_8px)]",
 };

@@ -61,11 +61,11 @@ export function Agents() {
   }));
 
   return (
-    <div className="mx-auto max-w-[1680px] px-4 py-8 sm:px-6 lg:py-12">
+    <div className="mx-auto max-w-[1680px] px-4 py-8 sm:px-6 lg:py-12 [&>*]:max-w-[1200px]">
       <header className="max-w-3xl">
         <h1 className="text-display-m text-ink">Agents</h1>
         <p className="text-lede mt-4 text-ink-2">
-          Every order in a batch gets the same price, so speed buys nothing here. Let software trade for you, inside limits
+          Every order in a batch gets the same price, so a program has no edge over a person. Let software trade for you, inside limits
           you set and the contract enforces.
         </p>
       </header>
@@ -455,7 +455,7 @@ function Tools() {
       <div className="grid gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
         <div>
           <h2 id="tools-title" className="text-display-m text-ink">
-            Nine tools, one rulebook.
+            Nine tools, one set of limits.
           </h2>
           <p className="mt-4 text-ink-2">
             Unison&apos;s MCP server gives any agent that speaks the Model Context Protocol the venue&apos;s reads and two

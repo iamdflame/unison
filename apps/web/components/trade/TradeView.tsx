@@ -209,9 +209,10 @@ export function TradeView({ ticker }: { ticker: string }) {
         </div>
       </div>
 
-      {/* Under the thumb on phones and tablets: buy or sell opens the ticket as a sheet. */}
-      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 px-4 pb-3 sm:bottom-[env(safe-area-inset-bottom)] sm:pb-4 lg:hidden">
-        <div className="mx-auto flex max-w-md gap-1.5 rounded-full bg-raised/90 p-1.5 shadow-lg backdrop-blur-xl hairline [@media(prefers-reduced-transparency:reduce)]:bg-raised">
+      {/* Under the thumb on phones and tablets: docked on the tab bar, solid, so it never floats over the chart;
+          buy or sell opens the ticket as a sheet. */}
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t border-line bg-bg px-4 py-2.5 sm:bottom-0 sm:pb-[calc(0.625rem+env(safe-area-inset-bottom))] lg:hidden">
+        <div className="mx-auto flex max-w-md gap-2">
           <button
             type="button"
             onClick={() => openSheet("buy")}

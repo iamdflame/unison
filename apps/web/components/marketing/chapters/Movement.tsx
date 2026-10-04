@@ -63,7 +63,7 @@ export function Movement({ plates }: { plates: ReactNode[] }) {
                       transform: `translateZ(calc((${fromTop} - 2.5) * (34px + var(--p) * 40px)))`,
                       translate: i === active ? "0 0 18px" : "0 0 0",
                       opacity: i === active ? 1 : 0.7,
-                      color: i === active ? "var(--ink)" : "var(--champagne)",
+                      color: i === active ? "var(--ink)" : "var(--ink-3)",
                     }}
                   >
                     {plates[i]}

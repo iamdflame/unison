@@ -65,14 +65,7 @@ export function Audited() {
         </div>
         <figure className="lg:col-span-7">
           <svg viewBox="0 0 520 440" className="mx-auto h-auto w-full max-w-[620px]" role="img" aria-label="Seven independent nodes price the stock, agree on a median, and compare it with the reference. The deviation is within limits.">
-            {/* seven independent nodes as the jewels of a ring: each chaton is set with its ruby as the node reports */}
-            <defs>
-              <radialGradient id="au-jewel" cx="0.36" cy="0.32" r="0.75">
-                <stop offset="0" stopColor="oklch(0.86 0.08 20)" />
-                <stop offset="0.35" stopColor="oklch(0.58 0.17 22)" />
-                <stop offset="1" stopColor="oklch(0.34 0.12 20)" />
-              </radialGradient>
-            </defs>
+            {/* seven independent nodes as the jewels of a ring: each chaton is set, flat and engraved, as its node reports */}
             <circle cx="260" cy="220" r="170" fill="none" stroke="var(--champagne)" strokeWidth="0.8" />
             <circle cx="260" cy="220" r="176" fill="none" stroke="var(--champagne)" strokeWidth="0.5" strokeOpacity="0.6" />
             {Array.from({ length: NODES }, (_, i) => {
@@ -81,9 +74,8 @@ export function Audited() {
               return (
                 <g key={i}>
                   <line x1={x} y1={y} x2="260" y2="220" stroke={on ? "var(--champagne)" : "var(--line)"} strokeWidth="0.8" />
-                  <circle cx={x} cy={y} r="15" fill="var(--bg-raised)" stroke="var(--champagne)" strokeWidth={on ? 2.4 : 1} />
-                  <circle cx={x} cy={y} r="9.5" fill={on ? "url(#au-jewel)" : "none"} stroke={on ? "none" : "var(--line-strong)"} strokeWidth="0.8" style={{ transition: "fill 300ms ease-out" }} />
-                  {on ? <circle cx={x - 3} cy={y - 3.3} r="1.9" fill="oklch(1 0 0 / 0.85)" /> : null}
+                  <circle cx={x} cy={y} r="15" fill="var(--bg-raised)" stroke={on ? "var(--ink-3)" : "var(--line-strong)"} strokeWidth="1" />
+                  <circle cx={x} cy={y} r="9.5" fill={on ? "var(--champagne)" : "none"} stroke={on ? "none" : "var(--line-strong)"} strokeWidth="0.8" style={{ transition: "fill 300ms ease-out" }} />
                 </g>
               );
             })}

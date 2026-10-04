@@ -58,7 +58,9 @@ export function CrossChart({
   // Scaled to the meeting point, not to the deep walls at the window's edges (the vault's ladder, resting orders):
   // the cross is what this view is for. Deeper levels run off the top; the scale says how far up it goes.
   const peak = Math.max(1, ...demand, ...supply);
-  const focus = cross ? Math.min(peak, Math.max(cross.volume * 3.5, peak * 0.12, 1)) : peak;
+  // the depth within a few ticks of the cross sets the scale, so the meeting point and its shape fill the plot
+  const near = cross ? ticks.flatMap((t, i) => (Math.abs(t - cross.tick) <= 6 ? [demand[i]!, supply[i]!] : [])) : [];
+  const focus = cross ? Math.min(peak, Math.max(cross.volume * 2, ...near, 1)) : peak;
   const qStep = niceStep(focus * 1.08, 3);
   const maxQ = Math.ceil((focus * 1.08) / qStep) * qStep;
   const tStep = Math.max(1, Math.round(niceStep(hi - lo, W < 560 ? 3 : 5)));
@@ -92,6 +94,14 @@ export function CrossChart({
         <clipPath id="cross-plot">
           <rect x={P.l} y={P.t} width={W - P.l - P.r} height={H - P.t - P.b + 1} />
         </clipPath>
+        {/* deeper levels dissolve upward, out of the scale, instead of being cut square at the top */}
+        <linearGradient id="cross-fade-g" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#fff" stopOpacity="0" />
+          <stop offset={(36 / Math.max(1, H - P.t - P.b)).toFixed(3)} stopColor="#fff" stopOpacity="1" />
+        </linearGradient>
+        <mask id="cross-fade">
+          <rect x={P.l} y={P.t} width={W - P.l - P.r} height={H - P.t - P.b + 1} fill="url(#cross-fade-g)" />
+        </mask>
       </defs>
       {/* Outside the band: no fills there this batch */}
       {m.lo > lo ? (
@@ -123,9 +133,10 @@ export function CrossChart({
       <text x={W - P.r + 8} y={P.t - 18} fill="var(--ink-3)" style={{ fontSize: 11 }}>
         {unit}
       </text>
-      <g clipPath="url(#cross-plot)">
-        <path d={`${step(demand)}V${y(0)}H${x(lo - 0.5)}Z`} fill="var(--buy-soft)" />
-        <path d={`${step(supply)}V${y(0)}H${x(lo - 0.5)}Z`} fill="var(--sell-soft)" />
+      <g clipPath="url(#cross-plot)" mask="url(#cross-fade)">
+        {/* a faint wash under each curve; the lines carry the reading */}
+        <path d={`${step(demand)}V${y(0)}H${x(lo - 0.5)}Z`} fill="var(--buy-soft)" fillOpacity="0.45" />
+        <path d={`${step(supply)}V${y(0)}H${x(lo - 0.5)}Z`} fill="var(--sell-soft)" fillOpacity="0.45" />
         <path d={step(demand)} fill="none" stroke="var(--buy)" strokeWidth="1.8" />
         <path d={step(supply)} fill="none" stroke="var(--sell)" strokeWidth="1.8" />
       </g>

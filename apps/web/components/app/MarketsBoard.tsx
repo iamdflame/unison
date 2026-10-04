@@ -32,7 +32,7 @@ export function MarketsBoard() {
           <span>Market</span>
           <span>Last 180 trades</span>
           <span className="text-right">Last price</span>
-          <span className="text-right">Change</span>
+          <span className="text-right">Change since close</span>
           <span>Session and band</span>
           <span />
         </div>
@@ -45,7 +45,7 @@ export function MarketsBoard() {
         </ul>
       </div>
       <p className="mt-4 text-sm text-ink-3">
-        Change is measured from the last close while a market is closed, and against its reference while it trades.
+        Change is measured from the last close while a market is closed; a market that is trading shows it against its reference, and says so.
       </p>
     </>
   );
@@ -95,7 +95,8 @@ function Row({ spec }: { spec: MarketSpec }) {
       </div>
       <div className="hidden text-right md:block">
         <p className={`figures text-[15px] ${moveTone}`}>{moveText ?? "None yet"}</p>
-        <p className="text-[11px] text-ink-3">{basis}</p>
+        {/* the header says "since close"; only a market measured otherwise says so */}
+        {closed ? null : <p className="text-[11px] text-ink-3">{basis}</p>}
       </div>
       {/* the session as quiet text: on a weekend it is the same on most rows, so it never shouts */}
       <p className="hidden text-[13px] text-ink-2 md:block">

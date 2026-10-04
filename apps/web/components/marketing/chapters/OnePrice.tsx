@@ -68,7 +68,8 @@ export function OnePrice() {
           else setPhase("cleared");
         } else {
           setPhase("forming");
-          setArrived(0);
+          // the next batch opens on the orders already resting, as a real one does: never an empty book
+          setArrived(Math.floor(crowd.length / 2));
           setMine([]);
           setSeed((s) => s + 1);
         }

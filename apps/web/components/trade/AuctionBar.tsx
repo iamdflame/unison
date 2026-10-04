@@ -55,7 +55,7 @@ export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick:
               {Array.from({ length: cadence }, (_, i) => (
                 <span
                   key={i}
-                  className={`w-[5px] rounded-[1px] transition-colors duration-150 ${i === cadence - 1 ? "h-[18px]" : "h-3.5"} ${i < elapsed ? "bg-accent" : "bg-ink/[0.12]"}`}
+                  className={`w-[5px] rounded-[1px] transition-colors duration-150 ${i === cadence - 1 ? "h-[18px]" : "h-3.5"} ${i === elapsed - 1 ? "bg-accent" : i < elapsed ? "bg-ink/70" : "bg-ink/[0.12]"}`}
                 />
               ))}
             </span>

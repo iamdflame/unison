@@ -5,7 +5,7 @@ export const metadata: Metadata = { title: "Markets", description: "Every Unison
 
 export default function MarketsPage() {
   return (
-    <div className="mx-auto max-w-[1680px] px-4 py-8 sm:px-6 lg:py-12">
+    <div className="mx-auto max-w-[1680px] px-4 py-8 sm:px-6 lg:py-12 [&>*]:max-w-[1200px]">
       <h1 className="text-display-m text-ink">Markets</h1>
       <MarketsClient />
       <p className="mt-5 max-w-2xl text-sm leading-relaxed text-ink-3">

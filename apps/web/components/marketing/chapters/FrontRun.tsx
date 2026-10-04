@@ -50,8 +50,8 @@ export function FrontRun() {
             for.
           </p>
           <p className="text-lede mt-6 text-ink-2">
-            The same ±{facts.lp.spreadBps} bp quote earns liquidity{" "}
-            <span className="text-ink">{facts.lp.multiple}× more</span>: ${facts.lp.unisonVault} a day, against $
+            In the benchmark, liquidity quoting the same ±{facts.lp.spreadBps}&nbsp;bp keeps{" "}
+            <span className="text-ink">{facts.lp.multiple} times as much</span>: ${facts.lp.unisonVault} a day, against $
             {facts.lp.clobMakers} on an order book after snipers take their cut.
           </p>
         </div>
