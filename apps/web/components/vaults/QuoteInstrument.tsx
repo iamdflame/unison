@@ -102,7 +102,7 @@ export function QuoteInstrument({
           {!compact ? (
             <>
               <text x={x(refTick) + tickW / 2} y={12} textAnchor="middle" fill="var(--ink-2)" style={{ fontSize: 12 }}>
-                Reference {fmt(refTick)}
+                {status === "CLOSED" ? "Last close" : "Reference"} {fmt(refTick)}
               </text>
               {!halted ? (
                 <>
