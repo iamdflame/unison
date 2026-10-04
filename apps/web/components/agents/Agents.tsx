@@ -121,7 +121,7 @@ const RULES: [boolean, string][] = [
 
 function Panel({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-[var(--radius-xl)] bg-raised p-6 shadow-md sm:p-7">
+    <section className="rounded-[var(--radius-xl)] bg-raised p-6 shadow-panel sm:p-7">
       <h2 className="text-[17px] font-semibold text-ink">{title}</h2>
       <div className="mt-3">{children}</div>
     </section>
@@ -156,7 +156,7 @@ function KeyCard({ k, label, browser, onRevoke, busy }: { k: KeyView; label?: st
   const qty = Number(k.maxQty) / 1e18;
   const notional = Number(k.maxNotional) / 1e6;
   return (
-    <article className="relative overflow-hidden rounded-[var(--radius-xl)] bg-raised p-6 shadow-md sm:p-7" aria-label={`Session key ${short(k.key)}, ${status.toLowerCase()}`}>
+    <article className="relative overflow-hidden rounded-[var(--radius-xl)] bg-raised p-6 shadow-panel sm:p-7" aria-label={`Session key ${short(k.key)}, ${status.toLowerCase()}`}>
       {/* engraved rose, as on a watch's papers: equal circles through one centre */}
       <svg className="pointer-events-none absolute -right-16 -bottom-20 size-64 text-champagne opacity-[0.22]" viewBox="0 0 200 200" aria-hidden>
         {Array.from({ length: 48 }, (_, i) => (
@@ -349,7 +349,7 @@ function Minted({ minted, net, account }: { minted: { privateKey: Hex; address: 
   return (
     <div className="space-y-4">
       <KeyCard k={minted.caps} label="New" />
-      <section className="rounded-[var(--radius-xl)] bg-raised p-6 shadow-md sm:p-7" aria-label="Connect your agent">
+      <section className="rounded-[var(--radius-xl)] bg-raised p-6 shadow-panel sm:p-7" aria-label="Connect your agent">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-[17px] font-semibold text-ink">Give it to your agent</h2>
           <button type="button" onClick={() => setShown((s) => !s)} className="press inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-ink-2 hairline hover-fine:text-ink">
@@ -451,7 +451,7 @@ const TOOLS: [string, string][] = [
 
 function Tools() {
   return (
-    <section aria-labelledby="tools-title" className="mt-12 rounded-[var(--radius-xl)] bg-raised p-6 shadow-md sm:p-8">
+    <section aria-labelledby="tools-title" className="mt-12 rounded-[var(--radius-xl)] bg-raised p-6 shadow-panel sm:p-8">
       <div className="grid gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
         <div>
           <h2 id="tools-title" className="text-display-m text-ink">

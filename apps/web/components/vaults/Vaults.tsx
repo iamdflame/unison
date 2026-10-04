@@ -35,7 +35,7 @@ export function VaultIndex() {
       <p className="mt-2 min-h-5 max-w-3xl text-sm text-ink-3">
         {v.ready && v.mode === "demo" ? `Simulation: each vault's real parameters around a simulated reference, for a ${money(SIM_NAV, 0)} vault.` : ""}
       </p>
-      <div className="mt-8 overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-md">
+      <div className="mt-8 overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-panel">
         <div className={`hidden items-end gap-x-5 border-b border-line px-6 pt-4 pb-3 text-xs text-ink-3 md:grid ${cols}`} aria-hidden>
           <span>Vault</span>
           <span>
@@ -198,7 +198,7 @@ export function VaultDetail({ ticker }: { ticker: string }) {
         <RegimeBadge name={m.regime} bandBps={undefined} />
       </header>
 
-      <section aria-labelledby="quote-title" className="mt-8 rounded-[var(--radius-xl)] bg-raised p-6 shadow-md sm:p-8">
+      <section aria-labelledby="quote-title" className="mt-8 rounded-[var(--radius-xl)] bg-raised p-6 shadow-panel sm:p-8">
         <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
           <h2 id="quote-title" className="text-[17px] font-semibold text-ink">
             What it quotes now
@@ -213,7 +213,7 @@ export function VaultDetail({ ticker }: { ticker: string }) {
 
       {vault && nav !== null ? <Live vault={vault} nav={nav} px={px} ticker={spec.ticker} /> : null}
 
-      <section aria-labelledby="lp-title" className="mt-6 grid gap-8 rounded-[var(--radius-xl)] bg-raised p-6 shadow-md sm:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <section aria-labelledby="lp-title" className="mt-6 grid gap-8 rounded-[var(--radius-xl)] bg-raised p-6 shadow-panel sm:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div>
           <h2 id="lp-title" className="text-display-m text-ink">
             Joining is a request.
@@ -248,7 +248,7 @@ function Live({ vault, nav, px, ticker }: { vault: VaultLive; nav: number; px: n
   const total = Math.abs(vault.spreadPnl) + Math.abs(vault.inventoryPnl) || 1;
   return (
     <>
-      <section aria-label="Vault now" className="mt-6 grid gap-6 rounded-[var(--radius-xl)] bg-raised p-6 shadow-md sm:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+      <section aria-label="Vault now" className="mt-6 grid gap-6 rounded-[var(--radius-xl)] bg-raised p-6 shadow-panel sm:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <div>
           <p className="text-sm text-ink-3">Net asset value at the reference</p>
           <p className="numerals mt-2 text-[clamp(2.25rem,5vw,3.5rem)] leading-none text-ink">
@@ -301,7 +301,7 @@ function Live({ vault, nav, px, ticker }: { vault: VaultLive; nav: number; px: n
       </section>
 
       {vault.flows.length ? (
-        <section aria-labelledby="flows-title" className="mt-6 overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-md">
+        <section aria-labelledby="flows-title" className="mt-6 overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-panel">
           <h2 id="flows-title" className="px-6 pt-5 pb-3 text-[15px] font-semibold text-ink">
             LP requests
           </h2>

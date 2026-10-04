@@ -175,7 +175,7 @@ export function OrderTicket({
   return (
     <section
       aria-label="Order ticket"
-      className="rounded-[var(--radius-xl)] bg-raised shadow-md [scrollbar-width:thin] lg:max-h-[calc(100dvh-6.5rem)] lg:overflow-y-auto"
+      className="rounded-[var(--radius-xl)] bg-raised shadow-panel [scrollbar-width:thin] lg:max-h-[calc(100dvh-6.5rem)] lg:overflow-y-auto"
     >
       <div className="p-4 pb-0 sm:p-5 sm:pb-0">
         <div role="radiogroup" aria-label="Side" className="grid grid-cols-2 rounded-full bg-sunken p-1">

@@ -28,7 +28,7 @@ export function AuctionBar({ m, fmt }: { m: MarketState; fmt: (tick: number) => 
   const unitName = m.spec.ticker;
 
   return (
-    <section aria-label="Auctions" className="mt-5 rounded-[var(--radius-xl)] bg-raised px-5 py-3.5 shadow-sm">
+    <section aria-label="Auctions" className="mt-5 rounded-[var(--radius-xl)] bg-raised px-5 py-3.5 shadow-panel">
       <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
         <div className="flex items-center gap-3">
           {discovery ? (

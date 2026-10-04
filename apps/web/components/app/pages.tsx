@@ -19,7 +19,7 @@ export const TapeConsoleClient = dynamic(() => import("@/components/developers/L
 
 export const ContractsClient = dynamic(() => import("@/components/developers/LivePieces").then((m) => m.Contracts), {
   ssr: false,
-  loading: () => <div className="h-48 rounded-[var(--radius-xl)] bg-raised shadow-md" aria-busy="true" />,
+  loading: () => <div className="h-48 rounded-[var(--radius-xl)] bg-raised shadow-panel" aria-busy="true" />,
 });
 
 export const StatusClient = dynamic(() => import("@/components/status/Status").then((m) => m.Status), {
@@ -34,5 +34,5 @@ export const StrikeMarkClient = dynamic(() => import("@/components/brand/BrandLi
 
 export const PaletteClient = dynamic(() => import("@/components/brand/BrandLive").then((m) => m.Palette), {
   ssr: false,
-  loading: () => <div className="h-[640px] rounded-[var(--radius-xl)] bg-raised shadow-md" aria-busy="true" />,
+  loading: () => <div className="h-[640px] rounded-[var(--radius-xl)] bg-raised shadow-panel" aria-busy="true" />,
 });

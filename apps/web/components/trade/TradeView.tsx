@@ -127,7 +127,7 @@ export function TradeView({ ticker }: { ticker: string }) {
             <Tabs.Root
               value={view}
               onValueChange={(v) => setView(String(v))}
-              className="rounded-[var(--radius-xl)] bg-raised shadow-md"
+              className="rounded-[var(--radius-xl)] bg-raised shadow-panel"
             >
               <div className="flex items-center justify-between border-b border-line px-3 pt-3">
                 <Tabs.List className="relative flex gap-1" aria-label="Chart">
@@ -301,7 +301,7 @@ function Activity({
     <Tabs.Root
       value={tab}
       onValueChange={(v) => setTab(String(v))}
-      className="rounded-[var(--radius-xl)] bg-raised shadow-sm"
+      className="rounded-[var(--radius-xl)] bg-raised shadow-panel"
     >
       <Tabs.List className="flex gap-1 border-b border-line px-3 pt-3" aria-label="Activity">
         <Tabs.Tab value="orders" className="px-3 pb-3 text-sm font-medium text-ink-3 data-[active]:text-ink">

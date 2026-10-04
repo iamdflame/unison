@@ -123,7 +123,7 @@ export function OnePrice() {
             and the batch clears where they meet. Arriving first buys you nothing.
           </p>
 
-          <div className="mt-10 rounded-[var(--radius-xl)] bg-raised p-5 shadow-md">
+          <div className="mt-10 rounded-[var(--radius-xl)] bg-raised p-5 shadow-panel">
             <p className="text-sm font-medium text-ink">Add your order to the next batch</p>
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <div role="radiogroup" aria-label="Side" className="flex rounded-full bg-sunken p-1">

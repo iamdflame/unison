@@ -23,7 +23,7 @@ export function HeroSession() {
         </Link>
         <Link href="#one-price" className="group inline-flex items-center gap-2 text-[15px] font-medium text-ink">
           See a batch clear
-          <span aria-hidden className="transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover-fine:group-hover:translate-x-0.5">
+          <span aria-hidden className="transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:translate-x-0.5">
             →
           </span>
         </Link>

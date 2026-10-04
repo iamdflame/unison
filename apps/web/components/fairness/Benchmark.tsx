@@ -24,7 +24,7 @@ export function Benchmark() {
           </p>
         </div>
 
-        <div className="mt-12 overflow-x-auto rounded-[var(--radius-xl)] bg-raised shadow-md">
+        <div className="mt-12 overflow-x-auto rounded-[var(--radius-xl)] bg-raised shadow-panel">
           <table className="w-full min-w-[760px] text-left text-sm">
             <caption className="sr-only">Per day, on the same simulated path</caption>
             <thead>
@@ -87,7 +87,7 @@ export function Benchmark() {
           ))}
         </div>
 
-        <details className="group mt-14 rounded-[var(--radius-xl)] bg-raised p-6 shadow-sm sm:p-7">
+        <details className="group mt-14 rounded-[var(--radius-xl)] bg-raised p-6 shadow-panel sm:p-7">
           <summary className="cursor-pointer list-none text-[15px] font-semibold text-ink outline-none [&::-webkit-details-marker]:hidden">
             Assumptions and limits, stated <span className="ml-1 text-ink-3 transition-transform group-open:rotate-90">›</span>
           </summary>

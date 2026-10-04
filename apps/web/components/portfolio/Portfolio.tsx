@@ -69,7 +69,7 @@ export function Portfolio() {
     return (
       <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:py-12">
         <h1 className="text-display-m text-ink">Portfolio</h1>
-        <div className="mt-8 rounded-[var(--radius-xl)] bg-raised px-6 py-14 text-center shadow-md sm:py-20">
+        <div className="mt-8 rounded-[var(--radius-xl)] bg-raised px-6 py-14 text-center shadow-panel sm:py-20">
           <p className="text-display-m text-ink">Your account is your passkey.</p>
           <p className="mx-auto mt-4 max-w-md text-ink-2">Sign in with Face ID, Touch ID or Windows Hello to see your balances, orders and fills.</p>
           <button type="button" onClick={() => setSignInOpen(true)} onPointerEnter={preloadSignIn} onFocus={preloadSignIn} className="press mt-8 inline-flex items-center gap-2.5 rounded-full bg-ink px-6 py-3.5 text-[15px] font-semibold text-bg shadow-md">
@@ -125,7 +125,7 @@ function Account({ acct }: { acct: AccountState }) {
         </p>
       ) : null}
 
-      <section aria-label="Equity" className="mt-8 rounded-[var(--radius-xl)] bg-raised p-6 shadow-md sm:p-8">
+      <section aria-label="Equity" className="mt-8 rounded-[var(--radius-xl)] bg-raised p-6 shadow-panel sm:p-8">
         <p className="text-sm text-ink-3">Equity at reference prices</p>
         <p className="numerals mt-2 text-[clamp(2.5rem,7vw,4.75rem)] leading-none text-ink">
           <NumberFlow
@@ -261,7 +261,7 @@ function Allocation({ holdings, equity }: { holdings: Holding[]; equity: number 
 function Holdings({ holdings, equity }: { holdings: Holding[]; equity: number }) {
   const money = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   return (
-    <section aria-labelledby="holdings-title" className="mt-6 overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-md">
+    <section aria-labelledby="holdings-title" className="mt-6 overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-panel">
       <h2 id="holdings-title" className="px-6 pt-5 pb-3 text-[15px] font-semibold text-ink">
         Holdings
       </h2>
@@ -287,12 +287,12 @@ function Holdings({ holdings, equity }: { holdings: Holding[]; equity: number })
                 </div>
               </div>
               <div className="text-right">
-                <p className="tnum text-ink">{h.qty.toLocaleString("en-US", { maximumFractionDigits: h.spec ? qtyDigits : 2, minimumFractionDigits: h.spec ? 0 : 2 })}</p>
+                <p className="tnum text-ink">{h.qty.toLocaleString("en-US", { maximumFractionDigits: h.spec ? qtyDigits : 2 })}</p>
                 {h.locked > 1e-9 ? <p className="tnum text-xs text-ink-3">{h.locked.toLocaleString("en-US", { maximumFractionDigits: 2 })} in orders</p> : null}
               </div>
               <p className="tnum hidden text-right text-ink-2 md:block">{h.spec ? `$${h.price.toFixed(decimals)}` : "$1.00"}</p>
               <p className="tnum hidden text-right font-semibold text-ink md:block">{money(h.value)}</p>
-              <p className="tnum hidden text-right text-ink-3 md:block">{share.toFixed(share < 10 ? 1 : 0)}%</p>
+              <p className="tnum hidden text-right text-ink-3 md:block">{share.toFixed(1)}%</p>
               <div className="text-right md:hidden">
                 <p className="tnum font-semibold text-ink">{money(h.value)}</p>
                 <p className="tnum text-xs text-ink-3">{share.toFixed(1)}%</p>
@@ -334,7 +334,7 @@ function History({ acct }: { acct: AccountState }) {
   const fills = acct.fills.slice(0, 60);
 
   return (
-    <Tabs.Root value={tab} onValueChange={(t) => setTab(String(t))} className="mt-6 rounded-[var(--radius-xl)] bg-raised shadow-md">
+    <Tabs.Root value={tab} onValueChange={(t) => setTab(String(t))} className="mt-6 rounded-[var(--radius-xl)] bg-raised shadow-panel">
       <Tabs.List className="relative flex gap-1 border-b border-line px-3 pt-3" aria-label="Activity">
         {[
           ["orders", "Open orders", open.length],

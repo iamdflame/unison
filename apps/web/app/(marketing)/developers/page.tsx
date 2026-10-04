@@ -172,7 +172,7 @@ export default function DevelopersPage() {
           </h2>
           <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
             {SURFACE.map(([title, rows]) => (
-              <div key={title} className="overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-md">
+              <div key={title} className="overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-panel">
                 <p className="border-b border-line px-6 py-3.5 text-[15px] font-semibold text-ink">{title}</p>
                 <dl className="divide-y divide-line">
                   {rows.map(([route, what]) => (

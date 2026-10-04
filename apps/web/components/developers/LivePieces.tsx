@@ -135,7 +135,7 @@ export function Contracts() {
     ...Object.values(d.tokens ?? {}).map((t) => [t.symbol, t.address] as [string, string]),
   ];
   return (
-    <div className="overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-md">
+    <div className="overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-panel">
       <p className="border-b border-line px-6 py-3 text-xs text-ink-3">
         {v.net.network === "mainnet" ? "Monad" : v.net.network === "testnet" ? "Monad testnet" : "Local devnet"} · chain {d.chainId}
       </p>

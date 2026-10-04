@@ -104,7 +104,7 @@ export function Status() {
       </section>
 
       <section aria-label="Services" className="mx-auto max-w-[1440px] px-5 pb-10 sm:px-8 lg:px-12">
-        <ul className="divide-y divide-line overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-md">
+        <ul className="divide-y divide-line overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-panel">
           {rows.map(([name, what, p, detail]) => {
             const level = p?.level ?? "down";
             return (
@@ -128,7 +128,7 @@ export function Status() {
         <h2 id="markets-status" className="text-[17px] font-semibold text-ink">
           Markets
         </h2>
-        <div className="mt-4 overflow-x-auto rounded-[var(--radius-xl)] bg-raised shadow-md">
+        <div className="mt-4 overflow-x-auto rounded-[var(--radius-xl)] bg-raised shadow-panel">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead>
               <tr className="border-b border-line text-xs text-ink-3">
@@ -198,7 +198,7 @@ function SimulatedStatus() {
       </section>
 
       <section aria-label="Services" className="mx-auto max-w-[1440px] px-5 pb-10 sm:px-8 lg:px-12">
-        <ul className="divide-y divide-line overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-md">
+        <ul className="divide-y divide-line overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-panel">
           {rows.map(([name, what, detail, word, dot]) => (
             <li key={name} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-6 py-4 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto]">
               <div>
@@ -219,7 +219,7 @@ function SimulatedStatus() {
         <h2 id="markets-status" className="text-[17px] font-semibold text-ink">
           Markets, simulated
         </h2>
-        <div className="mt-4 overflow-x-auto rounded-[var(--radius-xl)] bg-raised shadow-md">
+        <div className="mt-4 overflow-x-auto rounded-[var(--radius-xl)] bg-raised shadow-panel">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead>
               <tr className="border-b border-line text-xs text-ink-3">

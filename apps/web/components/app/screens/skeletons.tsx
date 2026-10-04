@@ -4,7 +4,7 @@ export function Skeleton({ rows = 6, label }: { rows?: number; label: string }) 
     <div className="mx-auto max-w-[1280px] animate-pulse px-4 py-8 motion-reduce:animate-none sm:px-6 lg:py-12" aria-busy="true" aria-label={label}>
       <div className="h-11 w-48 rounded-2xl bg-sunken" />
       <div className="mt-4 h-5 w-80 max-w-full rounded-xl bg-sunken" />
-      <div className="mt-8 rounded-[var(--radius-xl)] bg-raised shadow-md" style={{ height: 56 + rows * 68 }} />
+      <div className="mt-8 rounded-[var(--radius-xl)] bg-raised shadow-panel" style={{ height: 56 + rows * 68 }} />
     </div>
   );
 }
@@ -14,7 +14,7 @@ export function VaultBoardSkeleton() {
   return (
     <div className="animate-pulse motion-reduce:animate-none" aria-busy="true" aria-label="Loading vaults">
       <div className="mt-2 h-5" />
-      <div className="mt-8 h-[1149px] md:h-[815px] rounded-[var(--radius-xl)] bg-raised shadow-md" />
+      <div className="mt-8 h-[1149px] md:h-[815px] rounded-[var(--radius-xl)] bg-raised shadow-panel" />
     </div>
   );
 }
@@ -31,7 +31,7 @@ export function BoardSkeleton() {
         <div className="h-6 w-72 max-w-full rounded-xl bg-sunken" />
       </div>
       <div className="mt-1 h-5" />
-      <div className="mt-8 h-[794px] rounded-[var(--radius-xl)] bg-raised shadow-md md:h-[810px]" />
+      <div className="mt-8 h-[794px] rounded-[var(--radius-xl)] bg-raised shadow-panel md:h-[810px]" />
     </div>
   );
 }

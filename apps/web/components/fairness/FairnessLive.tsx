@@ -88,7 +88,7 @@ export function FairnessLive() {
             ) : null}
           </div>
           <div className="lg:col-span-8">
-            <div className="rounded-[var(--radius-xl)] bg-raised p-6 shadow-md sm:p-8">
+            <div className="rounded-[var(--radius-xl)] bg-raised p-6 shadow-panel sm:p-8">
               {stats && stats.traded > 0 ? <Deviation stats={stats} /> : <p className="py-16 text-center text-sm text-ink-3">No traded batches in this window yet.</p>}
             </div>
             {live && v.net ? (
@@ -119,7 +119,7 @@ function Chain({ links, spec }: { links: ChainLink[]; spec: MarketSpec }) {
                 <span className={`h-px flex-1 ${l.ok ? "bg-champagne" : "bg-halt"}`} />
               </span>
             ) : null}
-            <div className="w-[180px] rounded-[var(--radius-lg)] bg-raised p-4 shadow-sm">
+            <div className="w-[180px] rounded-[var(--radius-lg)] bg-raised p-4 shadow-panel">
               <div className="flex items-center justify-between">
                 <span className="dial-label text-ink-3">Batch</span>
                 {l.ok ? (

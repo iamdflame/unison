@@ -26,7 +26,7 @@ export function MarketsBoard() {
         {v.ready && v.mode === "demo" ? "Simulation: every batch clears on the real clearing engine, in your browser." : ""}
       </p>
 
-      <div className="mt-8 overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-md">
+      <div className="mt-8 overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-panel">
         <div className="hidden grid-cols-[48px_minmax(0,1.5fr)_120px_minmax(120px,1fr)_minmax(170px,1fr)_20px] items-center gap-x-5 border-b border-line px-6 py-3 text-xs text-ink-3 md:grid" aria-hidden>
           <span />
           <span>Market</span>

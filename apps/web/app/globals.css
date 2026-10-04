@@ -9,7 +9,15 @@
 
 @custom-variant night (&:where([data-theme="night"], [data-theme="night"] *));
 @custom-variant day (&:where([data-theme="day"], [data-theme="day"] *));
-@custom-variant hover-fine (@media (hover: hover) and (pointer: fine));
+/* Hover, for a mouse: the pointer is over it, on a device that has one. (A bare media query here would apply the
+   "hover" style all the time on every desktop, and never on touch.) */
+@custom-variant hover-fine {
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      @slot;
+    }
+  }
+}
 
 :root,
 [data-theme="day"] {
@@ -60,6 +68,9 @@
     0 100px 80px rgba(0, 0, 0, 0.12);
   /* Something that floats over the page (the nav pill): close and soft, never a cloud on the page beneath. */
   --shadow-float-v: 0 0 0 1px rgba(25, 28, 33, 0.06), 0 1px 2px rgba(25, 28, 33, 0.06), 0 10px 24px -10px rgba(25, 28, 33, 0.22);
+  /* A panel seated in the page (a board, a ticket, a table): a hairline and a contact shadow, no drop. Structure
+     comes from hairlines; only what floats over the page (sheets, menus, toasts) casts a shadow. */
+  --shadow-panel-v: 0 0 0 1px rgba(25, 28, 33, 0.07), 0 1px 2px -1px rgba(25, 28, 33, 0.08);
 }
 
 [data-theme="night"] {
@@ -107,6 +118,7 @@
   --shadow-lg-v: inset 0 1px 0 0 oklch(1 0 0 / 0.07), 0 0 0 1px oklch(1 0 0 / 0.08),
     0 40px 80px -20px rgba(0, 0, 0, 0.7);
   --shadow-float-v: inset 0 1px 0 0 oklch(1 0 0 / 0.06), 0 0 0 1px oklch(1 0 0 / 0.08), 0 12px 28px -12px rgba(0, 0, 0, 0.6);
+  --shadow-panel-v: inset 0 1px 0 0 oklch(1 0 0 / 0.05), 0 0 0 1px oklch(1 0 0 / 0.075);
 }
 
 /* Colorblind-safe buy/sell (steel and amber), chosen in the light switch. The soft tints follow --buy and --sell on
@@ -175,6 +187,7 @@
   --shadow-md: var(--shadow-md-v);
   --shadow-lg: var(--shadow-lg-v);
   --shadow-float: var(--shadow-float-v);
+  --shadow-panel: var(--shadow-panel-v);
 }
 
 /* ---------------------------------------------------------------- motion tokens (also in lib/motion/tokens.ts) */
