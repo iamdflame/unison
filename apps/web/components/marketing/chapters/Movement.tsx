@@ -5,19 +5,20 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useRef, useState } from "react";
 import { facts } from "@/lib/content/facts";
+import { MovementPart } from "./MovementParts";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 /**
- * Chapter 5: the movement. Six engraved plates (the system's layers) stacked like a watch movement, separating as
- * you scroll the way Apple shows an exploded device. The copy follows the plate in focus. Reduced motion: the
- * movement is shown already exploded, with every layer described.
+ * Chapter 5: the movement. The system's six layers drawn as the watch parts that do the same job (jewelled top
+ * plate, striped plate, escape wheel, balance, barrel, main plate), exploded on one axis as you scroll, the way a
+ * maison's catalogue shows a calibre. The copy follows the part in focus. Reduced motion: shown already exploded.
  */
 const PLATES = [
   { name: "Gateway", line: "Orders signed with a passkey, a wallet, or an agent key with limits. Relayed without gas." },
   { name: "Book", line: `Every price level of a batch, aggregated in page-aligned storage, so an order costs about $${facts.gas.orderUsd}.` },
   { name: "Clearing", line: "One uniform price: the most volume, then the least imbalance, then the closest to the reference." },
-  { name: "References", line: "Signed after the batch closes, bound to it, and audited by Chainlink every 30 seconds." },
+  { name: "References", line: "Signed after the batch closes, bound to it, and checked by Chainlink every 30 seconds (in simulation today)." },
   { name: "Vault", line: "Liquidity that quotes around the reference and has nothing to lose to snipers." },
   { name: "Compliance", line: "Volume caps, eligibility and halts from the SEC's tokenized-venue rules, written as code." },
 ] as const;
@@ -83,26 +84,10 @@ export function Movement() {
                 return (
                   <div
                     key={p.name}
-                    className="absolute inset-[14%] rounded-[34px] border border-line-strong shadow-lg transition-opacity duration-300"
-                    style={{
-                      transform: `translateZ(calc(${fromTop} * (14px + var(--p) * 96px)))`,
-                      background:
-                        "radial-gradient(120% 120% at 30% 20%, var(--bg-raised), var(--bg-sunken)), repeating-radial-gradient(circle at 50% 50%, transparent 0 6px, var(--engrave) 6px 7px)",
-                      backgroundBlendMode: "normal",
-                      opacity: i === active ? 1 : 0.92,
-                    }}
+                    className="absolute inset-[10%] transition-opacity duration-300"
+                    style={{ transform: `translateZ(calc((${fromTop} - 2.5) * (10px + var(--p) * 62px)))`, opacity: i === active ? 1 : 0.62 }}
                   >
-                    <div
-                      className="absolute inset-0 rounded-[34px] opacity-60"
-                      style={{ background: "repeating-radial-gradient(circle at 50% 50%, transparent 0 7px, var(--engrave) 7px 8px)" }}
-                    />
-                    <span className="dial-label absolute bottom-6 left-7 text-ink-2" style={{ fontSize: 13 }}>
-                      {p.name}
-                    </span>
-                    <span
-                      className="absolute top-6 right-7 size-3 rounded-full transition-colors duration-300"
-                      style={{ background: i === active ? "var(--ball-3)" : "var(--line-strong)" }}
-                    />
+                    <MovementPart name={p.name} />
                   </div>
                 );
               })}
