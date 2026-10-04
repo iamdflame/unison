@@ -297,7 +297,7 @@ export class UnisonClient {
 
   async vault(address: Address) {
     const c = { address, abi: liquidityVaultAbi } as const;
-    const [balances, spreadPnl, inventoryPnl, totalSupply, head, queueLength, params] = await Promise.all([
+    const [balances, spreadPnl, inventoryPnl, totalSupply, head, queueLength, params, auctionsTraded, tradedBase] = await Promise.all([
       this.publicClient.readContract({ ...c, functionName: "balances" }),
       this.publicClient.readContract({ ...c, functionName: "spreadPnl" }),
       this.publicClient.readContract({ ...c, functionName: "inventoryPnl" }),
@@ -305,6 +305,8 @@ export class UnisonClient {
       this.publicClient.readContract({ ...c, functionName: "head" }),
       this.publicClient.readContract({ ...c, functionName: "queueLength" }),
       this.publicClient.readContract({ ...c, functionName: "params" }),
+      this.publicClient.readContract({ ...c, functionName: "auctionsTraded" }),
+      this.publicClient.readContract({ ...c, functionName: "tradedBase" }),
     ]);
     return {
       baseBalance: balances[0],
@@ -314,6 +316,9 @@ export class UnisonClient {
       totalSupply,
       pendingRequests: queueLength - head,
       params,
+      /** auctions the vault traded in, and base it bought plus sold, all time */
+      auctionsTraded,
+      tradedBase,
     };
   }
 

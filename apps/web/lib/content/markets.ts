@@ -17,6 +17,27 @@ export interface MarketSpec {
   regime: { extBandBps: number; reopenBandBps: number; discFloorBps: number; discCapBps: number; discHorizonSec: number; discCadence: number };
   /** quote units (AUSD, 6 decimals) */
   seedPrice: bigint;
+  /** LiquidityVault.Params (deploy config), or null for a market without a vault */
+  vault: VaultParams | null;
+}
+
+export interface VaultParams {
+  /** half-spread at OPEN */
+  spreadBps: number;
+  /** NAV fraction quoted per tick per side */
+  depthBps: number;
+  /** ticks per side */
+  widthTicks: number;
+  /** skew at 100% / 0% base weight */
+  maxSkewTicks: number;
+  /** NAV fraction a side may trade in one auction */
+  maxAuctionBps: number;
+  /** fee on flows executed while the reference market is closed or halted */
+  swingBps: number;
+  /** spread multiplier in EXTENDED */
+  extMult: number;
+  /** spread multiplier in CLOSED (DISCOVERY) */
+  closedMult: number;
 }
 
 const NAMES: Record<string, [string, string, MarketSpec["kind"]]> = {
@@ -59,8 +80,15 @@ export const MARKETS: readonly MarketSpec[] = (config.markets as RawMarket[]).ma
       discCadence: discCadence!,
     },
     seedPrice: BigInt(m.seedPrice),
+    vault: vaultParams((m as { vault?: number[] }).vault),
   };
 });
+
+function vaultParams(v: number[] | undefined): VaultParams | null {
+  if (!v || v.length < 8) return null;
+  const [spreadBps, depthBps, widthTicks, maxSkewTicks, maxAuctionBps, swingBps, extMult, closedMult] = v as [number, number, number, number, number, number, number, number];
+  return { spreadBps, depthBps, widthTicks, maxSkewTicks, maxAuctionBps, swingBps, extMult, closedMult };
+}
 
 export const marketByTicker = (ticker: string) => MARKETS.find((m) => m.ticker.toLowerCase() === ticker.toLowerCase());
 

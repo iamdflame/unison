@@ -30,3 +30,13 @@ export const AgentsClient = dynamic(() => import("@/components/agents/Agents").t
   ssr: false,
   loading: () => <Skeleton rows={5} label="Loading agents" />,
 });
+
+export const VaultsClient = dynamic(() => import("@/components/vaults/Vaults").then((m) => m.VaultIndex), {
+  ssr: false,
+  loading: () => <Skeleton rows={6} label="Loading vaults" />,
+});
+
+export const VaultDetailClient = dynamic(() => import("@/components/vaults/Vaults").then((m) => m.VaultDetail), {
+  ssr: false,
+  loading: () => <Skeleton rows={5} label="Loading the vault" />,
+});
