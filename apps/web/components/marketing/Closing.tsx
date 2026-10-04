@@ -2,6 +2,7 @@
 
 import { ChartSpline, Fingerprint } from "lucide-react";
 import Link from "next/link";
+import { site } from "@/lib/content/site";
 import { useMarketMoment } from "@/lib/time/useMarketMoment";
 import { ctaLabel } from "@/lib/time/market";
 
@@ -26,7 +27,7 @@ export function Closing() {
           <ChartSpline size={18} strokeWidth={1.5} aria-hidden /> Trade on paper
         </Link>
       </div>
-      <p className="mt-8 text-xs text-ink-3">Monad testnet with mock assets. Not yet externally audited. Not available to US persons.</p>
+      <p className="mt-8 text-xs text-ink-3">{site.disclosure}</p>
     </section>
   );
 }

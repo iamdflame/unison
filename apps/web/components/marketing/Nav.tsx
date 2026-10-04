@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { ThemeMenu } from "@/components/ui/ThemeMenu";
+import { site } from "@/lib/content/site";
 import { MobileMenu } from "./MobileMenu";
 
 const LINKS = [
@@ -34,6 +35,8 @@ export function Nav({ brand }: { brand: ReactNode }) {
         <Link href="/" className="flex items-center rounded-full py-1.5 pr-2 outline-offset-4" aria-label="Unison, home">
           {brand}
         </Link>
+        {/* the venue's stage, always in view */}
+        <span className="hidden rounded-full px-2 py-0.5 text-[11px] font-medium text-ink-3 hairline sm:inline">{site.stage}</span>
         <ul className="mx-auto hidden items-center gap-1 md:flex">
           {LINKS.map((l) => (
             <li key={l.href}>

@@ -19,12 +19,15 @@ const VENUES = [
   { name: "Unison", note: "batch + late reference", value: facts.sniper.unison, us: true },
 ] as const;
 
+/** The share of the plot the largest bar fills; the rest is headroom for its figure. */
+const PLOT = 0.78;
+
 export function FrontRun() {
   const ref = useRef<HTMLDivElement>(null);
   const mark = useRef<EmblemHandle>(null);
   const shown = useInView(ref, { threshold: 0.35 });
   const [revealed, setRevealed] = useState(0);
-  const max = VENUES[0].value;
+  const max = Math.max(...VENUES.map((v) => v.value));
 
   // Columns engrave left to right, Unison last; its zero lands with a strike of the mark.
   useEffect(() => {
@@ -54,35 +57,39 @@ export function FrontRun() {
         </div>
 
         <figure ref={ref} className="lg:col-span-7">
-          <div className="grid grid-cols-4 items-end gap-3 sm:gap-6" style={{ height: "clamp(260px, 34vw, 420px)" }}>
+          <p className="text-sm font-medium text-ink-2">Taken by snipers, per day (simulation)</p>
+          {/* To scale: every bar is value ÷ largest of one plot height; the figures sit above their bars, outside it */}
+          <div className="mt-6 grid grid-cols-4 gap-3 sm:gap-6">
             {VENUES.map((v, i) => {
-              const h = v.value / max;
+              const h = (v.value / max) * PLOT;
               return (
-                <div key={v.name} className="flex h-full flex-col justify-end">
-                  <div
-                    className="numerals mb-3 leading-none text-ink"
-                    style={{ fontSize: "clamp(1.25rem, 2.6vw, 2.5rem)" }}
-                  >
-                    <NumberFlow
-                      value={revealed > i ? v.value : 0}
-                      locales="en-US"
-                      format={{ style: "currency", currency: "USD", maximumFractionDigits: 0 }}
-                      transformTiming={{ duration: 900, easing: "cubic-bezier(0.23, 1, 0.32, 1)" }}
-                      spinTiming={{ duration: 900, easing: "cubic-bezier(0.23, 1, 0.32, 1)" }}
-                    />
-                  </div>
-                  {"us" in v && v.us ? (
-                    <div className="relative h-px bg-ink">
-                      <span className="absolute -top-[14px] left-1/2 -translate-x-1/2 text-ink">
-                        <Emblem ref={mark} size={28} jewel title="Unison" />
-                      </span>
-                    </div>
-                  ) : (
+                <div key={v.name}>
+                  <div className="relative" style={{ height: "clamp(230px, 30vw, 360px)" }}>
                     <div
-                      className="origin-bottom rounded-t-[3px] bg-ink/[0.86] transition-[scale] duration-[900ms] ease-[cubic-bezier(0.23,1,0.32,1)] night:bg-champagne/80"
-                      style={{ height: `${Math.max(h * 100, 0.6)}%`, scale: `1 ${revealed > i ? 1 : 0.02}` }}
-                    />
-                  )}
+                      className="numerals absolute left-0 leading-none text-ink"
+                      style={{ fontSize: "clamp(1.25rem, 2.6vw, 2.5rem)", bottom: `calc(${h * 100}% + 12px)` }}
+                    >
+                      <NumberFlow
+                        value={revealed > i ? v.value : 0}
+                        locales="en-US"
+                        format={{ style: "currency", currency: "USD", maximumFractionDigits: 0 }}
+                        transformTiming={{ duration: 900, easing: "cubic-bezier(0.23, 1, 0.32, 1)" }}
+                        spinTiming={{ duration: 900, easing: "cubic-bezier(0.23, 1, 0.32, 1)" }}
+                      />
+                    </div>
+                    {"us" in v && v.us ? (
+                      <div className="absolute inset-x-0 bottom-0 h-px bg-ink">
+                        <span className="absolute -top-[14px] left-1/2 -translate-x-1/2 text-ink">
+                          <Emblem ref={mark} size={28} jewel title="Unison" />
+                        </span>
+                      </div>
+                    ) : (
+                      <div
+                        className="absolute inset-x-0 bottom-0 origin-bottom rounded-t-[3px] bg-ink/[0.86] transition-[scale] duration-[900ms] ease-[cubic-bezier(0.23,1,0.32,1)] night:bg-champagne/80"
+                        style={{ height: `${h * 100}%`, scale: `1 ${revealed > i ? 1 : 0.02}` }}
+                      />
+                    )}
+                  </div>
                   <div className="mt-4 border-t border-line-strong pt-3">
                     <p className="text-sm font-medium text-ink">{v.name}</p>
                     <p className="text-xs text-ink-3">{v.note}</p>

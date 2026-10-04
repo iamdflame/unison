@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ResonanceDial } from "@/components/brand/ResonanceDial";
 import { marketByTicker } from "@/lib/content/markets";
+import { site } from "@/lib/content/site";
 import { HeroSession } from "./HeroSession";
 
 /**
@@ -23,6 +24,8 @@ export function Hero() {
             the batch closes, so no one can trade ahead of you.
           </p>
           <HeroSession />
+          {/* what the venue is today, before anyone presses a button */}
+          <p className="mt-8 max-w-xl text-[13px] leading-relaxed text-ink-3">{site.disclosure}</p>
         </div>
         <div className="mx-auto w-full max-w-[min(88vw,560px)] lg:col-span-6 lg:max-w-[680px] lg:justify-self-end">
           <ResonanceDial market={nvda} />

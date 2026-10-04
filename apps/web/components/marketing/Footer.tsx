@@ -35,7 +35,7 @@ export function Footer() {
           <Wordmark capHeight={200} master="display" title="" className="h-auto w-full" />
         </div>
         <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6 text-xs text-ink-3">
-          <p>Tokenized stocks on Monad. Testnet with mock assets. Not yet externally audited. Not available to US persons.</p>
+          <p>Tokenized stocks on Monad. {site.disclosure}</p>
           <p>MIT licensed · Built for the Monad Metropolis hackathon</p>
         </div>
       </div>
