@@ -18,21 +18,30 @@ const spiral = (r0: number, r1: number, turns: number, steps = 360) => {
   return d;
 };
 
-const LINE = { fill: "none", stroke: "var(--champagne)", strokeWidth: 1.1, vectorEffect: "non-scaling-stroke" as const };
+// drawn in the plate's colour: champagne at rest, ink when it is the part in focus
+const LINE = { fill: "none", stroke: "currentColor", strokeWidth: 1.1, vectorEffect: "non-scaling-stroke" as const };
 const FINE = { ...LINE, strokeWidth: 0.6, opacity: 0.7 };
 
-/** Gateway: the top plate, jewelled where orders come in. */
+/** Gateway: the top plate, jewelled where orders come in: cut rubies in gold chatons, lit from above. */
 function Gateway() {
   return (
     <>
+      <defs>
+        <radialGradient id="mv-jewel" cx="0.36" cy="0.32" r="0.75">
+          <stop offset="0" stopColor="oklch(0.86 0.08 20)" />
+          <stop offset="0.35" stopColor="oklch(0.58 0.17 22)" />
+          <stop offset="1" stopColor="oklch(0.34 0.12 20)" />
+        </radialGradient>
+      </defs>
       <circle cx={C} cy={C} r={R} {...LINE} />
       <circle cx={C} cy={C} r={R - 34} {...FINE} />
       {Array.from({ length: 12 }, (_, i) => {
         const [x, y] = polar(R - 17, i * 30);
         return (
           <g key={i}>
-            <circle cx={x} cy={y} r={7} fill="var(--sell)" opacity={0.75} />
-            <circle cx={x} cy={y} r={7} {...LINE} />
+            <circle cx={x} cy={y} r={9.5} fill="none" stroke="var(--champagne)" strokeWidth={2.2} />
+            <circle cx={x} cy={y} r={7} fill="url(#mv-jewel)" />
+            <circle cx={x - 2.2} cy={y - 2.4} r={1.4} fill="oklch(1 0 0 / 0.85)" />
           </g>
         );
       })}

@@ -37,10 +37,10 @@ export function Movement({ plates }: { plates: ReactNode[] }) {
               <li key={p.name}>
                 <div
                   className={`border-l-2 py-3 pl-5 transition-[border-color,opacity] duration-300 ${
-                    i === active ? "border-ink opacity-100" : "border-line opacity-45 motion-reduce:opacity-100"
+                    i === active ? "border-ink" : "border-line"
                   }`}
                 >
-                  <p className="text-[15px] font-semibold text-ink">{p.name}</p>
+                  <p className={`text-[15px] font-semibold transition-colors duration-300 ${i === active ? "text-ink" : "text-ink-3"}`}>{p.name}</p>
                   <p className={`mt-1 max-w-md text-sm leading-relaxed text-ink-2 ${i === active ? "" : "lg:hidden motion-reduce:block"}`}>{p.line}</p>
                 </div>
               </li>
@@ -56,8 +56,15 @@ export function Movement({ plates }: { plates: ReactNode[] }) {
                 return (
                   <div
                     key={p.name}
-                    className="absolute inset-[10%] transition-opacity duration-300"
-                    style={{ transform: `translateZ(calc((${fromTop} - 2.5) * (10px + var(--p) * 62px)))`, opacity: i === active ? 1 : 0.62 }}
+                    className="absolute inset-[10%] transition-[opacity,color,translate] duration-300"
+                    // parted from the start, so six plates read at once; the scroll opens them further, and the part in
+                    // focus lifts a little and is drawn in ink
+                    style={{
+                      transform: `translateZ(calc((${fromTop} - 2.5) * (34px + var(--p) * 40px)))`,
+                      translate: i === active ? "0 0 18px" : "0 0 0",
+                      opacity: i === active ? 1 : 0.7,
+                      color: i === active ? "var(--ink)" : "var(--champagne)",
+                    }}
                   >
                     {plates[i]}
                   </div>
