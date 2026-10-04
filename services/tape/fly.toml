@@ -1,0 +1,47 @@
+# Unison tape: public REST + SSE over an SQLite index on a volume. Deploy from the repo root (docs/DEPLOY.md):
+#   fly deploy . --config services/tape/fly.toml --dockerfile ops/docker/service.Dockerfile
+app = "unison-tape"
+primary_region = "iad"
+
+[build]
+  dockerfile = "../../ops/docker/service.Dockerfile"
+  [build.args]
+    SERVICE = "tape"
+
+[env]
+  PORT = "8790"
+  DEPLOYMENT = "/app/deployments/monad-testnet.json"
+  DB_PATH = "/data/tape.db"
+  RELAY_URL = "http://unison-relay.internal:8787"
+  CORS_ORIGINS = "https://unison.trade,https://www.unison.trade"
+  TRUST_PROXY = "1"
+  # secrets: RPC_URL, RPC_WS_URL
+
+[mounts]
+  source = "tape_data"
+  destination = "/data"
+  initial_size = "10gb"
+
+[http_service]
+  internal_port = 8790
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  # SSE clients hold a connection each
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 800
+    hard_limit = 1000
+
+  [[http_service.checks]]
+    grace_period = "30s"
+    interval = "15s"
+    method = "GET"
+    path = "/health"
+    timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
