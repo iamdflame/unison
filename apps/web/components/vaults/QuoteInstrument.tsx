@@ -138,7 +138,7 @@ export function QuoteInstrument({
                   role="radio"
                   aria-checked={status === s}
                   onClick={() => setStatus(s)}
-                  className={`press min-h-10 rounded-full px-3 text-sm font-medium transition-colors ${status === s ? "bg-ink text-bg shadow-sm" : "text-ink-2 hover-fine:text-ink"}`}
+                  className={`press min-h-10 rounded-full px-3 text-sm font-medium transition-colors ${status === s ? "bg-raised text-ink shadow-sm" : "text-ink-2 hover-fine:text-ink"}`}
                 >
                   {label}
                 </button>

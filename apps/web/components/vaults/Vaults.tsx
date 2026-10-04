@@ -187,7 +187,7 @@ export function VaultDetail({ ticker }: { ticker: string }) {
   const weight = vault && nav ? ((vault.base * px) / nav) * 100 : 50;
 
   return (
-    <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:py-12">
+    <div className="mx-auto max-w-[1680px] px-4 py-8 sm:px-6 lg:py-12">
       <Link href="/vaults" className="press -ml-2 inline-flex items-center gap-1 rounded-full px-2 py-1 text-sm text-ink-3 hover-fine:text-ink">
         <ChevronLeft size={15} strokeWidth={1.75} aria-hidden /> Vaults
       </Link>

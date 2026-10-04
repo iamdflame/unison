@@ -48,7 +48,7 @@ export function Audited() {
       <div ref={ref} className="grid grid-cols-1 items-center gap-x-16 gap-y-12 lg:grid-cols-12">
         <div className="lg:col-span-5">
           <h2 id="audited-title" className="text-display-l text-ink">
-            Checked by Chainlink, every {facts.cre.auditEverySec} seconds.
+            Audited from outside, every {facts.cre.auditEverySec}&nbsp;seconds.
           </h2>
           <p className="text-lede mt-6 text-ink-2">
             An independent Chainlink network re-prices every stock from separate market-data sources and compares the

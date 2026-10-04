@@ -26,7 +26,7 @@ export function LegalPage({ path, title, updated, intro, sections }: { path: str
             key={href}
             href={href}
             aria-current={href === path ? "page" : undefined}
-            className={`press rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${href === path ? "bg-ink text-bg" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
+            className={`press rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${href === path ? "bg-raised text-ink shadow-sm" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
           >
             {label}
           </Link>

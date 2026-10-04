@@ -44,7 +44,7 @@ export function AccountButton() {
         ) : (
           <>
             <span className="figures">{quote.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
-            <span className="hidden opacity-70 sm:inline">AUSD</span>
+            <span className="opacity-70">AUSD</span>
           </>
         )}
       </button>

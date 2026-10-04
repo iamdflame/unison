@@ -39,7 +39,7 @@ export function Agents() {
   return (
     <section aria-labelledby="agents-title" className="mx-auto max-w-[1440px] px-5 py-28 sm:px-8 lg:px-12 lg:py-32">
       <div ref={ref} className="grid grid-cols-1 items-center gap-x-16 gap-y-12 lg:grid-cols-12">
-        <div className="lg:col-span-5">
+        <div className="lg:col-span-6">
           <h2 id="agents-title" className="text-display-l text-ink">
             Built for agents.
             <br />
@@ -53,7 +53,7 @@ export function Agents() {
           <p className="mt-6 text-sm text-ink-3">Works with any MCP client, the TypeScript SDK, or plain signed messages.</p>
         </div>
 
-        <div className="relative lg:col-span-7">
+        <div className="relative lg:col-span-6">
           {/* The terminal is a night instrument in either light. */}
           <div data-theme="night" className="rounded-[var(--radius-2xl)] bg-[oklch(0.15_0.007_265)] p-1.5 text-ink shadow-float">
             <div className="flex items-center gap-2 px-4 py-3">

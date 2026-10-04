@@ -1,6 +1,6 @@
 "use client";
 
-import { ChartPie, ChartSpline, KeyRound, LayoutList, Vault } from "lucide-react";
+import { ChartPie, ChartSpline, KeyRound, Landmark, LayoutList } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -8,17 +8,17 @@ const TABS = [
   { href: "/trade/aNVDA", match: "/trade", label: "Trade", Icon: ChartSpline },
   { href: "/markets", match: "/markets", label: "Markets", Icon: LayoutList },
   { href: "/portfolio", match: "/portfolio", label: "Portfolio", Icon: ChartPie },
-  { href: "/vaults", match: "/vaults", label: "Vaults", Icon: Vault },
+  { href: "/vaults", match: "/vaults", label: "Vaults", Icon: Landmark },
   { href: "/keys", match: "/keys", label: "Agents", Icon: KeyRound },
 ] as const;
 
-/** Phones get the app's sections under the thumb: one glass bar, above the home indicator. */
+/** Phones get the app's sections under the thumb: one opaque bar, above the home indicator, so nothing reads through its labels. */
 export function TabBar() {
   const path = usePathname();
   return (
     <nav
       aria-label="App"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-line-strong bg-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-2xl sm:hidden [@media(prefers-reduced-transparency:reduce)]:bg-bg"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-line-strong bg-bg pb-[env(safe-area-inset-bottom)] sm:hidden"
     >
       <ul className="mx-auto grid h-16 max-w-md grid-cols-5">
         {TABS.map(({ href, match, label, Icon }) => {

@@ -61,7 +61,7 @@ export function Agents() {
   }));
 
   return (
-    <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:py-12">
+    <div className="mx-auto max-w-[1680px] px-4 py-8 sm:px-6 lg:py-12">
       <header className="max-w-3xl">
         <h1 className="text-display-m text-ink">Agents</h1>
         <p className="text-lede mt-4 text-ink-2">
@@ -259,7 +259,7 @@ function Mint({ net, onMinted }: { net: NetConfig; onMinted: (m: { privateKey: H
               role="checkbox"
               aria-checked={picked.has(m.id)}
               onClick={() => toggle(m.id)}
-              className={`press rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${picked.has(m.id) ? "bg-ink text-bg" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
+              className={`press rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${picked.has(m.id) ? "bg-raised text-ink shadow-sm" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
             >
               {m.ticker}
             </button>

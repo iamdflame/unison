@@ -91,7 +91,7 @@ export function WithdrawDialog({ open, onOpenChange, onDone }: { open: boolean; 
                 role="radio"
                 aria-checked={a.sym === sym}
                 onClick={() => setSym(a.sym)}
-                className={`press rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${a.sym === sym ? "bg-ink text-bg" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
+                className={`press rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${a.sym === sym ? "bg-raised text-ink shadow-sm" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
               >
                 {a.sym}
               </button>

@@ -45,7 +45,7 @@ export function FairnessLive() {
                 role="radio"
                 aria-checked={m.ticker === spec.ticker}
                 onClick={() => setTicker(m.ticker)}
-                className={`press tap rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${m.ticker === spec.ticker ? "bg-ink text-bg" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
+                className={`press tap rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${m.ticker === spec.ticker ? "bg-raised text-ink shadow-sm" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
               >
                 {m.ticker}
               </button>

@@ -258,7 +258,7 @@ export function OrderTicket({
               key={label}
               type="button"
               onClick={() => setPrice(t)}
-              className={`press tap figures rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${limit === t ? "bg-ink text-bg" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
+              className={`press tap figures rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${limit === t ? "bg-raised text-ink shadow-sm" : "bg-sunken text-ink-2 hover-fine:text-ink"}`}
             >
               {label} {fmt(t)}
             </button>
@@ -338,7 +338,7 @@ export function OrderTicket({
               role="radio"
               aria-checked={ioc === val}
               onClick={() => setIoc(val)}
-              className={`press min-h-9 rounded-full text-sm font-medium transition-colors duration-150 ${ioc === val ? "bg-ink text-bg shadow-sm" : "text-ink-2 hover-fine:text-ink"}`}
+              className={`press min-h-9 rounded-full text-sm font-medium transition-colors duration-150 ${ioc === val ? "bg-raised text-ink shadow-sm" : "text-ink-2 hover-fine:text-ink"}`}
             >
               {label}
             </button>

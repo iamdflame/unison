@@ -67,7 +67,7 @@ export function Portfolio() {
 
   if (v.ready && v.mode === "live" && !id) {
     return (
-      <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:py-12">
+      <div className="mx-auto max-w-[1680px] px-4 py-8 sm:px-6 lg:py-12">
         <h1 className="text-display-m text-ink">Portfolio</h1>
         <div className="mt-8 rounded-[var(--radius-xl)] bg-raised px-6 py-14 text-center shadow-panel sm:py-20">
           <p className="text-display-m text-ink">Your account is your passkey.</p>
@@ -110,7 +110,7 @@ function Account({ acct }: { acct: AccountState }) {
   const halted = held.filter((s) => marks[s.ticker]?.regime === "HALTED");
 
   return (
-    <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:py-12">
+    <div className="mx-auto max-w-[1680px] px-4 py-8 sm:px-6 lg:py-12">
       <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
         <div className="min-w-0">
           <h1 className="text-display-m text-ink">Portfolio</h1>
@@ -197,9 +197,9 @@ function Actions({ live }: { live: boolean }) {
           resetPaperAccount();
           toast("Paper account reset", { description: "Orders cancelled and starting balances restored." });
         }}
-        className="press inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-ink hairline"
+        className="press -mr-2 inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-sm font-medium text-ink-3 transition-colors hover-fine:text-ink"
       >
-        <RotateCcw size={15} strokeWidth={1.75} aria-hidden /> Reset paper account
+        <RotateCcw size={14} strokeWidth={1.75} aria-hidden /> Reset paper account
       </button>
     );
   }
@@ -248,11 +248,12 @@ function Actions({ live }: { live: boolean }) {
 function Allocation({ holdings, equity }: { holdings: Holding[]; equity: number }) {
   if (equity <= 0) return <div className="mt-7 h-2 rounded-full bg-sunken" aria-hidden />;
   return (
-    <div className="mt-7 flex h-2 gap-[3px] overflow-hidden rounded-full" aria-hidden>
+    // one continuous bar, rounded only at its ends; each holding a segment, divided by a hairline of the card
+    <div className="mt-7 flex h-2 gap-[2px] overflow-hidden rounded-full" aria-hidden>
       {holdings
         .filter((h) => h.value / equity >= 0.002)
         .map((h) => (
-          <span key={h.key} className="h-full rounded-full transition-[flex-grow] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]" style={{ flexGrow: h.value, flexBasis: 0, background: h.color }} />
+          <span key={h.key} className="h-full min-w-[2px] transition-[flex-grow] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]" style={{ flexGrow: h.value, flexBasis: 0, background: h.color }} />
         ))}
     </div>
   );
@@ -299,7 +300,8 @@ function Holdings({ holdings, equity }: { holdings: Holding[]; equity: number })
               </div>
             </>
           );
-          const cls = "grid grid-cols-[minmax(0,1.4fr)_auto_auto] items-center gap-x-5 px-6 py-3.5 md:grid-cols-[minmax(0,1.4fr)_1fr_1fr_1fr_80px]";
+          // fixed numeric columns on phones too, aligned on the first line, so every quantity and value shares an edge
+          const cls = "grid grid-cols-[minmax(0,1fr)_76px_108px] items-start gap-x-4 px-6 py-3.5 md:grid-cols-[minmax(0,1.4fr)_1fr_1fr_1fr_80px] md:items-center md:gap-x-5";
           return (
             <li key={h.key}>
               {h.spec ? (
