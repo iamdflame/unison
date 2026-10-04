@@ -7,10 +7,13 @@ import { curves } from "@/lib/sim/batch";
 /**
  * The terminal's three views of one market. Cross: the batch now forming, demand against supply, the band shaded
  * outside, the last uniform price as the ball. Prints: every batch print against the reference. Depth: the resting
- * ladder around the reference with your orders marked.
+ * ladder around the reference with your orders marked. Charts draw at their measured size, so type stays type-size
+ * on a phone instead of shrinking with a fixed drawing.
  */
-const W = 900;
-const H = 420;
+export interface ChartSize {
+  w?: number;
+  h?: number;
+}
 
 function Ball({ x, y, r = 8 }: { x: number; y: number; r?: number }) {
   return (
@@ -38,7 +41,11 @@ export function simulatedVault(refTick: number) {
   return v;
 }
 
-export function CrossChart({ m, fmt, live = false }: { m: MarketState; fmt: (tick: number) => string; live?: boolean }) {
+const axisTicks = (lo: number, hi: number, n: number) => Array.from({ length: n }, (_, i) => lo + Math.round(((hi - lo) * i) / (n - 1)));
+
+export function CrossChart({ m, fmt, live = false, w = 900, h = 420 }: { m: MarketState; fmt: (tick: number) => string; live?: boolean } & ChartSize) {
+  const W = Math.max(280, w);
+  const H = Math.max(200, h);
   const span = Math.max(12, Math.min(48, Math.round((m.hi - m.lo) / 2)));
   const lo = m.refTick - span;
   const hi = m.refTick + span;
@@ -73,8 +80,8 @@ export function CrossChart({ m, fmt, live = false }: { m: MarketState; fmt: (tic
       <path d={step(demand)} fill="none" stroke="var(--buy)" strokeWidth="1.8" />
       <path d={step(supply)} fill="none" stroke="var(--sell)" strokeWidth="1.8" />
       <line x1={P.l} x2={W - P.r} y1={y(0)} y2={y(0)} stroke="var(--line-strong)" />
-      {Array.from({ length: 5 }, (_, i) => lo + Math.round(((hi - lo) * i) / 4)).map((t) => (
-        <text key={t} x={x(t)} y={H - 16} textAnchor="middle" className="tnum" fill="var(--ink-3)" style={{ fontSize: 13 }}>
+      {axisTicks(lo, hi, W < 560 ? 3 : 5).map((t, i, a) => (
+        <text key={t} x={x(t)} y={H - 16} textAnchor={i === 0 ? "start" : i === a.length - 1 ? "end" : "middle"} className="tnum" fill="var(--ink-3)" style={{ fontSize: 12 }}>
           {fmt(t)}
         </text>
       ))}
@@ -98,7 +105,9 @@ export function CrossChart({ m, fmt, live = false }: { m: MarketState; fmt: (tic
   );
 }
 
-export function PrintsChart({ m, fmt }: { m: MarketState; fmt: (tick: number) => string }) {
+export function PrintsChart({ m, fmt, w = 900, h = 420 }: { m: MarketState; fmt: (tick: number) => string } & ChartSize) {
+  const W = Math.max(280, w);
+  const H = Math.max(200, h);
   const prints = m.prints.slice(-240);
   if (prints.length < 2) return <div className="grid h-full place-items-center text-sm text-ink-3">Waiting for prints…</div>;
   const ticks = prints.flatMap((p) => [p.tick, p.refTick]);

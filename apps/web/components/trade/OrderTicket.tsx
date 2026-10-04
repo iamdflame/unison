@@ -2,13 +2,12 @@
 
 import { buyLock } from "@unison/engine";
 import { Minus, Plus } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { account } from "@/lib/demo/engine";
 import { useStore } from "@/lib/store/createStore";
 import { useMarket, useVenue, useVenueAccount } from "@/lib/venue";
 import { identity } from "@/lib/venue/identity";
-import { liveAccount, orderAliases } from "@/lib/venue/live";
+import { watchOrder } from "@/lib/venue/orderWatch";
 import { SignIn } from "@/components/app/SignIn";
 import { certificate, certificateFor } from "./Certificate";
 import { priceFormat } from "@/lib/content/markets";
@@ -17,20 +16,18 @@ import { simulatedVault } from "./charts";
 
 /**
  * The order ticket. Every number on it is exact: the lock is the contract's `buyLock` (notional at your limit plus
- * the maximum fee), and the indicative fill runs the clearing engine on the live book with your order added.
+ * the market's fee cap), and the indicative fill runs the clearing engine on the live book with your order added.
  */
-const MAX_FEE_BPS = 10n;
-
-export function OrderTicket({ ticker }: { ticker: string }) {
+export function OrderTicket({ ticker, defaultSide = "buy", onPlaced }: { ticker: string; defaultSide?: "buy" | "sell"; onPlaced?: () => void }) {
   const { market, value: m, spec, live } = useMarket(ticker, (s) => ({ refTick: s.refTick, lo: s.lo, hi: s.hi, book: s.book }));
   const free = useVenueAccount((a) => ({ quote: a.quote, base: a.base[ticker] ?? 0 }));
   const v = useVenue();
   const signedIn = !!useStore(identity, (x) => x);
   const needsSignIn = live && !signedIn;
   const [signInOpen, setSignInOpen] = useState(false);
-  const { unit, decimals, fmt } = priceFormat(spec);
+  const { unit, fmt } = priceFormat(spec);
 
-  const [side, setSide] = useState<"buy" | "sell">("buy");
+  const [side, setSide] = useState<"buy" | "sell">(defaultSide);
   const [offsetTicks, setOffsetTicks] = useState(2); // limit = reference + offset (buys) or − offset (sells)
   const [qtyText, setQtyText] = useState("1");
   const [ioc, setIoc] = useState(false);
@@ -39,9 +36,9 @@ export function OrderTicket({ ticker }: { ticker: string }) {
 
   const lock = useMemo(() => {
     if (side === "sell") return qty;
-    const l = buyLock(BigInt(Math.round(qty * 1e6)), BigInt(Math.round(limit * unit * 1e6)), MAX_FEE_BPS, 1_000_000n);
+    const l = buyLock(BigInt(Math.round(qty * 1e6)), BigInt(Math.round(limit * unit * 1e6)), BigInt(spec.maxFeeBps), 1_000_000n);
     return Number(l) / 1e6;
-  }, [side, qty, limit, unit]);
+  }, [side, qty, limit, unit, spec.maxFeeBps]);
   const affordable = side === "buy" ? lock <= free.quote : qty <= free.base;
   const inBand = limit >= m.lo && limit <= m.hi;
 
@@ -54,41 +51,6 @@ export function OrderTicket({ ticker }: { ticker: string }) {
   }, [m.book, m.refTick, m.lo, m.hi, side, limit, qty, live]);
 
   const maxQty = side === "buy" ? Math.floor((free.quote / (limit * unit * 1.001)) * 100) / 100 : free.base;
-  // The order the toast follows, as submitted (the ticket may change after).
-  const [sent, setSent] = useState<{ id: number; side: "buy" | "sell"; limit: number; ioc: boolean } | null>(null);
-  const toastId = useRef<string | number | null>(null);
-  const alias = useStore(orderAliases, (a) => (sent ? a[sent.id] : undefined));
-  const trackedId = alias ?? sent?.id ?? null;
-  const status = useVenueAccount((a) => {
-    const o = trackedId !== null ? (a.orders[ticker] ?? []).find((x) => x.id === trackedId) : undefined;
-    return o ? { status: o.status, filled: o.filled, qty: o.qty, quote: o.quote, settling: !!o.settling, batch: o.batches.at(-1) ?? null } : null;
-  });
-
-  // The toast follows your order: in the batch → filled at the batch's one price (or rests, or expires).
-  useEffect(() => {
-    if (!status || !sent || toastId.current === null) return;
-    const id = toastId.current;
-    if (status.status === "filled" || status.status === "partial") {
-      const fill = (v.mode === "live" ? liveAccount : account).get().fills.find((f) => f.orderId === trackedId); // newest first
-      const price = fill ? fmt(fill.tick) : `$${(status.quote / status.filled).toFixed(decimals)}`;
-      const of = status.status === "partial" ? ` of ${status.qty}` : "";
-      const rest = status.status !== "partial" ? "" : sent.ioc ? " The rest was released." : " The rest stays in the book at your limit.";
-      toast.success(`${sent.side === "buy" ? "Bought" : "Sold"} ${status.filled.toFixed(2)}${of} ${ticker} at ${price}`, {
-        id,
-        description: `The same price as everyone in batch ${(fill?.block ?? status.batch ?? 0).toLocaleString("en-US")}.${rest}`,
-        action: fill ? { label: "Certificate", onClick: () => certificate.set(certificateFor(fill, spec, v.mode === "live" ? v.net : null)) } : undefined,
-        duration: 8000,
-      });
-      toastId.current = null;
-    } else if (status.status === "expired") {
-      toast("Not filled this batch", { id, description: "Your this-batch-only order expired and your funds are released." });
-      toastId.current = null;
-    } else if (status.status === "open" && !status.settling) {
-      toast(`Resting at ${fmt(sent.limit)}`, { id, description: "It joins every batch until it fills or you cancel it." });
-      toastId.current = null;
-    }
-  }, [status, sent, ticker, decimals]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const submit = async () => {
     if (needsSignIn) {
       setSignInOpen(true);
@@ -100,10 +62,22 @@ export function OrderTicket({ ticker }: { ticker: string }) {
       toast.error(r.error);
       return;
     }
-    setSent({ id: r.id, side, limit, ioc });
-    toastId.current = toast.loading(`${side === "buy" ? "Buy" : "Sell"} ${qty} ${ticker} in the next batch`, {
+    const toastId = toast.loading(`${side === "buy" ? "Buy" : "Sell"} ${qty} ${ticker} in the next batch`, {
       description: live ? `Limit ${fmt(limit)} · signed and relayed, no gas` : `Limit ${fmt(limit)} · clears in about 0.3 s`,
     });
+    const net = live ? v.net : null;
+    watchOrder({
+      id: r.id,
+      ticker,
+      side,
+      limit,
+      ioc,
+      block: market.store.get().block,
+      toastId,
+      fmt,
+      onCertificate: (fill) => certificate.set(certificateFor(fill, spec, net)),
+    });
+    onPlaced?.();
   };
 
   const chips = side === "buy" ? [0, 2, 10, 50] : [0, 2, 10, 50];

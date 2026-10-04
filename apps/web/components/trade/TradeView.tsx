@@ -1,9 +1,10 @@
 "use client";
 
+import { Dialog } from "@base-ui/react/dialog";
 import { Tabs } from "@base-ui/react/tabs";
 import NumberFlow from "@number-flow/react";
 import { X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { RegimeBadge } from "@/components/app/RegimeBadge";
 import { BatchRing } from "@/components/app/BatchRing";
 import { useMarket, useVenue, useVenueAccount } from "@/lib/venue";
@@ -12,6 +13,7 @@ import type { MyFill, MyOrder } from "@/lib/demo/engine";
 import { certificate, certificateFor } from "./Certificate";
 import { OrderTicket } from "./OrderTicket";
 import { CrossChart, DepthLadder, PrintsChart } from "./charts";
+import { useSize } from "./useSize";
 
 /**
  * The trading terminal. One market: its price (engraved), regime and band, the batch now forming, and you.
@@ -25,9 +27,16 @@ export function TradeView({ ticker }: { ticker: string }) {
   const change = last && open ? ((last.tick - open.tick) / open.tick) * 100 : 0;
   const [view, setView] = useState<string>("cross");
   const v = useVenue();
+  // Phones and tablets: the ticket opens as a sheet from the thumb bar; `sheet` keeps it drawn while it closes.
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheet, setSheet] = useState<{ side: "buy" | "sell"; n: number }>({ side: "buy", n: 0 });
+  const openSheet = (side: "buy" | "sell") => {
+    setSheet((l) => ({ side, n: l.n + 1 }));
+    setSheetOpen(true);
+  };
 
   return (
-    <div className="mx-auto max-w-[1680px] px-4 py-5 sm:px-6 lg:py-7">
+    <div className="mx-auto max-w-[1680px] px-4 pt-5 pb-28 sm:px-6 lg:py-7">
       <header className="flex flex-wrap items-end gap-x-8 gap-y-4">
         <div>
           <h1 className="flex items-baseline gap-3">
@@ -78,7 +87,7 @@ export function TradeView({ ticker }: { ticker: string }) {
         </dl>
       </header>
 
-      <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="flex min-w-0 flex-col gap-5">
           <Tabs.Root value={view} onValueChange={(v) => setView(String(v))} className="rounded-[var(--radius-xl)] bg-raised shadow-md">
             <div className="flex items-center justify-between border-b border-line px-3 pt-3">
@@ -102,11 +111,11 @@ export function TradeView({ ticker }: { ticker: string }) {
                 {view === "cross" ? "Buyers and sellers, by limit. The ball is the last price." : view === "prints" ? "Every print against the reference (dashed)." : "Resting liquidity. Tap a level to use its price."}
               </p>
             </div>
-            <Tabs.Panel value="cross" className="aspect-[900/420] w-full p-2">
-              <CrossChart m={m} fmt={fmt} live={live} />
+            <Tabs.Panel value="cross" className="h-[clamp(250px,42vw,440px)] w-full p-2">
+              <Measured>{(w, h) => <CrossChart m={m} fmt={fmt} live={live} w={w} h={h} />}</Measured>
             </Tabs.Panel>
-            <Tabs.Panel value="prints" className="aspect-[900/420] w-full p-2">
-              <PrintsChart m={m} fmt={fmt} />
+            <Tabs.Panel value="prints" className="h-[clamp(250px,42vw,440px)] w-full p-2">
+              <Measured>{(w, h) => <PrintsChart m={m} fmt={fmt} w={w} h={h} />}</Measured>
             </Tabs.Panel>
             <Tabs.Panel value="depth" className="min-h-[420px] w-full">
               <DepthLadder m={m} fmt={fmt} live={live} />
@@ -120,10 +129,48 @@ export function TradeView({ ticker }: { ticker: string }) {
             onCertificate={(f) => certificate.set(certificateFor(f, spec, live ? v.net : null))}
           />
         </div>
-        <div className="xl:sticky xl:top-20 xl:self-start">
+        <div className="hidden lg:sticky lg:top-20 lg:block lg:self-start">
           <OrderTicket ticker={ticker} />
         </div>
       </div>
+
+      {/* Under the thumb on phones and tablets: buy or sell opens the ticket as a sheet. */}
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 px-4 pb-3 sm:bottom-[env(safe-area-inset-bottom)] sm:pb-4 lg:hidden">
+        <div className="mx-auto flex max-w-md gap-1.5 rounded-full bg-raised/90 p-1.5 shadow-lg backdrop-blur-xl hairline [@media(prefers-reduced-transparency:reduce)]:bg-raised">
+          <button type="button" onClick={() => openSheet("buy")} className="press flex-1 rounded-full bg-buy py-3 text-[15px] font-semibold text-bg">
+            Buy
+          </button>
+          <button type="button" onClick={() => openSheet("sell")} className="press flex-1 rounded-full bg-sell py-3 text-[15px] font-semibold text-bg">
+            Sell
+          </button>
+        </div>
+      </div>
+      <Dialog.Root open={sheetOpen} onOpenChange={setSheetOpen}>
+        <Dialog.Portal>
+          <Dialog.Backdrop className="fixed inset-0 z-[80] bg-scrim backdrop-blur-[2px] transition-opacity duration-300 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
+          <Dialog.Popup className="fixed inset-x-0 bottom-0 z-[81] mx-auto max-h-[90dvh] max-w-lg overflow-y-auto rounded-t-[var(--radius-2xl)] bg-raised pb-[env(safe-area-inset-bottom)] shadow-lg outline-none transition-transform duration-[320ms] ease-[cubic-bezier(0.32,0.72,0,1)] data-[ending-style]:translate-y-full data-[ending-style]:duration-[240ms] data-[starting-style]:translate-y-full">
+            <div className="flex justify-center pt-2.5 pb-1" aria-hidden>
+              <span className="h-1.5 w-10 rounded-full bg-line-strong" />
+            </div>
+            <Dialog.Title className="sr-only">
+              {sheet.side === "buy" ? "Buy" : "Sell"} {spec.ticker}
+            </Dialog.Title>
+            <div className="px-2 pb-2 [&>section]:shadow-none">
+              <OrderTicket key={sheet.n} ticker={ticker} defaultSide={sheet.side} onPlaced={() => setSheetOpen(false)} />
+            </div>
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
+    </div>
+  );
+}
+
+/** Measures its box and draws its child at that exact size. */
+function Measured({ children }: { children: (w: number, h: number) => ReactNode }) {
+  const [ref, size] = useSize<HTMLDivElement>();
+  return (
+    <div ref={ref} className="h-full w-full">
+      {size.width > 0 ? children(size.width, size.height) : null}
     </div>
   );
 }
