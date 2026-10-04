@@ -42,7 +42,7 @@ export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick:
   const stock = m.spec.kind === "equity" || m.spec.kind === "etf" || m.spec.kind === "gold";
   const moment = useMarketMoment();
   // a stock's discovery ends when pre-market opens: the first auction after it is the reopening cross
-  const reopens = discovery && stock && moment ? `${nyTime.format(moment.nextChange)} ET` : null;
+  const reopens = discovery && stock && moment ? `in ${moment.hoursToChange < 1 ? "under an hour" : `${moment.hoursToChange} h`}, at ${nyTime.format(moment.nextChange)} ET` : null;
   const closedWho = stock ? "Wall Street is closed" : m.spec.kind === "fx" ? "The currency market is closed" : "Its reference is closed";
 
   return (

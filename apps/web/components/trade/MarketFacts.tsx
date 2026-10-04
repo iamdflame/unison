@@ -2,6 +2,7 @@
 
 import type { MarketState } from "@/lib/demo/engine";
 import { facts } from "@/lib/content/facts";
+import { REFERENCE_RULES } from "@/lib/content/markets";
 import { site } from "@/lib/content/site";
 import { BEAT_MS } from "@/lib/motion/tokens";
 
@@ -25,9 +26,15 @@ export function MarketFacts({ m }: { m: MarketState }) {
     ["This network", site.disclosure],
     [
       "Reference",
+      s.reference === "operator"
+        ? `Signed by the venue's relay after each batch closes (${REFERENCE_RULES.quorum === 1 ? "one signing key today" : `${REFERENCE_RULES.quorum} signers`}), from market data (Alpaca in production, simulated here), and refused if older than ${REFERENCE_RULES.maxAgeSec} s. An outside check, Chainlink CRE comparing it with Alpaca IEX and Finnhub, halts the market past ${facts.cre.haltAboveBps} bp; it runs in simulation today. While the primary market is closed the reference holds at the last close.`
+        : "Chainlink price feeds, read after each batch closes, so no order can be placed against them.",
+    ],
+    [
+      "While closed",
       stock
-        ? "Published after each batch closes, so no order can be placed against it. While the primary market is closed it holds at the last close."
-        : "Published after each batch closes, so no order can be placed against it.",
+        ? `Prices are found in call auctions, not taken from the closed market. The vault quotes ${s.vault?.closedMult ?? 4} times wider and trades at most ${(s.vault?.maxAuctionBps ?? 1000) / 100}% of its value an auction. A resting order can be filled by someone who knows more, as on any market overnight; choose "Next auction only" not to rest.`
+        : "It trades every block; its reference never closes.",
     ],
     [
       "Auctions",

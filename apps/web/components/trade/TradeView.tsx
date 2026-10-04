@@ -60,9 +60,11 @@ export function TradeView({ ticker }: { ticker: string }) {
             <div>
               <h1 className="flex items-baseline gap-3">
                 <span className="text-2xl font-semibold tracking-tight text-ink">{spec.ticker}</span>
-                <span className="text-sm text-ink-3">{spec.name} · quoted in AUSD</span>
+                <span className="text-sm text-ink-3">{spec.name} · quoted in AUSD, a dollar stablecoin</span>
               </h1>
-              <div className="mt-2 flex items-baseline gap-4">
+              {/* the headline figure is named: it is the last auction's price, not a live quote */}
+              <p className="mt-2 text-xs text-ink-3">Last trade</p>
+              <div className="flex items-baseline gap-4">
                 <span className="numerals text-[clamp(2.25rem,4vw,3.25rem)] leading-none text-ink">
                   <NumberFlow
                     value={last ? last.tick * unit : Number(spec.seedPrice) / 1e6}

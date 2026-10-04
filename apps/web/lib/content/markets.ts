@@ -55,6 +55,9 @@ const NAMES: Record<string, [string, string, MarketSpec["kind"]]> = {
 
 type RawMarket = (typeof config.markets)[number];
 
+/** How references are accepted, from the deployment: signers needed (quorum) and the oldest a reference may be. */
+export const REFERENCE_RULES = { quorum: config.referenceQuorum as number, maxAgeSec: (config.referenceMaxAgeMs as number) / 1000 };
+
 export const MARKETS: readonly MarketSpec[] = (config.markets as RawMarket[]).map((m, id) => {
   const ticker = m.symbol.split("/")[0]!;
   const [underlying, name, kind] = NAMES[ticker] ?? [ticker, ticker, "equity"];

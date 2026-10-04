@@ -325,7 +325,9 @@ export class DemoMarket {
       forming: 0,
       lastAuction: block,
     });
-    if (!warmup && mine.length) settle(this.spec, mine, print, out.tick, refTick, block, now, book.length, lo, hi, discovery);
+    // the orders that traded at the one price (not every order present)
+    const traded = out.traded ? book.filter((o) => (out.fills.get(o.id) ?? 0) > 0).length : 0;
+    if (!warmup && mine.length) settle(this.spec, mine, print, out.tick, refTick, block, now, traded, lo, hi, discovery);
   }
 
   /** Your order joins the batch now forming. */

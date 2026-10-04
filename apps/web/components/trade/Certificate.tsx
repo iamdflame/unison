@@ -183,7 +183,7 @@ export function CertificateDialog() {
                       {qty(data.qty)} {data.ticker} <span className="text-ink-3">at</span> {fmt(data.tick)}
                     </p>
                     <Dialog.Description className="mt-3 text-[clamp(0.78rem,1.6vw,0.95rem)] text-ink-2">
-                      The same price as {data.participants > 0 ? `all ${data.participants} orders` : "every order"} in
+                      The same price as {data.participants > 1 ? `all ${data.participants} orders that traded` : "every order that traded"} in
                       block {data.block.toLocaleString("en-US")}. {data.name}, quoted in AUSD.
                     </Dialog.Description>
                   </div>
@@ -196,7 +196,7 @@ export function CertificateDialog() {
                           : `#${data.orderId}`,
                       ],
                       ["Your limit", `${data.side === "buy" ? "≤" : "≥"} ${fmt(data.limitTick)}`],
-                      ["Better than your limit by", improvement ? fmt(improvement) : "Nothing: at your limit"],
+                      ["Better than your limit by", improvement ? `${fmt(improvement)} a share` : "Nothing: at your limit"],
                       ["Notional", money(notional)],
                       ["Fee", `${money(fee)} · ${data.feeBps} bp`],
                       [
@@ -204,7 +204,7 @@ export function CertificateDialog() {
                         money(data.side === "buy" ? notional + fee : notional - fee),
                       ],
                       [data.closed ? "Last close" : "Reference", fmt(data.refTick)],
-                      ["Band", `${fmt(data.bandLo)} – ${fmt(data.bandHi)}`],
+                      ["Band at this auction", `${fmt(data.bandLo)} – ${fmt(data.bandHi)}`],
                       ["Cleared", new Date(data.ts).toISOString().replace("T", " ").slice(0, 19) + " UTC"],
                     ].map(([k, v]) => (
                       <div key={k}>

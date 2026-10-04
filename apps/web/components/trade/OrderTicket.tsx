@@ -370,7 +370,7 @@ export function OrderTicket({
             <dd className="figures text-ink">{side === "buy" ? money(lock) : `${n(lock)} ${ticker}`}</dd>
             <dd className="basis-full text-xs leading-relaxed text-ink-3">
               {side === "buy"
-                ? `Until it fills: all ${n(qty)} at your limit, plus ${spec.maxFeeBps} bp, the most the fee can be. The rest comes back.`
+                ? `${n(qty)} at your limit plus the ${spec.maxFeeBps} bp fee cap; the rest comes back.`
                 : `You receive the auction's price, less the ${spec.feeBps} bp fee.`}
             </dd>
           </div>
@@ -399,6 +399,7 @@ export function OrderTicket({
         </button>
         <p className="mt-2.5 text-center text-xs text-ink-3">
           Fee {spec.feeBps} bp. Everyone in the auction gets the same price.
+          <span className="mt-1 block text-ink-3/80">Testnet · mock assets · not yet audited</span>
         </p>
       </div>
       <SignInSheet open={signInOpen} onOpenChange={setSignInOpen} />

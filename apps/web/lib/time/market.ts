@@ -21,6 +21,8 @@ export interface MarketMoment {
   nextOpen: Date;
   /** Hours (rounded down) until the next regular open; 0 while open. */
   hoursToOpen: number;
+  /** Hours (rounded down) until the session status next changes: when the venue's regime changes with it. */
+  hoursToChange: number;
 }
 
 const HALF_HOUR = 30 * 60_000;
@@ -67,6 +69,7 @@ export function marketMoment(now: Date = new Date(), holidays: ReadonlySet<strin
     nextChange,
     nextOpen,
     hoursToOpen: status === Status.OPEN ? 0 : Math.max(0, Math.floor((nextOpen.getTime() - now.getTime()) / 3_600_000)),
+    hoursToChange: Math.max(0, Math.floor((nextChange.getTime() - now.getTime()) / 3_600_000)),
   };
   memo = { minute, value };
   return value;
