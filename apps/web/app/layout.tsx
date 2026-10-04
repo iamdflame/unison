@@ -5,6 +5,7 @@ import { ThemeWatcher } from "@/lib/theme/ThemeWatcher";
 import { themeBootScript } from "@/lib/theme/script";
 import { THEME_COLOR } from "@/lib/theme/theme";
 import { site } from "@/lib/content/site";
+import "./unison-zero.css";
 import "./globals.css";
 
 const display = Bodoni_Moda({

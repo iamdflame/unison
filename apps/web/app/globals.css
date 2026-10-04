@@ -145,7 +145,8 @@
 
   --font-*: initial;
   --font-display: var(--font-bodoni), "Bodoni 72", "Didot", serif;
-  --font-sans: var(--font-mona), ui-sans-serif, system-ui, sans-serif;
+  /* Unison Zero first: it holds only U+0030 (Mona Sans's open zero on the tabular width; app/unison-zero.css) */
+  --font-sans: "Unison Zero", var(--font-mona), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-fragment), ui-monospace, "SFMono-Regular", monospace;
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
