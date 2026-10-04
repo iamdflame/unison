@@ -55,3 +55,8 @@ export const ContractsClient = dynamic(() => import("@/components/developers/Liv
   ssr: false,
   loading: () => <div className="h-48 rounded-[var(--radius-xl)] bg-raised shadow-md" aria-busy="true" />,
 });
+
+export const StatusClient = dynamic(() => import("@/components/status/Status").then((m) => m.Status), {
+  ssr: false,
+  loading: () => <div className="mx-auto h-[700px] max-w-[1440px]" aria-busy="true" aria-label="Checking the venue" />,
+});

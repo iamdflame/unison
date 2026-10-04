@@ -15,6 +15,8 @@ export interface NetConfig {
   wsUrl: string | undefined;
   tapeUrl: string;
   relayerUrl: string;
+  /** the reference relay (signed prices), when this build knows it */
+  relayUrl: string | undefined;
   deployment: Deployment;
   /** the relayer drips test funds */
   faucet: boolean;
@@ -38,6 +40,7 @@ export function netConfig(): NetConfig | null {
     wsUrl: process.env.NEXT_PUBLIC_RPC_WS_URL ?? chain.rpcUrls.default.webSocket?.[0],
     tapeUrl,
     relayerUrl,
+    relayUrl: process.env.NEXT_PUBLIC_RELAY_URL,
     deployment,
     faucet: network !== "mainnet" && process.env.NEXT_PUBLIC_FAUCET !== "0",
     explorer: chain.blockExplorers?.default.url,
