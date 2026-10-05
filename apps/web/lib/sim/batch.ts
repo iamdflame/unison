@@ -79,7 +79,8 @@ export function clearBatch(orders: readonly SimOrder[], band: { lo: number; hi: 
     let filled = 0;
     if (o.side === "buy") filled = o.tick > t ? o.qty : o.tick === t ? o.qty * bidRatio : 0;
     else filled = o.tick < t ? o.qty : o.tick === t ? o.qty * askRatio : 0;
-    fills.set(o.id, Math.round(filled * 100) / 100);
+    // to the estimator's own resolution: a mainnet order of 0.01 can fill 0.0007 a tick, which two places would call 0
+    fills.set(o.id, Math.round(filled * SCALE) / SCALE);
   }
   return { traded: true, tick: t, volume: Number(r.volume) / SCALE, fills };
 }

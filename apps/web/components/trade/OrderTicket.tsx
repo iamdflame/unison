@@ -126,7 +126,7 @@ export function OrderTicket({
     const out = clearBatch([...m.book, ...m.vault, { id: 0, side, tick: limit, qty }], band);
     return out.traded ? { tick: out.tick, filled: out.fills.get(0) ?? 0 } : null;
   }, [m.book, m.vault, band, side, limit, qty]);
-  const n = (v: number) => v.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  const n = (v: number) => v.toLocaleString("en-US", { maximumFractionDigits: v !== 0 && Math.abs(v) < 1 ? 4 : 2 });
   // What it would cost (or bring) if the auction ran now: the fill at the clearing price, plus or minus the fee.
   const feeSign = side === "buy" ? 1 + spec.feeBps / 10_000 : 1 - spec.feeBps / 10_000;
   const estimate = withYou && withYou.filled > 0 ? withYou.filled * withYou.tick * unit * feeSign : null;

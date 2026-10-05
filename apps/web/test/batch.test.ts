@@ -27,7 +27,7 @@ function clearOverBand(orders: readonly SimOrder[], band: { lo: number; hi: numb
   const askRatio = Number((r.askRatio * 1_000_000n) / ONE) / 1_000_000;
   for (const o of orders) {
     const filled = o.side === "buy" ? (o.tick > t ? o.qty : o.tick === t ? o.qty * bidRatio : 0) : o.tick < t ? o.qty : o.tick === t ? o.qty * askRatio : 0;
-    fills.set(o.id, Math.round(filled * 100) / 100);
+    fills.set(o.id, Math.round(filled * 1_000_000) / 1_000_000);
   }
   return { traded: true, tick: t, volume: Number(r.volume) / 1_000_000, fills };
 }
