@@ -4,6 +4,7 @@
  *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs deploy        forge deploy of deploy/monad-mainnet-beta.json
  *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs seed <AUSD>   approve + requestDeposit into the aNVDA vault
  *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs sell <aNVDA>  deposit aNVDA and sell it into the vault's bid
+ *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs sweep <to>   send what the deployer holds to <to>, keeping RESERVE_MON (10)
  *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs status
  *
  * `deploy` refuses a chain other than 143 and refuses to overwrite deployments/monad-mainnet.json.
@@ -12,7 +13,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { createPublicClient, createWalletClient, erc20Abi, formatEther, formatUnits, http, parseAbi, parseUnits } from "viem";
+import { createPublicClient, createWalletClient, erc20Abi, formatEther, formatUnits, http, isAddress, parseAbi, parseEther, parseUnits } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { monad } from "@unison/sdk";
 
@@ -32,6 +33,7 @@ const venueAbi = parseAbi([
   "function deposit(address token, uint256 amount)",
   "function placeOrder(uint256 marketId, uint256 side, uint256 tick, uint256 qty, uint256 flags) returns (uint256)",
   "function balanceOf(address account, address token) view returns (uint256)",
+  "function withdraw(address token, uint256 amount, address to)",
 ]);
 const vaultAbi = parseAbi(["function requestDeposit(uint256 assets)", "function totalSupply() view returns (uint256)", "function nav() view returns (uint256)"]);
 const refAbi = parseAbi(["function read(uint256 marketId, uint256 batch, bytes payload) view returns (uint256 price, uint256 publishTimeMs, uint8 status)"]);
@@ -79,6 +81,27 @@ if (cmd === "deploy") {
   await send("approve aNVDA to the venue", { address: m.base, abi: erc20Abi, functionName: "approve", args: [d.exchange, qty] });
   await send("deposit aNVDA", { address: d.exchange, abi: venueAbi, functionName: "deposit", args: [m.base, qty] });
   await send("sell aNVDA into the vault's bid", { address: d.exchange, abi: venueAbi, functionName: "placeOrder", args: [BigInt(m.id), 1n, tick, qty, 0n] });
+} else if (cmd === "sweep") {
+  // everything the deployer holds goes to `to`, except a MON reserve for the admin's own transactions
+  const to = arg;
+  if (!to || !isAddress(to)) throw new Error("usage: sweep <0x address>");
+  const reserve = parseEther(process.env.RESERVE_MON ?? "10");
+  const d = dep();
+  const ausd = d.tokens.AUSD.address;
+  const onVenue = await pub.readContract({ address: d.exchange, abi: venueAbi, functionName: "balanceOf", args: [deployer.address, ausd] });
+  if (onVenue > 0n) await send(`withdraw ${formatUnits(onVenue, 6)} AUSD from the venue to ${to}`, { address: d.exchange, abi: venueAbi, functionName: "withdraw", args: [ausd, onVenue, to] });
+  const inWallet = await pub.readContract({ address: ausd, abi: erc20Abi, functionName: "balanceOf", args: [deployer.address] });
+  if (inWallet > 0n) await send(`transfer ${formatUnits(inWallet, 6)} AUSD to ${to}`, { address: ausd, abi: erc20Abi, functionName: "transfer", args: [to, inWallet] });
+  const bal = await pub.getBalance({ address: deployer.address });
+  const gasPrice = await pub.getGasPrice();
+  const fee = 21_000n * gasPrice * 2n;
+  const value = bal - reserve - fee;
+  if (value > 0n) {
+    const hash = await wallet.sendTransaction({ to, value, gas: 21_000n, gasPrice: gasPrice * 2n });
+    const r = await pub.waitForTransactionReceipt({ hash });
+    console.log(`send ${formatEther(value)} MON to ${to}: ${r.status} ${hash}`);
+  }
+  console.log(`deployer keeps ${formatEther(await pub.getBalance({ address: deployer.address }))} MON for admin transactions`);
 } else if (cmd === "status") {
   const [mon] = await Promise.all([pub.getBalance({ address: deployer.address })]);
   console.log(`deployer ${deployer.address}: ${formatEther(mon)} MON`);
