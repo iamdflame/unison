@@ -14,6 +14,8 @@ export interface TourContext {
   live: boolean;
   /** the network as the venue pill names it ("Monad testnet"), when live */
   network: string | null;
+  /** real assets and real money: the mainnet beta */
+  mainnet: boolean;
   /** the network drips test funds */
   faucet: boolean;
   signedIn: boolean;
@@ -54,7 +56,7 @@ export interface TourStep {
 const REGIME: Record<RegimeName, (c: TourContext) => [string, string]> = {
   LIVE: () => [
     "Open: an auction every block",
-    "While its market trades, every Monad block holds an auction, about 0.3 s apart. Each clears against a reference price published after the auction closes, so no one can trade on it first.",
+    "While its market trades, every Monad block holds an auction, about 0.3 s apart. Each clears against a reference price read after the auction closes, so no order can be placed against it.",
   ],
   EXTENDED: () => [
     "Extended hours",
@@ -83,9 +85,11 @@ export const STEPS: TourStep[] = [
     body: (c) =>
       `Every order that trades in an auction trades at the same price, so being faster earns nothing. Here is how to read this screen and place an order, in ${c.stops} stops.`,
     foot: (c) =>
-      c.live
-        ? `You're on ${c.network ?? "a live network"}: real orders, with test money.`
-        : "This is the simulation: the real clearing engine, in your browser, with paper money.",
+      c.mainnet
+        ? `You're on ${c.network}: real assets and real money, in a small beta with daily caps. Not yet externally audited.`
+        : c.live
+          ? `You're on ${c.network ?? "a live network"}: real orders, with test money.`
+          : "This is the simulation: the real clearing engine, in your browser, with paper money.",
   },
   {
     id: "price",
@@ -149,8 +153,8 @@ export const STEPS: TourStep[] = [
       !c.live
         ? `In the simulation you trade a paper account: ${c.paperQuote.toLocaleString("en-US")} AUSD and a few shares of each market. On a live network, you sign in here with a passkey.`
         : c.signedIn
-          ? `Your free AUSD, signed in with your passkey. Open it for ${c.faucet ? "test funds and " : ""}a trading session: one signature now, then one tap per order.`
-          : `Face ID, Touch ID or Windows Hello: no seed phrase, and no gas to pay.${c.faucet ? " Once you're in, one tap adds test funds." : ""}`,
+          ? `Your free AUSD, signed in with your passkey. Open it for ${c.faucet ? "test funds and " : c.mainnet ? "a deposit from your wallet and " : ""}a trading session: one signature now, then one tap per order.`
+          : `Face ID, Touch ID or Windows Hello: no seed phrase, and no gas to pay.${c.faucet ? " Once you're in, one tap adds test funds." : c.mainnet ? " Once you're in, you deposit AUSD from your own wallet." : ""}`,
   },
   {
     id: "activity",

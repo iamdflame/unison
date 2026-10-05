@@ -9,6 +9,7 @@ import { BEAT_MS } from "@/lib/motion/tokens";
 import { useStore } from "@/lib/store/createStore";
 import { endTour, goToStep, tour } from "@/lib/ui/tour";
 import { useVenue } from "@/lib/venue";
+import { networkName } from "@/lib/venue/config";
 import { identity } from "@/lib/venue/identity";
 import { liveMarket } from "@/lib/venue/live";
 import { dockCard, lightAround, PAD, placeCard, type Rect } from "./placement";
@@ -168,7 +169,8 @@ export function Tour() {
   const ctx: TourContext = {
     ticker: spec.ticker,
     live,
-    network: v.net ? (v.net.network === "mainnet" ? "Monad" : v.net.network === "testnet" ? "Monad testnet" : "the local devnet") : null,
+    network: v.net ? networkName(v.net.network) : null,
+    mainnet: v.mode === "live" && v.net?.network === "mainnet",
     faucet: !!v.net?.faucet,
     signedIn,
     regime,

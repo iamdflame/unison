@@ -10,7 +10,7 @@ export default function RiskPage() {
     <LegalPage
       path="/legal/risk"
       title="Risks"
-      updated="October 4, 2026"
+      updated="October 5, 2026"
       intro={
         <p>
           Unison removes one risk, being front-run by someone faster, and keeps all the others that come with trading. Read
@@ -35,7 +35,7 @@ export default function RiskPage() {
             <p>
               A tokenized stock is a token issued against shares held by an issuer or custodian. It isn&apos;t the share, and
               it may not carry a shareholder&apos;s rights. Its value depends on the issuer, the custodian and the rules they
-              operate under. On test networks the tokens are mocks with no value.
+              operate under. On the mainnet beta, aNVDA is Anchored&apos;s real token, backed by shares held with its US broker and custodian. On test networks the tokens are mocks with no value.
             </p>
           ),
         },

@@ -9,7 +9,7 @@ export default function TermsPage() {
     <LegalPage
       path="/legal/terms"
       title="Terms of use"
-      updated="October 4, 2026"
+      updated="October 5, 2026"
       intro={
         <p>
           Unison is software: smart contracts on Monad and the services and website around them. These terms cover using
@@ -37,15 +37,20 @@ export default function TermsPage() {
         },
         {
           id: "test",
-          title: "Test networks and mock assets",
+          title: "The mainnet beta and the test networks",
           body: (
             <>
               <p>
-                Today Unison runs on a local devnet and the Monad testnet. Every token there, including AUSD and the
-                tokenized stocks, is a <strong>mock with no value</strong>, issued by test faucets. A future mainnet
-                launch will come with its own terms.
+                <strong>On Monad mainnet, Unison is a beta with real assets and real money.</strong> It lists Anchored&apos;s
+                tokenized NVIDIA (aNVDA) and wrapped MON against Agora&apos;s AUSD. Prices come from Chainlink feeds. The
+                vaults are small and every market has a daily volume cap. The contracts are{" "}
+                <strong>not yet externally audited</strong>: deposit only what you can afford to lose.
               </p>
-              <p>Prices on test networks follow reference feeds or a simulator. They are not offers to buy or sell anything.</p>
+              <p>
+                On the Monad testnet and local devnets, every token, including AUSD and the tokenized stocks, is a{" "}
+                <strong>mock with no value</strong>, issued by test faucets. Prices there follow reference feeds or a
+                simulator, and are not offers to buy or sell anything.
+              </p>
             </>
           ),
         },

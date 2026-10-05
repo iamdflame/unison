@@ -95,6 +95,8 @@ export interface MarketState {
   lastAuction: number;
   /** the vault's quotes in the batch now forming (the simulation's; live, the chain's depth is the book) */
   vault: SimOrder[];
+  /** live only: false until the book (pending orders, resting depth, the vault's quote) has been read once */
+  bookLoaded?: boolean;
   /** the simulated vault's books, kept as LiquidityVault reports them (absent live: the chain has the real ones) */
   vaultBook?: VaultBook;
 }

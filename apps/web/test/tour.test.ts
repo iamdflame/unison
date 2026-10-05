@@ -73,16 +73,25 @@ describe("the tour's stops", () => {
     expect(compact).toEqual([null, "price", "regime", "strip", "chart", "thumb", "account", "activity"]);
   });
   it("say what is true for every regime, venue and layout", () => {
+    // the simulation, the testnet (test money, a faucet) and the mainnet beta (real money, no faucet)
+    const venues = [
+      { live: false, mainnet: false, network: null, faucet: false },
+      { live: true, mainnet: false, network: "Monad testnet", faucet: true },
+      { live: true, mainnet: true, network: "Monad mainnet", faucet: false },
+    ];
     for (const regime of ["LIVE", "EXTENDED", "DISCOVERY", "REOPENING", "HALTED"] as const)
-      for (const live of [false, true])
-        for (const compact of [false, true]) {
-          const c: TourContext = { ticker: "aNVDA", live, network: live ? "Monad testnet" : null, faucet: live, signedIn: false, regime, closedWho: "Wall Street", discCadence: 10, discSeconds: 3, feeBps: 3, paperQuote: 25_000, compact, shortcut: "⌘K", stops: compact ? 7 : 8 };
-          for (const s of STEPS) {
-            const text = `${s.title(c)} ${s.body(c)} ${s.foot?.(c) ?? ""}`;
-            expect(text, `${s.id} ${regime}`).not.toMatch(/undefined|NaN|null/);
-            if (!live) expect(text, s.id).not.toMatch(/receipt chain|test funds/);
+      for (const venue of venues)
+        for (const signedIn of [false, true])
+          for (const compact of [false, true]) {
+            const c: TourContext = { ticker: "aNVDA", ...venue, signedIn, regime, closedWho: "Wall Street", discCadence: 10, discSeconds: 3, feeBps: 3, paperQuote: 25_000, compact, shortcut: "⌘K", stops: compact ? 7 : 8 };
+            for (const s of STEPS) {
+              const text = `${s.title(c)} ${s.body(c)} ${s.foot?.(c) ?? ""}`;
+              expect(text, `${s.id} ${regime}`).not.toMatch(/undefined|NaN|null/);
+              if (!venue.live) expect(text, s.id).not.toMatch(/receipt chain|test funds/);
+              // real money is never called test money, paper or a simulation
+              if (venue.mainnet) expect(text, s.id).not.toMatch(/test (money|funds)|paper|simulat|mock/i);
+            }
           }
-        }
   });
 });
 

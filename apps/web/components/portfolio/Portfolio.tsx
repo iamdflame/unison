@@ -228,7 +228,7 @@ function AccountLine({ account, network }: { account: string; network: string })
       /* clipboard refused */
     }
   };
-  const net = network === "mainnet" ? "Monad" : network === "testnet" ? "Monad testnet" : "Local devnet";
+  const net = network === "mainnet" ? "Monad mainnet" : network === "testnet" ? "Monad testnet" : "Local devnet";
   return (
     <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-ink-2">
       Passkey account on {net}

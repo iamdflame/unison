@@ -87,7 +87,7 @@ export function Status() {
     return head !== undefined && oldest !== null && oldest !== undefined && head - oldest > STALE_BLOCKS;
   };
   const issues = [tape, relayer, relay].filter((p) => p && p.level !== "ok").length + (markets ?? []).filter((m) => lagging(m.id)).length;
-  const network = net.network === "mainnet" ? "Monad" : net.network === "testnet" ? "Monad testnet" : "the local devnet";
+  const network = net.network === "mainnet" ? "Monad mainnet" : net.network === "testnet" ? "Monad testnet" : "the local devnet";
 
   const rows: [string, string, Probe<unknown> | null, string][] = [
     ["Chain", `Blocks on ${network}`, tape, head ? `Block ${head.toLocaleString("en-US")}` : "—"],

@@ -8,7 +8,7 @@ export default function PrivacyPage() {
     <LegalPage
       path="/legal/privacy"
       title="Privacy"
-      updated="October 4, 2026"
+      updated="October 5, 2026"
       intro={
         <p>
           Unison asks for no name, email or document. What it knows about you is what your browser keeps, what a public

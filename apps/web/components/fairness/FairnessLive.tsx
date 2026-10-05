@@ -22,7 +22,7 @@ export function FairnessLive() {
   const [window, setWindow] = useState<FairnessWindow>("24h");
   const spec = marketByTicker(ticker) ?? listed[0]!;
   const { links, stats, live } = useFairnessFeed(spec, window);
-  const network = v.net?.network === "mainnet" ? "Monad" : v.net?.network === "testnet" ? "Monad testnet" : "the local devnet";
+  const network = v.net?.network === "mainnet" ? "Monad mainnet" : v.net?.network === "testnet" ? "Monad testnet" : "the local devnet";
 
   return (
     <>

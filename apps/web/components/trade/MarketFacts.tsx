@@ -28,7 +28,7 @@ export function MarketFacts({ m }: { m: MarketState }) {
         : `${s.name}'s native token, wrapped, quoted in AUSD.`;
   const rows: [string, string][] = [
     ["Instrument", what],
-    ["This network", onMainnet(v) ? site.mainnetDisclosure : site.disclosure],
+    ["This network", onMainnet(v) ? site.mainnetDisclosure : v.mode === "live" ? site.testnetDisclosure : site.simulationDisclosure],
     [
       "Reference",
       reference === "chainlink" && stock

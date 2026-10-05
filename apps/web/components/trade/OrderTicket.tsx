@@ -19,7 +19,8 @@ import { clearBatch } from "@/lib/sim/batch";
 const money = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 /**
- * The order ticket. The limit is a price you set: it starts at the last trade and stays where you put it. Every
+ * The order ticket. The limit is a price you set: it starts at the best price on the other side, so an order as it
+ * opens fills now, and stays where you put it. Every
  * number under it is exact: the lock is the contract's `buyLock` (notional at your limit plus the market's fee cap),
  * and both indicatives run the clearing engine on the batch now forming, once as it stands and once with your order.
  */
@@ -49,6 +50,8 @@ export function OrderTicket({
     regime: s.regime.name,
     last: s.last?.tick ?? null,
     block: s.block,
+    // the simulation's book is there from the start; a live one once it has been read
+    bookLoaded: s.bookLoaded ?? true,
     // the auction this order would join, if it lands in time
     next: nextAuction(s),
   }));
@@ -61,16 +64,33 @@ export function OrderTicket({
   const discovery = m.regime === "DISCOVERY";
   const refLabel = discovery ? "Last close" : "Reference";
 
-  const [side, setSide] = useState<"buy" | "sell">(defaultSide);
-  // The limit, in ticks: null until the market is known, then the last trade, then wherever you put it.
+  const [side, setSideState] = useState<"buy" | "sell">(defaultSide);
+  // The best prices on each side of the batch now forming (anyone's orders and the vault's quote).
+  let bestAsk: number | null = null;
+  let bestBid: number | null = null;
+  for (const o of [...m.book, ...m.vault]) {
+    if (o.qty <= 0) continue;
+    if (o.side === "sell" && (bestAsk === null || o.tick < bestAsk)) bestAsk = o.tick;
+    if (o.side === "buy" && (bestBid === null || o.tick > bestBid)) bestBid = o.tick;
+  }
+  // The limit, in ticks: null until the market and its book are known; then the best price on the other side, so an
+  // order as it opens fills now (the last trade where nobody quotes); then wherever you put it. Until you touch it,
+  // it follows a change of side.
   const [limitTick, setLimitTick] = useState<number | null>(null);
   const [limitText, setLimitText] = useState<string | null>(null);
+  const [touched, setTouched] = useState(false);
   const anchor = m.last ?? m.refTick;
-  if (limitTick === null && m.block > 0 && anchor > 0) setLimitTick(anchor);
-  const limit = limitTick ?? anchor;
+  const opening = (side === "buy" ? bestAsk : bestBid) ?? anchor;
+  if (limitTick === null && m.block > 0 && m.bookLoaded && opening > 0) setLimitTick(opening);
+  const limit = limitTick ?? opening;
   const setPrice = (tick: number) => {
     setLimitTick(Math.max(1, tick));
     setLimitText(null);
+    setTouched(true);
+  };
+  const setSide = (s: "buy" | "sell") => {
+    setSideState(s);
+    if (!touched) setLimitTick(null);
   };
   // the mainnet beta trades real shares from a small vault: a first order is a hundredth of one (about $2.40 of NVDA)
   const [qtyText, setQtyText] = useState(live && v.net?.network === "mainnet" ? "0.01" : "1");
@@ -196,10 +216,11 @@ export function OrderTicket({
     onPlaced?.();
   };
 
-  // Prices worth one tap, each a fixed price: the last trade, the band's centre (the reference, or the last close),
-  // and where the auction would clear now.
+  // Prices worth one tap, each a fixed price: the best price on the other side (fills now), the last trade, the
+  // band's centre (the reference, or the last close), and where the auction would clear now.
   const chips: [string, number][] = [];
   for (const [label, t] of [
+    side === "buy" ? ["Ask", bestAsk] : ["Bid", bestBid],
     ["Last", m.last],
     [discovery ? "Close" : "Ref", m.refTick],
     ["Cross", alone],
@@ -259,6 +280,7 @@ export function OrderTicket({
               onChange={(e) => {
                 const t = e.target.value.replace(/[^\d.]/g, "");
                 setLimitText(t);
+                setTouched(true);
                 const p = Number(t);
                 if (t && p > 0) setLimitTick(Math.max(1, Math.round(p / unit)));
               }}

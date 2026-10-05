@@ -220,7 +220,7 @@ export function Contracts() {
       <h2 className="text-display-m mt-20 text-ink">Contracts</h2>
       <div className="mt-6 max-w-3xl overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-panel">
         <p className="border-b border-line px-6 py-3 text-xs text-ink-3">
-          {v.net.network === "mainnet" ? "Monad" : v.net.network === "testnet" ? "Monad testnet" : "Local devnet"} ·
+          {v.net.network === "mainnet" ? "Monad mainnet" : v.net.network === "testnet" ? "Monad testnet" : "Local devnet"} ·
           chain {d.chainId}
         </p>
         <ul className="divide-y divide-line">
