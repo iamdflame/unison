@@ -223,7 +223,9 @@ export class LiveMarket {
       bids.forEach((q, i) => q > 0n && book.push({ id: -10_000 - i, side: "buy", tick: m.refTick - span + i, qty: units(q, decimals), owner: "crowd", ioc: false, placedBlock: 0 }));
       asks.forEach((q, i) => q > 0n && book.push({ id: -20_000 - i, side: "sell", tick: m.refTick - span + i, qty: units(q, decimals), owner: "crowd", ioc: false, placedBlock: 0 }));
       const vault = vq ? vaultOrders(vq[0], vq[1], vq[2], this.tickSize, this.baseUnit, decimals) : [];
-      this.store.set((s) => ({ ...s, book, vault, forming: pending.orders.length, bookLoaded: true }));
+      // loaded once the vault's quote is in too (the first refresh can run before the tick size is known), so a
+      // ticket never opens on a book that is missing its main quote
+      this.store.set((s) => ({ ...s, book, vault, forming: pending.orders.length, bookLoaded: s.bookLoaded || !vaultAddr || vq !== null }));
     };
     refreshBook().catch(() => undefined);
     const bookTimer = setInterval(() => refreshBook().catch(() => undefined), 1500);

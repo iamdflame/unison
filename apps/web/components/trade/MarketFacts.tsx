@@ -61,7 +61,9 @@ export function MarketFacts({ m }: { m: MarketState }) {
     ],
     [
       "Checks",
-      `The contracts are not yet externally audited. An outside check of the reference (Chainlink CRE, every ${facts.cre.auditEverySec} s, halting the market past ${facts.cre.haltAboveBps} bp) runs in simulation today.`,
+      reference === "chainlink"
+        ? "The contracts are not yet externally audited. The reference is Chainlink's own feed, read on-chain as each batch clears; Unison runs no reference of its own for this market."
+        : `The contracts are not yet externally audited. An outside check of the reference (Chainlink CRE, every ${facts.cre.auditEverySec} s, halting the market past ${facts.cre.haltAboveBps} bp) runs in simulation today.`,
     ],
   ];
   return (
