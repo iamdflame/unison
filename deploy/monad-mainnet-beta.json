@@ -10,7 +10,7 @@
     "admin / guardian = 0x0 → the deployer keeps the roles. Fill both before broadcasting."
   ],
   "admin": "0x0000000000000000000000000000000000000000",
-  "guardian": "0x0000000000000000000000000000000000000000",
+  "guardian": "0x0562b2b0914b3Bb082A623657729452fc9bf26E4",
   "relaySigners": [],
   "referenceQuorum": 1,
   "referenceMaxAgeMs": 15000,

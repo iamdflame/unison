@@ -229,7 +229,14 @@ contract Deploy is Script {
     }
 
     function _handoff(Core memory c) internal {
-        if (c.admin == c.deployer) return;
+        if (c.admin == c.deployer) {
+            // the deployer stays admin for now; a separate guardian can still pause and halt from the start
+            if (c.guardian != c.deployer) {
+                c.ex.grantRole(c.ex.GUARDIAN_ROLE(), c.guardian);
+                c.ex.grantRole(c.ex.HALT_ROLE(), c.guardian);
+            }
+            return;
+        }
         UnisonExchange ex = c.ex;
         ex.grantRole(ex.DEFAULT_ADMIN_ROLE(), c.admin);
         ex.grantRole(ex.OPERATOR_ROLE(), c.admin);
