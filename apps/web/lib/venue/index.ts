@@ -34,7 +34,9 @@ export async function bootVenue() {
     return;
   }
   try {
-    await Promise.race([new TapeClient(net.tapeUrl).health(), new Promise((_, r) => setTimeout(() => r(new Error("timeout")), 2500))]);
+    // 8 s, not 2.5: a first TLS handshake to the services from far away takes 2-3 s on its own, and a slow first
+    // connection is not a dead venue (users outside the US were landing in the simulation)
+    await Promise.race([new TapeClient(net.tapeUrl).health(), new Promise((_, r) => setTimeout(() => r(new Error("timeout")), 8000))]);
     restoreIdentity(net);
     venue.set({ mode: "live", net, ready: true });
     watchAccount(net);

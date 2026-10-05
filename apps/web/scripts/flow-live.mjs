@@ -1,5 +1,5 @@
 /**
- * Live flow against the local devnet (scripts/dev-stack.mjs): a passkey created on a CDP virtual authenticator
+ * Live flow against the local devnet (scripts/dev-stack.mjs), or the public testnet with SHOOT_BASE set to the site: a passkey created on a CDP virtual authenticator
  * (user-verifying, like Face ID) registers through the relayer, takes test funds from the faucet, and places a
  * passkey-signed order that the keeper clears on-chain.
  */
@@ -21,7 +21,8 @@ p.on("console", (m) => (m.type() === "error" || m.type() === "warning") && log.p
 const shot = (n) => p.screenshot({ path: `brand/shots/live-${n}.png` });
 
 await p.goto(`${base}/trade/aNVDA`, { waitUntil: "domcontentloaded" });
-await p.getByText("Local devnet").waitFor({ timeout: 20_000 });
+// the venue badge: the local devnet, or the public testnet when SHOOT_BASE is the deployed site
+await p.getByText(/^(Local devnet|Monad testnet)$/).first().waitFor({ timeout: 20_000 });
 await shot("1-live");
 await p.getByRole("button", { name: "Sign in", exact: true }).click();
 await p.getByRole("button", { name: "Create a passkey" }).click();
