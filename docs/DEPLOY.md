@@ -121,7 +121,8 @@ The public testnet runs the same four services on **Railway** and the web app on
 
 - Project `unison`. Root directory `apps/web`, Node 24, install `pnpm install --frozen-lockfile`, build `pnpm build`.
 - Deploy from the repository root with `vercel deploy --prod`. `.vercelignore` keeps env files, keys and local folders out of the upload.
-- Production URL: https://unison-omega.vercel.app (a custom domain replaces it later).
+- Production URL: https://www.unisonfi.com (the apex redirects to www). https://unison-omega.vercel.app stays up: a passkey is bound to the domain it was made on, so accounts created there only open there.
+- `CORS_ORIGINS` on every Railway service lists both domains.
 - Environment: `NEXT_PUBLIC_SITE_URL` (absolute URLs in the sitemap and share images). Once the testnet is deployed, also
   `NEXT_PUBLIC_NETWORK=testnet`, `NEXT_PUBLIC_CHAIN_ID=10143`, `NEXT_PUBLIC_RPC_URL`, `NEXT_PUBLIC_TAPE_URL` and
   `NEXT_PUBLIC_RELAYER_URL`, then redeploy. With none of them set, the app runs as the labelled browser simulation.

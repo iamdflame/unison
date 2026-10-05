@@ -39,6 +39,7 @@ wNVDAx-USD is Chainlink's "Calculated" tokenized-equity feed: NVDA times the xSt
 | Guardian (pause, halt) | `0x0562b2b0914b3Bb082A623657729452fc9bf26E4` |
 | Keeper (clears) | `0xCA2B2DFF387Aa614eAB645B0Ba7863cCFA5a274e` |
 | Relayer (gasless passkey actions) | `0xf46f4f9Da2Ba1c627632d5D465377cfCDFa3A241` |
+| The project owner's passkey account (its fills count as the team's) | `0x13250c2de5ce381432f4f1c77249af6789d62da7` |
 
 The tape counts these accounts, and the vaults, apart from outside traders: `GET /v1/stats` on https://unison-tape-mainnet-production.up.railway.app.
 
