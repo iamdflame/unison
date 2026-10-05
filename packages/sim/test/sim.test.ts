@@ -103,7 +103,7 @@ describe("auction invariants", () => {
     }
     expect(traded).toBeGreaterThan(2_000);
     expect(vaultTrades).toBeGreaterThan(300);
-  });
+  }, 60_000); // a property run over many configurations: seconds locally, longer on a shared CI runner
 
   it("keeps the vault solvent and its inventory consistent with its fills", () => {
     const sim = createSim(nvda);

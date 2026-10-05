@@ -33,7 +33,7 @@ const check = async (name, fn) => {
   await hydrated(p, "Menu");
   await check("phone menu opens from a tap", async () => {
     await p.getByRole("button", { name: "Menu" }).tap();
-    await p.getByRole("dialog").getByRole("link", { name: "Fairness" }).waitFor({ timeout: 10_000 });
+    await p.getByRole("dialog").getByRole("link", { name: "Fairness" }).waitFor({ timeout: 30_000 }); // a cold server on CI
     await p.getByRole("button", { name: "Close" }).tap();
     await p.getByRole("dialog").waitFor({ state: "detached", timeout: 5_000 });
   });
