@@ -5,6 +5,7 @@
 *.key
 *.pem
 keystore/
+.secrets/
 .claude/
 .outlier/
 .dev-stack/

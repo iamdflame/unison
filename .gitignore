@@ -32,6 +32,7 @@ services/*/data/
 .dev-stack/
 
 # secrets
+.secrets/
 .env
 .env.*
 !.env.example
