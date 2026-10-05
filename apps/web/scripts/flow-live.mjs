@@ -33,22 +33,29 @@ await p.getByText("Test funds deposited.").waitFor({ timeout: 60_000 });
 await p.waitForTimeout(1500);
 await shot("3-funded");
 await p.keyboard.press("Escape");
-// a marketable buy: from where the auction would clear now (or the last trade, or the band's centre), a little above
+// a marketable order: from where the auction would clear now (or the last trade, or the band's centre), a little
+// through it. FLOW_SIDE=sell sells instead: on a fresh testnet the vaults hold only AUSD, so the first trade is a sale
+// into their bid.
+const sell = process.env.FLOW_SIDE === "sell";
+if (sell) await p.getByRole("radio", { name: /^sell$/i }).first().click();
 {
   await p.getByRole("button", { name: /^(Cross|Last|Ref|Close) \$/ }).first().waitFor();
   const cross = p.getByRole("button", { name: /^Cross \$/ });
   const last = p.getByRole("button", { name: /^Last \$/ });
   await ((await cross.count()) ? cross : (await last.count()) ? last : p.getByRole("button", { name: /^(Ref|Close) \$/ })).click();
   const limit = p.locator('input[name="limit"]:visible');
-  await limit.fill((Number(await limit.inputValue()) + 0.5).toFixed(2));
+  // 0.6% through (at least 50 cents): through the vault's quote in session, and its four-times-wider quote at night
+  const from = Number(await limit.inputValue());
+  const step = Math.max(0.5, from * 0.006);
+  await limit.fill((sell ? from - step : from + step).toFixed(2));
   await limit.press("Enter");
 }
 await p.locator('input[name="qty"]:visible').fill("1");
-await p.getByRole("button", { name: /^Buy 1 aNVDA at/ }).click();
+await p.getByRole("button", { name: sell ? /^Sell 1 aNVDA at/ : /^Buy 1 aNVDA at/ }).click();
 await p.waitForTimeout(1500);
 await shot("4-placed");
 // The toast follows the order: the keeper clears the batch, auto-claims, and the tape pushes the fill.
-const outcome = p.locator("[data-sonner-toast]").filter({ hasText: /Bought|Resting at|Not filled/ }).first();
+const outcome = p.locator("[data-sonner-toast]").filter({ hasText: /Bought|Sold|Resting at|Not filled/ }).first();
 const t0 = Date.now();
 await outcome.waitFor({ timeout: 60_000 });
 log.push(`toast after ${((Date.now() - t0) / 1000).toFixed(1)} s: ${(await outcome.innerText()).replace(/\s+/g, " ")}`);

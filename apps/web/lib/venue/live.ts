@@ -319,6 +319,8 @@ async function loadAccount(net: NetConfig) {
         bandHi: f.bandHi,
         receipt: f.receiptHash,
         orderQty: qty,
+        // a call auction while the market was closed: the certificate names the last close and the cadence
+        ...(f.regime === "DISCOVERY" ? { closed: true } : {}),
       });
     }
   }

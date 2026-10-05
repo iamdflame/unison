@@ -431,6 +431,7 @@ export const toOrderFill = (f: OrderFillRow): OrderFill => ({
   bandLo: f.print.bandLo,
   bandHi: f.print.bandHi,
   receiptHash: f.print.receiptHash,
+  regime: f.print.regime,
   exact: f.exact,
 });
 

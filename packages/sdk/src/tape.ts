@@ -132,6 +132,8 @@ export interface OrderFill {
   bandLo: number;
   bandHi: number;
   receiptHash: string;
+  /** the auction's regime (DISCOVERY: a call auction around the last close); absent from older tapes */
+  regime?: string;
   /** false when one claim paid out several auctions and this one's share is apportioned by volume */
   exact: boolean;
 }
