@@ -12,7 +12,7 @@ export function Skeleton({ rows = 6, label }: { rows?: number; label: string }) 
 /** The vault board alone, under the server-drawn title and lede: its measured height (ten 115 px rows on phones; a 66 px header and ten 75 px rows from md up). */
 export function VaultBoardSkeleton() {
   return (
-    <div className="animate-pulse motion-reduce:animate-none" aria-busy="true" aria-label="Loading vaults">
+    <div className="animate-pulse motion-reduce:animate-none" role="status" aria-busy="true" aria-label="Loading vaults">
       <div className="mt-2 h-5" />
       <div className="mt-8 h-[1149px] md:h-[815px] rounded-[var(--radius-xl)] bg-raised shadow-panel" />
     </div>
@@ -26,7 +26,7 @@ export function VaultBoardSkeleton() {
  */
 export function BoardSkeleton() {
   return (
-    <div className="animate-pulse motion-reduce:animate-none" aria-busy="true" aria-label="Loading markets">
+    <div className="animate-pulse motion-reduce:animate-none" role="status" aria-busy="true" aria-label="Loading markets">
       <div className="mt-3 h-12 sm:h-6">
         <div className="h-6 w-72 max-w-full rounded-xl bg-sunken" />
       </div>

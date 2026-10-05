@@ -27,7 +27,7 @@ export function TradeClient({ ticker }: { ticker: string }) {
 
 function TradeSkeleton() {
   return (
-    <div className="mx-auto max-w-[1680px] animate-pulse px-4 py-5 motion-reduce:animate-none sm:px-6 lg:py-7" aria-busy="true" aria-label="Loading the market">
+    <div className="mx-auto max-w-[1680px] animate-pulse px-4 py-5 motion-reduce:animate-none sm:px-6 lg:py-7" role="status" aria-busy="true" aria-label="Loading the market">
       <div className="h-6 w-48 rounded-full bg-sunken" />
       <div className="mt-3 h-12 w-64 rounded-2xl bg-sunken" />
       <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">

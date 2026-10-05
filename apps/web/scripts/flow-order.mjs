@@ -20,6 +20,8 @@ await ctx.addInitScript(() => {
     document.head.appendChild(style);
   });
 });
+// a first visit to the terminal is offered the guided tour (scripts/flow-tour.mjs); captures and flows skip it
+await ctx.addInitScript(() => localStorage.setItem("unison.tour.v1", "done"));
 const p = await ctx.newPage();
 const errors = [];
 p.on("pageerror", (e) => errors.push(e.message));

@@ -5,6 +5,7 @@ import { facts } from "@/lib/content/facts";
 import { REFERENCE_RULES } from "@/lib/content/markets";
 import { site } from "@/lib/content/site";
 import { BEAT_MS } from "@/lib/motion/tokens";
+import { startTour } from "@/lib/ui/tour";
 
 const pct = (bps: number) => `±${(bps / 100).toFixed(2)}%`;
 
@@ -59,9 +60,15 @@ export function MarketFacts({ m }: { m: MarketState }) {
   ];
   return (
     <section aria-labelledby="facts-title" className="rounded-[var(--radius-xl)] bg-raised shadow-panel">
-      <h2 id="facts-title" className="px-5 pt-4 pb-3 text-[15px] font-semibold text-ink">
-        About {s.ticker} on Unison
-      </h2>
+      <div className="flex items-center justify-between gap-4 px-5 pt-4 pb-3">
+        <h2 id="facts-title" className="text-[15px] font-semibold text-ink">
+          About {s.ticker} on Unison
+        </h2>
+        {/* the guided tour, replayed: the one a first visit is offered */}
+        <button type="button" onClick={startTour} className="press tap rounded-[var(--radius-xs)] text-sm font-medium text-ink-2 hover-fine:text-ink">
+          Take the tour
+        </button>
+      </div>
       <dl className="divide-y divide-line border-t border-line text-sm">
         {rows.map(([k, v]) => (
           <div key={k} className="grid gap-1 px-5 py-3 sm:grid-cols-[140px_minmax(0,1fr)] sm:gap-6">

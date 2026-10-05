@@ -29,6 +29,7 @@ export function AccountButton() {
     <>
       <button
         type="button"
+        data-tour="account"
         onClick={() => setOpen(true)}
         onPointerEnter={preloadSignIn}
         onFocus={preloadSignIn}

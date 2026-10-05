@@ -66,13 +66,14 @@ jobs:
       - name: Chromium
         working-directory: apps/web
         run: pnpm exec playwright install --with-deps chromium
-      - name: Accessibility (WCAG 2.2 AA, every route, both lights) and the shell's controls
+      - name: Accessibility (WCAG 2.2 AA, every route, both lights), the shell's controls, the guided tour
         working-directory: apps/web
         run: |
           pnpm start > ../../next.log 2>&1 &
           for i in $(seq 1 60); do curl -sf http://localhost:3000/ > /dev/null && break; sleep 1; done
           pnpm a11y
           node scripts/flow-shell.mjs
+          node scripts/flow-tour.mjs
       - name: Server log
         if: failure()
         run: tail -n 100 next.log || true
@@ -117,6 +118,7 @@ jobs:
           node scripts/flow-live.mjs
           node scripts/flow-portfolio.mjs
           node scripts/flow-agents.mjs
+          LIVE=1 node scripts/flow-tour.mjs
       - name: Logs
         if: failure()
         run: tail -n 60 stack.log next.log .dev-stack/*.log || true

@@ -9,6 +9,8 @@ const WALLET = "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720"; // anvil #9
 const b = await chromium.launch();
 const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: "light" });
 await ctx.addInitScript(() => localStorage.setItem("unison.theme", "light"));
+// a first visit to the terminal is offered the guided tour (scripts/flow-tour.mjs); captures and flows skip it
+await ctx.addInitScript(() => localStorage.setItem("unison.tour.v1", "done"));
 const p = await ctx.newPage();
 const cdp = await ctx.newCDPSession(p);
 await cdp.send("WebAuthn.enable");

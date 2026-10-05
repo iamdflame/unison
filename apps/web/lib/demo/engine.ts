@@ -150,8 +150,11 @@ function mulberry(seed: number) {
   };
 }
 
+/** The simulation's paper account opens with this much AUSD (and a few shares of each market). */
+export const PAPER_QUOTE = 25_000;
+
 const PAPER: AccountState = {
-  quote: 25_000,
+  quote: PAPER_QUOTE,
   base: { aNVDA: 12, aSPY: 4, aQQQ: 4, aAAPL: 10, aTSLA: 6, aCOIN: 8, aMSTR: 6, aGLD: 6, WMON: 40_000, GBPm: 2_000 },
   lockedQuote: 0,
   lockedBase: {},

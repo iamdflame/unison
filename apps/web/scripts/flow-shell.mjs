@@ -28,6 +28,8 @@ const check = async (name, fn) => {
 // Phone: the menu sheet opens and lists the sections.
 {
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  // a first visit to the terminal is offered the guided tour (scripts/flow-tour.mjs); captures and flows skip it
+  await ctx.addInitScript(() => localStorage.setItem("unison.tour.v1", "done"));
   const p = await ctx.newPage();
   await p.goto(`${base}/legal/terms`, { waitUntil: "domcontentloaded" });
   await hydrated(p, "Menu");
@@ -44,6 +46,8 @@ const check = async (name, fn) => {
 {
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
   await ctx.addInitScript(() => localStorage.setItem("unison.theme", "light"));
+  // a first visit to the terminal is offered the guided tour (scripts/flow-tour.mjs); captures and flows skip it
+  await ctx.addInitScript(() => localStorage.setItem("unison.tour.v1", "done"));
   const p = await ctx.newPage();
   await p.goto(`${base}/legal/terms`, { waitUntil: "domcontentloaded" });
   await p.waitForLoadState("networkidle");
@@ -67,6 +71,8 @@ const check = async (name, fn) => {
 // A press made before the menu's code has arrived still opens it (the standby button hands it over).
 {
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
+  // a first visit to the terminal is offered the guided tour (scripts/flow-tour.mjs); captures and flows skip it
+  await ctx.addInitScript(() => localStorage.setItem("unison.tour.v1", "done"));
   const p = await ctx.newPage();
   await p.route(/ThemeMenuPopup|_next\/static\/chunks\/.*\.js/, async (route) => {
     // hold back only the menu's own chunk: the one that names its component
@@ -89,6 +95,8 @@ const check = async (name, fn) => {
 // The app: ⌘K finds a market and goes there; a paper order toasts.
 {
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
+  // a first visit to the terminal is offered the guided tour (scripts/flow-tour.mjs); captures and flows skip it
+  await ctx.addInitScript(() => localStorage.setItem("unison.tour.v1", "done"));
   const p = await ctx.newPage();
   await p.goto(`${base}/markets?demo=1`, { waitUntil: "domcontentloaded" });
   // the title is drawn by the server; wait for the shell itself to be live before pressing its shortcut

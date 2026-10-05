@@ -129,6 +129,8 @@ cd contracts && forge test --fork-url http://127.0.0.1:8546 --match-contract Mon
 
 Accounts are passkeys (Face ID, Touch ID, Windows Hello), orders are gasless, and each fill comes with a certificate whose receipt the tape recomputes. With no venue running, the app runs every market in the browser on the real clearing engine, and labels itself as a simulation.
 
+A first visit to the terminal is offered a guided tour: the page dims, one part stays lit, and a card says what it is, from the auction strip and the batch chart to the ticket, the account and the certificates. It replays from ⌘K ("Take the tour") or from the terminal's "About" panel.
+
 ```bash
 pnpm --filter @unison/web dev     # http://localhost:3000; with no venue running it simulates (or add ?demo=1)
 
@@ -146,6 +148,7 @@ Quality gates, run from `apps/web`:
 | JS budgets: 180 KB marketing, 250 KB app (first load, gzip) | `pnpm build && node scripts/weigh.mjs --check` |
 | Accessibility: WCAG 2.2 AA on every route, both lights | `pnpm a11y` |
 | Live flows on the devnet: passkey → buy → certificate; withdrawal; agent keys through MCP; the shell's controls | `node scripts/flow-live.mjs` (and `flow-portfolio`, `flow-agents`, `flow-shell`) |
+| The guided tour, desktop and phone: every stop lit, keys, replay, remembered | `node scripts/flow-tour.mjs` (`LIVE=1` against a live venue) |
 
 ## Status
 

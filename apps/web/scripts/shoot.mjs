@@ -57,6 +57,8 @@ await context.addInitScript(() => {
     document.head.appendChild(style);
   });
 });
+// a first visit to the terminal is offered the guided tour (scripts/flow-tour.mjs); captures and flows skip it
+await context.addInitScript(() => localStorage.setItem("unison.tour.v1", "done"));
 const page = await context.newPage();
 if (at) await page.clock.install({ time: new Date(at) });
 const cdp = await context.newCDPSession(page);

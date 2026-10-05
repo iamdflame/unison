@@ -210,6 +210,7 @@ export function OrderTicket({
   return (
     <section
       aria-label="Order ticket"
+      data-tour="ticket"
       className="rounded-[var(--radius-xl)] bg-raised shadow-panel [scrollbar-width:thin] lg:max-h-[calc(100dvh-6.5rem)] lg:overflow-y-auto"
     >
       <div className="p-4 pb-6 sm:p-5 sm:pb-6">
@@ -383,7 +384,7 @@ export function OrderTicket({
               : ", then every one until it fills or you cancel."}
         </p>
 
-        <dl id={ids.help} className="mt-3.5 space-y-2 border-t border-line pt-3.5 text-sm">
+        <dl id={ids.help} data-tour="outcome" className="mt-3.5 scroll-mb-32 space-y-2 border-t border-line pt-3.5 text-sm">
           {/* number first, one line under it: what happens now, the most it can cost, what is held meanwhile */}
           <div className="flex flex-wrap justify-between gap-x-4 gap-y-0.5">
             <dt className="text-ink-3">Fills now</dt>

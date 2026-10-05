@@ -56,7 +56,7 @@ export function TradeView({ ticker }: { ticker: string }) {
       {/* Desktop: the ticket owns the right column from the top, so its button is on screen without scrolling. */}
       <div className="grid grid-cols-1 gap-x-5 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0">
-          <header className="flex flex-wrap items-end gap-x-8 gap-y-4">
+          <header data-tour="price" className="flex flex-wrap items-end gap-x-8 gap-y-4">
             <div>
               {/* on a phone the name takes its own line under the ticker, never a ragged second column */}
               <h1 className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-3">
@@ -107,7 +107,7 @@ export function TradeView({ ticker }: { ticker: string }) {
                   {fmt(m.lo)} – {fmt(m.hi)}
                 </dd>
               </div>
-              <div>
+              <div data-tour="regime">
                 <dt className="text-xs text-ink-3">Regime</dt>
                 <dd>
                   <RegimeBadge name={m.regime.name} bandBps={m.regime.bandBps} />
@@ -135,6 +135,7 @@ export function TradeView({ ticker }: { ticker: string }) {
 
           <div className="mt-5 flex min-w-0 flex-col gap-5">
             <Tabs.Root
+              data-tour="chart"
               value={view}
               onValueChange={(v) => setView(String(v))}
               className="rounded-[var(--radius-xl)] bg-raised shadow-panel"
@@ -220,7 +221,7 @@ export function TradeView({ ticker }: { ticker: string }) {
 
       {/* Under the thumb on phones and tablets: docked on the tab bar, solid, so it never floats over the chart;
           buy or sell opens the ticket as a sheet. */}
-      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t border-line bg-bg px-4 py-2.5 sm:bottom-0 sm:pb-[calc(0.625rem+env(safe-area-inset-bottom))] lg:hidden">
+      <div data-tour="thumb" className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t border-line bg-bg px-4 py-2.5 sm:bottom-0 sm:pb-[calc(0.625rem+env(safe-area-inset-bottom))] lg:hidden">
         <div className="mx-auto flex max-w-md gap-2">
           <button
             type="button"
@@ -303,6 +304,7 @@ function Activity({
   const live = orders.filter((o) => o.status === "pending" || o.status === "open" || o.status === "partial");
   return (
     <Tabs.Root
+      data-tour="activity"
       value={tab}
       onValueChange={(v) => setTab(String(v))}
       className="rounded-[var(--radius-xl)] bg-raised shadow-panel"

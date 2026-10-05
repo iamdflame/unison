@@ -3,6 +3,7 @@
 import { Command } from "cmdk";
 import { Search } from "lucide-react";
 import { MARKETS } from "@/lib/content/markets";
+import { startTour } from "@/lib/ui/tour";
 
 /** The ⌘K palette itself: any market, or anywhere in the app. Fetched on demand by MarketSwitcher. */
 export function MarketPalette({ open, onOpenChange, go }: { open: boolean; onOpenChange: (o: boolean) => void; go: (href: string) => void }) {
@@ -45,6 +46,21 @@ export function MarketPalette({ open, onOpenChange, go }: { open: boolean; onOpe
               {label}
             </Command.Item>
           ))}
+        </Command.Group>
+        <Command.Group heading="Help" className="px-1 text-xs text-ink-3 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-2">
+          <Command.Item
+            value="Take the tour guided help how it works"
+            onSelect={() => {
+              // the tour is of the terminal: on another page, go there first, and it starts when the terminal is on screen
+              if (location.pathname.startsWith("/trade/")) onOpenChange(false);
+              else go("/trade/aNVDA");
+              startTour();
+            }}
+            className="flex cursor-default items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm text-ink data-[selected=true]:bg-ink/[0.06]"
+          >
+            Take the tour
+            <span className="text-xs text-ink-3">The terminal, in a minute</span>
+          </Command.Item>
         </Command.Group>
       </Command.List>
     </Command.Dialog>

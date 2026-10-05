@@ -98,7 +98,7 @@ export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick:
   );
 
   return (
-    <section aria-label="Auctions" className="mt-5 rounded-[var(--radius-xl)] bg-raised px-5 py-4 shadow-panel">
+    <section aria-label="Auctions" data-tour="strip" className="mt-5 rounded-[var(--radius-xl)] bg-raised px-5 py-4 shadow-panel">
       {/* wide screens: four readings in fixed cells */}
       <div className="hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,1.2fr)_minmax(0,1.2fr)] gap-x-6 sm:grid" aria-live="off">
         <div className="flex items-start gap-3">

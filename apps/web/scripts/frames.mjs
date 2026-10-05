@@ -22,6 +22,8 @@ const fromLoad = args.includes("--load");
 
 const b = await chromium.launch();
 const ctx = await b.newContext({ viewport: { width, height: width <= 500 ? 844 : 900 }, deviceScaleFactor: width <= 500 ? 2 : 1, isMobile: width <= 500, hasTouch: width <= 500 });
+// a first visit to the terminal is offered the guided tour (scripts/flow-tour.mjs); captures and flows skip it
+await ctx.addInitScript(() => localStorage.setItem("unison.tour.v1", "done"));
 const p = await ctx.newPage();
 const cdp = await ctx.newCDPSession(p);
 await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });

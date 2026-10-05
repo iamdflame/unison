@@ -5,6 +5,7 @@ import { TabBar } from "@/components/app/TabBar";
 import { TopBar } from "@/components/app/TopBar";
 import { VenueBoot } from "@/components/app/VenueBoot";
 import { CertificateHost } from "@/components/trade/CertificateHost";
+import { TourHost } from "@/components/tour/TourHost";
 import { LazyToaster } from "@/components/ui/LazyToaster";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
@@ -18,6 +19,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       </main>
       <TabBar />
       <CertificateHost />
+      <TourHost />
       <LazyToaster />
       <VenueBoot />
     </div>

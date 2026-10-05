@@ -9,7 +9,7 @@ import dynamic from "next/dynamic";
  */
 export const FairnessLiveClient = dynamic(() => import("@/components/fairness/FairnessLive").then((m) => m.FairnessLive), {
   ssr: false,
-  loading: () => <div className="mx-auto h-[900px] max-w-[1440px]" aria-busy="true" aria-label="Loading the live record" />,
+  loading: () => <div className="mx-auto h-[900px] max-w-[1440px]" role="status" aria-busy="true" aria-label="Loading the live record" />,
 });
 
 export const TapeConsoleClient = dynamic(() => import("@/components/developers/LivePieces").then((m) => m.TapeConsole), {
