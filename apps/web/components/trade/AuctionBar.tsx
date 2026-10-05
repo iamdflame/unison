@@ -53,9 +53,10 @@ export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick:
   // the vault's quote and the last trade: cells on wide screens, behind "Details" on a phone
   const details = (
     <>
-      {vaultBid !== null && vaultAsk !== null ? (
+      {vaultBid !== null || vaultAsk !== null ? (
         <p className="figures text-sm text-ink-2">
-          Vault bid <span className="text-ink">{fmt(vaultBid)}</span> · ask <span className="text-ink">{fmt(vaultAsk)}</span>
+          Vault {vaultBid !== null ? <>bid <span className="text-ink">{fmt(vaultBid)}</span></> : "no bid"} ·{" "}
+          {vaultAsk !== null ? <>ask <span className="text-ink">{fmt(vaultAsk)}</span></> : `no ask (it holds no ${unit})`}
         </p>
       ) : null}
       <p className="figures text-sm text-ink-2">
@@ -112,10 +113,15 @@ export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick:
             <>
               {fmt(vaultBid)} <span className="font-normal text-ink-3">·</span> {fmt(vaultAsk)}
             </>
+          ) : vaultBid !== null ? (
+            fmt(vaultBid)
+          ) : vaultAsk !== null ? (
+            fmt(vaultAsk)
           ) : (
             "Not quoting"
           ),
-          vaultBid !== null && vaultAsk !== null ? "bid · ask" : undefined,
+          // one side only: a vault that holds no stock can bid but has nothing to offer, and says so
+          vaultBid !== null && vaultAsk !== null ? "bid · ask" : vaultBid !== null ? `bid · no ask: it holds no ${unit}` : vaultAsk !== null ? "ask · no AUSD left to bid" : undefined,
         )}
         {cell("Last trade", last ? fmt(last.tick) : "None yet", last ? `${qty(last.volume)} ${unit} · ${ago}` : undefined)}
       </div>
