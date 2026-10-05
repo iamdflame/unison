@@ -72,7 +72,8 @@ export function OrderTicket({
     setLimitTick(Math.max(1, tick));
     setLimitText(null);
   };
-  const [qtyText, setQtyText] = useState("1");
+  // the mainnet beta trades real shares from a small vault: a first order is a hundredth of one (about $2.40 of NVDA)
+  const [qtyText, setQtyText] = useState(live && v.net?.network === "mainnet" ? "0.01" : "1");
   const [ioc, setIoc] = useState(false);
   const qty = Math.max(0, Number(qtyText) || 0);
   // the chart draws the order being composed: publish its side and limit while this ticket is on screen
