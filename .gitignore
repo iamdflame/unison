@@ -59,6 +59,8 @@ deployments/monad-fork.json
 contracts/broadcast/*/143/
 # local devnet broadcasts (DevNet.s.sol only ever targets local chains)
 contracts/broadcast/DevNet.s.sol/
+# testnet broadcast logs (the addresses that matter are in deployments/monad-testnet.json)
+contracts/broadcast/*/10143/
 
 # web app
 .next/

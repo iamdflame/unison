@@ -1,0 +1,70 @@
+{
+  "accounts": {
+    "deployer": "0x0eC871bCA8612624b08d676B5a5e8E5908a1026A",
+    "keeper": "0xd9Be12a5a7CC320403fF965D72Ba8DBcdB7aAC12",
+    "relay": "0xC7D0c7638BF366A7e70b2b18fdAA8d402AbAcc08",
+    "relayer": "0xd67Ac917eec88E292cD29445e65d47dd1e8D0F5E"
+  },
+  "admin": "0x0eC871bCA8612624b08d676B5a5e8E5908a1026A",
+  "chainId": 10143,
+  "exchange": "0xeA0517ea1e95e42FDAd19EB0Ac67C27EAF407B4A",
+  "gateway": "0x501844321Ab3A080Dc23d520d59609AC9bCFbfb3",
+  "label": "monad-testnet",
+  "markets": {
+    "aNVDA/AUSD": {
+      "base": "0x4754e7a1C0121005848Cbbe5A1B74a7Ad5CC19E4",
+      "id": 0,
+      "quote": "0x8760e78f687b5DaD794a03D10f0B8B3E90107895",
+      "reference": "operator",
+      "seedPrice": 180000000,
+      "symbol": "aNVDA/AUSD",
+      "vault": "0x1BF0Ca466B1F745c423C45E02DBDa521169bEC76"
+    },
+    "aQQQ/AUSD": {
+      "base": "0xaa1a0c6F0Ee29621F775871a60bae57DB4f08eDe",
+      "id": 2,
+      "quote": "0x8760e78f687b5DaD794a03D10f0B8B3E90107895",
+      "reference": "operator",
+      "seedPrice": 600000000,
+      "symbol": "aQQQ/AUSD",
+      "vault": "0x534563ab343eF309e1F986C2F7D4e0ebE3A8283A"
+    },
+    "aSPY/AUSD": {
+      "base": "0xB2745889a957a6694d49E063CB3eA5c6ea1A29C5",
+      "id": 1,
+      "quote": "0x8760e78f687b5DaD794a03D10f0B8B3E90107895",
+      "reference": "operator",
+      "seedPrice": 660000000,
+      "symbol": "aSPY/AUSD",
+      "vault": "0x5357B930051B81AE28dC2C2383F1Ee845106Db0A"
+    }
+  },
+  "operatorReference": "0x16C4C65633fF30BD3b17b82702C140828Ed9c301",
+  "startBlock": 68257938,
+  "tokens": {
+    "AUSD": {
+      "address": "0x8760e78f687b5DaD794a03D10f0B8B3E90107895",
+      "decimals": 6,
+      "name": "Agora USD (testnet mock)",
+      "symbol": "AUSD"
+    },
+    "aNVDA": {
+      "address": "0x4754e7a1C0121005848Cbbe5A1B74a7Ad5CC19E4",
+      "decimals": 18,
+      "name": "Anchored NVIDIA (testnet mock)",
+      "symbol": "aNVDA"
+    },
+    "aQQQ": {
+      "address": "0xaa1a0c6F0Ee29621F775871a60bae57DB4f08eDe",
+      "decimals": 18,
+      "name": "Anchored Invesco QQQ (testnet mock)",
+      "symbol": "aQQQ"
+    },
+    "aSPY": {
+      "address": "0xB2745889a957a6694d49E063CB3eA5c6ea1A29C5",
+      "decimals": 18,
+      "name": "Anchored SPDR S&P 500 ETF (testnet mock)",
+      "symbol": "aSPY"
+    }
+  }
+}

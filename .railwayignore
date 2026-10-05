@@ -1,0 +1,25 @@
+# Railway uploads build the service image (ops/docker/railway.Dockerfile), which reads only package.json,
+# pnpm-lock.yaml, pnpm-workspace.yaml, packages/, services/, deployments/ and ops/. Everything else stays home,
+# secrets and local folders above all.
+.secrets/
+.env
+.env.*
+*.key
+*.pem
+.claude/
+.outlier/
+.dev-stack/
+.vercel/
+node_modules/
+**/node_modules/
+apps/
+contracts/
+cre/
+docs/
+bots/
+scripts/
+**/.next/
+**/dist/
+**/coverage/
+services/*/data/
+research/

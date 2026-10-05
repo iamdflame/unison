@@ -27,9 +27,9 @@ import {MockERC20} from "../test/mocks/MockERC20.sol";
 ///   DEPLOYER_PRIVATE_KEY=0x… KEEPER=0x… RELAY_SIGNER=0x… RELAYER=0x… \
 ///   forge script script/Testnet.s.sol --rpc-url monad_testnet --broadcast --slow
 ///
-/// Optional env: DEPLOY_CONFIG (market parameters; default ../deploy/monad-mainnet.json), DEPLOY_OUT (output file
-/// label; default monad-testnet), VAULT_SEED_TOKENS (default 5000), GAS_TOPUP_WEI (MON sent to the keeper and the
-/// relayer; default 0).
+/// Optional env: MARKETS (how many of the eight to list, in order; default 8), DEPLOY_CONFIG (market parameters;
+/// default ../deploy/monad-mainnet.json), DEPLOY_OUT (output file label; default monad-testnet), VAULT_SEED_TOKENS
+/// (default 5000), GAS_TOPUP_WEI (MON sent to the keeper and the relayer; default 0).
 contract Testnet is Script {
     uint256 internal constant MONAD_TESTNET = 10_143;
 
@@ -82,7 +82,10 @@ contract Testnet is Script {
         vm.startBroadcast(pk);
         _core(c);
         Stock[8] memory stocks = _stocks();
-        for (uint256 i = 0; i < stocks.length; ++i) {
+        // the first MARKETS stocks, in order (ids 0..MARKETS-1): Monad charges the gas limit, so a lean testnet lists fewer
+        uint256 n = vm.envOr("MARKETS", uint256(stocks.length));
+        require(n > 0 && n <= stocks.length, "MARKETS must be 1..8");
+        for (uint256 i = 0; i < n; ++i) {
             _market(c, stocks[i]);
         }
         _topUp(c);
