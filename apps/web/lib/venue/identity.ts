@@ -28,8 +28,12 @@ export interface TradingSession {
   expiry: number; // unix seconds
 }
 
-const IDENTITY_KEY = "unison.identity";
-const SESSION_KEY = "unison.session";
+// Each network has its own passkey account (the address commits to that network's gateway), so each keeps its own
+// identity and session. Before the venue switch there was one key; it belongs to the network it names.
+const LEGACY_IDENTITY_KEY = "unison.identity";
+let network = "";
+const identityKey = () => `unison.identity.${network}`;
+const sessionKey = () => `unison.session.${network}`;
 
 const load = <T>(storage: Storage | undefined, key: string): T | null => {
   try {
@@ -45,15 +49,25 @@ export const session = createStore<TradingSession | null>(null);
 
 /** Restores the identity for this network (and this tab's session) after hydration. */
 export function restoreIdentity(net: NetConfig) {
-  const id = load<PasskeyIdentity>(globalThis.localStorage, IDENTITY_KEY);
+  network = net.network;
+  const legacy = load<PasskeyIdentity>(globalThis.localStorage, LEGACY_IDENTITY_KEY);
+  if (legacy) {
+    try {
+      localStorage.setItem(`unison.identity.${legacy.network}`, JSON.stringify(legacy));
+      localStorage.removeItem(LEGACY_IDENTITY_KEY);
+    } catch {
+      /* read it in place next time */
+    }
+  }
+  const id = load<PasskeyIdentity>(globalThis.localStorage, identityKey()) ?? (legacy?.network === net.network ? legacy : null);
   identity.set(id && id.network === net.network ? id : null);
-  const s = load<TradingSession>(globalThis.sessionStorage, SESSION_KEY);
+  const s = load<TradingSession>(globalThis.sessionStorage, sessionKey());
   session.set(s && id && s.account === id.account && s.expiry > Date.now() / 1000 + 30 ? s : null);
 }
 
 export function remember(id: PasskeyIdentity) {
   try {
-    localStorage.setItem(IDENTITY_KEY, JSON.stringify(id));
+    localStorage.setItem(`unison.identity.${id.network}`, JSON.stringify(id));
   } catch {
     /* private mode: this tab only */
   }
@@ -62,7 +76,7 @@ export function remember(id: PasskeyIdentity) {
 
 export function keepSession(s: TradingSession) {
   try {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(s));
+    sessionStorage.setItem(sessionKey(), JSON.stringify(s));
   } catch {
     /* this page only */
   }
@@ -72,7 +86,7 @@ export function keepSession(s: TradingSession) {
 export function forgetSession() {
   session.set(null);
   try {
-    sessionStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(sessionKey());
   } catch {
     /* nothing kept */
   }
@@ -80,7 +94,7 @@ export function forgetSession() {
 
 export function signOut() {
   try {
-    localStorage.removeItem(IDENTITY_KEY);
+    localStorage.removeItem(identityKey());
   } catch {
     /* nothing stored */
   }

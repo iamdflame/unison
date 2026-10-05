@@ -80,11 +80,11 @@ Unison is a venue for tokenized assets on Monad: US equities (Anchored aStocks),
 
 | Claim | Evidence |
 |---|---|
-| Correct and solvent | 64 Foundry tests, 1,000-run fuzzing, invariant suite with gas-limited clears, 3,000-step market simulation with strong-solvency checks (`contracts/test`) |
+| Correct and solvent | 75 Foundry tests (71, plus 4 on a Monad mainnet fork), 1,000-run fuzzing, invariant suite with gas-limited clears, 3,000-step market simulation with strong-solvency checks (`contracts/test`) |
 | Two independent implementations agree | Solidity and `@unison/engine` match bit-for-bit on 300 clearings, 200 apportionments and 200 random book histories (`pnpm contracts:diff`) |
-| Works with real Monad assets | Mainnet-fork tests on Foundry's Monad EVM: real aNVDA (minted by Anchored's minter), AUSD, WMON and GBPm, plus live Chainlink feeds. Anchored's denylist is mirrored. The full 10-market production deploy was rehearsed on a fork ([test/fork](contracts/test/fork/MonadFork.t.sol)) |
+| Works with real Monad assets | Mainnet-fork tests on Foundry's Monad EVM: real aNVDA (minted by Anchored's minter), AUSD, WMON and GBPm, plus live Chainlink feeds. Anchored's denylist is mirrored. The full 10-market production deploy was rehearsed on a fork ([test/fork](contracts/test/fork/MonadFork.t.sol)). The mainnet beta was rehearsed end to end on a fork: the real deploy script, vault seeding, a passkey account funded from a browser wallet, a 0.01-share aNVDA buy filled by the vault, and its certificate ([`deployments/monad-fork-beta.json`](deployments/monad-fork-beta.json), `apps/web/scripts/flow-mainnet.mjs`) |
 | Cheap on Monad | A 200-order auction is 6.1M gas, about **$0.02**. The same clear is about 40% cheaper under Monad's page pricing than Ethereum's ([gas](docs/evidence/gas.md)) |
-| Unsnipeable | Sniper P&L $0 versus $473–$6,171/day on AMM, oracle-AMM and CLOB designs. At equal spread the vault earns 7.7× a CLOB maker ([fairness](docs/evidence/fairness.md)) |
+| Unsnipeable (benchmark) | In a simulated benchmark, sniper P&L is $0 versus $473–$6,171/day on AMM, oracle-AMM and CLOB designs, and at equal spread the vault earns 7.7× a CLOB maker ([fairness](docs/evidence/fairness.md)). It has not yet been measured on a public tape |
 | End to end | Devnet golden path: relay → keeper → vault funding → traders cross → uniform print → auto-claim → AI agent session key → gasless relayed order → filled (`pnpm --filter @unison/keeper e2e`) |
 
 ## Repository
@@ -153,9 +153,10 @@ Quality gates, run from `apps/web`:
 ## Status
 
 - **Built:** the full engine and every component listed above.
-- **Mainnet:** the deploy is rehearsed on a fork and needs the operator keys to go live.
+- **Mainnet beta:** [`deploy/monad-mainnet-beta.json`](deploy/monad-mainnet-beta.json) lists aNVDA/AUSD and WMON/AUSD with real assets. Every price is a Chainlink feed read as each batch clears (wNVDAx-USD, 24/5; MON/USD), so no Unison key signs a mainnet price. The vaults are small, each market has a daily cap, and Anchored's denylist is mirrored. Rehearsed end to end on a mainnet fork; it goes live once its operator keys are funded ([runbook](docs/GO_LIVE.md)).
 - **Live evidence:** the first weekend DISCOVERY cycle (Fri Oct 9 → Mon Oct 12) will be published in `docs/evidence/`.
-- **Equity references:** the dev relay uses Alpaca IEX, or a labelled simulation. Production equities use a licensed feed (Pyth Pro / Chainlink Data Streams adapters).
+- **Equity references:** on testnet the relay signs prices from market data (Alpaca IEX, or a labelled simulation). On mainnet they are Chainlink's tokenized-equity feeds. (Pyth's Hermes has required a paid key since 26 August 2026, so the Pyth adapter waits.)
+- **Other venues on Monad:** Monday Trade has offered permissionless 24/5 trading of Anchored aStocks since April 2026, continuously, spot and perpetuals. Unison's difference is the auction: one price per batch against a reference read after it closes, liquidity that isn't picked off, and price discovery through the weekend.
 - **Public testnet: live.** https://unison-omega.vercel.app trades on Monad testnet (chain 10143) with aNVDA, aSPY and aQQQ listed (the other markets run as a labelled browser simulation). Passkey accounts, a faucet, gasless orders and certificates work end to end; the services (relay, keeper, relayer, tape) run on Railway. Addresses: `deployments/monad-testnet.json`.
 - **Frontend:** reviewed over nine rounds by fresh-context design, luxury and trading judges.
 

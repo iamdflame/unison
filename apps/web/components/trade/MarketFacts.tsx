@@ -6,6 +6,7 @@ import { REFERENCE_RULES } from "@/lib/content/markets";
 import { site } from "@/lib/content/site";
 import { BEAT_MS } from "@/lib/motion/tokens";
 import { startTour } from "@/lib/ui/tour";
+import { onMainnet, useVenue } from "@/lib/venue";
 
 const pct = (bps: number) => `±${(bps / 100).toFixed(2)}%`;
 
@@ -16,6 +17,9 @@ const pct = (bps: number) => `±${(bps / 100).toFixed(2)}%`;
 export function MarketFacts({ m }: { m: MarketState }) {
   const s = m.spec;
   const stock = s.kind === "equity" || s.kind === "etf" || s.kind === "gold";
+  // a live network names its own price source (mainnet's equities read Chainlink, not the venue's relay)
+  const v = useVenue();
+  const reference = (v.mode === "live" ? v.net?.deployment.markets[s.symbol]?.reference : undefined) ?? s.reference;
   const what =
     stock
       ? `${s.name} ${s.kind === "equity" ? "stock" : "fund shares"}, tokenized by Anchored on Monad, quoted in AUSD.`
@@ -24,10 +28,12 @@ export function MarketFacts({ m }: { m: MarketState }) {
         : `${s.name}'s native token, wrapped, quoted in AUSD.`;
   const rows: [string, string][] = [
     ["Instrument", what],
-    ["This network", site.disclosure],
+    ["This network", onMainnet(v) ? site.mainnetDisclosure : site.disclosure],
     [
       "Reference",
-      s.reference === "operator"
+      reference === "chainlink" && stock
+        ? `Chainlink's tokenized-equity feed for ${s.underlying} on Monad, over its AUSD/USD feed, read as each batch clears. No Unison key signs it. The feed runs 24/5 (Sunday 8 pm to Friday 8 pm New York time); outside those hours, or if it goes stale, the market finds its own price in call auctions around the last close.`
+        : reference === "operator"
         ? `Signed by the venue's relay after each batch closes (${REFERENCE_RULES.quorum === 1 ? "one signing key today" : `${REFERENCE_RULES.quorum} signers`}), from market data (Alpaca in production, simulated here), and refused if older than ${REFERENCE_RULES.maxAgeSec} s. An outside check, Chainlink CRE comparing it with Alpaca IEX and Finnhub, halts the market past ${facts.cre.haltAboveBps} bp; it runs in simulation today. While the primary market is closed the reference holds at the last close.`
         : "Chainlink price feeds, read after each batch closes, so no order can be placed against them.",
     ],

@@ -4,12 +4,15 @@ import { buyLock } from "@unison/engine";
 import { LightReader } from "@unison/sdk/light";
 import { RelayerClient } from "@unison/sdk/relayer";
 import { TapeClient, type MarketSummary, type Print as TapePrint } from "@unison/sdk/tape";
-import { Side } from "@unison/sdk/types";
+import { Side, Status } from "@unison/sdk/types";
+import type { CurveQuote } from "@unison/sdk/light";
 import type { Address } from "viem";
 import { marketByTicker, type MarketSpec } from "../content/markets.ts";
 import type { AccountState, BookOrder, MarketState, MyFill, MyOrder, Print } from "../demo/engine.ts";
 import { createStore, type Store } from "../store/createStore.ts";
 import { regimeNow } from "../unison/regimeNow.ts";
+import { statusOfRegime } from "../unison/vaultCurve.ts";
+import type { SimOrder } from "../sim/batch.ts";
 import type { NetConfig } from "./config.ts";
 import { describeError, identity, loadSigner } from "./identity.ts";
 
@@ -47,6 +50,31 @@ export const liveAccount: Store<AccountState> = createStore<AccountState>({
 });
 
 const units = (s: string | bigint, decimals: number) => Number(BigInt(s)) / 10 ** decimals;
+
+/**
+ * The vault's quote for the auction now forming, as the venue merges it: its on-chain curve, with bids capped by the
+ * vault's AUSD on the ledger and asks by its base (a vault that holds no stock bids and doesn't offer).
+ */
+export function vaultOrders(c: CurveQuote, baseBal: bigint, quoteBal: bigint, tickSize: bigint, baseUnit: bigint, decimals: number): SimOrder[] {
+  const out: SimOrder[] = [];
+  let quoteLeft = quoteBal;
+  for (let k = 0; c.bidTop > 0 && c.bidPerTick > 0n && k < c.bidTicks && quoteLeft > 0n; k++) {
+    const tick = c.bidTop - k;
+    if (tick <= 0) break;
+    const price = BigInt(tick) * tickSize;
+    const cost = (c.bidPerTick * price) / baseUnit;
+    const qty = cost <= quoteLeft ? c.bidPerTick : (quoteLeft * baseUnit) / price;
+    quoteLeft -= cost <= quoteLeft ? cost : quoteLeft;
+    if (qty > 0n) out.push({ id: -30_000 - k, side: "buy", tick, qty: units(qty, decimals) });
+  }
+  let baseLeft = baseBal;
+  for (let k = 0; c.askBottom > 0 && c.askPerTick > 0n && k < c.askTicks && baseLeft > 0n; k++) {
+    const qty = c.askPerTick <= baseLeft ? c.askPerTick : baseLeft;
+    baseLeft -= qty;
+    out.push({ id: -40_000 - k, side: "sell", tick: c.askBottom + k, qty: units(qty, decimals) });
+  }
+  return out;
+}
 
 export class LiveMarket {
   readonly store: Store<MarketState>;
@@ -156,14 +184,26 @@ export class LiveMarket {
   /** Pending orders (tape) and resting depth (chain) near the reference: the batch now forming. */
   private startBook() {
     const { tape, reader } = liveClients(this.net);
+    const dep = this.net.deployment.markets[this.spec.symbol];
+    const vaultAddr = dep?.vault as Address | undefined;
     let alive = true;
     const refreshBook = async () => {
       const m = this.store.get();
       const span = 40;
-      const [pending, bids, asks] = await Promise.all([
+      // the vault's curve for the reference the next auction would use, and what it holds to back it
+      const vaultRead =
+        vaultAddr && dep && m.refTick > 0 && this.tickSize > 0n
+          ? Promise.all([
+              reader.curve(vaultAddr, BigInt(this.marketId), BigInt(m.refTick) * this.tickSize, Status[statusOfRegime(m.regime.name)], BigInt(m.refTick), BigInt(Math.max(0, m.lo)), BigInt(Math.max(0, m.hi))),
+              reader.balanceOf(vaultAddr, dep.base as Address),
+              reader.balanceOf(vaultAddr, dep.quote as Address),
+            ]).catch(() => null)
+          : Promise.resolve(null);
+      const [pending, bids, asks, vq] = await Promise.all([
         tape.pending(this.marketId),
         reader.depthRange(BigInt(this.marketId), Side.BID, BigInt(m.refTick - span), BigInt(m.refTick + span)).catch(() => [] as bigint[]),
         reader.depthRange(BigInt(this.marketId), Side.ASK, BigInt(m.refTick - span), BigInt(m.refTick + span)).catch(() => [] as bigint[]),
+        vaultRead,
       ]);
       if (!alive) return;
       const me = identity.get()?.account.toLowerCase();
@@ -179,7 +219,8 @@ export class LiveMarket {
       }));
       bids.forEach((q, i) => q > 0n && book.push({ id: -10_000 - i, side: "buy", tick: m.refTick - span + i, qty: units(q, decimals), owner: "crowd", ioc: false, placedBlock: 0 }));
       asks.forEach((q, i) => q > 0n && book.push({ id: -20_000 - i, side: "sell", tick: m.refTick - span + i, qty: units(q, decimals), owner: "crowd", ioc: false, placedBlock: 0 }));
-      this.store.set((s) => ({ ...s, book, forming: pending.orders.length }));
+      const vault = vq ? vaultOrders(vq[0], vq[1], vq[2], this.tickSize, this.baseUnit, decimals) : [];
+      this.store.set((s) => ({ ...s, book, vault, forming: pending.orders.length }));
     };
     refreshBook().catch(() => undefined);
     const bookTimer = setInterval(() => refreshBook().catch(() => undefined), 1500);

@@ -430,7 +430,9 @@ export function OrderTicket({
         </button>
         <p className="mt-2.5 text-center text-xs text-ink-3">
           One price for everyone; orders at that price share it pro rata.
-          <span className="mt-1 block text-ink-3/80">Testnet · mock assets · not yet audited</span>
+          <span className="mt-1 block text-ink-3/80">
+            {!live ? "Simulation · a paper account" : v.net?.network === "mainnet" ? "Mainnet beta · real assets · daily caps · not yet audited" : "Testnet · mock assets · not yet audited"}
+          </span>
         </p>
       </div>
       <SignInSheet open={signInOpen} onOpenChange={setSignInOpen} />

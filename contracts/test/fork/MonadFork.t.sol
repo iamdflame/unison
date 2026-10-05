@@ -43,6 +43,8 @@ contract MonadForkTest is Test {
     address internal constant CL_GBP_USD = 0x1ffC8B75a16FFfbd7879F042B580F7607Dcf5C30;
     address internal constant CL_MON_USD = 0xBcD78f76005B7515837af6b50c7C52BCf73822fb;
     address internal constant CL_AUSD_USD = 0xE20751C7B5867bCBef815ffc1b284c3f412a9e13;
+    /// Chainlink tokenized-equity feed (24/5): Backed xStocks' NVDA, "Calculated" with its share multiplier
+    address internal constant CL_WNVDAX_USD = 0x03ffa4673c060339E6a8E5Ba1a12B3301c966bf0;
     address internal constant MENTO_AUSD_USDM_POOL = 0xb0a0264Ce6847F101b76ba36A4a3083ba489F501;
     /// holder of the role that may call addToDenylist on Anchored's compliance (discovered on-chain)
     address internal constant ANCHORED_DENYLIST_MANAGER = 0x8F563446550509C5BD3Fb0FC6752Be18Ddc2f6B7;
@@ -188,6 +190,50 @@ contract MonadForkTest is Test {
         if (!Session.isOpen(Session.FX_OPEN, Session.FX_CLOSE, block.timestamp)) {
             assertEq(uint8(gbpSt), uint8(IReferenceAdapter.Status.CLOSED), "FX weekend means DISCOVERY");
         }
+    }
+
+    /// The mainnet beta's aNVDA market: real aNVDA against real AUSD, priced by Chainlink's tokenized-equity feed
+    /// (wNVDAx-USD, 24/5) over AUSD/USD, so no team key signs the reference. A 0.01-share trade clears at one
+    /// price inside the band, and outside the 24/5 window (a Saturday) the reference reads CLOSED: DISCOVERY.
+    function test_fork_aNVDA_onChainlinkEquityFeed_fractionalTrade() public {
+        uint256 m = ex.createMarket(_p(ANVDA, address(cl), 10_000, 100, 4001));
+        cl.setFeed(
+            m, AggregatorV3Interface(CL_WNVDAX_USD), AggregatorV3Interface(CL_AUSD_USD), 6, 3_900, 90_000, 0, 432_000
+        );
+        (uint256 px,, IReferenceAdapter.Status st) = cl.read(m, 0, "");
+        console.log("aNVDA/AUSD reference (6-dec)", px, "status", uint8(st));
+        assertGt(px, 50e6, "NVDA above $50");
+        assertLt(px, 1_000e6, "NVDA below $1,000");
+        (,,, uint256 at,) = AggregatorV3Interface(CL_WNVDAX_USD).latestRoundData();
+        bool fresh = block.timestamp - at <= 3_900;
+        bool inWindow = Session.isOpen(0, 432_000, block.timestamp);
+        assertEq(uint8(st), uint8(fresh && inWindow ? IReferenceAdapter.Status.OPEN : IReferenceAdapter.Status.CLOSED));
+
+        address minter = IAStock(ANVDA).getRoleMember(IAStock(ANVDA).MINTER_ROLE(), 0);
+        vm.prank(minter);
+        IAStock(ANVDA).mint(alice, 0.05e18);
+        _depositAll(alice, ANVDA);
+        _ausd(bob, 50e6);
+        _depositAll(bob, AUSD);
+        uint256 tick = px / 10_000;
+        vm.prank(alice);
+        ex.placeOrder(m, 1, tick - tick / 200, 0.01e18, 0);
+        vm.prank(bob);
+        ex.placeOrder(m, 0, tick + tick / 200, 0.01e18, 0);
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 1);
+        (uint256 printed, uint256 vol) = ex.clear(m, "");
+        console.log("aNVDA print tick", printed, "volume", vol);
+        if (st == IReferenceAdapter.Status.OPEN) {
+            assertEq(vol, 0.01e18, "a hundredth of a share trades");
+            assertApproxEqAbs(printed, tick, tick / 100, "at the reference, within the band");
+        }
+
+        // a Saturday: the feed's 24/5 window is shut, so the venue runs DISCOVERY around the last close
+        uint256 sat = block.timestamp + ((5 days + 12 hours + 7 days - Session.weekSecond(block.timestamp)) % 7 days);
+        vm.warp(sat);
+        (,, IReferenceAdapter.Status weekend) = cl.read(m, 0, "");
+        assertEq(uint8(weekend), uint8(IReferenceAdapter.Status.CLOSED), "weekend means DISCOVERY");
     }
 
     /// Real WMON trades against real AUSD on the live MON/USD reference.

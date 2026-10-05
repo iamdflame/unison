@@ -7,7 +7,7 @@ import { useMarketMoment } from "@/lib/time/useMarketMoment";
 
 // a count and its noun never part at a line end
 const plural = (n: number, one: string) => `${n.toLocaleString("en-US")} ${n === 1 ? one : `${one}s`}`.replace(/ /g, " ");
-const qty = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+const qty = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: n !== 0 && Math.abs(n) < 1 ? 4 : 2 });
 const nyTime = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 
 export interface Indicative {

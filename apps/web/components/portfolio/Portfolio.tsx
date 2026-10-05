@@ -3,7 +3,7 @@
 import { Tabs } from "@base-ui/react/tabs";
 import { RelayerClient } from "@unison/sdk/relayer";
 import { TapeClient, type Transfer } from "@unison/sdk/tape";
-import { ArrowUpRight, Check, Copy, Droplets, Fingerprint, RotateCcw, X } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Check, Copy, Droplets, Fingerprint, RotateCcw, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -20,6 +20,7 @@ import { refreshAccount } from "@/lib/venue/live";
 
 /** Loaded when a withdrawal is in view (pointer over the button, or focus), so the page itself stays light. */
 const WithdrawDialog = dynamic(() => import("./WithdrawDialog").then((m) => m.WithdrawDialog), { ssr: false });
+const DepositDialog = dynamic(() => import("./DepositDialog").then((m) => m.DepositDialog), { ssr: false });
 
 /** Ink at falling strengths for positions; champagne for cash, the reserve. Never a rainbow. */
 const STRENGTH = [82, 64, 50, 40, 32, 26, 21, 17, 14, 12];
@@ -245,6 +246,8 @@ function Actions({ live }: { live: boolean }) {
   const [busy, setBusy] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [withdrawWanted, setWithdrawWanted] = useState(false);
+  const [depositOpen, setDepositOpen] = useState(false);
+  const [depositWanted, setDepositWanted] = useState(false);
 
   if (!live) {
     return (
@@ -290,6 +293,22 @@ function Actions({ live }: { live: boolean }) {
           <Droplets size={15} strokeWidth={1.75} aria-hidden /> {busy ? "Depositing…" : "Add test funds"}
         </button>
       ) : null}
+      {/* real assets come from a wallet: approve, then depositFor this passkey account */}
+      {net && !net.faucet && id ? (
+        <button
+          type="button"
+          onPointerEnter={() => setDepositWanted(true)}
+          onFocus={() => setDepositWanted(true)}
+          onClick={() => {
+            setDepositWanted(true);
+            setDepositOpen(true);
+          }}
+          className="press inline-flex items-center gap-2 rounded-[var(--radius-sm)] bg-ink px-4 py-2.5 text-sm font-semibold text-bg"
+        >
+          <ArrowDownLeft size={15} strokeWidth={1.75} aria-hidden /> Deposit
+        </button>
+      ) : null}
+      {depositWanted ? <DepositDialog open={depositOpen} onOpenChange={setDepositOpen} /> : null}
       <button
         type="button"
         onPointerEnter={() => setWithdrawWanted(true)}

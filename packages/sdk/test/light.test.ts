@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { encodeAbiParameters, encodeFunctionData, toFunctionSelector, type Address, type Hex } from "viem";
+import { liquidityVaultAbi } from "../src/abis/LiquidityVault.ts";
 import { unisonExchangeAbi } from "../src/abis/UnisonExchange.ts";
 import {
   BALANCE_OF_SELECTOR,
+  CURVE_SELECTOR,
+  decodeCurve,
   decodeUint,
   decodeUintArray,
   DEPTH_SELECTOR,
   encodeBalanceOfCall,
+  encodeCurveCall,
   encodeDepthCall,
   LightReader,
 } from "../src/light.ts";
@@ -17,6 +21,18 @@ const me = "0x90F79bf6EB2c4f870365E785982E1f101E93b906" as Address;
 const ausd = "0x5FbDB2315678afecb367f032d93F642f64180aa3" as Address;
 
 describe("light reads match the ABI", () => {
+  it("reads the vault's curve exactly as viem encodes and decodes it", () => {
+    expect(CURVE_SELECTOR).toBe(toFunctionSelector("curve(uint256,uint256,uint8,uint256,uint256,uint256)"));
+    expect(encodeCurveCall(0n, 235_556_604n, 2, 23_555n, 23_321n, 23_791n)).toBe(
+      encodeFunctionData({ abi: liquidityVaultAbi, functionName: "curve", args: [0n, 235_556_604n, 2, 23_555n, 23_321n, 23_791n] }),
+    );
+    const ret = encodeAbiParameters(
+      [{ type: "tuple", components: ["uint32", "uint32", "uint128", "uint32", "uint32", "uint128"].map((type, i) => ({ type, name: `f${i}` })) }],
+      [{ f0: 23_531, f1: 10, f2: 6_793_781_082_019_670n, f3: 23_579, f4: 10, f5: 6_793_781_082_019_670n }],
+    );
+    expect(decodeCurve(ret)).toEqual({ bidTop: 23_531, bidTicks: 10, bidPerTick: 6_793_781_082_019_670n, askBottom: 23_579, askTicks: 10, askPerTick: 6_793_781_082_019_670n });
+  });
+
   it("has the exchange's selectors", () => {
     expect(DEPTH_SELECTOR).toBe(toFunctionSelector("depth(uint256,uint256,uint256,uint256)"));
     expect(BALANCE_OF_SELECTOR).toBe(toFunctionSelector("balanceOf(address,address)"));

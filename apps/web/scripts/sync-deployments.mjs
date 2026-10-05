@@ -5,7 +5,8 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 const root = new URL("../../../deployments/", import.meta.url);
-const files = { devnet: "31337.json", testnet: "monad-testnet.json", mainnet: "monad-mainnet.json" };
+// MAINNET_DEPLOYMENT_FILE points mainnet at a rehearsal on a mainnet fork (e.g. monad-fork-beta.json)
+const files = { devnet: "31337.json", testnet: "monad-testnet.json", mainnet: process.env.MAINNET_DEPLOYMENT_FILE ?? "monad-mainnet.json" };
 const out = {};
 for (const [net, file] of Object.entries(files)) {
   const u = new URL(file, root);

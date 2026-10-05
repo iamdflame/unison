@@ -274,6 +274,9 @@ function Measured({ children }: { children: (w: number, h: number) => ReactNode 
   );
 }
 
+/** Shares: a fraction of one to four places (a real-money beta trades hundredths), whole sizes to two. */
+const shares = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: n !== 0 && Math.abs(n) < 1 ? 4 : 2 });
+
 const STATUS_LABEL: Record<MyOrder["status"], string> = {
   pending: "In batch",
   open: "Resting",
@@ -333,7 +336,7 @@ function Activity({
                   {o.side === "buy" ? "Buy" : "Sell"}
                 </span>
                 <span className="tnum text-ink">
-                  {o.filled.toFixed(2)} / {o.qty} at {o.side === "buy" ? "≤" : "≥"} {fmt(o.tick)}
+                  {shares(o.filled)} / {o.qty} at {o.side === "buy" ? "≤" : "≥"} {fmt(o.tick)}
                   <span className="ml-3 text-ink-3">{o.settling ? "Filling…" : STATUS_LABEL[o.status]}</span>
                   {o.filled > 0 ? (
                     <span className="ml-3 text-ink-2">avg ${(o.quote / o.filled).toFixed(decimals)}</span>
@@ -369,13 +372,13 @@ function Activity({
                   type="button"
                   onClick={() => onCertificate(f)}
                   className="grid w-full grid-cols-[auto_1fr_auto] gap-4 px-5 py-3 text-left text-sm transition-colors hover-fine:bg-ink/[0.03]"
-                  aria-label={`Certificate for ${f.side === "buy" ? "buying" : "selling"} ${f.qty.toFixed(2)} at ${fmt(f.tick)}`}
+                  aria-label={`Certificate for ${f.side === "buy" ? "buying" : "selling"} ${shares(f.qty)} at ${fmt(f.tick)}`}
                 >
                   <span className={`font-semibold ${f.side === "buy" ? "text-buy" : "text-sell"}`}>
                     {f.side === "buy" ? "Bought" : "Sold"}
                   </span>
                   <span className="tnum text-ink">
-                    {f.qty.toFixed(2)} at {fmt(f.tick)}{" "}
+                    {shares(f.qty)} at {fmt(f.tick)}{" "}
                     <span className="text-ink-3">
                       · block {f.block.toLocaleString("en-US")} ·{" "}
                       {f.participants > 0 ? `${f.participants} orders` : `${f.batchVolume.toFixed(2)} ${ticker} traded`}

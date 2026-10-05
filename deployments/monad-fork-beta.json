@@ -1,0 +1,52 @@
+{
+  "admin": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+  "chainId": 143,
+  "chainlinkReference": "0x4Dd5336F3C0D70893A7a86c6aEBe9B953E87c891",
+  "eligibility": "0x54287AaB4D98eA51a3B1FBceE56dAf27E04a56A6",
+  "exchange": "0x5f246ADDCF057E0f778CD422e20e413be70f9a0c",
+  "gateway": "0x91A1EeE63f300B8f41AE6AF67eDEa2e2ed8c3f79",
+  "guardian": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+  "label": "monad-fork-beta",
+  "markets": {
+    "WMON/AUSD": {
+      "base": "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A",
+      "id": 1,
+      "quote": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "reference": "chainlink",
+      "seedPrice": 33900,
+      "symbol": "WMON/AUSD",
+      "vault": "0xCC5Bc84C3FDbcF262AaDD9F76652D6784293dD9e"
+    },
+    "aNVDA/AUSD": {
+      "base": "0x701193374879131f923532987c7Ef363a91a80eB",
+      "id": 0,
+      "quote": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "reference": "chainlink",
+      "seedPrice": 235790000,
+      "symbol": "aNVDA/AUSD",
+      "vault": "0x29023DE63D7075B4cC2CE30B55f050f9c67548d4"
+    }
+  },
+  "operatorReference": "0xaD82Ecf79e232B0391C5479C7f632aA1EA701Ed1",
+  "startBlock": 110739130,
+  "tokens": {
+    "AUSD": {
+      "address": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "decimals": 6,
+      "name": "AUSD",
+      "symbol": "AUSD"
+    },
+    "WMON": {
+      "address": "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A",
+      "decimals": 18,
+      "name": "Wrapped MON",
+      "symbol": "WMON"
+    },
+    "aNVDA": {
+      "address": "0x701193374879131f923532987c7Ef363a91a80eB",
+      "decimals": 18,
+      "name": "NVIDIA aStock",
+      "symbol": "aNVDA"
+    }
+  }
+}

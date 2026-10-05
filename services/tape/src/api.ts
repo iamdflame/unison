@@ -41,6 +41,8 @@ export interface TapeApiOptions {
   trustProxy?: boolean;
   keepaliveMs?: number;
   now?: () => number;
+  /** the venue's own accounts (deployer, keeper, relayer, the team's trading accounts): counted apart in /v1/stats */
+  team?: string[];
 }
 
 type Status = 400 | 404 | 429 | 503;
@@ -127,6 +129,33 @@ export function createTapeApp(opts: TapeApiOptions): Hono {
   );
 
   app.get("/v1/markets/:id", (c) => c.json(marketSummary(store, state, market(c), now())));
+
+  // Who trades here: distinct accounts with fills, the venue's own (its vaults, its team) counted apart, so "people
+  // other than us traded" is a number anyone can check against the chain.
+  app.get("/v1/stats", (c) => {
+    const vaults = new Set([...state.markets.values()].flatMap((m) => (m.vault ? [m.vault] : [])));
+    const team = new Set((opts.team ?? []).map((a) => a.toLowerCase()));
+    const rows = store.traders().filter((r) => !vaults.has(r.account));
+    const outside = new Map<string, number>();
+    const byMarket: Record<number, number> = {};
+    let teamTraders = 0;
+    const seenTeam = new Set<string>();
+    for (const r of rows) {
+      if (team.has(r.account)) {
+        if (!seenTeam.has(r.account)) teamTraders++;
+        seenTeam.add(r.account);
+        continue;
+      }
+      outside.set(r.account, Math.min(outside.get(r.account) ?? r.firstBlock, r.firstBlock));
+      byMarket[r.marketId] = (byMarket[r.marketId] ?? 0) + 1;
+    }
+    return c.json({
+      traders: outside.size,
+      teamTraders,
+      byMarket,
+      firstOutsideFillBlock: outside.size ? Math.min(...outside.values()) : null,
+    });
+  });
 
   app.get("/v1/markets/:id/prints", (c) => {
     const m = market(c);

@@ -10,6 +10,15 @@
 
 export type RegimeName = "LIVE" | "EXTENDED" | "DISCOVERY" | "REOPENING" | "HALTED";
 
+export interface TapeStats {
+  /** accounts other than the venue's vaults and team with at least one fill */
+  traders: number;
+  teamTraders: number;
+  /** outside traders per market id */
+  byMarket: Record<number, number>;
+  firstOutsideFillBlock: number | null;
+}
+
 export interface Print {
   marketId: number;
   upTo: number;
@@ -354,6 +363,11 @@ export class TapeClient {
 
   health(): Promise<TapeHealth> {
     return this.get("/health");
+  }
+
+  /** Distinct accounts with fills, the venue's own counted apart (GET /v1/stats). */
+  async stats(): Promise<TapeStats> {
+    return (await (await this.request("/v1/stats")).json()) as TapeStats;
   }
 
   async markets(): Promise<MarketSummary[]> {

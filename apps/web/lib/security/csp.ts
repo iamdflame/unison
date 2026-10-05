@@ -21,7 +21,9 @@ const origin = (u: string | undefined): string | null => {
 
 export function contentSecurityPolicy(env: Record<string, string | undefined>, dev: boolean): string {
   const connect = new Set<string>(["'self'", ...MONAD_RPC]);
-  for (const key of ["NEXT_PUBLIC_TAPE_URL", "NEXT_PUBLIC_RELAYER_URL", "NEXT_PUBLIC_RELAY_URL", "NEXT_PUBLIC_RPC_URL", "NEXT_PUBLIC_RPC_WS_URL"]) {
+  // the build's own network, and the second one its venue switch offers (lib/venue/config.ts)
+  const keys = ["TAPE_URL", "RELAYER_URL", "RELAY_URL", "RPC_URL", "RPC_WS_URL"];
+  for (const key of keys.flatMap((k) => [`NEXT_PUBLIC_${k}`, `NEXT_PUBLIC_MAINNET_${k}`, `NEXT_PUBLIC_TESTNET_${k}`])) {
     const o = origin(env[key]);
     if (o) connect.add(o);
   }

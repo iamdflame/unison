@@ -243,6 +243,8 @@ export interface TapeStore {
   /** Cancels in a market by any of `accounts`. */
   cancelsByAccounts(marketId: number, accounts: string[]): OrderCancelledRow[];
   claims(account: string, limit?: number): ClaimRow[];
+  /** Every account that has received a fill, per market: how many of its claims carried one, and the first block. */
+  traders(): { account: string; marketId: number; fills: number; firstBlock: number }[];
   transfers(account: string): TransferRow[];
   sessions(account: string): SessionRow[];
   passkey(account: string): PasskeyRow | undefined;
@@ -717,6 +719,13 @@ export class SqliteTapeStore implements TapeStore {
       account,
       limit,
     );
+  }
+
+  traders(): { account: string; marketId: number; fills: number; firstBlock: number }[] {
+    return this.all(
+      // a fill moved the other asset to the account: base to a buyer, AUSD to a seller (refunds move the same asset back)
+      "SELECT account, market_id, COUNT(*) AS n, MIN(block) AS first FROM claims WHERE (side = 0 AND base_amount != '0') OR (side = 1 AND quote_amount != '0') GROUP BY account, market_id",
+    ).map((r) => ({ account: String(r.account), marketId: Number(r.market_id), fills: Number(r.n), firstBlock: Number(r.first) }));
   }
 
   transfers(account: string): TransferRow[] {

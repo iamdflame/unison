@@ -2,11 +2,12 @@
 
 import { Command } from "cmdk";
 import { Search } from "lucide-react";
-import { MARKETS } from "@/lib/content/markets";
+import { useListedMarkets } from "@/lib/venue";
 import { startTour } from "@/lib/ui/tour";
 
 /** The ⌘K palette itself: any market, or anywhere in the app. Fetched on demand by MarketSwitcher. */
 export function MarketPalette({ open, onOpenChange, go }: { open: boolean; onOpenChange: (o: boolean) => void; go: (href: string) => void }) {
+  const markets = useListedMarkets();
   return (
     <Command.Dialog
       open={open}
@@ -22,7 +23,7 @@ export function MarketPalette({ open, onOpenChange, go }: { open: boolean; onOpe
       <Command.List className="max-h-[50vh] overflow-y-auto p-2">
         <Command.Empty className="px-3 py-6 text-center text-sm text-ink-3">Nothing matches.</Command.Empty>
         <Command.Group heading="Markets" className="px-1 text-xs text-ink-3 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-2">
-          {MARKETS.map((m) => (
+          {markets.map((m) => (
             <Command.Item
               key={m.ticker}
               value={`${m.ticker} ${m.name} ${m.underlying}`}

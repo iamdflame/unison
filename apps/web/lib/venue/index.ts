@@ -2,7 +2,7 @@
 
 import { TapeClient } from "@unison/sdk/tape";
 import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
-import { marketByTicker, type MarketSpec } from "../content/markets.ts";
+import { MARKETS, marketByTicker, type MarketSpec } from "../content/markets.ts";
 import { account as demoAccount, demoMarket, type AccountState, type MarketState, type MyOrder } from "../demo/engine.ts";
 import { createStore, shallowEqual, useStore, type Store } from "../store/createStore.ts";
 import { netConfig, type NetConfig } from "./config.ts";
@@ -60,6 +60,16 @@ export interface VenueMarket {
 
 export function useVenue(): VenueState {
   return useStore(venue, (v) => v, shallowEqual);
+}
+
+/** Mainnet trades real assets only: a market it doesn't list is not shown beside them as a simulation. */
+export const onMainnet = (v: VenueState) => v.mode === "live" && v.net?.network === "mainnet";
+export const listedOn = (v: VenueState, spec: MarketSpec) => !onMainnet(v) || !!v.net?.deployment.markets[spec.symbol];
+
+/** The markets to show: on mainnet, the ones it lists; elsewhere every market (unlisted ones run as a labelled simulation). */
+export function useListedMarkets(): readonly MarketSpec[] {
+  const v = useVenue();
+  return useMemo(() => MARKETS.filter((m) => listedOn(v, m)), [v]);
 }
 
 /**

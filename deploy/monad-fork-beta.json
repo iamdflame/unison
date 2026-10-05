@@ -1,0 +1,118 @@
+{
+  "label": "monad-fork-beta",
+  "_notes": [
+    "Rehearsal of deploy/monad-mainnet-beta.json on an anvil fork of Monad mainnet: anvil test keys (account 1 = admin, account 2 = guardian), so the role handover runs too.",
+    "aNVDA/AUSD: Chainlink wNVDAx-USD (Calculated; Backed xStocks' NVDA price times its multiplier, ~1), 24/5 hours, 1 h heartbeat, 5 bp deviation; AUSD/USD as the quote feed. The session window is Sun 20:00 → Fri 20:00 New York time = Mon 00:00 → Sat 00:00 UTC under EDT (retune when daylight time ends on Nov 1). Outside it, and whenever the feed is staler than 65 min, the market runs DISCOVERY call auctions around the last close.",
+    "WMON/AUSD: Chainlink MON/USD, always open.",
+    "issuerDenylists: the venue mirrors Anchored's COMPLIANCE() denylist at every deposit and withdrawal of aNVDA (restricted). No KYC; a denylisted address can't move aNVDA through the venue.",
+    "dailyCap: base units per UTC day (1 aNVDA; 20,000 WMON).",
+    "regime = [extBandBps, reopenBandBps, discFloorBps, discCapBps, discHorizonSec, discCadenceBlocks]; vault = [spreadBps, depthBps, widthTicks, maxSkewTicks, maxAuctionBps, swingBps, extMult, closedMult].",
+    "admin / guardian = 0x0 → the deployer keeps the roles. Fill both before broadcasting."
+  ],
+  "admin": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+  "guardian": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+  "relaySigners": [],
+  "referenceQuorum": 1,
+  "referenceMaxAgeMs": 15000,
+  "bondToken": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+  "keeperReward": 0,
+  "tokens": [
+    "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+    "0x701193374879131f923532987c7Ef363a91a80eB",
+    "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A"
+  ],
+  "restricted": [
+    false,
+    true,
+    false
+  ],
+  "issuerDenylists": [
+    "0x701193374879131f923532987c7Ef363a91a80eB"
+  ],
+  "markets": [
+    {
+      "symbol": "aNVDA/AUSD",
+      "base": "0x701193374879131f923532987c7Ef363a91a80eB",
+      "quote": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "reference": "chainlink",
+      "feed": "0x03ffa4673c060339E6a8E5Ba1a12B3301c966bf0",
+      "quoteFeed": "0xE20751C7B5867bCBef815ffc1b284c3f412a9e13",
+      "quoteDecimals": 6,
+      "feedMaxAgeSec": 3900,
+      "quoteFeedMaxAgeSec": 90000,
+      "session": [
+        0,
+        432000
+      ],
+      "tickSize": 10000,
+      "maxBandTicks": 4001,
+      "bandBps": 100,
+      "feeBps": 3,
+      "maxFeeBps": 10,
+      "shards": 4,
+      "permissioned": false,
+      "regime": [
+        200,
+        726,
+        100,
+        726,
+        172800,
+        10
+      ],
+      "vault": [
+        10,
+        40,
+        10,
+        15,
+        1000,
+        30,
+        2,
+        4
+      ],
+      "dailyCap": "1000000000000000000",
+      "seedPrice": 235790000
+    },
+    {
+      "symbol": "WMON/AUSD",
+      "base": "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A",
+      "quote": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "reference": "chainlink",
+      "feed": "0xBcD78f76005B7515837af6b50c7C52BCf73822fb",
+      "quoteFeed": "0xE20751C7B5867bCBef815ffc1b284c3f412a9e13",
+      "quoteDecimals": 6,
+      "feedMaxAgeSec": 3600,
+      "quoteFeedMaxAgeSec": 90000,
+      "session": [
+        0,
+        0
+      ],
+      "tickSize": 1,
+      "maxBandTicks": 12001,
+      "bandBps": 200,
+      "feeBps": 3,
+      "maxFeeBps": 10,
+      "shards": 4,
+      "permissioned": false,
+      "regime": [
+        400,
+        1000,
+        200,
+        1000,
+        86400,
+        10
+      ],
+      "vault": [
+        20,
+        50,
+        10,
+        20,
+        1000,
+        0,
+        1,
+        2
+      ],
+      "dailyCap": "20000000000000000000000",
+      "seedPrice": 33900
+    }
+  ]
+}

@@ -14,6 +14,11 @@ import type { SideCode } from "./types.ts";
 export const DEPTH_SELECTOR = "0x2ad6ca64";
 /** `balanceOf(address account, address token) → uint256`: the venue ledger, not an ERC-20 */
 export const BALANCE_OF_SELECTOR = "0xf7888aec";
+/**
+ * `curve(uint256 marketId, uint256 refPrice, uint8 status, uint256 refTick, uint256 lo, uint256 hi)` on a curve source
+ * (the LiquidityVault): its quote for one auction, before the venue caps it by the source's ledger balances.
+ */
+export const CURVE_SELECTOR = "0x0b9606a8";
 /** Ticks per `depth` call: the contract accepts at most hi - lo = 4,096. */
 const CHUNK = 4_096n;
 const MAX = (1n << 256n) - 1n;
@@ -31,6 +36,27 @@ export const encodeDepthCall = (marketId: bigint, side: SideCode, lo: bigint, hi
   `${DEPTH_SELECTOR}${word(marketId)}${word(BigInt(side))}${word(lo)}${word(hi)}`;
 
 export const encodeBalanceOfCall = (account: Address, token: Address): Hex => `${BALANCE_OF_SELECTOR}${addressWord(account)}${addressWord(token)}`;
+
+export const encodeCurveCall = (marketId: bigint, refPrice: bigint, status: number, refTick: bigint, lo: bigint, hi: bigint): Hex =>
+  `${CURVE_SELECTOR}${word(marketId)}${word(refPrice)}${word(BigInt(status))}${word(refTick)}${word(lo)}${word(hi)}`;
+
+/** ICurveSource.Curve: bids from `bidTop` down and asks from `askBottom` up, `perTick` base units at each tick. */
+export interface CurveQuote {
+  bidTop: number;
+  bidTicks: number;
+  bidPerTick: bigint;
+  askBottom: number;
+  askTicks: number;
+  askPerTick: bigint;
+}
+
+/** Return data → Curve (six static words). */
+export function decodeCurve(data: Hex): CurveQuote {
+  const h = data.slice(2);
+  if (h.length < 6 * 64) throw new Error(`short return data for Curve: ${data}`);
+  const w = (i: number) => BigInt(`0x${h.slice(i * 64, (i + 1) * 64)}`);
+  return { bidTop: Number(w(0)), bidTicks: Number(w(1)), bidPerTick: w(2), askBottom: Number(w(3)), askTicks: Number(w(4)), askPerTick: w(5) };
+}
 
 /** Return data → uint256. */
 export function decodeUint(data: Hex): bigint {
@@ -61,11 +87,11 @@ export class LightReader {
     this.fetchImpl = fetchImpl;
   }
 
-  private async call(data: Hex): Promise<Hex> {
+  private async call(data: Hex, to: Address = this.exchange): Promise<Hex> {
     const res = await this.fetchImpl(this.rpcUrl, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: ++this.id, method: "eth_call", params: [{ to: this.exchange, data }, "latest"] }),
+      body: JSON.stringify({ jsonrpc: "2.0", id: ++this.id, method: "eth_call", params: [{ to, data }, "latest"] }),
     });
     if (!res.ok) throw new Error(`eth_call failed: HTTP ${res.status}`);
     const body = (await res.json()) as { result?: Hex; error?: { message?: string } };
@@ -84,6 +110,11 @@ export class LightReader {
     const parts: Promise<bigint[]>[] = [];
     for (let a = lo; a <= hi; a += CHUNK) parts.push(this.depth(marketId, side, a, a + CHUNK - 1n < hi ? a + CHUNK - 1n : hi));
     return (await Promise.all(parts)).flat();
+  }
+
+  /** A curve source's quote for one auction (call it with the reference the next auction would use). */
+  async curve(source: Address, marketId: bigint, refPrice: bigint, status: number, refTick: bigint, lo: bigint, hi: bigint): Promise<CurveQuote> {
+    return decodeCurve(await this.call(encodeCurveCall(marketId, refPrice, status, refTick, lo, hi), source));
   }
 
   /** An account's free balance on the venue ledger. */

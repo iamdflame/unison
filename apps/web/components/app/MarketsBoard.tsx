@@ -3,12 +3,12 @@
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
-import { MARKETS, priceFormat, type MarketSpec } from "@/lib/content/markets";
+import { priceFormat, type MarketSpec } from "@/lib/content/markets";
 import { shallowEqual } from "@/lib/store/createStore";
 import { clearBatch } from "@/lib/sim/batch";
 import { heroLine } from "@/lib/time/market";
 import { useMarketMoment } from "@/lib/time/useMarketMoment";
-import { useMarket, useVenue } from "@/lib/venue";
+import { useListedMarkets, useMarket, useVenue } from "@/lib/venue";
 import { Spark, sample } from "@/components/trade/Spark";
 import { BandDial } from "./BandDial";
 import { Hallmark } from "@/components/ui/Hallmark";
@@ -22,11 +22,16 @@ const KIND: Record<MarketSpec["kind"], string> = { equity: "Stock", etf: "Fund",
 export function MarketsBoard() {
   const moment = useMarketMoment();
   const v = useVenue();
+  const listed = useListedMarkets();
   return (
     <>
       <p className="mt-3 min-h-12 text-ink-2 sm:min-h-6">{moment ? heroLine(moment) : ""}</p>
       <p className="mt-1 min-h-5 text-sm text-ink-3">
-        {v.ready && v.mode === "demo" ? "Simulation: every batch clears on the real clearing engine, in your browser." : ""}
+        {v.ready && v.mode === "demo"
+          ? "Simulation: every batch clears on the real clearing engine, in your browser."
+          : v.net?.network === "mainnet"
+            ? "Monad mainnet: real assets, priced by Chainlink. Beta, with small vaults and daily caps."
+            : ""}
       </p>
 
       <div className="mt-8 overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-panel">
@@ -41,7 +46,7 @@ export function MarketsBoard() {
           <span />
         </div>
         <ul className="divide-y divide-line">
-          {MARKETS.map((m) => (
+          {listed.map((m) => (
             <li key={m.ticker}>
               <Row spec={m} />
             </li>

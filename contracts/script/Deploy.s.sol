@@ -12,6 +12,13 @@ import {IPyth} from "../src/interfaces/external/IPyth.sol";
 import {AggregatorV3Interface} from "../src/interfaces/external/AggregatorV3Interface.sol";
 import {LiquidityVault, IUnisonVenue} from "../src/liquidity/LiquidityVault.sol";
 import {OrderGateway, IGatewayVenue} from "../src/access/OrderGateway.sol";
+import {IssuerDenylistEligibility, IIssuerCompliance} from "../src/compliance/IssuerDenylistEligibility.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+
+/// @notice An issuer's token that names its compliance contract (Anchored aStocks: `COMPLIANCE()`).
+interface IIssuedToken {
+    function COMPLIANCE() external view returns (address);
+}
 
 /// @notice Config-driven production deployment (deploy/<network>.json → deployments/<label>.json).
 ///
@@ -20,6 +27,9 @@ import {OrderGateway, IGatewayVenue} from "../src/access/OrderGateway.sol";
 ///
 /// Roles: the deployer configures everything, then (if `admin` differs) hands every role to `admin`,
 /// GUARDIAN/HALT to `guardian`, and renounces its own. Ownable2Step adapters must be accepted by `admin`.
+///
+/// Optional config: `issuerDenylists` (tokens whose issuer's COMPLIANCE() denylist the venue mirrors at every
+/// deposit and withdrawal of a restricted token) and, per market, `dailyCap` (base units per UTC day).
 contract Deploy is Script {
     struct Core {
         UnisonExchange ex;
@@ -27,6 +37,7 @@ contract Deploy is Script {
         ChainlinkReference cl;
         PythReference py;
         OrderGateway gateway;
+        IssuerDenylistEligibility elig;
         address deployer;
         address admin;
         address guardian;
@@ -35,6 +46,8 @@ contract Deploy is Script {
     string internal json;
     string internal outMarkets = "markets";
     string internal lastMarketsJson;
+    string internal tokensJson;
+    uint256 internal startBlock;
 
     function run() external {
         json = vm.readFile(vm.envOr("DEPLOY_CONFIG", string("../deploy/monad-mainnet.json")));
@@ -43,6 +56,7 @@ contract Deploy is Script {
         c.deployer = vm.addr(pk);
         c.admin = _addrOr(".admin", c.deployer);
         c.guardian = _addrOr(".guardian", c.admin);
+        startBlock = vm.getBlockNumber(); // indexers start here
 
         vm.startBroadcast(pk);
         _core(c);
@@ -81,13 +95,36 @@ contract Deploy is Script {
         if (pyth != address(0)) c.py = new PythReference(c.deployer, IPyth(pyth), address(c.ex));
         uint256 reward = vm.parseJsonUint(json, ".keeperReward");
         if (reward != 0) c.ex.setKeeperReward(reward);
+        // mirror each issuer's denylist: no KYC, but an address the issuer has denylisted can't move its token here
+        if (vm.keyExistsJson(json, ".issuerDenylists")) {
+            address[] memory issued = vm.parseJsonAddressArray(json, ".issuerDenylists");
+            if (issued.length != 0) {
+                c.elig = new IssuerDenylistEligibility(c.deployer);
+                for (uint256 i = 0; i < issued.length; ++i) {
+                    c.elig.addSource(IIssuerCompliance(IIssuedToken(issued[i]).COMPLIANCE()));
+                }
+                c.ex.setEligibility(address(c.elig));
+            }
+        }
     }
 
     function _tokens(Core memory c) internal {
         address[] memory toks = vm.parseJsonAddressArray(json, ".tokens");
         bool[] memory restricted = vm.parseJsonBoolArray(json, ".restricted");
         require(toks.length == restricted.length, "tokens/restricted length");
-        for (uint256 i = 0; i < toks.length; ++i) c.ex.listToken(toks[i], restricted[i]);
+        for (uint256 i = 0; i < toks.length; ++i) {
+            c.ex.listToken(toks[i], restricted[i]);
+            _recordToken(toks[i]);
+        }
+    }
+
+    function _recordToken(address t) internal {
+        string memory sym = IERC20Metadata(t).symbol();
+        string memory k = string.concat("token.", sym);
+        vm.serializeAddress(k, "address", t);
+        vm.serializeString(k, "symbol", sym);
+        vm.serializeString(k, "name", IERC20Metadata(t).name());
+        tokensJson = vm.serializeString("tokens", sym, vm.serializeUint(k, "decimals", IERC20Metadata(t).decimals()));
     }
 
     function _key(uint256 i, string memory field) internal pure returns (string memory) {
@@ -117,6 +154,9 @@ contract Deploy is Script {
         uint256[] memory g = vm.parseJsonUintArray(json, _key(i, "regime"));
         c.ex.setRegime(mkt, uint16(g[0]), uint16(g[1]), uint16(g[2]), uint16(g[3]), uint32(g[4]), uint32(g[5]));
         if (keccak256(bytes(refKind)) == keccak256("chainlink")) _chainlinkFeed(c, i, mkt);
+        if (vm.keyExistsJson(json, _key(i, "dailyCap"))) {
+            c.ex.setDailyCap(mkt, uint128(vm.parseJsonUint(json, _key(i, "dailyCap"))));
+        }
 
         address vault;
         uint256[] memory v = vm.parseJsonUintArray(json, _key(i, "vault"));
@@ -195,6 +235,8 @@ contract Deploy is Script {
         ex.grantRole(ex.OPERATOR_ROLE(), c.admin);
         ex.grantRole(ex.GUARDIAN_ROLE(), c.guardian);
         ex.grantRole(ex.HALT_ROLE(), c.guardian);
+        ex.grantRole(ex.CAP_ROLE(), c.admin);
+        ex.renounceRole(ex.CAP_ROLE(), c.deployer);
         ex.renounceRole(ex.HALT_ROLE(), c.deployer);
         ex.renounceRole(ex.GUARDIAN_ROLE(), c.deployer);
         ex.renounceRole(ex.OPERATOR_ROLE(), c.deployer);
@@ -205,17 +247,21 @@ contract Deploy is Script {
         c.osr.renounceRole(c.osr.DEFAULT_ADMIN_ROLE(), c.deployer);
         c.cl.transferOwnership(c.admin);
         if (address(c.py) != address(0)) c.py.transferOwnership(c.admin);
+        if (address(c.elig) != address(0)) c.elig.transferOwnership(c.admin);
     }
 
     function _write(Core memory c) internal {
         string memory root = "root";
         vm.serializeUint(root, "chainId", block.chainid);
         vm.serializeString(root, "label", vm.parseJsonString(json, ".label"));
+        vm.serializeUint(root, "startBlock", startBlock);
+        vm.serializeString(root, "tokens", tokensJson);
         vm.serializeAddress(root, "exchange", address(c.ex));
         vm.serializeAddress(root, "operatorReference", address(c.osr));
         vm.serializeAddress(root, "chainlinkReference", address(c.cl));
         vm.serializeAddress(root, "gateway", address(c.gateway));
         if (address(c.py) != address(0)) vm.serializeAddress(root, "pythReference", address(c.py));
+        if (address(c.elig) != address(0)) vm.serializeAddress(root, "eligibility", address(c.elig));
         vm.serializeAddress(root, "admin", c.admin);
         vm.serializeAddress(root, "guardian", c.guardian);
         string memory out = vm.serializeString(root, "markets", lastMarketsJson);

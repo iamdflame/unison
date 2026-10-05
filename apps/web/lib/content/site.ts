@@ -7,6 +7,8 @@ export const site = {
   /** What the venue is today, said wherever the site invites someone to trade. One sentence, one source. */
   stage: "Testnet",
   disclosure: "Monad testnet with mock assets. Not yet externally audited. Not available to US persons.",
+  /** said wherever the venue is on mainnet */
+  mainnetDisclosure: "Monad mainnet, with real assets. A beta: small vaults and daily caps. Not yet externally audited. Not available to US persons.",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   repo: "https://github.com/iamdflame/unison",
 } as const;

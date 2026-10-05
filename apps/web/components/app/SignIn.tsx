@@ -2,7 +2,8 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { RelayerClient } from "@unison/sdk/relayer";
-import { Droplets, Fingerprint, KeyRound, LogOut, X, Zap } from "lucide-react";
+import { ArrowDownLeft, Droplets, Fingerprint, KeyRound, LogOut, X, Zap } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { toast } from "@/lib/ui/toast";
 import { Emblem } from "@/components/brand/Emblem";
@@ -16,12 +17,15 @@ import { refreshAccount } from "@/lib/venue/live";
  * Sign-in is a passkey: Face ID, Touch ID or Windows Hello. No seed phrase and no gas. Then, on test networks,
  * one tap for test funds, and one more for a trading session (one signature now, one tap per order after).
  */
+const DepositDialog = dynamic(() => import("@/components/portfolio/DepositDialog").then((m) => m.DepositDialog), { ssr: false });
+
 export function SignIn({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const v = useVenue();
   const id = useStore(identity, (x) => x);
   const s = useStore(session, (x) => x);
   const quote = useVenueAccount((a) => a.quote);
   const [busy, setBusy] = useState<string | null>(null);
+  const [depositOpen, setDepositOpen] = useState(false);
   const net = v.net;
   // the passkey prompt must not wait on the network (and lose its user activation): load the signer as the sheet opens
   useEffect(() => {
@@ -102,7 +106,19 @@ export function SignIn({ open, onOpenChange }: { open: boolean; onOpenChange: (o
                   >
                     <Droplets size={17} strokeWidth={1.5} aria-hidden /> {busy === "faucet" ? "Depositing…" : "Add test funds"}
                   </button>
-                ) : null}
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // one dialog at a time: the account sheet makes way for the deposit
+                      onOpenChange(false);
+                      setDepositOpen(true);
+                    }}
+                    className="press flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm text-ink hairline"
+                  >
+                    <ArrowDownLeft size={17} strokeWidth={1.5} aria-hidden /> Deposit from a wallet
+                  </button>
+                )}
                 <button
                   type="button"
                   disabled={!!busy || !!s}
@@ -129,6 +145,7 @@ export function SignIn({ open, onOpenChange }: { open: boolean; onOpenChange: (o
           )}
         </Dialog.Popup>
       </Dialog.Portal>
+      {depositOpen ? <DepositDialog open={depositOpen} onOpenChange={setDepositOpen} /> : null}
     </Dialog.Root>
   );
 }
