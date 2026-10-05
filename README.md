@@ -153,7 +153,8 @@ Quality gates, run from `apps/web`:
 - **Mainnet:** the deploy is rehearsed on a fork and needs the operator keys to go live.
 - **Live evidence:** the first weekend DISCOVERY cycle (Fri Oct 9 → Mon Oct 12) will be published in `docs/evidence/`.
 - **Equity references:** the dev relay uses Alpaca IEX, or a labelled simulation. Production equities use a licensed feed (Pyth Pro / Chainlink Data Streams adapters).
-- **Frontend:** built and running against the local devnet (passkeys, gasless orders, certificates, vaults, agent keys), reviewed over nine rounds by fresh-context design, luxury and trading judges. The public testnet deploy is next.
+- **Public testnet: live.** https://unison-omega.vercel.app trades on Monad testnet (chain 10143) with aNVDA, aSPY and aQQQ listed (the other markets run as a labelled browser simulation). Passkey accounts, a faucet, gasless orders and certificates work end to end; the services (relay, keeper, relayer, tape) run on Railway. Addresses: `deployments/monad-testnet.json`.
+- **Frontend:** reviewed over nine rounds by fresh-context design, luxury and trading judges.
 
 ## AI disclosure
 

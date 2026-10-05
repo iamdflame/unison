@@ -150,6 +150,19 @@ The public testnet runs the same four services on **Railway** and the web app on
 
 Keys live only in `.secrets/testnet.env` (git- and Vercel-ignored) and in each platform's variable store.
 
+### What the first testnet run taught
+
+- **Gas.** Monad charges the gas limit. The testnet lists three markets (`MARKETS=3`, about 3.2 MON to deploy); the
+  keeper runs with `CLEAR_GAS=auto` (estimate × 1.2, floor 2M) and only clears an auction that trades, merges stale
+  orders, or gives a waiting vault queue its first post-request reference. A vault request that already has one is
+  processed without a clear.
+- **RPC limits.** The public endpoint allows 15 requests a second per IP, and Railway's services share egress. The
+  keeper uses `https://rpc.ankr.com/monad_testnet`; the tape, relayer and relay use `https://testnet-rpc.monad.xyz`.
+  thirdweb's endpoint answered slowly and once hung for 20 minutes, which stalled the tape's start.
+- **First trade.** Fresh vaults hold only AUSD, so the first fill is a sale into their bid; buys fill once someone has
+  sold. The live flow does either: `SHOOT_BASE=https://unison-omega.vercel.app FLOW_SIDE=sell node scripts/flow-live.mjs`.
+- **Faucet.** Three grants per IP per day (`FAUCET_PER_IP`), from the relayer's own MON.
+
 ## Mainnet
 
 1. In every `fly.toml`, set `DEPLOYMENT = "/app/deployments/monad-mainnet.json"` (written by `contracts/script/Deploy.s.sol`; see `docs/GO_LIVE.md`).
