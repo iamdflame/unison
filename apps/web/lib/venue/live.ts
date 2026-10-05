@@ -88,6 +88,8 @@ export class LiveMarket {
   private quoteDecimals = 6;
   /** the tape has answered once: until then the block stays 0, which the terminal reads as "no real price yet" */
   private loaded = false;
+  /** a push-feed market whose reference this page reads itself, fresher than the tape's last print */
+  private liveRef = false;
 
   constructor(
     readonly spec: MarketSpec,
@@ -129,6 +131,8 @@ export class LiveMarket {
     this.tickSize = BigInt(s.tickSize);
     this.baseUnit = BigInt(s.baseUnit);
     this.quoteDecimals = s.quoteDecimals;
+    // the chain's own reading wins over the last print's (a halt still shows, which the adapter can't know)
+    if (this.liveRef && !s.halted) return;
     const refTick = s.ref ? Math.round(Number(BigInt(s.ref.price) / this.tickSize)) : this.store.get().refTick;
     const regime = regimeNow(this.spec, new Date());
     const name = s.halted ? "HALTED" : s.regime;
@@ -189,8 +193,23 @@ export class LiveMarket {
     const { tape, reader } = liveClients(this.net);
     const dep = this.net.deployment.markets[this.spec.symbol];
     const vaultAddr = dep?.vault as Address | undefined;
+    // A push-feed market's reference moves without a print (the tape knows it only from the last trade): read it the
+    // way the venue does when it clears, so the band, the vault's quote and the ticket match the next auction.
+    const pushRef = dep?.reference === "chainlink" ? (this.net.deployment.chainlinkReference as Address | undefined) : undefined;
+    const NAME: Record<number, MarketState["regime"]["name"]> = { 0: "LIVE", 1: "EXTENDED", 2: "DISCOVERY", 3: "HALTED" };
     let alive = true;
     const refreshBook = async () => {
+      if (pushRef && this.tickSize > 0n) {
+        const r = await reader.reference(pushRef, BigInt(this.marketId)).catch(() => null);
+        if (r && r.price > 0n && alive) {
+          this.liveRef = true;
+          const refTick = Math.round(Number(r.price / this.tickSize));
+          const name = NAME[r.status] ?? this.store.get().regime.name;
+          const bandBps = name === "LIVE" ? this.spec.bandBps : name === "EXTENDED" ? this.spec.regime.extBandBps : name === "HALTED" ? 0 : this.store.get().regime.bandBps;
+          const half = Math.max(1, Math.round((refTick * bandBps) / 10_000));
+          this.store.set((s) => ({ ...s, refTick, regime: { ...s.regime, name, bandBps }, lo: refTick - half, hi: refTick + half }));
+        }
+      }
       const m = this.store.get();
       const span = 40;
       // the vault's curve for the reference the next auction would use, and what it holds to back it

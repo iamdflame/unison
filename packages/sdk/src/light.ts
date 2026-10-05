@@ -19,6 +19,11 @@ export const BALANCE_OF_SELECTOR = "0xf7888aec";
  * (the LiquidityVault): its quote for one auction, before the venue caps it by the source's ledger balances.
  */
 export const CURVE_SELECTOR = "0x0b9606a8";
+/**
+ * `read(uint256 marketId, uint256 batch, bytes payload)` on a reference adapter: the price an auction would clear
+ * against now. Push feeds (Chainlink) take an empty payload; it is the read the venue makes when it clears.
+ */
+export const READ_SELECTOR = "0xf273ee0a";
 /** Ticks per `depth` call: the contract accepts at most hi - lo = 4,096. */
 const CHUNK = 4_096n;
 const MAX = (1n << 256n) - 1n;
@@ -39,6 +44,17 @@ export const encodeBalanceOfCall = (account: Address, token: Address): Hex => `$
 
 export const encodeCurveCall = (marketId: bigint, refPrice: bigint, status: number, refTick: bigint, lo: bigint, hi: bigint): Hex =>
   `${CURVE_SELECTOR}${word(marketId)}${word(refPrice)}${word(BigInt(status))}${word(refTick)}${word(lo)}${word(hi)}`;
+
+/** The reference read with an empty payload (offset 0x60, length 0). */
+export const encodeReadCall = (marketId: bigint, batch = 0n): Hex => `${READ_SELECTOR}${word(marketId)}${word(batch)}${word(0x60n)}${word(0n)}`;
+
+/** Return data → (price in quote units per whole token, publish time in ms, IReferenceAdapter.Status). */
+export function decodeRead(data: Hex): { price: bigint; publishTimeMs: bigint; status: number } {
+  const h = data.slice(2);
+  if (h.length < 3 * 64) throw new Error(`short return data for read: ${data}`);
+  const w = (i: number) => BigInt(`0x${h.slice(i * 64, (i + 1) * 64)}`);
+  return { price: w(0), publishTimeMs: w(1), status: Number(w(2)) };
+}
 
 /** ICurveSource.Curve: bids from `bidTop` down and asks from `askBottom` up, `perTick` base units at each tick. */
 export interface CurveQuote {
@@ -110,6 +126,11 @@ export class LightReader {
     const parts: Promise<bigint[]>[] = [];
     for (let a = lo; a <= hi; a += CHUNK) parts.push(this.depth(marketId, side, a, a + CHUNK - 1n < hi ? a + CHUNK - 1n : hi));
     return (await Promise.all(parts)).flat();
+  }
+
+  /** The reference an auction would clear against if it cleared now, from a push-feed adapter (Chainlink). */
+  async reference(adapter: Address, marketId: bigint): Promise<{ price: bigint; publishTimeMs: bigint; status: number }> {
+    return decodeRead(await this.call(encodeReadCall(marketId), adapter));
   }
 
   /** A curve source's quote for one auction (call it with the reference the next auction would use). */

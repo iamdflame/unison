@@ -6,6 +6,9 @@ import {
   BALANCE_OF_SELECTOR,
   CURVE_SELECTOR,
   decodeCurve,
+  decodeRead,
+  encodeReadCall,
+  READ_SELECTOR,
   decodeUint,
   decodeUintArray,
   DEPTH_SELECTOR,
@@ -21,6 +24,15 @@ const me = "0x90F79bf6EB2c4f870365E785982E1f101E93b906" as Address;
 const ausd = "0x5FbDB2315678afecb367f032d93F642f64180aa3" as Address;
 
 describe("light reads match the ABI", () => {
+  it("reads a reference adapter exactly as viem encodes and decodes it", () => {
+    const abi = [{ type: "function", name: "read", stateMutability: "view", inputs: [{ type: "uint256" }, { type: "uint256" }, { type: "bytes" }], outputs: [{ type: "uint256" }, { type: "uint256" }, { type: "uint8" }] }] as const;
+    expect(READ_SELECTOR).toBe(toFunctionSelector("read(uint256,uint256,bytes)"));
+    expect(encodeReadCall(0n)).toBe(encodeFunctionData({ abi, functionName: "read", args: [0n, 0n, "0x"] }));
+    expect(encodeReadCall(7n, 110_850_455n)).toBe(encodeFunctionData({ abi, functionName: "read", args: [7n, 110_850_455n, "0x"] }));
+    const ret = encodeAbiParameters([{ type: "uint256" }, { type: "uint256" }, { type: "uint8" }], [240_619_370n, 1_791_233_102_000n, 2]);
+    expect(decodeRead(ret)).toEqual({ price: 240_619_370n, publishTimeMs: 1_791_233_102_000n, status: 2 });
+  });
+
   it("reads the vault's curve exactly as viem encodes and decodes it", () => {
     expect(CURVE_SELECTOR).toBe(toFunctionSelector("curve(uint256,uint256,uint8,uint256,uint256,uint256)"));
     expect(encodeCurveCall(0n, 235_556_604n, 2, 23_555n, 23_321n, 23_791n)).toBe(
