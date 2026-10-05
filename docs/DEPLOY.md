@@ -113,6 +113,43 @@ The web app reads two URLs:
 
 Keep both services' `CORS_ORIGINS` in step with the web app's origins.
 
+## Railway and Vercel (the live testnet setup)
+
+The public testnet runs the same four services on **Railway** and the web app on **Vercel**, both driven from their CLIs.
+
+### Web (Vercel)
+
+- Project `unison`. Root directory `apps/web`, Node 24, install `pnpm install --frozen-lockfile`, build `pnpm build`.
+- Deploy from the repository root with `vercel deploy --prod`. `.vercelignore` keeps env files, keys and local folders out of the upload.
+- Production URL: https://unison-omega.vercel.app (a custom domain replaces it later).
+- Environment: `NEXT_PUBLIC_SITE_URL` (absolute URLs in the sitemap and share images). Once the testnet is deployed, also
+  `NEXT_PUBLIC_NETWORK=testnet`, `NEXT_PUBLIC_CHAIN_ID=10143`, `NEXT_PUBLIC_RPC_URL`, `NEXT_PUBLIC_TAPE_URL` and
+  `NEXT_PUBLIC_RELAYER_URL`, then redeploy. With none of them set, the app runs as the labelled browser simulation.
+
+### Services (Railway)
+
+- Project `unison`, one service per process: `unison-relay`, `unison-keeper`, `unison-relayer`, `unison-tape`.
+- Every service builds `ops/docker/railway.Dockerfile` (the Fly recipe without BuildKit cache mounts, which Railway
+  rejects) through `RAILWAY_DOCKERFILE_PATH`, with `SERVICE` selecting the process.
+- Variables mirror the `[env]` and secrets of the matching `fly.toml`. The keeper and tape reach the relay privately at
+  `http://unison-relay.railway.internal:8787`; the relay has no public domain.
+- Volumes at `/data`: `unison-relayer` (job store) and `unison-tape` (SQLite index).
+- Public domains: https://unison-relayer-production.up.railway.app and https://unison-tape-production.up.railway.app.
+- `CORS_ORIGINS` is the Vercel URL; add the custom domain when it exists.
+- From Git Bash, prefix CLI calls that pass paths with `MSYS_NO_PATHCONV=1`, or `/data` becomes a Windows path.
+- `railway volume --service` takes the service **ID**, not its name.
+
+### Order of the first deploy
+
+1. Fund the deployer with testnet MON, then deploy the contracts:
+   `forge script script/Testnet.s.sol --rpc-url monad_testnet --broadcast --slow` with `DEPLOYER_PRIVATE_KEY`, `KEEPER`,
+   `RELAY_SIGNER`, `RELAYER` and `GAS_TOPUP_WEI` set. It writes `deployments/monad-testnet.json`; add `startBlock` and
+   commit it (addresses are public).
+2. `railway up --service <name>` for each service, from the repository root.
+3. Set the web app's `NEXT_PUBLIC_*` variables to the Railway URLs and redeploy it.
+
+Keys live only in `.secrets/testnet.env` (git- and Vercel-ignored) and in each platform's variable store.
+
 ## Mainnet
 
 1. In every `fly.toml`, set `DEPLOYMENT = "/app/deployments/monad-mainnet.json"` (written by `contracts/script/Deploy.s.sol`; see `docs/GO_LIVE.md`).
