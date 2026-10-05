@@ -86,6 +86,8 @@ export class LiveMarket {
   private tickSize = 0n;
   private baseUnit = 1n;
   private quoteDecimals = 6;
+  /** the tape has answered once: until then the block stays 0, which the terminal reads as "no real price yet" */
+  private loaded = false;
 
   constructor(
     readonly spec: MarketSpec,
@@ -154,15 +156,16 @@ export class LiveMarket {
       const [summary, prints] = await Promise.all([tape.market(this.marketId), tape.prints(this.marketId, { limit: 600, traded: true })]);
       if (!alive) return;
       this.applySummary(summary);
+      this.loaded = true;
       const list = prints.map((p) => this.toPrint(p)).reverse();
-      this.store.set((m) => ({ ...m, prints: list, last: list.at(-1) ?? null, block: summary.lastPrint?.upTo ?? m.block, lastAuction: Math.max(m.lastAuction, summary.lastPrint?.upTo ?? 0) }));
+      this.store.set((m) => ({ ...m, prints: list, last: list.at(-1) ?? null, block: summary.lastPrint?.upTo ?? Math.max(m.block, 1), lastAuction: Math.max(m.lastAuction, summary.lastPrint?.upTo ?? 0) }));
     };
     load().catch(() => undefined);
 
     const summaryTimer = setInterval(() => tape.market(this.marketId).then((s) => alive && this.applySummary(s)).catch(() => undefined), 10_000);
 
     const stream = tape.stream(["heads", `prints:${this.marketId}`], {
-      head: (h) => this.store.set((m) => ({ ...m, block: h.block })),
+      head: (h) => this.loaded && this.store.set((m) => ({ ...m, block: h.block })),
       print: (p) => {
         if (p.marketId !== this.marketId) return;
         // every auction, traded or not, restarts the count to the next one

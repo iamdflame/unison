@@ -16,6 +16,7 @@ import { AuctionBar } from "./AuctionBar";
 import { CrossChart, crossWindow, DepthLadder, PrintsChart, refName } from "./charts";
 import { MarketFacts } from "./MarketFacts";
 import { useSize } from "./useSize";
+import { TradeSkeleton } from "./TradeSkeleton";
 
 /**
  * The trading terminal. One market: its price (engraved), regime and band, the batch now forming, and you.
@@ -50,6 +51,10 @@ export function TradeView({ ticker }: { ticker: string }) {
     setSheet((l) => ({ side, n: l.n + 1 }));
     setSheetOpen(true);
   };
+
+  // A live market starts from its listing's seed price; until the tape's first answer it has no real one to show,
+  // and on a real-money market a stale price is worse than none.
+  if (live && m.block === 0) return <TradeSkeleton />;
 
   return (
     <div className="mx-auto max-w-[1680px] px-4 pt-5 pb-[calc(10rem+env(safe-area-inset-bottom))] sm:px-6 sm:pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:py-7">
