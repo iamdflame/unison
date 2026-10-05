@@ -157,11 +157,14 @@ export class Indexer implements TapeState {
 
   // ------------------------------------------------------------------------------------------ lifecycle
 
-  /** Reads market metadata (decimals, pricing, state at start). Retries until it succeeds or the tape stops. */
+  /**
+   * Reads market metadata (decimals, pricing, state at start) for every deployed market it does not know yet, so a
+   * restart that restored some markets from the database still loads the rest. Retries until it succeeds.
+   */
   async init(): Promise<void> {
-    if (this.markets.size > 0) return;
     const { client, deployment } = this.cfg;
     for (const m of Object.values(deployment.markets)) {
+      if (this.markets.has(m.id)) continue;
       const meta = await this.retry(async () => {
         const id = BigInt(m.id);
         const [st, rg, bd, qd] = await Promise.all([

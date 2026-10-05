@@ -15,12 +15,19 @@
  * clear) gets the full maxClearGas, which must cover the auction's one non-yielding step.
  */
 import { decodeEventLog, parseAbi, type Address, type Hex } from "viem";
-import { JobPhase, Status, unisonExchangeAbi, type MarketState, type UnisonClient } from "@unison/sdk";
+import { JobPhase, liquidityVaultAbi, Status, unisonExchangeAbi, type MarketState, type UnisonClient } from "@unison/sdk";
 
 /** IReferenceAdapter.read: a view on ChainlinkReference / ManualReference; eth_call works for every adapter. */
 const adapterReadAbi = parseAbi([
   "function read(uint256 marketId, uint256 batch, bytes payload) view returns (uint256 price, uint256 publishTimeMs, uint8 status)",
 ]);
+
+/** An error, briefly: its first line, plus viem's `details` (the RPC's own reply) when there is one. */
+function why(e: unknown): { error: string; details?: string } {
+  const err = e as Error & { details?: string; shortMessage?: string };
+  const error = (err.shortMessage ?? err.message ?? String(e)).split("\n")[0]!;
+  return err.details ? { error, details: err.details.slice(0, 300) } : { error };
+}
 
 export interface KeeperConfig {
   client: UnisonClient;
@@ -50,6 +57,8 @@ export class Keeper {
   private busy = false;
   private lastBlock = 0n;
   private readonly open = new Map<string, Tracked>();
+  /** the block of each market's last vault process() attempt */
+  private readonly processTriedAt = new Map<bigint, bigint>();
   readonly stats = { clears: 0, jobsDone: 0, vaultProcesses: 0, claims: 0, errors: 0 };
 
   constructor(cfg: KeeperConfig) {
@@ -144,7 +153,7 @@ export class Keeper {
           sent += await this.autoClaim();
         } catch (e) {
           // claiming is a courtesy; clearing is the job. Never let the first stop the second.
-          this.log({ level: "warn", action: "claim", error: (e as Error).message.split("\n")[0] });
+          this.log({ level: "warn", action: "claim", ...why(e) });
         }
       }
     } finally {
@@ -168,7 +177,11 @@ export class Keeper {
         if (upTo <= m.lastCleared) return 0;
         const pending = m.pendingTail > m.pendingHead;
         const age = upTo - m.lastCleared;
-        const vaultWaiting = await this.vaultWaiting(marketId);
+        const queue = await this.vaultQueue(marketId, m.lastRefTimeMs);
+        // a vault request that already has a reference published after it needs process(), never another clear:
+        // clearing again for it is how a rate-limited process() turned into a clear every few blocks
+        if (queue.processable) return await this.processVault(marketId, queue.pending);
+        const vaultWaiting = queue.pending > 0n;
         if (!pending && !vaultWaiting && age < this.cfg.repriceEvery) return 0;
         const { payload, status } = await this.reference(marketId, m, upTo);
         if (status === Status.CLOSED) {
@@ -192,28 +205,40 @@ export class Keeper {
       }
       if ((await c.jobPhase(marketId)) === JobPhase.IDLE) {
         this.stats.jobsDone++;
-        sent += await this.processVault(marketId);
+        const after = await this.vaultQueue(marketId, (await c.market(marketId)).lastRefTimeMs);
+        if (after.processable) sent += await this.processVault(marketId, after.pending);
       }
     } catch (e) {
       this.stats.errors++;
-      this.log({ level: "warn", marketId: marketId.toString(), error: (e as Error).message.split("\n")[0] });
+      this.log({ level: "warn", marketId: marketId.toString(), ...why(e) });
     }
     return sent;
   }
 
-  private async vaultWaiting(marketId: bigint): Promise<boolean> {
+  /**
+   * The vault's queue in two or three reads (not the nine of a full vault view, every block, for every market): how
+   * many requests wait, and whether the oldest already has a reference published after it, so process() can run it.
+   */
+  private async vaultQueue(marketId: bigint, lastRefTimeMs: bigint): Promise<{ pending: bigint; processable: boolean }> {
     const dep = Object.values(this.cfg.client.deployment.markets).find((x) => BigInt(x.id) === marketId);
-    if (!dep?.vault) return false;
-    return (await this.cfg.client.vault(dep.vault)).pendingRequests > 0n;
+    if (!dep?.vault) return { pending: 0n, processable: false };
+    const pc = this.cfg.client.publicClient;
+    const v = { address: dep.vault, abi: liquidityVaultAbi } as const;
+    const [head, length] = await Promise.all([pc.readContract({ ...v, functionName: "head" }), pc.readContract({ ...v, functionName: "queueLength" })]);
+    if (length <= head) return { pending: 0n, processable: false };
+    const oldest = await pc.readContract({ ...v, functionName: "request", args: [head] });
+    return { pending: length - head, processable: lastRefTimeMs > 0n && BigInt(oldest.time) * 1000n < lastRefTimeMs };
   }
 
-  private async processVault(marketId: bigint): Promise<number> {
+  private async processVault(marketId: bigint, pending: bigint): Promise<number> {
     const c = this.cfg.client;
     const dep = Object.values(c.deployment.markets).find((x) => BigInt(x.id) === marketId);
-    if (!dep?.vault) return 0;
-    const v = await c.vault(dep.vault);
-    if (v.pendingRequests === 0n) return 0;
-    await this.send(c.processVault(dep.vault), { marketId, action: "vault.process", pending: v.pendingRequests });
+    if (!dep?.vault || pending === 0n) return 0;
+    // Monad charges the gas limit even for a revert: one attempt per market every 20 blocks, never one per block
+    const tried = this.processTriedAt.get(marketId);
+    if (tried !== undefined && this.lastBlock - tried < 20n) return 0;
+    this.processTriedAt.set(marketId, this.lastBlock);
+    await this.send(c.processVault(dep.vault), { marketId, action: "vault.process", pending });
     this.stats.vaultProcesses++;
     return 1;
   }
@@ -242,7 +267,7 @@ export class Keeper {
         this.stats.claims += slots.length;
         sent++;
       } catch (e) {
-        this.log({ level: "warn", action: "claim", account, slots: slots.length, error: (e as Error).message.split("\n")[0] });
+        this.log({ level: "warn", action: "claim", account, slots: slots.length, ...why(e) });
       }
     }
     return sent;

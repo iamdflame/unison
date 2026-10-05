@@ -15,10 +15,17 @@ interface FakeState {
   pending: boolean;
   simVolume: bigint;
   vaultPending: bigint;
+  /** the market's last reference publish time (ms); a vault request at REQUEST_S can process once it is later */
+  lastRefTimeMs?: bigint;
+  /** process() succeeds but leaves the queue as it was (a revert, in effect) */
+  processFails?: boolean;
   status: number;
   discCadence: number;
   lastDiscoveryBatch: bigint;
 }
+
+const REQUEST_S = 1_000n;
+const REF_AFTER_REQUEST = 2_000_000n; // ms, after REQUEST_S
 
 /** Minimal UnisonClient double exposing exactly what the keeper uses. */
 function fakeClient(s: FakeState) {
@@ -40,6 +47,7 @@ function fakeClient(s: FakeState) {
       pendingTail: s.pending ? 1n : 0n,
       refAdapter: "0x00000000000000000000000000000000000000cc",
       lastStatus: s.lastStatus ?? Status.OPEN,
+      lastRefTimeMs: s.lastRefTimeMs ?? 0n,
     })),
     regime: vi.fn(async () => ({ discCadence: s.discCadence, lastDiscoveryBatch: s.lastDiscoveryBatch })),
     vault: vi.fn(async () => ({ pendingRequests: s.vaultPending })),
@@ -53,6 +61,7 @@ function fakeClient(s: FakeState) {
       s.phase = 0;
       s.lastCleared = upTo;
       s.pending = false;
+      s.lastRefTimeMs = REF_AFTER_REQUEST; // the clear records a reference published after the request
       return "0x01" as Hex;
     }),
     clear: vi.fn(async (_m: bigint, _p: string, g?: bigint) => {
@@ -63,7 +72,7 @@ function fakeClient(s: FakeState) {
     }),
     processVault: vi.fn(async () => {
       sent.push("vault");
-      s.vaultPending = 0n;
+      if (!s.processFails) s.vaultPending = 0n;
       return "0x03" as Hex;
     }),
     previewOrder: vi.fn(),
@@ -71,7 +80,11 @@ function fakeClient(s: FakeState) {
     claim: vi.fn(),
     publicClient: {
       waitForTransactionReceipt: vi.fn(async () => ({ status: "success", gasUsed: 1n })),
-      readContract: vi.fn(async () => {
+      readContract: vi.fn(async ({ functionName }: { functionName: string }) => {
+        // the vault's queue: head, length, and its oldest request
+        if (functionName === "head") return 0n;
+        if (functionName === "queueLength") return s.vaultPending;
+        if (functionName === "request") return { owner: "0x00000000000000000000000000000000000000bb", redeem: false, time: REQUEST_S, amount: 1n };
         if (s.adapterStatus === undefined) throw new Error("execution reverted");
         return [180_000_000n, 1_760_000_000_000n, s.adapterStatus];
       }),
@@ -137,6 +150,22 @@ describe("keeper cost policy (Monad charges the gas limit)", () => {
     const { client, sent } = fakeClient({ ...base, vaultPending: 1n, simVolume: 0n, lastCleared: 198n });
     await keeper(client).tick(200n);
     expect(sent).toEqual(["open:199", "vault"]);
+  });
+
+  it("processes a vault request that already has a reference after it, without clearing again", async () => {
+    const { client, sent } = fakeClient({ ...base, vaultPending: 1n, lastRefTimeMs: REF_AFTER_REQUEST, simVolume: 0n, lastCleared: 198n });
+    await keeper(client).tick(200n);
+    expect(sent).toEqual(["vault"]);
+  });
+
+  it("tries a failing process() at most once every 20 blocks, and never clears for it", async () => {
+    const { client, sent } = fakeClient({ ...base, vaultPending: 1n, lastRefTimeMs: REF_AFTER_REQUEST, processFails: true, simVolume: 0n, lastCleared: 198n });
+    const k = keeper(client);
+    await k.tick(200n);
+    await k.tick(205n);
+    await k.tick(219n);
+    await k.tick(221n);
+    expect(sent).toEqual(["vault", "vault"]);
   });
 
   it("respects the DISCOVERY call-auction cadence", async () => {
