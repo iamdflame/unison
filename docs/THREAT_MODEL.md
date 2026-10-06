@@ -15,7 +15,8 @@
 |---|---|---|
 | Admin (multisig + timelock in production) | Upgrades, market parameters, roles | Nothing else: it cannot move user funds except through an upgrade, which is timelocked |
 | Guardian | Pausing, halting markets | Prices, funds |
-| Reference relays (bonded, k-of-n) | Publishing the price after each batch closes | Correctness: bounded by the band, audited by CRE, and slashable |
+| Reference relays (bonded, k-of-n; testnet) | Publishing the price after each batch closes | Correctness: bounded by the band, audited by CRE, and slashable |
+| Chainlink feeds (mainnet) | The reference price, read as each batch clears | Exactness between updates: a push feed moves by its deviation threshold (5 bp for wNVDAx-USD) or its heartbeat. The vault's ±10 bp spread exceeds the threshold, and every print stays inside the band |
 | Keepers | Nothing: `clear` is permissionless | Choosing prices (signatures are bound to the batch) or ordering (batches are order-independent) |
 | Relayer (gasless) | Submitting signed orders | Altering, forging or replaying orders (EIP-712 + nonces + deadlines). It can delay them, but only until the deadline, and users can always submit directly. |
 | Attester (KYC) | Recording KYC outcomes | Funds |
@@ -28,7 +29,7 @@
 | T1 | **Insolvency through rounding.** Lazy pro-rata shares drift from real quantities. | Survival rounds up, so lazy remainders ≥ real quantity. Removals are clamped to the real quantity. Receipts are drawn only from exact pots. Payments round up. Buy locks provably cover quote and fee. | `BookStore`, `UnisonExchange._settle`; invariant suite + 3,000-step simulation + book fuzz on both sides + differential fuzz vs `@unison/engine` |
 | T2 | **Bricking the clear with spam:** thousands of levels or groups make it exceed the gas limit. | Resumable job: every phase pauses below 300k gas and resumes. Chunked execution produces byte-identical results to a single call. | `ExchangeClearing`; `ClearJobTest` (300 outside levels, chunked == single shot) |
 | T3 | **Cancels mid-apply** shrink a level the auction is about to fill. | Cancels of merged orders revert while a job applies fills. Batches inside a job are frozen. | `cancelOrder` → `ClearInProgress` |
-| T4 | **Keeper picks a favourable price** among several valid references. | Each signature is bound to `(venue, market, batch)`. `clearUpTo` binds the exact batch. The reference must be published after the batch closed. Publish time is monotonic per market. | `OperatorSignedReference`, `ExchangeClearing._openJob` |
+| T4 | **Keeper picks a favourable price** among several valid references. | Each signature is bound to `(venue, market, batch)`. `clearUpTo` binds the exact batch. The reference must be published after the batch closed. Publish time is monotonic per market. A Chainlink market's reference is the adapter's read at clear time: a keeper chooses when to clear, never the price, and every block's read is public. | `OperatorSignedReference`, `ChainlinkReference`, `ExchangeClearing._openJob` |
 | T5 | **Compromised relay key** publishes a false price. | k-of-n quorum over independent keys (secp256k1 / P-256 HSMs); signers are bonded and slashable by the CRE audit. Trades can only print inside the band (LIVE ±1%, DISCOVERY capped at the p99 weekend gap). The guardian or CRE can halt the market. | `OperatorSignedReference`, regime bands, `HALT_ROLE` |
 | T6 | **Stale-quote sniping** (latency arbitrage). | One uniform price per block against a post-close reference. The vault re-centres on that reference every auction. | `Clearing`, `LiquidityVault`; [fairness evidence](evidence/fairness.md): sniper $0 |
 | T7 | **LPs front-run a known gap** (withdraw before Monday's open). | Vault flows execute only at a reference published after the request. A swing fee applies while the market is closed. Inventory and per-auction caps bound exposure. | `LiquidityVault.process` |
@@ -43,6 +44,8 @@
 
 ## Known limitations (stated)
 
-- **Equity reference data** in development comes from the IEX feed or a labelled simulation. Production requires a licensed consolidated feed (Pyth Pro / Chainlink Data Streams).
+- **Equity reference data.** On the testnet: the IEX feed or a labelled simulation. On the mainnet beta: Chainlink's tokenized-equity feed wNVDAx-USD, which is Backed's xStock price "Calculated" with a share multiplier of about 1, in Chainlink's risk tier "new", and not Anchored's own price. At scale: a licensed consolidated feed (Pyth Pro / Chainlink Data Streams).
+- **Mainnet beta exposure** is capped by small vaults (about $40 at launch) and daily caps (1 aNVDA, 20,000 WMON a day). The admin is still the deployer key until it is handed to the team's wallet. A guardian key can pause and halt.
+- **Passkeys and domains.** Passkeys belong to `www.unisonfi.com`, and the vercel.app alias reaches them as a related origin (Chrome, Edge, Safari). A browser without Related Origin Requests makes the passkey for its own host. On-chain verification doesn't depend on the domain.
 - **Relay measurement lag.** A relay that lags the true price by δ leaks an edge of order σ·√δ. That's negligible in normal conditions, but larger during news; bands cap it.
 - **Not yet externally audited.** Slither, Halmos on `Clearing`, and an independent review are on the roadmap. The solvency arguments are in SPEC §3.3 and are exercised by the test suites above.

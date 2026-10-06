@@ -7,6 +7,13 @@ Two HTTP services sit beside the contracts:
 
 Typed clients live in `@unison/sdk` (`TapeClient`, `RelayerClient`).
 
+**Live endpoints:**
+
+| | Mainnet (chain 143) | Testnet (chain 10143) |
+|---|---|---|
+| Tape | https://unison-tape-mainnet-production.up.railway.app | https://unison-tape-production.up.railway.app |
+| Relayer | https://unison-relayer-mainnet-production.up.railway.app (no faucet) | https://unison-relayer-production.up.railway.app |
+
 ## Conventions
 
 - **Amounts** are decimal strings of integer base units (`"2000000000000000000"`). They are never floats.
@@ -49,7 +56,7 @@ interface MarketSummary {
 }
 ```
 
-`regime` is `"HALTED"` while a `HaltSet` halt is in force, even before the next print. `ref` comes from the relay's `/prices` when the tape runs with `RELAY_URL` (`publishTimeMs` is when the tape observed it). Otherwise it is the newer of the last `ReferenceAccepted` and the last print's reference. `prints24h` counts traded prints.
+`regime` is `"HALTED"` while a `HaltSet` halt is in force, even before the next print. `ref` comes from the relay's `/prices` when the tape runs with `RELAY_URL` (`publishTimeMs` is when the tape observed it). Otherwise it is the newer of the last `ReferenceAccepted` and the last print's reference. A Chainlink-referenced market (all of mainnet's) moves between prints without the tape seeing it; read the adapter for the current price (`ChainlinkReference.read`, or `LightReader.reference` below). `prints24h` counts traded prints.
 
 #### `GET /v1/markets/:id`
 
@@ -100,6 +107,19 @@ Returns orders placed after the last clear and not yet cancelled:
 ```ts
 { lastCleared: number; orders: { account: string; slot: number; side: 0 | 1; tick: number; qty: string; flags: number; batch: number }[] }
 ```
+
+#### `GET /v1/stats`
+
+Who trades on the venue: accounts with at least one fill. The venue's own vaults are left out, and its team is counted apart (`TEAM_ACCOUNTS`, plus the deployment's operator accounts).
+
+```ts
+{ traders: number;                 // accounts with fills, other than the vaults and the team
+  teamTraders: number;
+  byMarket: Record<number, number>; // traders per market id
+  firstOutsideFillBlock: number | null }
+```
+
+A fill is a claim that carried the other asset: base to a buyer, quote to a seller.
 
 ### Accounts
 
@@ -201,7 +221,7 @@ An expired deadline, a nonce already in flight (`NonceUsed`) and a session-signe
 | `POST /v1/sessions` | `{ session, sig }` | `202 { id }` (`grantSessionSigned`; `expiry` 0 revokes) |
 | `POST /v1/passkeys` | `{ qx, qy }` (0x-prefixed 32-byte hex) | `200 { account, registered: true, tx: string \| null }`. Idempotent |
 | `POST /v1/claims` | `{ account, slots: number[] }` | `202 { id }`. Permissionless; the keeper also auto-claims |
-| `POST /v1/faucet` | `{ account }` | `202 { id }`. Devnet and testnet only. Mints mock AUSD plus base tokens and deposits them with `depositFor`. Limited to 1 per account per 24 h and 3 per IP per day |
+| `POST /v1/faucet` | `{ account }` | `202 { id }`. Devnet and testnet only (`FAUCET_DISABLED` on mainnet). Mints mock AUSD plus base tokens and deposits them with `depositFor`. Limited to 1 per account per 24 h and 3 per IP per day |
 | `GET /v1/jobs/:id` | | `{ id, kind, status: "queued" \| "sent" \| "done" \| "failed", tx?, result?: { slot? }, error?: { code, message } }` |
 | `GET /v1/orders/:id` | | Alias of `/v1/jobs/:id` (legacy) |
 | `GET /health` | | `{ ok, relayer, chainId, queued, faucet }` |
@@ -211,3 +231,16 @@ An expired deadline, a nonce already in flight (`NonceUsed`) and a session-signe
 `RelayerClient.waitForJob` throws a `RelayerError`: the job's `error` code when it fails, and `TIMEOUT` when it outlives its timeout.
 
 **Warning.** A passkey account (`OrderGateway.passkeyAccount(qx, qy)`) has no private key. Fund it only through `UnisonExchange.depositFor`. Tokens sent straight to that address cannot be recovered.
+
+---
+
+## Chain reads without a contract toolkit (`LightReader`)
+
+`@unison/sdk/light` reads the chain with plain JSON-RPC `eth_call`s, ABI-encoded by hand. `test/light.test.ts` checks each one against viem.
+
+| Method | Contract call | Returns |
+|---|---|---|
+| `depth(market, side, lo, hi)`, `depthRange(…)` | `UnisonExchange.depth` | resting quantity per tick |
+| `balanceOf(account, token)` | `UnisonExchange.balanceOf` | a free ledger balance |
+| `curve(source, market, refPrice, status, refTick, lo, hi)` | `LiquidityVault.curve` (`ICurveSource`) | the vault's bids and asks for one auction, before the venue caps them by the vault's balances |
+| `reference(adapter, market)` | `IReferenceAdapter.read(market, 0, 0x)` | `{ price, publishTimeMs, status }`: the price an auction would clear against now, for push feeds |

@@ -2,6 +2,12 @@
 
 ## The mainnet beta (`deploy/monad-mainnet-beta.json`)
 
+**Launched 5 October 2026.** Addresses, transactions and the first prints are in [evidence/mainnet.md](evidence/mainnet.md).
+- The admin is still the deployer key; its handover to the team's wallet (step 3) is pending.
+- The services run on Railway: `unison-keeper-mainnet`, `unison-relayer-mainnet` and `unison-tape-mainnet` ([DEPLOY](DEPLOY.md)).
+- Every contract is verified on Sourcify.
+- `apps/web/scripts/ops/` holds the funding and launch scripts that ran it (`mainnet-fund.mjs`, `mainnet-launch.mjs`).
+
 **What it lists:**
 - aNVDA/AUSD and WMON/AUSD, with real assets.
 - Prices are Chainlink feeds read as each batch clears: wNVDAx-USD (24/5) over AUSD/USD, and MON/USD. No relay signs anything, so `relaySigners` is empty.
@@ -22,11 +28,12 @@ Run it again with `REHEARSAL=1 FORK_RPC=http://127.0.0.1:8547 node apps/web/scri
 | 0. Keys | `.secrets/mainnet.env` (gitignored) holds the deployer, keeper, relayer and guardian keys. Fund the deployer ~5 MON, keeper ~100 MON, relayer ~40 MON, guardian ~1 MON. |
 | 1. Roles | Put the admin wallet in `admin` and `GUARDIAN_ADDRESS` in `guardian`. |
 | 2. Deploy | `cd contracts && DEPLOYER_PRIVATE_KEY=$DEPLOYER_PRIVATE_KEY DEPLOY_CONFIG=../deploy/monad-mainnet-beta.json forge script script/Deploy.s.sol --rpc-url https://rpc.monad.xyz --broadcast --slow --verify --verifier sourcify` → `deployments/monad-mainnet.json` (about 28M gas, about 3 MON at 100 gwei) |
-| 3. Accept | From the admin wallet: `acceptOwnership()` on `chainlinkReference` and on `eligibility` (both Ownable2Step) |
+| 3. Accept | From the admin wallet: `acceptOwnership()` on `chainlinkReference` and on `eligibility` (both Ownable2Step). Only when `admin` differs from the deployer. |
+| 3b. Verify | `forge verify-contract <address> <path>:<Name> --chain 143 --verifier sourcify` for each contract in the broadcast; wallets then decode `approve` and `depositFor` |
 | 4. Seed | LP: `approve(vault, 40e6)` then `vault.requestDeposit(40e6)` on the aNVDA vault; the keeper clears and calls `process()` |
 | 5. Inventory | The team sells 0.10 aNVDA (bought on Monday Trade) into the vault's bid, so the vault can offer as well as bid |
 | 6. Services | Railway: `keeper-mainnet`, `relayer-mainnet` (`FAUCET=0`) and `tape-mainnet` (`TEAM_ACCOUNTS` = the team's trading accounts) with `DEPLOYMENT=deployments/monad-mainnet.json`. There is no relay on mainnet. |
-| 7. Web | Vercel: `NEXT_PUBLIC_MAINNET_TAPE_URL`, `NEXT_PUBLIC_MAINNET_RELAYER_URL` and optionally `NEXT_PUBLIC_MAINNET_RPC_URL`. The venue switch then offers mainnet, and `?network=mainnet` links to it. |
+| 7. Web | Vercel: `NEXT_PUBLIC_MAINNET_TAPE_URL`, `NEXT_PUBLIC_MAINNET_RELAYER_URL` and optionally `NEXT_PUBLIC_MAINNET_RPC_URL`. The venue switch then offers mainnet, and `?network=mainnet` links to it. Add the new services' URLs to `CORS_ORIGINS`. |
 
 **Daylight saving:** the aNVDA session window `[0, 432000]` is Sun 20:00 → Fri 20:00 New York time under EDT. Retune it to `[3600, 435600]` when US daylight time ends on Nov 1 (`setFeed` from the admin).
 

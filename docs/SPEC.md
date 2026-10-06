@@ -190,10 +190,10 @@ Every auction can print only inside its band (LULD-like price limits per batch).
 | Adapter | Behaviour |
 |---|---|
 | `OperatorSignedReference` | EIP-712 `Reference(venue, marketId, batch, price, publishTimeMs, status)`. k-of-n quorum over secp256k1 (`ecrecover`) and P-256 (`0x0100` precompile) signers. Freshness window `maxAgeMs`; no more than 2 s in the future; monotonic per market. Only the venue may consume. Bonded signers, a 7-day unbond delay, and `slash` by `SLASHER_ROLE` (the CRE audit). |
-| `ChainlinkReference` | Base/USD ÷ quote/USD (separate max ages). OPEN inside the weekly UTC session while fresh, otherwise CLOSED. The reference time is the clear time (push feeds are public). |
-| `PythReference` | Pull updates passed as the payload (the fee is paid from the adapter; venue-only). Returns Pyth's publish time, so a stale price fails the after-close rule. A confidence gate sets CLOSED. |
+| `ChainlinkReference` | Base/USD ÷ quote/USD (separate max ages). OPEN inside the weekly UTC session while fresh, otherwise CLOSED. The reference time is the clear time (push feeds are public). Every mainnet market uses it: aNVDA through the tokenized-equity feed wNVDAx-USD, in a 24/5 session window; WMON through MON/USD. |
+| `PythReference` | Pull updates passed as the payload (the fee is paid from the adapter; venue-only). Returns Pyth's publish time, so a stale price fails the after-close rule. A confidence gate sets CLOSED. Built and tested, not deployed: Hermes has required a paid key since 26 August 2026. |
 | `ManualReference` | Tests and replays only. |
-| CRE audit (roadmap receiver) | Consensus reports compared with the operator's reference; on a deviation, `setHalt` plus `slash`. |
+| CRE audit (`CREAuditReceiver`) | Consensus reports compared with the operator's reference; on a deviation, `setHalt` plus `slash`. The workflow runs in simulation until CRE deploy access is granted. |
 
 ## 8. Compliance (TSV conditions; SEC Release 34-106402)
 

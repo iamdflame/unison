@@ -10,6 +10,15 @@ Launched on **5 October 2026**, on chain 143, with real assets.
 
 Every row below can be checked on the explorer: https://monadvision.com.
 
+## Verification
+
+All 8 contracts are verified on Sourcify (exact match):
+- the exchange implementation `0x9a5037e5977e28e60d15c8082e9145331b2ab8b7`;
+- its proxy;
+- the gateway, both reference adapters, the denylist mirror and both vaults.
+
+Explorers and wallets decode their calls from that.
+
 ## Contracts
 
 | | Address |

@@ -11,7 +11,7 @@ Unison's design only works on a chain like Monad. Each row below links a Monad p
 | **128 KB contract size limit** | The exchange is one 36.6 KB contract. That means no proxy-of-proxies or diamond, and no cross-contract hops in the clearing loop. | `forge build --sizes`; `code_size_limit = 131072` |
 | **P-256 precompile at `0x0100`** (6,900 gas) | Relays can sign references with HSM or secure-enclave P-256 keys. Passkey accounts trade and withdraw with WebAuthn assertions, with no seed phrase. | `OperatorSignedReference` (P-256 signer), `OrderGateway` + `WebAuthn`; tests sign with `vm.signP256` |
 | **No public mempool; leader ordering** | Inside a batch, order of arrival is irrelevant: everyone gets one price. Inclusion games reduce to "make the batch or wait 300 ms". The reference is bound to the batch number, so no one can choose a favourable price. | `Clearing` (order-independent), `clearUpTo` + batch-bound signatures |
-| **Real assets already on Monad** | Markets on Anchored aStocks (aNVDA, aSPY, aQQQ, aAAPL, aTSLA, aCOIN, aMSTR, aGLD), Mento GBPm, WMON, quoted in Agora AUSD. References from Chainlink GBP/USD, MON/USD and AUSD/USD. | `deploy/monad-mainnet.json` (verified by RPC); fork tests on real state |
+| **Real assets already on Monad** | Markets on Anchored aStocks (aNVDA, aSPY, aQQQ, aAAPL, aTSLA, aCOIN, aMSTR, aGLD), Mento GBPm, WMON, quoted in Agora AUSD. References from Chainlink GBP/USD, MON/USD, AUSD/USD and the tokenized-equity feeds (wNVDAx-USD and others). **Live:** the mainnet beta trades aNVDA and WMON. | `deploy/monad-mainnet.json` (verified by RPC); fork tests on real state; [mainnet evidence](evidence/mainnet.md) |
 
 ## Mainnet facts the design relies on
 
@@ -34,13 +34,20 @@ All verified on 2026-10-03 against `https://rpc.monad.xyz`.
 | XAU/USD | 8 |
 | MON/USD | 8 |
 | AUSD/USD | 8 (slower heartbeat, hence a separate quote-feed max age) |
+| wNVDAx-USD, wSPYx-USD, wQQQx-USD, wTSLAx-USD | 8. Tokenized-equity feeds, "Calculated" (Backed's xStock price times its share multiplier, about 1), 24/5, 1 h heartbeat, 5 bp deviation, risk tier "new" |
 
 **Anchored compliance** (measured on a fork):
 - aStocks move freely between non-denylisted addresses; there is no allowlist on transfer or mint.
 - The issuer's denylist is enforced inside the token.
 - Unison mirrors it at every value movement (`IssuerDenylistEligibility`). This is proven against the live compliance contract in `MonadForkTest`.
 
-**Public RPC limit:** `eth_getLogs` is capped at a 100-block range. The indexer uses a dedicated RPC, or HyperSync.
+**Public RPC limit:** `eth_getLogs` is capped at a 100-block range. The indexer uses a dedicated RPC, or HyperSync. A load-balanced endpoint can answer "block requested not found" for a block another node just served; deploy scripts use `https://rpc.monad.xyz`.
+
+**What else changed around Monad by October 2026** (checked 5 October):
+- **Pyth's Hermes** has required a paid API key since 26 August 2026 (unauthenticated calls answer 401).
+- **Monday Trade** lists Anchored aStocks (spot and perpetuals, permissionless, 24/5).
+- **aNVDA on Monad** totals about 58 shares, and DEX liquidity for it is thin: $10 bought at $287.69 a share against a $239.97 reference.
+- **Chainlink CRE** can write to Monad mainnet from CLI v1.29, but deploying a workflow needs Chainlink's Early Access approval.
 
 ## Cost at Monad prices
 
@@ -52,3 +59,4 @@ These figures use the 100 gwei minimum base fee and MON ≈ $0.034.
 | Claim two fills | 177k | $0.0006 |
 | Clear a 200-order batch | 6.1M | $0.02 |
 | Full 10-market production deploy | ≈52M | ≈$0.18 |
+| The 2-market mainnet beta deploy (measured, 26 transactions) | 27.7M | ≈$0.10 (3.1 MON) |

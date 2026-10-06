@@ -151,7 +151,7 @@ Budgets, measured from production builds:
 
 **How the budgets are kept:**
 - **Signing loads when a signature is near.** `lib/venue/signer.ts` holds viem, the curves, the ABIs and the error decoder. `identity.ts` keeps only the state and forwards to it. Signed-in traders fetch it while the page is idle; the sign-in sheet fetches it as it opens, so a passkey prompt never waits on the network.
-- **Watching is light.** The tape is plain fetch and server-sent events, and the two chain reads (depth, balances) are hand-encoded `eth_call`s through the SDK's `LightReader`.
+- **Watching is light.** The tape is plain fetch and server-sent events. The chain reads (depth, balances, the vault's curve, a push feed's reference) are hand-encoded `eth_call`s through the SDK's `LightReader`.
 - **The server draws what never moves:** brand art, page titles, static notes. Client components receive them as props or children.
 - **Popups arrive after hydration.** `preloadable()` in `lib/ui/lazy.ts` handles anything else that is only sometimes needed.
 - **Each app screen starts its download with the page's own scripts** (`components/app/screens/early.ts`), and its skeleton holds the exact size of the real content, so nothing below it moves when it arrives.
@@ -167,7 +167,7 @@ Budgets, measured from production builds:
 | `rest.mjs` | What keeps a page busy when nobody touches it |
 | `shoot.mjs` | Screenshots at any width and light, after interactions, and motion frame by frame at a slowed playback rate |
 | `axe.mjs` | WCAG 2.2 A/AA on every route in both lights |
-| `flow-*.mjs` | The live flows on the local devnet (passkey to certificate, portfolio and withdrawal, agent keys through MCP, the shell's lazy controls) |
+| `flow-*.mjs` | The live flows on the local devnet: passkey to certificate, portfolio and withdrawal, agent keys through MCP, the shell's lazy controls. Also the guided tour (`flow-tour`), mainnet (`flow-mainnet`, with a fork rehearsal of the money path) and passkeys across domains (`flow-passkey-domains`, against the deployed site). |
 
 ## Review
 
@@ -187,10 +187,13 @@ Budgets, measured from production builds:
 app/(marketing)/   home, fairness, developers, status, brand, legal          server pages with client islands
 app/(app)/         trade, markets, portfolio, vaults, keys                   the app shell and its screens
 components/brand/  mark, wordmark, lockup, dials                             geometry.ts and glyphs.ts are generated
-components/app/    shell (top bar, tab bar, sign-in, ⌘K) and screens/
+components/app/    shell (top bar, tab bar, the venue switch, sign-in, ⌘K) and screens/
+components/tour/   the guided tour: invitation, spotlight, stops (copy per venue, regime and layout)
+components/portfolio/ portfolio, deposit (from a browser wallet) and withdraw dialogs
 components/ui/     light switch, toaster
 components/motion/ scroll progress, in-view, smooth scroll
-lib/venue/         live venue (tape, light reads), identity, signer (on demand), chain (on demand)
+lib/venue/         live venue (tape, light reads), networks and the venue switch (config), identity per network,
+                   passkey domains (passkeyDomain), signer (on demand), chain (on demand)
 lib/demo/, lib/sim/  the in-browser simulation on the real clearing engine
 lib/theme/         modes, palette, the pre-paint script
 lib/content/       facts (tested against docs/evidence), markets, site

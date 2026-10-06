@@ -24,9 +24,15 @@ These belong to the operator:
 | Responsibility | Mechanism |
 |---|---|
 | KYC/AML for participants | Cleanverse A-Pass → attester service → `attest()` |
-| Licensed market data for references | Pyth Pro / Chainlink Data Streams in production |
+| Licensed market data for references | The mainnet beta reads Chainlink's tokenized-equity feeds; at scale, Pyth Pro or Chainlink Data Streams |
 | Computing ADV daily | CRE workflow → `setDailyCap` |
 | Monitoring primary-market halts | CRE workflow → `setHalt` |
 | Filing and record retention | — |
 
 The contracts make each step **checkable**: every action leaves an event or a hash on-chain.
+
+**In the mainnet beta today:**
+- aNVDA is a restricted token; the venue mirrors Anchored's denylist at every deposit and withdrawal (`IssuerDenylistEligibility`), without KYC.
+- Each market has a daily cap.
+- Prints, receipts and the receipt chain are public on the tape.
+- KYC attestations, tiers and an operator of record come before the venue grows.

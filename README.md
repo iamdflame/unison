@@ -4,8 +4,13 @@
 
 Unison is a venue for tokenized assets on Monad: US equities (Anchored aStocks), FX (Mento GBPm), gold and MON, quoted in AUSD.
 
-- **Every block, one price.** Every 300 ms block is a sealed batch, and all of its orders execute at one uniform price, so arriving first buys no better price. In session that price is checked against a reference published *after* the batch closed, so stale quotes cannot be sniped.
-- **Weekends are priced, not frozen.** When the home market closes, Unison keeps pricing the asset with call auctions inside a band that widens with √time. On Monday it opens with a cross at the real opening print.
+**Live at https://www.unisonfi.com.**
+- **Monad mainnet:** a small beta with real assets (Anchored's aNVDA and wrapped MON against AUSD), priced by Chainlink. Every contract is verified on Sourcify, and the first fills are on-chain ([evidence](docs/evidence/mainnet.md)).
+- **Monad testnet:** for practice, with free test funds.
+- **The switch:** the venue pill picks the network.
+
+- **Every block, one price.** Every 300 ms block is a sealed batch, and all of its orders execute at one uniform price, so arriving first buys no better price. In session that price is checked against a reference taken *after* the batch closed, so stale quotes cannot be sniped. On mainnet that reference is a Chainlink feed read as the batch clears; on the testnet it is a relay's price, signed for that batch.
+- **Weekends are priced, not frozen.** When the home market closes, Unison keeps pricing the asset with call auctions inside a band that widens with √time. When the home market reopens, its first auction is a reopening cross.
 - **Liquidity from block one.** An LP vault quotes around the reference every block, and anyone can buy into it.
 - **Built for regulated securities.** SEC tokenized-securities-venue conditions (volume caps, tiers, eligibility, halts, public tape) are part of the contracts.
 
@@ -26,8 +31,8 @@ Unison is a venue for tokenized assets on Monad: US equities (Anchored aStocks),
 
 ```
  block b    orders → pending ring (batch b)                 nobody can join an earlier batch
- block b+1  keeper: clearUpTo(b, signedReference(b))        reference published AFTER b closed,
-              │  MERGE    batches ≤ b join the books         signature bound to batch b
+ block b+1  keeper: clearUpTo(b, reference(b))              reference read or signed AFTER b closed
+              │  MERGE    batches ≤ b join the books         (a Chainlink read, or a relay signature bound to b)
               │  AUCTION  band = ref ± regime width          LIVE / EXTENDED / DISCOVERY √t / REOPENING
               │           t* = argmax volume                 tie-breaks: min imbalance, closest to ref
               │           vault curve + books, exact pro-rata at the margin
@@ -42,10 +47,11 @@ Unison is a venue for tokenized assets on Monad: US equities (Anchored aStocks),
    - One clearing price per batch: maximum volume, then minimum imbalance, then closest to the reference.
    - Pro-rata at the marginal price, apportioned exactly.
    - Per-block batches only make sense on a 300 ms chain with page-priced storage.
-2. **Reference published after the close.**
-   - Relays sign `Reference(venue, market, batch, price, publishTimeMs, status)`, bound to one batch, with a k-of-n quorum over secp256k1 or P-256 keys.
-   - Relays post slashable bonds.
-   - A Chainlink CRE workflow audits the reference and can halt the market or slash a relay.
+2. **A reference taken after the close.** References are adapters:
+   - **Mainnet:** Chainlink feeds read as each batch clears: the tokenized-equity feed wNVDAx-USD (24/5) for aNVDA, and MON/USD for WMON.
+   - **Testnet:** relays sign `Reference(venue, market, batch, price, publishTimeMs, status)`, bound to one batch, with a k-of-n quorum over secp256k1 or P-256 keys and slashable bonds.
+   - **Pyth:** an adapter for pull updates is built, but waits: Pyth's Hermes has required a paid key since 26 August 2026.
+   - **CRE:** a Chainlink CRE workflow audits an operator reference and can halt the market or slash a relay. It runs in simulation until CRE deploy access is granted.
 3. **Regimes.**
 
    | Regime | Behaviour |
@@ -69,11 +75,11 @@ Unison is a venue for tokenized assets on Monad: US equities (Anchored aStocks),
 7. **OrderGateway.**
    - EIP-712 signed orders, relayed gaslessly.
    - Session keys with caps on markets, size and notional, which can never withdraw. This is how you hand an AI agent a budget.
-   - WebAuthn passkey accounts verified on Monad's P-256 precompile.
+   - WebAuthn passkey accounts verified on Monad's P-256 precompile. One passkey works on every domain the site answers on (related origins, `/.well-known/webauthn`).
 8. **TSV compliance.**
    - Daily volume caps are enforced inside the auction. The price is still discovered uncapped; only executed volume is limited.
    - LULD tiers enforce symbol limits.
-   - Eligibility is an AND over KYC attestations (Cleanverse) and issuer denylists, mirrored from Anchored's on-chain compliance.
+   - Eligibility is an AND over KYC attestations (Cleanverse) and issuer denylists, mirrored from Anchored's on-chain compliance. The mainnet beta runs the denylist mirror and daily caps, without KYC.
    - Public notices are recorded on-chain.
 
 ## What is proven
@@ -86,6 +92,7 @@ Unison is a venue for tokenized assets on Monad: US equities (Anchored aStocks),
 | Cheap on Monad | A 200-order auction is 6.1M gas, about **$0.02**. The same clear is about 40% cheaper under Monad's page pricing than Ethereum's ([gas](docs/evidence/gas.md)) |
 | Unsnipeable (benchmark) | In a simulated benchmark, sniper P&L is $0 versus $473–$6,171/day on AMM, oracle-AMM and CLOB designs, and at equal spread the vault earns 7.7× a CLOB maker ([fairness](docs/evidence/fairness.md)). It has not yet been measured on a public tape |
 | End to end | Devnet golden path: relay → keeper → vault funding → traders cross → uniform print → auto-claim → AI agent session key → gasless relayed order → filled (`pnpm --filter @unison/keeper e2e`) |
+| Live on Monad mainnet | Real aNVDA sold into the vault at one price per auction, every print on the receipt chain; all 8 contracts verified on Sourcify (exact match); outside traders counted apart from the team (`GET /v1/stats`) ([mainnet evidence](docs/evidence/mainnet.md)) |
 
 ## Repository
 
@@ -95,11 +102,14 @@ contracts/   Foundry. core/ (exchange, clearing, book), pricing/ (references), l
 packages/    engine/ (bit-exact TS clearing + book), sdk/ (viem client, signing, calendar, ABIs)
 services/    relay/ (signed references), keeper/ (clear jobs, vaults, auto-claim), relayer/ (gasless orders),
              tape/ (indexer: prints, orders, receipts, live stream), mcp/ (tools for AI agents)
-apps/web/    the website and the trading app (Next.js); design system in apps/web/DESIGN.md
+apps/web/    the website and the trading app (Next.js); design system in apps/web/DESIGN.md;
+             scripts/ops/ funds and launches mainnet (keys from .secrets, never printed)
 bots/        house order flow for devnets
 research/    sniper-bench/ (fairness benchmark)
-deploy/      network configs (monad-mainnet.json: 11 tokens, 10 markets, every address verified on-chain)
-docs/        SPEC.md, API.md, AGENTS.md, DEPLOY.md, evidence/
+deploy/      network configs: monad-mainnet-beta.json (the live beta), monad-mainnet.json (the full 10-market
+             deploy, every address verified on-chain), fork rehearsals
+deployments/ what was deployed: monad-mainnet.json, monad-testnet.json, fork rehearsals
+docs/        SPEC, ARCHITECTURE, API, AGENTS, MONAD, GO_LIVE, DEPLOY, THREAT_MODEL, TSV_COMPLIANCE, evidence/
 ```
 
 ## Quickstart
@@ -127,7 +137,13 @@ cd contracts && forge test --fork-url http://127.0.0.1:8546 --match-contract Mon
 - **The site:** home, fairness, developers, status, brand and legal pages.
 - **The app:** trade, markets, portfolio, vaults, and agent keys.
 
-Accounts are passkeys (Face ID, Touch ID, Windows Hello), orders are gasless, and each fill comes with a certificate whose receipt the tape recomputes. With no venue running, the app runs every market in the browser on the real clearing engine, and labels itself as a simulation.
+Accounts are passkeys (Face ID, Touch ID, Windows Hello), orders are gasless, and each fill comes with a certificate whose receipt the tape recomputes.
+
+- **Two networks, one site.** The venue pill switches between Monad testnet (practice) and Monad mainnet (real assets); `?network=mainnet` links stick.
+- **Mainnet shows only what it lists**, never a simulation beside real assets.
+- **Funding.** On mainnet you deposit from a browser wallet (approve, then `depositFor` your passkey account). On the testnet a faucet adds test funds.
+- **Prices you can act on.** The ticket opens at the price that fills now. On Chainlink markets the page reads the live reference from the chain, so what it shows is what the next auction uses.
+- **No venue running:** the app runs every market in the browser on the real clearing engine, and labels itself as a simulation.
 
 A first visit to the terminal is offered a guided tour: the page dims, one part stays lit, and a card says what it is, from the auction strip and the batch chart to the ticket, the account and the certificates. It replays from ⌘K ("Take the tour") or from the terminal's "About" panel.
 
@@ -149,6 +165,8 @@ Quality gates, run from `apps/web`:
 | Accessibility: WCAG 2.2 AA on every route, both lights | `pnpm a11y` |
 | Live flows on the devnet: passkey → buy → certificate; withdrawal; agent keys through MCP; the shell's controls | `node scripts/flow-live.mjs` (and `flow-portfolio`, `flow-agents`, `flow-shell`) |
 | The guided tour, desktop and phone: every stop lit, keys, replay, remembered | `node scripts/flow-tour.mjs` (`LIVE=1` against a live venue) |
+| Mainnet, read-only: the switch, real markets only, the price source named; with `REHEARSAL=1` on a local fork, passkey → wallet deposit → 0.01-share buy → certificate | `node scripts/flow-mainnet.mjs` |
+| One passkey across the site's domains (related origins), against the deployed site | `node scripts/flow-passkey-domains.mjs` |
 
 ## Status
 
@@ -157,7 +175,8 @@ Quality gates, run from `apps/web`:
 - **Live evidence:** the first weekend DISCOVERY cycle (Fri Oct 9 → Mon Oct 12) will be published in `docs/evidence/`.
 - **Equity references:** on testnet the relay signs prices from market data (Alpaca IEX, or a labelled simulation). On mainnet they are Chainlink's tokenized-equity feeds. (Pyth's Hermes has required a paid key since 26 August 2026, so the Pyth adapter waits.)
 - **Other venues on Monad:** Monday Trade has offered permissionless 24/5 trading of Anchored aStocks since April 2026, continuously, spot and perpetuals. Unison's difference is the auction: one price per batch against a reference read after it closes, liquidity that isn't picked off, and price discovery through the weekend.
-- **Public testnet: live.** https://www.unisonfi.com (or https://unison-omega.vercel.app, where passkeys made there still open) trades on Monad testnet (chain 10143) with aNVDA, aSPY and aQQQ listed (the other markets run as a labelled browser simulation). Passkey accounts, a faucet, gasless orders and certificates work end to end; the services (relay, keeper, relayer, tape) run on Railway. Addresses: `deployments/monad-testnet.json`.
+- **Public testnet: live.** https://www.unisonfi.com, on Monad testnet (chain 10143), lists aNVDA, aSPY and aQQQ; the other markets run as a labelled browser simulation. Passkey accounts, a faucet, gasless orders and certificates work end to end. Addresses: `deployments/monad-testnet.json`.
+- **Hosting.** The web app runs on Vercel. The services run on Railway: relay, keeper, relayer and tape for the testnet, and keeper, relayer and tape for mainnet, which needs no relay ([DEPLOY](docs/DEPLOY.md)).
 - **Frontend:** reviewed over nine rounds by fresh-context design, luxury and trading judges.
 
 ## AI disclosure

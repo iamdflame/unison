@@ -69,6 +69,8 @@ Any MCP-capable agent can trade Unison within the caps its human granted:
   "env": { "DEPLOYMENT": "deployments/31337.json", "AGENT_PRIVATE_KEY": "0x…", "AGENT_ACCOUNT": "0x…" } } } }
 ```
 
+For the live networks, point `DEPLOYMENT` at `deployments/monad-testnet.json` (test funds) or `deployments/monad-mainnet.json` (real assets: aNVDA and WMON, inside the caps the human granted), with `RPC_URL` and the matching relayer ([API](API.md)). Mainnet has no faucet: the human funds the account from a wallet first.
+
 ## Why this is safe
 
 - **Caps are enforced in the contract**, not only off-chain (`OrderGateway._checkSessionCaps`).
