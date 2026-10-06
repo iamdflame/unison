@@ -8,7 +8,7 @@ describe("marketMoment", () => {
     expect(m.phase).toBe("open");
     expect(m.hoursToOpen).toBe(0);
     expect(m.nextChange.toISOString()).toBe("2026-10-05T20:00:00.000Z"); // 16:00 ET close
-    expect(heroLine(m)).toBe("Wall Street is open. So are we: a batch every 300 ms.");
+    expect(heroLine(m)).toBe("Wall Street is open. So are we, and every order is sealed before its price exists.");
     expect(ctaLabel(m)).toBe("Start trading");
   });
 
@@ -18,7 +18,7 @@ describe("marketMoment", () => {
     expect(m.nextOpen.toISOString()).toBe("2026-10-05T13:30:00.000Z"); // Mon 09:30 ET
     expect(m.hoursToOpen).toBe(45);
     expect(m.nextChange.toISOString()).toBe("2026-10-05T08:00:00.000Z"); // Mon 04:00 ET pre-market
-    expect(heroLine(m)).toBe("Wall Street opens Monday at 9:30 ET. Unison is open now, with an auction every 3 seconds.");
+    expect(heroLine(m)).toBe("Wall Street opens Monday at 9:30 ET. Unison is open now, and every order is sealed before its price exists.");
     expect(ctaLabel(m)).toBe("Trade the weekend");
   });
 

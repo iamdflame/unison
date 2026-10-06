@@ -1,9 +1,12 @@
 import { NYSE_HOLIDAYS, usEquitySession } from "@unison/sdk/calendar";
 import { Status, type StatusCode } from "@unison/sdk/types";
-import { facts } from "../content/facts.ts";
 
-/** How often a market clears while Wall Street is closed: one call auction every few blocks. */
-const nightCadence = `an auction every ${(facts.discoveryBlocks * facts.beatMs) / 1000} seconds`;
+/**
+ * What holds on every network, in every session: an order is sealed before the price it trades at exists. (How
+ * often auctions run differs: every block in the simulation and on testnet, at each new Chainlink price on mainnet,
+ * so the hero names no cadence.)
+ */
+const SEALED = "every order is sealed before its price exists";
 
 /**
  * Where Wall Street is in its week, and what that means for Unison: the light of the site, the hero's copy,
@@ -83,17 +86,17 @@ export function marketMoment(now: Date = new Date(), holidays: ReadonlySet<strin
 export function heroLine(m: MarketMoment): string {
   switch (m.phase) {
     case "open":
-      return `Wall Street is open. So are we: a batch every ${facts.beatMs} ms.`;
+      return `Wall Street is open. So are we, and ${SEALED}.`;
     case "pre-market":
     case "after-hours":
-      return `Wall Street is in extended hours. Unison clears every ${facts.beatMs} ms.`;
+      return `Wall Street is in extended hours. Unison is open, and ${SEALED}.`;
     case "weekend":
       // a time, not a count of hours: the terminal counts down to pre-market, and two "opens" would disagree
-      return `Wall Street opens ${nyWeekday.format(m.nextOpen)} at 9:30 ET. Unison is open now, with ${nightCadence}.`;
+      return `Wall Street opens ${nyWeekday.format(m.nextOpen)} at 9:30 ET. Unison is open now, and ${SEALED}.`;
     case "holiday":
-      return `Wall Street is closed for the holiday. Unison isn't: ${nightCadence}.`;
+      return `Wall Street is closed for the holiday. Unison isn't, and ${SEALED}.`;
     default:
-      return `Wall Street is asleep. Unison isn't: ${nightCadence}.`;
+      return `Wall Street is asleep. Unison isn't, and ${SEALED}.`;
   }
 }
 

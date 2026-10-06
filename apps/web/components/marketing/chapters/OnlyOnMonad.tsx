@@ -39,8 +39,8 @@ export function OnlyOnMonad() {
             Made for Monad.
           </h2>
           <p className="text-lede mt-6 text-ink-2">
-            A batch every 300 milliseconds needs a chain that keeps that beat, and storage priced by the page. Unison
-            lays out its book page by page, so clearing costs {facts.gas.savingPct}% less gas under Monad&apos;s rules
+            Sealing orders every 300 milliseconds, and running an auction for every new price, needs a chain that
+            keeps that beat and storage priced by the page. Unison lays out its book page by page, so clearing costs {facts.gas.savingPct}% less gas under Monad&apos;s rules
             than the same code under Ethereum&apos;s.
           </p>
         </div>

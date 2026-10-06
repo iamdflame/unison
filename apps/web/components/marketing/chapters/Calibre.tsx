@@ -6,12 +6,12 @@ import { facts } from "@/lib/content/facts";
  * technical drawing of the mark with its dimensions.
  */
 const SPECS: [string, string, string?][] = [
-  ["Frequency", `${facts.batchesPerHour.toLocaleString("en-US")} A/h · ${(facts.batchesPerHour / 3600).toFixed(2)} auctions a second`, `A/h, alternations an hour, is how a watchmaker counts beats; here each one is an auction. A batch every Monad block while Wall Street trades; a call auction every ${facts.discoveryBlocks} blocks (${(facts.batchesPerHour / facts.discoveryBlocks).toLocaleString("en-US")} A/h) while it is closed`],
+  ["Frequency", `${facts.batchesPerHour.toLocaleString("en-US")} A/h · a batch sealed every ${facts.beatMs / 1000} s`, `A/h, alternations an hour, is how a watchmaker counts beats; here each one seals a batch. An auction can run at every beat; on mainnet each runs at Chainlink's next observation, so no order sees its price first. A call auction every ${facts.discoveryBlocks} blocks (${(facts.batchesPerHour / facts.discoveryBlocks).toLocaleString("en-US")} A/h) while the reference is closed`],
   ["Power reserve", `${facts.hours.week} h a week`, "Every night and every weekend; a market stops only when its rules halt it"],
   ["Escapement", "Frequent batch auction", "Most volume, then least imbalance, then closest to the reference. Orders at that price share it pro rata"],
   // one complication a line, as a catalogue lists them: no separator left to dangle at either end of a line
   ["Complications", "Discovery\nReopening cross\nHalts\nAudit", "Each with its own price band"],
-  ["Fairness", "One price per batch", "In session, against a reference published after the batch closes; while closed, around the last close"],
+  ["Fairness", "One price per auction", "In session, against a reference observed after its orders were sealed; while closed, around the last price"],
   ["Gas per clear", `${(facts.gas.clearMonad / 1e6).toFixed(2)}M`, `${facts.gas.savingPct}% less than under Ethereum's rules`],
   ["Cost", `≈ $${facts.gas.batch200Usd} per batch`, `200 orders; about $${facts.gas.orderUsd} per order`],
   ["Case", "Monad", "Mainnet beta: real assets, small vaults, daily caps. An external audit comes before it grows. Open source, MIT"],

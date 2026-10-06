@@ -190,10 +190,25 @@ Every auction can print only inside its band (LULD-like price limits per batch).
 | Adapter | Behaviour |
 |---|---|
 | `OperatorSignedReference` | EIP-712 `Reference(venue, marketId, batch, price, publishTimeMs, status)`. k-of-n quorum over secp256k1 (`ecrecover`) and P-256 (`0x0100` precompile) signers. Freshness window `maxAgeMs`; no more than 2 s in the future; monotonic per market. Only the venue may consume. Bonded signers, a 7-day unbond delay, and `slash` by `SLASHER_ROLE` (the CRE audit). |
-| `ChainlinkReference` | Base/USD ÷ quote/USD (separate max ages). OPEN inside the weekly UTC session while fresh, otherwise CLOSED. The reference time is the clear time (push feeds are public). Every mainnet market uses it: aNVDA through the tokenized-equity feed wNVDAx-USD, in a 24/5 session window; WMON through MON/USD. |
+| `ChainlinkCausalReference` | The mainnet adapter since 6 October 2026 (§7.4). Chainlink read by the observation time inside the report its oracles signed; each auction prices at the first observation after its orders were sealed, proven from the feed's history. aNVDA through wNVDAx-USD (24/5 session window), WMON through MON/USD, both over AUSD/USD. |
+| `ChainlinkReference` | Base/USD ÷ quote/USD (separate max ages). OPEN inside the weekly UTC session while fresh, otherwise CLOSED. The reference time is the clear time. Mainnet's markets used it from launch until the causal cutover; it now prices only the old-rule control market (market 2), kept so the standing challenge has a baseline. |
 | `PythReference` | Pull updates passed as the payload (the fee is paid from the adapter; venue-only). Returns Pyth's publish time, so a stale price fails the after-close rule. A confidence gate sets CLOSED. Built and tested, not deployed: Hermes has required a paid key since 26 August 2026. |
 | `ManualReference` | Tests and replays only. |
 | CRE audit (`CREAuditReceiver`) | Consensus reports compared with the operator's reference; on a deviation, `setHalt` plus `slash`. The workflow runs in simulation until CRE deploy access is granted. |
+
+### 7.4 Causal markets: the oracle is the clock
+
+A market switched with `setCausal(marketId, adapter, true, skewSec)` prices every auction at the first oracle observation made after its orders were sealed. Only the admin can switch, and only while nothing waits, no job runs and the book is empty, so no order lives under two rules. The adapter is an `ICausalReference`; mainnet's is `ChainlinkCausalReference`. [Evidence and measurements](evidence/causal.md).
+
+- **Observation time.** Chainlink's OCR2 feeds return `startedAt` = the observations timestamp inside the report the oracle quorum signed; `updatedAt` is when the report landed (about 13 s later on Monad). The adapter uses `startedAt` and refuses a round whose `startedAt ≥ updatedAt`, so a chain timestamp can never pass for an observation.
+- **The price.** Let `T` = the registration time of the oldest waiting batch + `skewSec` (2 s on mainnet: the margin between Chainlink's clocks and Monad's). The clear's payload names base round `r` and the quote round in force; the adapter requires `startedAt(r) > T ≥ startedAt(r − 1)`. The predecessor check is skipped only on a proxy phase's first round, which happens when Chainlink replaces the aggregator.
+- **The batch.** The contract derives `upTo`: the newest waiting batch registered before `startedAt(r) − skewSec`, by binary search over the pending list. A caller's `upTo` is ignored. Nothing sealed before the observation is left out; nothing after it is let in.
+- **Auction orders.** `_placeOrder` forces IOC: an order joins one auction and its remainder is returned. A waiting order can't be cancelled (`Sealed`). An observation is in flight for about 13 s before it lands; a cancel in that window would let a trader keep only the orders the coming price favours.
+- **Time.** `refTimeMs = startedAt(r) × 1000`, and it never decreases (`StaleReference`).
+- **Closed.** With an empty payload and no observation after `T`, the adapter answers only if the session is closed or the feed has been silent longer than `maxAgeSec`; otherwise it reverts `NotYet`. The market then runs a DISCOVERY call auction anchored at the last observation, recorded with that observation's true time. Vaults on causal markets set `closedMult = 255`, so they don't quote while closed.
+- **Quote divisor.** The quote round must be the one in force at `startedAt(r)`: observed at or before it, its successor (if any) after it. If it is older than `quoteMaxAgeSec`, or AUSD is off $1 by more than `depegBps` (50), the status is HALTED and no auction trades.
+- **Nothing waiting.** A clear with no waiting orders uses the latest observation; it exists to give vault requests a reference made after them.
+- **Event.** `CausalReference(marketId, upToBlock, round, sealedAt, observedAt)`, emitted when the job opens.
 
 ## 8. Compliance (TSV conditions; SEC Release 34-106402)
 
@@ -207,7 +222,8 @@ Every auction can print only inside its band (LULD-like price limits per batch).
 
 ## 9. Storage-layout conventions
 
-- **Namespaced (ERC-7201)** root struct `unison.exchange.main` for configuration, markets, jobs, regimes, sources and caps.
+- **Namespaced (ERC-7201)** root struct `unison.exchange.main` for configuration, markets, jobs, regimes, sources, caps and (appended in v2) each market's causal mode. `Market` is an array element, so it never grows: new per-market state goes in mappings at the end of the root struct.
+- **Pending ring.** Waiting batches live in per-market rings addressed by block number modulo `RING` (65,536). A slot is never reused while the batch holding it waits (`PendingFull`); before v2 it was 256 blocks and reused regardless, so two batches waiting exactly 256 blocks apart overwrote each other.
 - **Page base** for a key: `pageBase(ns, key…) = keccak256(abi.encode(ns, key…)) & ~127`.
 - **Per-account page:** slots 0–15 balances, 16 eligibility cache (reserved), 17 order bitmap, 18–127 orders (two slots each, 55 orders).
 - **Order record.** Slot A packs `qty96 | tick24 | market24 | side8 | shard8 | flags8 | state8 | batch48 | feeBps16 | maxFeeBps16`. Slot B is `credited128` (bids: base received; asks: gross quote received). The entry snapshot lives in the group's merge record `keccak(NS_MERGE, market, batch, side, bookShard, tick) & ~1`.
@@ -223,6 +239,7 @@ Every auction can print only inside its band (LULD-like price limits per batch).
 | `BatchCleared` | marketId, upToBlock, tick, price, volume, refPrice, refTimeMs, status, bandLo, bandHi, receiptHash |
 | `CurveFilled` | marketId, source, upToBlock, boughtBase, paidQuote, soldBase, receivedQuote |
 | `ClearProgress` | marketId, upToBlock, phase, work (a job paused mid-way) |
+| `CausalReference` | marketId, upToBlock, round, sealedAt, observedAt (causal markets, §7.4) |
 | Configuration | `MarketCreated`, `MarketParamsSet`, `RegimeSet`, `HaltSet`, `SourceSet`, `DailyCapSet`, `TierSet`, `NoticePosted`, `KeeperPaid` |
 
 ## 11. Order gateway

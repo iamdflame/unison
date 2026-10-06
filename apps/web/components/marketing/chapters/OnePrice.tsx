@@ -120,8 +120,8 @@ export function OnePrice() {
             One price for everyone.
           </h2>
           <p className="text-lede mt-6 text-ink-2">
-            Orders that arrive in the same batch are filled together (a batch every 300 ms in market hours, every 3 seconds overnight). Buyers and sellers line up by price,
-            and the batch clears where they meet. Arriving first buys no better price.
+            Orders sealed before the same price are filled together. Buyers and sellers line up by price, and the auction
+            clears where they meet. Arriving first buys no better price, and no order sees its price before it is sealed.
           </p>
 
           <div className="mt-10 border-t border-line pt-6">
