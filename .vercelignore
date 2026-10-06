@@ -27,6 +27,8 @@ apps/web/playwright-report/
 apps/web/test-results/
 apps/web/.lighthouseci/
 docs/evidence/raw/
+# the film: its Remotion project, footage and renders aren't part of the site
+video/
 
 # a file whose name says keepprivate never leaves this machine
 *keepprivate*

@@ -34,17 +34,23 @@ export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick:
   const left = Math.max(0, nextAuction(m) - m.block);
   const elapsed = Math.max(0, cadence - left);
   const last = m.last;
-  const agoBlocks = last ? Math.max(0, m.block - last.block) : null;
-  const ago =
-    agoBlocks === null
-      ? ""
-      : agoBlocks <= 1
-        ? "just now"
-        : `${((agoBlocks * BEAT_MS) / 1000).toFixed(agoBlocks * BEAT_MS < 10_000 ? 1 : 0)} s ago`;
   const unit = m.spec.ticker;
   const stock = m.spec.kind === "equity" || m.spec.kind === "etf" || m.spec.kind === "gold";
   const moment = useMarketMoment();
   const now = useSecond();
+  // the last trade's age from when it cleared, not from the block that sealed its auction: a causal auction clears
+  // when Chainlink's next price lands, often half a minute after the seal
+  const agoMs = last && now !== null ? Math.max(0, now - last.ts) : null;
+  const ago =
+    agoMs === null
+      ? ""
+      : agoMs < 1500
+        ? "just now"
+        : agoMs < 90_000
+          ? `${Math.round(agoMs / 1000)} s ago`
+          : agoMs < 5_400_000
+            ? `${Math.round(agoMs / 60_000)} min ago`
+            : `${Math.round(agoMs / 3_600_000)} h ago`;
   // a stock's discovery ends when pre-market opens: the first auction after it is the reopening cross
   const span = moment ? `${Math.floor(moment.minutesToChange / 60)} h ${moment.minutesToChange % 60} min` : "";
   const reopens = discovery && stock && moment ? `in ${moment.minutesToChange < 60 ? `${moment.minutesToChange} min` : span}, at ${nyTime.format(moment.nextChange)} ET` : null;

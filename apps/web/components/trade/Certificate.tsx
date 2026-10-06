@@ -226,8 +226,11 @@ export function CertificateDialog() {
                         <dd className="figures mt-0.5 text-[clamp(1rem,2vw,1.25rem)] font-medium text-ink">
                           {improvement ? (
                             <>
-                              {fmt(improvement)} a share{" "}
-                              {Math.abs(data.qty - 1) > 1e-9 ? <span className="text-ink-3">({money(improvement * data.unit * data.qty)} in all)</span> : null}
+                              {fmt(improvement)} per {data.ticker}{" "}
+                              {Math.abs(data.qty - 1) > 1e-9 ? (
+                                // a small fill's improvement can be under a cent: say so, not "$0.00"
+                                <span className="text-ink-3">({improvement * data.unit * data.qty < 0.005 ? "under $0.01" : money(improvement * data.unit * data.qty)} in all)</span>
+                              ) : null}
                             </>
                           ) : (
                             "None: at your limit"
