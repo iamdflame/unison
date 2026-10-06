@@ -2,6 +2,8 @@ packages:
   - "apps/*"
   - "packages/*"
   - "services/*"
+  # the Envio indexer installs on its own, with pnpm 10, as Envio Cloud's builder does (services/indexer/pnpm-workspace.yaml)
+  - "!services/indexer"
   - "bots"
   - "cre/*"
   - "research/*"

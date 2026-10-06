@@ -76,7 +76,9 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - name: Install (its own pnpm 10 project, as Envio Cloud's builder installs it)
+        working-directory: services/indexer
+        run: pnpm install --frozen-lockfile
       - name: Codegen
         working-directory: services/indexer
         run: pnpm codegen

@@ -1,0 +1,5 @@
+# The indexer is its own pnpm project, outside the monorepo's workspace: Envio Cloud builds it with pnpm 10.32,
+# which can't read the monorepo's pnpm 12 lockfile. package.json pins pnpm@10.32.0, so pnpm switches to it here.
+packages: []
+onlyBuiltDependencies:
+  - esbuild

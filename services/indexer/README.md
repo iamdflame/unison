@@ -21,9 +21,10 @@ The handlers are in [`src/handlers/challenge.ts`](src/handlers/challenge.ts); En
 
 ## Run
 
-Envio runs on Linux, macOS or WSL 2, and its local mode needs Docker.
+Envio runs on Linux, macOS or WSL 2, and its local mode needs Docker. The indexer is its own pnpm project, outside the monorepo's workspace: Envio Cloud builds with pnpm 10.32, which can't read the monorepo's pnpm 12 lockfile. Its `package.json` pins `pnpm@10.32.0`, so pnpm switches to that version here, and `pnpm-lock.yaml` is pnpm 10's.
 
 ```
+cd services/indexer
 pnpm install
 pnpm codegen
 pnpm types           # the handlers, type-checked against the generated types as `envio start` checks them
@@ -32,6 +33,16 @@ pnpm dev             # a local indexer and GraphQL endpoint
 ```
 
 CI runs codegen, the type check and both test files on every push (`.github/workflows/ci.yml`, the `indexer` job). [`test/handlers.test.ts`](test/handlers.test.ts) replays the house adversary's first fill through Envio's test indexer block for block: the AUSD/USD round in force, the `Opened` that registers the account, its order and fill, and the MON/USD rounds either side of its markout.
+
+## Deploy on Envio Cloud
+
+1. Sign in at https://envio.dev/app with GitHub, and install the Envio Deployments GitHub App on `iamdflame/unison`.
+2. Add an indexer from that repository with:
+   - **Root Directory** `services/indexer`;
+   - **Config File** `config.yaml`;
+   - **Deployment branch** `main`.
+3. Push to `main`, or redeploy from the dashboard. The build installs from this directory's own lockfile, finds `envio` 3.14.0 in its `package.json`, and `pnpm start` runs `envio start`. It indexes from block 111,049,356.
+4. Copy the GraphQL endpoint into the site's `NEXT_PUBLIC_ENVIO_GRAPHQL_URL`, and /challenge lists every challenger from it.
 
 ## Limits
 
