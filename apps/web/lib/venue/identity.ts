@@ -19,6 +19,8 @@ export interface PasskeyIdentity {
   qx: Hex;
   qy: Hex;
   account: Address;
+  /** the domain the passkey belongs to (absent: made before domains were tracked, for this page's own host) */
+  rpId?: string;
 }
 
 export interface TradingSession {

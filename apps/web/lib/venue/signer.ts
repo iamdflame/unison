@@ -1,5 +1,6 @@
 "use client";
 
+import { passkeyRpId } from "./passkeyDomain.ts";
 import {
   base64UrlEncode,
   buildCancel,
@@ -37,19 +38,35 @@ const fromB64Url = (s: string) => Uint8Array.from(atob(s.replace(/-/g, "+").repl
 /** The venue's reason for a failure, in words: decoded custom errors, relayer refusals, cancelled prompts. */
 export const describeError = (e: unknown) => decodeUnisonError(e).message;
 
+/**
+ * A WebAuthn call for a domain, falling back to this page's own host where the browser can't use a related one
+ * (no Related Origin Requests support): it refuses that before any prompt, with a SecurityError.
+ */
+async function forDomain<T>(rpId: string, call: (rpId: string) => Promise<T>): Promise<{ value: T; rpId: string }> {
+  try {
+    return { value: await call(rpId), rpId };
+  } catch (e) {
+    if (rpId === location.hostname || (e as DOMException)?.name !== "SecurityError") throw e;
+    return { value: await call(location.hostname), rpId: location.hostname };
+  }
+}
+
 /** Creates a passkey on this device and registers its account through the relayer (gasless, idempotent). */
 export async function createPasskey(net: NetConfig, label = "Unison"): Promise<PasskeyIdentity> {
-  const cred = (await navigator.credentials.create({
-    publicKey: {
-      rp: { name: "Unison", id: location.hostname },
-      user: { id: crypto.getRandomValues(new Uint8Array(16)), name: label, displayName: label },
-      challenge: crypto.getRandomValues(new Uint8Array(32)),
-      pubKeyCredParams: [{ type: "public-key", alg: -7 }],
-      authenticatorSelection: { residentKey: "required", userVerification: "required" },
-      attestation: "none",
-      timeout: 60_000,
-    },
-  })) as PublicKeyCredential | null;
+  const made = await forDomain(passkeyRpId(), (rpId) =>
+    navigator.credentials.create({
+      publicKey: {
+        rp: { name: "Unison", id: rpId },
+        user: { id: crypto.getRandomValues(new Uint8Array(16)), name: label, displayName: label },
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        pubKeyCredParams: [{ type: "public-key", alg: -7 }],
+        authenticatorSelection: { residentKey: "required", userVerification: "required" },
+        attestation: "none",
+        timeout: 60_000,
+      },
+    }),
+  );
+  const cred = made.value as PublicKeyCredential | null;
   if (!cred) throw new Error("Passkey creation was cancelled.");
   const res = cred.response as AuthenticatorAttestationResponse;
   const spki = typeof res.getPublicKey === "function" ? res.getPublicKey() : null;
@@ -63,16 +80,23 @@ export async function createPasskey(net: NetConfig, label = "Unison"): Promise<P
     qx: key.qx,
     qy: key.qy,
     account: reg.account ?? passkeyAccount(key.qx, key.qy),
+    rpId: made.rpId,
   };
   remember(id);
   return id;
 }
 
-/** Signs in with an existing passkey on a new device: recover its key from one assertion, no backend needed. */
-export async function signInWithPasskey(net: NetConfig): Promise<PasskeyIdentity> {
-  const cred = (await navigator.credentials.get({
-    publicKey: { challenge: crypto.getRandomValues(new Uint8Array(32)), userVerification: "required", timeout: 60_000 },
-  })) as PublicKeyCredential | null;
+/**
+ * Signs in with an existing passkey on a new device: recover its key from one assertion, no backend needed. `rpId` is
+ * the domain the passkey was made for (by default the one new passkeys are made for).
+ */
+export async function signInWithPasskey(net: NetConfig, rpId: string = passkeyRpId()): Promise<PasskeyIdentity> {
+  const got = await forDomain(rpId, (r) =>
+    navigator.credentials.get({
+      publicKey: { rpId: r, challenge: crypto.getRandomValues(new Uint8Array(32)), userVerification: "required", timeout: 60_000 },
+    }),
+  );
+  const cred = got.value as PublicKeyCredential | null;
   if (!cred) throw new Error("Sign-in was cancelled.");
   const res = cred.response as AuthenticatorAssertionResponse;
   const candidates = recoverPasskeyCandidates({
@@ -90,6 +114,7 @@ export async function signInWithPasskey(net: NetConfig): Promise<PasskeyIdentity
         qx: c.qx,
         qy: c.qy,
         account: c.account,
+        rpId: got.rpId,
       };
       remember(id);
       return id;
@@ -102,6 +127,8 @@ export async function signInWithPasskey(net: NetConfig): Promise<PasskeyIdentity
 async function signWithPasskey(id: PasskeyIdentity, digest: Hex): Promise<Hex> {
   const cred = (await navigator.credentials.get({
     publicKey: {
+      // the passkey's own domain: one made for the vercel.app alias still signs on www.unisonfi.com
+      rpId: id.rpId ?? location.hostname,
       challenge: challengeFromDigest(digest),
       allowCredentials: [{ type: "public-key", id: fromB64Url(id.credentialId) }],
       userVerification: "required",

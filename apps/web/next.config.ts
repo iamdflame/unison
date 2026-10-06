@@ -46,7 +46,11 @@ const config: NextConfig = {
     },
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // passkeys made for one of the site's domains work on the others (WebAuthn Related Origin Requests)
+      { source: "/.well-known/webauthn", headers: [{ key: "Content-Type", value: "application/json" }] },
+    ];
   },
 };
 

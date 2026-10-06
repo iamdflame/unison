@@ -11,6 +11,8 @@ import { MARKETS } from "@/lib/content/markets";
 import { useStore } from "@/lib/store/createStore";
 import { createPasskey, identity, session, signInWithPasskey, signOut, startSession, warmSigner } from "@/lib/venue/identity";
 import { useVenue, useVenueAccount } from "@/lib/venue";
+import { networkName } from "@/lib/venue/config";
+import { legacyRpIds } from "@/lib/venue/passkeyDomain";
 import { refreshAccount } from "@/lib/venue/live";
 
 /**
@@ -26,6 +28,8 @@ export function SignIn({ open, onOpenChange }: { open: boolean; onOpenChange: (o
   const quote = useVenueAccount((a) => a.quote);
   const [busy, setBusy] = useState<string | null>(null);
   const [depositOpen, setDepositOpen] = useState(false);
+  // a sign-in that found nothing offers the domains older passkeys were made for
+  const [olderDomains, setOlderDomains] = useState<string[]>([]);
   const net = v.net;
   // the passkey prompt must not wait on the network (and lose its user activation): load the signer as the sheet opens
   useEffect(() => {
@@ -65,15 +69,38 @@ export function SignIn({ open, onOpenChange }: { open: boolean; onOpenChange: (o
             <>
               <Dialog.Title className="text-display-m mt-5 text-ink">Sign in with a passkey.</Dialog.Title>
               <Dialog.Description className="mt-3 text-sm leading-relaxed text-ink-2">
-                Face ID, Touch ID or Windows Hello. No seed phrase, no gas. Your passkey is your account on {net.network}.
+                Face ID, Touch ID or Windows Hello. No seed phrase, no gas. Your passkey is your account on {networkName(net.network)}.
               </Dialog.Description>
               <div className="mt-6 space-y-2">
                 <button type="button" disabled={!!busy} onClick={run("create", () => createPasskey(net), "Your passkey account is ready.")} className="press flex w-full items-center justify-center gap-2.5 rounded-[var(--radius-sm)] bg-ink py-3.5 text-[15px] font-semibold text-bg disabled:opacity-50">
                   <Fingerprint size={18} strokeWidth={1.5} aria-hidden /> {busy === "create" ? "Creating…" : "Create a passkey"}
                 </button>
-                <button type="button" disabled={!!busy} onClick={run("signin", () => signInWithPasskey(net), "Welcome back.")} className="press w-full rounded-[var(--radius-sm)] py-3 text-sm font-semibold text-ink hairline disabled:opacity-50">
+                <button
+                  type="button"
+                  disabled={!!busy}
+                  onClick={run(
+                    "signin",
+                    () => signInWithPasskey(net).catch((e: unknown) => {
+                      setOlderDomains(legacyRpIds());
+                      throw e;
+                    }),
+                    "Welcome back.",
+                  )}
+                  className="press w-full rounded-[var(--radius-sm)] py-3 text-sm font-semibold text-ink hairline disabled:opacity-50"
+                >
                   {busy === "signin" ? "Signing in…" : "I already have one"}
                 </button>
+                {olderDomains.map((rp) => (
+                  <button
+                    key={rp}
+                    type="button"
+                    disabled={!!busy}
+                    onClick={run(`signin:${rp}`, () => signInWithPasskey(net, rp), "Welcome back.")}
+                    className="press w-full rounded-[var(--radius-sm)] py-2.5 text-sm font-medium text-ink-2 hover-fine:text-ink disabled:opacity-50"
+                  >
+                    {busy === `signin:${rp}` ? "Signing in…" : `Use a passkey made on ${rp}`}
+                  </button>
+                ))}
               </div>
               <p className="mt-5 text-xs leading-relaxed text-ink-3">
                 Your account lives in the venue&apos;s ledger at an address derived from your passkey. Fund it through
