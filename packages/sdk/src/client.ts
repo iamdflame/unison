@@ -17,6 +17,7 @@ import type {
   MarketState,
   OrderPreview,
   OrderRecord,
+  CausalState,
   RegimeState,
   SideCode,
   StatusCode,
@@ -136,6 +137,20 @@ export class UnisonClient {
 
   regime(marketId: bigint): Promise<RegimeState> {
     return this.read("regimeOf", [marketId]);
+  }
+
+  /** Whether the market prices at the first oracle observation after its orders, and its clock margin. */
+  causal(marketId: bigint): Promise<CausalState> {
+    return this.read("causalOf", [marketId]);
+  }
+
+  /** Batches waiting to be cleared, oldest first: block number and registration time (unix seconds). */
+  async pendingTimes(marketId: bigint, max = 64n): Promise<{ batch: bigint; time: bigint }[]> {
+    const [batches, times] = await this.read<readonly [readonly bigint[], readonly bigint[]]>("pendingTimes", [
+      marketId,
+      max,
+    ]);
+    return batches.map((batch, i) => ({ batch, time: times[i]! }));
   }
 
   jobPhase(marketId: bigint): Promise<number> {
@@ -450,6 +465,19 @@ export class UnisonClient {
       abi: unisonExchangeAbi,
       functionName: "clearUpTo",
       args: [marketId, upTo, payload],
+      account: this.wallet().account,
+    });
+    const [tick, volume] = result as readonly [bigint, bigint];
+    return { tick, volume };
+  }
+
+  /** Simulates `clear` (eth_call): the auction's outcome without sending a transaction. */
+  async simulateClear(marketId: bigint, payload: Hex = "0x"): Promise<{ tick: bigint; volume: bigint }> {
+    const { result } = await this.publicClient.simulateContract({
+      address: this.exchange,
+      abi: unisonExchangeAbi,
+      functionName: "clear",
+      args: [marketId, payload],
       account: this.wallet().account,
     });
     const [tick, volume] = result as readonly [bigint, bigint];

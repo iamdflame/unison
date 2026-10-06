@@ -1,0 +1,34 @@
+{
+  "label": "monad-mainnet",
+  "_notes": [
+    "The causal cutover (SPEC §7.4), applied to the live mainnet deployment by contracts/script/UpgradeCausal.s.sol.",
+    "Each listed market prices every auction at the first Chainlink observation made more than skewSec after its oldest waiting order: the observation time is the one inside the report the oracle quorum signed (startedAt), never the chain's clock.",
+    "feedMaxAgeSec: a base feed silent for longer than this counts as closed (DISCOVERY). quoteFeedMaxAgeSec: the AUSD/USD round in force may be at most this much older than the base observation, or the market halts. depegBps: AUSD further than this from $1 halts the market.",
+    "closedMult 255: the vaults stop quoting while a reference is closed (255 x the spread is far outside any band).",
+    "control: a WMON/AUSD market kept on the old rule on purpose (ChainlinkReference: the latest round, stamped with the clear's own time). It exists so the standing challenge has a baseline: the same bot, the same vault settings, only the rule differs."
+  ],
+  "skewSec": 2,
+  "causal": [
+    {
+      "id": 0, "symbol": "aNVDA/AUSD", "vault": "0x76d9FeAb2d1DD7e689eA253503b848633792f8Db",
+      "feed": "0x03ffa4673c060339E6a8E5Ba1a12B3301c966bf0", "quoteFeed": "0xE20751C7B5867bCBef815ffc1b284c3f412a9e13",
+      "quoteDecimals": 6, "feedMaxAgeSec": 3900, "quoteFeedMaxAgeSec": 3900, "session": [0, 432000], "depegBps": 50,
+      "closedMult": 255
+    },
+    {
+      "id": 1, "symbol": "WMON/AUSD", "vault": "0x92f15839efcD72E6C9236ca63F1de4ee159CeeF3",
+      "feed": "0xBcD78f76005B7515837af6b50c7C52BCf73822fb", "quoteFeed": "0xE20751C7B5867bCBef815ffc1b284c3f412a9e13",
+      "quoteDecimals": 6, "feedMaxAgeSec": 3900, "quoteFeedMaxAgeSec": 3900, "session": [0, 0], "depegBps": 50,
+      "closedMult": 255
+    }
+  ],
+  "control": {
+    "symbol": "WMON/AUSD (old rule)", "lpSymbol": "uWMON-OLD-LP",
+    "base": "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A", "quote": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+    "feed": "0xBcD78f76005B7515837af6b50c7C52BCf73822fb", "quoteFeed": "0xE20751C7B5867bCBef815ffc1b284c3f412a9e13",
+    "quoteDecimals": 6, "feedMaxAgeSec": 3600, "quoteFeedMaxAgeSec": 90000, "session": [0, 0],
+    "tickSize": 1, "maxBandTicks": 12001, "bandBps": 200, "feeBps": 3, "maxFeeBps": 10, "shards": 4,
+    "regime": [400, 1000, 200, 1000, 86400, 10], "vault": [20, 50, 10, 20, 1000, 0, 1, 2],
+    "dailyCap": "20000000000000000000000"
+  }
+}

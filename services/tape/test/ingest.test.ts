@@ -198,3 +198,24 @@ describe("deployment wiring", () => {
     );
   });
 });
+
+describe("causal markets (SPEC §7.4)", () => {
+  it("joins each print to the Chainlink round that priced it, and checks for itself that it was observed after the seal", async () => {
+    const { fairness, toPrint } = await import("../src/derive.ts");
+    const { store, indexer } = memoryTape();
+    const round = 18_446_744_073_710_158_838n;
+    const causal = logOf(unisonExchangeAbi as Abi, ADDR.exchange, "CausalReference", {
+      marketId: 0n, upToBlock: 11n, round, sealedAt: BigInt(T0 + 11), observedAt: BigInt(T0 + 11),
+    }, { block: 12, logIndex: 0 });
+    const { log, receipt } = printLog(ZERO_HASH, { upTo: 11, tick: 17_990, volume: E18, refPrice: 180_000_000n }, { block: 12, logIndex: 1 });
+    // an older print with no CausalReference: the clear-time rule
+    const { log: later } = printLog(receipt, { upTo: 14, tick: 17_995, volume: 0n, refPrice: 180_000_000n }, { block: 15, logIndex: 0 });
+    const logs = [causal, log, later];
+    indexer.commit(logs, tsMap(logs, [11, 14]));
+    const [p11, p14] = store.prints(0, { asc: true });
+    expect(p11!.round).toBe(round.toString());
+    expect(toPrint(p11!)).toMatchObject({ rule: "causal", causal: true, sealedAt: T0 + 11, round: round.toString() });
+    expect(toPrint(p14!)).toMatchObject({ rule: "clear-time", causal: false, round: null });
+    expect(fairness(store.prints(0, { asc: true })).causal).toMatchObject({ prints: 1, allAfterSeal: true });
+  });
+});

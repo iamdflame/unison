@@ -42,6 +42,15 @@ export interface Print {
   chainOk: boolean;
   /** (price − ref) / ref in bp; null when nothing traded */
   deviationBps: number | null;
+  /** unix seconds the newest order in the auction was sealed (its block's time); null when unknown */
+  sealedAt?: number | null;
+  /** causal markets: the Chainlink round that priced the auction */
+  round?: string | null;
+  /** "causal": priced at the first Chainlink observation after its orders (SPEC §7.4), refTimeMs is the oracle's
+   *  signed observation time. "clear-time": the older rule, refTimeMs is the clear's own time. */
+  rule?: "causal" | "clear-time";
+  /** the tape's own check: a causal print whose observation (refTimeMs) came after its seal (sealedAt) */
+  causal?: boolean;
 }
 
 export interface ReferenceQuote {
@@ -56,7 +65,7 @@ export interface MarketSummary {
   base: string;
   quote: string;
   vault: string | null;
-  reference: "operator" | "chainlink" | "pyth" | "manual";
+  reference: "operator" | "chainlink" | "chainlink-causal" | "pyth" | "manual";
   tickSize: string;
   baseUnit: string;
   baseDecimals: number;
@@ -97,6 +106,8 @@ export interface Fairness {
   p95RefLagMs: number;
   chainOk: boolean;
   histogram: { bps: number; count: number }[];
+  /** causal prints (SPEC §7.4): every one should be observed after its auction sealed */
+  causal?: { prints: number; allAfterSeal: boolean; meanLagMs: number; p95LagMs: number };
 }
 
 export interface PendingOrder {

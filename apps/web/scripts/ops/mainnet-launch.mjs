@@ -6,8 +6,12 @@
  *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs sell <aNVDA>  deposit aNVDA and sell it into the vault's bid
  *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs sweep <to>   send what the deployer holds to <to>, keeping RESERVE_MON (10)
  *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs status
+ *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs upgrade-causal   the causal cutover (SPEC §7.4)
  *
  * `deploy` refuses a chain other than 143 and refuses to overwrite deployments/monad-mainnet.json.
+ * `upgrade-causal` runs contracts/script/UpgradeCausal.s.sol (which first checks that no job runs, no order waits and
+ * no order rests), then folds its record into deployments/monad-mainnet.json. It refuses a deployment that is already
+ * causal.
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
@@ -65,6 +69,30 @@ if (cmd === "deploy") {
   const lines = `${r.stdout}\n${r.stderr}`.split("\n").filter((l) => /UnisonExchange|written|ONCHAIN|Error|error|Estimated|Transactions saved|Paid/.test(l));
   console.log(lines.join("\n"));
   if (r.status !== 0) process.exit(r.status ?? 1);
+} else if (cmd === "upgrade-causal") {
+  if ((await pub.getChainId()) !== 143) throw new Error("not Monad mainnet");
+  if (dep().causalReference) throw new Error("deployments/monad-mainnet.json already names a causalReference");
+  const forge = process.env.FORGE ?? join(homedir(), ".foundry/bin/forge");
+  // forge broadcasts on the public endpoint: the load-balanced one has answered "block not found" mid-script
+  const r = spawnSync(forge, ["script", "script/UpgradeCausal.s.sol", "--rpc-url", process.env.FORGE_RPC ?? "https://rpc.monad.xyz", "--broadcast", "--slow"], {
+    cwd: join(root, "contracts"),
+    env: {
+      ...process.env,
+      DEPLOYER_PRIVATE_KEY: env.DEPLOYER_PRIVATE_KEY,
+      DEPLOYMENT: "../deployments/monad-mainnet.json",
+      CAUSAL_CONFIG: "../deploy/monad-mainnet-causal.json",
+    },
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  const lines = `${r.stdout}\n${r.stderr}`.split("\n").filter((l) => /implementation|causal reference|control market|written|ONCHAIN|Error|error|revert|Estimated|Transactions saved|Paid/.test(l));
+  console.log(lines.join("\n"));
+  if (r.status !== 0) process.exit(r.status ?? 1);
+  const m = spawnSync(process.execPath, ["scripts/merge-causal.mjs", "deployments/monad-mainnet.json", "deployments/monad-mainnet-causal.json", "deploy/monad-mainnet-causal.json"], {
+    cwd: root,
+    stdio: "inherit",
+  });
+  if (m.status !== 0) process.exit(m.status ?? 1);
 } else if (cmd === "seed") {
   const m = nvda();
   const amount = parseUnits(arg, 6);

@@ -8,7 +8,7 @@ export interface MarketSpec {
   underlying: string; // "NVDA"
   name: string;
   kind: "equity" | "etf" | "gold" | "fx" | "crypto";
-  reference: "operator" | "chainlink" | "pyth" | "manual";
+  reference: "operator" | "chainlink" | "chainlink-causal" | "pyth" | "manual";
   tickSize: bigint;
   bandBps: number;
   feeBps: number;

@@ -8,6 +8,11 @@
  *                                     manual). Re-pricing lets resting orders cross the moving band and the curve.
  *   3. after a completed job       → process the market's vault queue if requests wait
  *   4. optionally                  → claim orders whose level closed (frees slots, credits balances)
+ * Causal markets (SPEC §7.4) replace step 2: an auction is cleared as soon as the first Chainlink observation after
+ * its oldest waiting order lands, naming that observation (the contract checks it is the first, and derives the
+ * batch from it). With no such observation yet, the keeper waits, unless the market is closed (session over or feed
+ * silent), when a DISCOVERY call auction runs on its cadence. Orders there are sealed, so every auction with waiting
+ * orders is cleared, traded or not: its owners are owed an answer.
  * Monad charges the gas LIMIT: clear calls use a fixed, explicit limit (the job pauses itself well before it), or
  * with `clearGas: "auto"` the call's estimate × 1.2, clamped to [minClearGas, maxClearGas]. A job pauses itself
  * once gas runs low, so an estimator can always "succeed" by pausing again at once, settling on a limit that makes
@@ -15,7 +20,20 @@
  * clear) gets the full maxClearGas, which must cover the auction's one non-yielding step.
  */
 import { decodeEventLog, parseAbi, type Address, type Hex } from "viem";
-import { JobPhase, liquidityVaultAbi, Status, unisonExchangeAbi, type MarketState, type UnisonClient } from "@unison/sdk";
+import {
+  causalFeed,
+  causalPayload,
+  closedAt,
+  JobPhase,
+  latestObservation,
+  liquidityVaultAbi,
+  Status,
+  unisonExchangeAbi,
+  type CausalFeed,
+  type MarketState,
+  type Observation,
+  type UnisonClient,
+} from "@unison/sdk";
 
 /** IReferenceAdapter.read: a view on ChainlinkReference / ManualReference; eth_call works for every adapter. */
 const adapterReadAbi = parseAbi([
@@ -27,6 +45,13 @@ function why(e: unknown): { error: string; details?: string } {
   const err = e as Error & { details?: string; shortMessage?: string };
   const error = (err.shortMessage ?? err.message ?? String(e)).split("\n")[0]!;
   return err.details ? { error, details: err.details.slice(0, 300) } : { error };
+}
+
+/** The Chainlink history the causal path reads (injectable, so the policy can be tested without a chain). */
+export interface CausalHistory {
+  payload(adapter: Address, marketId: bigint, afterSec: bigint): Promise<{ payload: Hex; base: Observation } | null>;
+  feed(adapter: Address, marketId: bigint): Promise<CausalFeed>;
+  latest(feed: Address): Promise<Observation>;
 }
 
 export interface KeeperConfig {
@@ -44,6 +69,10 @@ export interface KeeperConfig {
   maxPendingAge: bigint;
   autoClaim: boolean;
   log?: (msg: Record<string, unknown>) => void;
+  /** causal markets: chain history (default: the client's public client) */
+  history?: CausalHistory;
+  /** unix seconds now (default: the system clock) */
+  now?: () => bigint;
 }
 
 interface Tracked {
@@ -60,13 +89,45 @@ export class Keeper {
   /** the block of each market's last vault process() attempt */
   private readonly processTriedAt = new Map<bigint, bigint>();
   readonly stats = { clears: 0, jobsDone: 0, vaultProcesses: 0, claims: 0, errors: 0 };
+  private readonly history: CausalHistory;
+  /** causal mode per market, re-read every minute */
+  private readonly modes = new Map<bigint, { on: boolean; skewSec: number; at: number }>();
+  private readonly feeds = new Map<bigint, CausalFeed>();
 
   constructor(cfg: KeeperConfig) {
     this.cfg = cfg;
+    const pc = cfg.client.publicClient;
+    this.history = cfg.history ?? {
+      payload: (adapter, marketId, afterSec) => causalPayload(pc, adapter, marketId, afterSec),
+      feed: (adapter, marketId) => causalFeed(pc, adapter, marketId),
+      latest: (feed) => latestObservation(pc, feed),
+    };
+  }
+
+  private nowSec(): bigint {
+    return this.cfg.now?.() ?? BigInt(Math.floor(Date.now() / 1000));
+  }
+
+  /** Whether a market prices at Chainlink observations (an exchange from before SPEC §7.4 has no causalOf: no). */
+  async causalMode(marketId: bigint): Promise<{ on: boolean; skewSec: number }> {
+    const hit = this.modes.get(marketId);
+    if (hit && Date.now() - hit.at < 60_000) return hit;
+    let mode = { on: false, skewSec: 0 };
+    try {
+      const r = await this.cfg.client.causal(marketId);
+      mode = { on: r.on, skewSec: Number(r.skewSec) };
+    } catch {
+      /* not causal */
+    }
+    this.modes.set(marketId, { ...mode, at: Date.now() });
+    return mode;
   }
 
   private log(msg: Record<string, unknown>) {
-    (this.cfg.log ?? ((m) => console.log(JSON.stringify(m))))({ t: new Date().toISOString(), ...msg });
+    // bigints (market ids, rounds, times) print as decimal strings: a log line must never be what throws
+    const line = (m: Record<string, unknown>) =>
+      console.log(JSON.stringify(m, (_k, v: unknown) => (typeof v === "bigint" ? v.toString() : v)));
+    (this.cfg.log ?? line)({ t: new Date().toISOString(), ...msg });
   }
 
   /** Records orders placed so auto-claim can settle them later. */
@@ -118,11 +179,16 @@ export class Keeper {
    * Gas limit for a clear call: the configured one; or, in auto mode, the estimate × 1.2 for an opening clear
    * (clamped), and the full budget for a continuation or a retry, where an estimate would settle on pausing.
    */
-  async clearGasFor(functionName: "clear" | "clearUpTo", args: readonly unknown[], marketId?: bigint): Promise<bigint> {
+  async clearGasFor(
+    functionName: "clear" | "clearUpTo",
+    args: readonly unknown[],
+    marketId?: bigint,
+    opening = functionName === "clearUpTo",
+  ): Promise<bigint> {
     if (this.cfg.clearGas !== "auto") return this.cfg.clearGas;
     const min = this.cfg.minClearGas ?? 2_000_000n;
     const max = this.cfg.maxClearGas ?? 25_000_000n;
-    if (functionName === "clear" || (marketId !== undefined && this.failed.has(marketId))) return max;
+    if (!opening || (marketId !== undefined && this.failed.has(marketId))) return max;
     const c = this.cfg.client;
     const est = await c.publicClient
       .estimateContractGas({ address: c.exchange, abi: unisonExchangeAbi, functionName, args: args as never, account: c.walletClient!.account })
@@ -171,6 +237,8 @@ export class Keeper {
         const gas = await this.clearGasFor("clear", [marketId, "0x"], marketId);
         await this.sendClear(marketId, c.clear(marketId, "0x", gas), { marketId, action: "clear.continue" });
         sent++;
+      } else if ((await this.causalMode(marketId)).on) {
+        sent += await this.serveCausal(marketId, head);
       } else {
         const m = await c.market(marketId);
         const upTo = head - 1n;
@@ -216,18 +284,84 @@ export class Keeper {
   }
 
   /**
+   * A causal market (SPEC §7.4). The auction for the oldest waiting order is cleared as soon as the first Chainlink
+   * observation after it lands; the payload names that observation. Without one, the keeper waits, unless the market
+   * is closed (DISCOVERY on its cadence). With nothing waiting, it clears only to give a vault request a reference
+   * observed after it.
+   */
+  private async serveCausal(marketId: bigint, head: bigint): Promise<number> {
+    const c = this.cfg.client;
+    const { skewSec } = await this.causalMode(marketId);
+    const m = await c.market(marketId);
+    let payload: Hex = "0x";
+    const ctx: Record<string, unknown> = { marketId, action: "clear.open", causal: true };
+    if (m.pendingTail > m.pendingHead) {
+      const [oldest] = await c.pendingTimes(marketId, 1n);
+      if (!oldest) return 0;
+      const afterSec = oldest.time + BigInt(skewSec);
+      const found = await this.history.payload(m.refAdapter, marketId, afterSec);
+      if (found) {
+        payload = found.payload;
+        Object.assign(ctx, { round: found.base.round, observedAt: found.base.observedAt, sealedBefore: afterSec });
+      } else {
+        // no observation after the oldest order yet: wait for Chainlink, unless the market is closed
+        const f = await this.feedOf(marketId, m.refAdapter);
+        if (!closedAt(f, await this.history.latest(f.base), this.nowSec())) return 0;
+        const g = await c.regime(marketId);
+        const upTo = head - 1n;
+        if (g.discCadence > 1 && g.lastDiscoveryBatch !== 0n && upTo < g.lastDiscoveryBatch + BigInt(g.discCadence)) {
+          return 0;
+        }
+        ctx.discovery = true;
+      }
+    } else {
+      const queue = await this.vaultQueue(marketId, m.lastRefTimeMs);
+      if (queue.processable) return this.processVault(marketId, queue.pending);
+      if (queue.pending === 0n) return 0;
+      const f = await this.feedOf(marketId, m.refAdapter);
+      const latest = await this.history.latest(f.base);
+      // an empty clear prices at the latest observation: worth it only if that observation is newer than the
+      // last one used and was made after the oldest request
+      if (latest.observedAt * 1000n <= m.lastRefTimeMs || latest.observedAt <= queue.oldestTime) return 0;
+      ctx.action = "clear.vault";
+    }
+    // Monad charges the gas limit even for a revert: never send what a simulation refuses
+    try {
+      await c.simulateClear(marketId, payload);
+    } catch (e) {
+      this.log({ level: "warn", ...ctx, ...why(e) });
+      return 0;
+    }
+    const gas = await this.clearGasFor("clear", [marketId, payload], marketId, true);
+    await this.sendClear(marketId, c.clear(marketId, payload, gas), ctx);
+    return 1;
+  }
+
+  private async feedOf(marketId: bigint, adapter: Address): Promise<CausalFeed> {
+    const hit = this.feeds.get(marketId);
+    if (hit) return hit;
+    const f = await this.history.feed(adapter, marketId);
+    this.feeds.set(marketId, f);
+    return f;
+  }
+
+  /**
    * The vault's queue in two or three reads (not the nine of a full vault view, every block, for every market): how
    * many requests wait, and whether the oldest already has a reference published after it, so process() can run it.
    */
-  private async vaultQueue(marketId: bigint, lastRefTimeMs: bigint): Promise<{ pending: bigint; processable: boolean }> {
+  private async vaultQueue(
+    marketId: bigint,
+    lastRefTimeMs: bigint,
+  ): Promise<{ pending: bigint; processable: boolean; oldestTime: bigint }> {
     const dep = Object.values(this.cfg.client.deployment.markets).find((x) => BigInt(x.id) === marketId);
-    if (!dep?.vault) return { pending: 0n, processable: false };
+    if (!dep?.vault) return { pending: 0n, processable: false, oldestTime: 0n };
     const pc = this.cfg.client.publicClient;
     const v = { address: dep.vault, abi: liquidityVaultAbi } as const;
     const [head, length] = await Promise.all([pc.readContract({ ...v, functionName: "head" }), pc.readContract({ ...v, functionName: "queueLength" })]);
-    if (length <= head) return { pending: 0n, processable: false };
+    if (length <= head) return { pending: 0n, processable: false, oldestTime: 0n };
     const oldest = await pc.readContract({ ...v, functionName: "request", args: [head] });
-    return { pending: length - head, processable: lastRefTimeMs > 0n && BigInt(oldest.time) * 1000n < lastRefTimeMs };
+    const oldestTime = BigInt(oldest.time);
+    return { pending: length - head, processable: lastRefTimeMs > 0n && oldestTime * 1000n < lastRefTimeMs, oldestTime };
   }
 
   private async processVault(marketId: bigint, pending: bigint): Promise<number> {
@@ -287,7 +421,7 @@ export class Keeper {
   private async send(p: Promise<Hex>, ctx: Record<string, unknown>) {
     const hash = await p;
     const r = await this.cfg.client.publicClient.waitForTransactionReceipt({ hash });
-    if (ctx.action === "clear.open" || ctx.action === "clear.continue") this.stats.clears++;
+    if (ctx.action === "clear.open" || ctx.action === "clear.continue" || ctx.action === "clear.vault") this.stats.clears++;
     this.log({
       ...Object.fromEntries(Object.entries(ctx).map(([k, v]) => [k, typeof v === "bigint" ? v.toString() : v])),
       tx: hash,

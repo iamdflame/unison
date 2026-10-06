@@ -94,6 +94,18 @@ export class LogDecoder {
             closeTs: null,
           },
         };
+      case "exchange.CausalReference":
+        return {
+          table: "causal_refs",
+          row: {
+            ...ref,
+            marketId: n("marketId"),
+            upTo: n("upToBlock"),
+            round: s("round"),
+            sealedAt: n("sealedAt"),
+            observedAt: n("observedAt"),
+          },
+        };
       case "exchange.OrderPlaced":
         return {
           table: "orders_placed",

@@ -11,6 +11,7 @@ const contracts = [
   ["OperatorSignedReference", "operatorSignedReferenceAbi"],
   ["LiquidityVault", "liquidityVaultAbi"],
   ["ChainlinkReference", "chainlinkReferenceAbi"],
+  ["ChainlinkCausalReference", "chainlinkCausalReferenceAbi"],
   ["PythReference", "pythReferenceAbi"],
   ["ManualReference", "manualReferenceAbi"],
   ["OrderGateway", "orderGatewayAbi"],

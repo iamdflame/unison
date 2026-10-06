@@ -55,7 +55,7 @@ describe("tape REST", () => {
     const csv = await (await app.request("/v1/markets/0/prints.csv")).text();
     const lines = csv.trim().split("\n");
     expect(lines[0]).toBe(
-      "marketId,upTo,block,tx,logIndex,ts,tick,price,volume,refPrice,refTimeMs,status,regime,bandLo,bandHi,receiptHash,prevReceiptHash,chainOk,deviationBps",
+      "marketId,upTo,block,tx,logIndex,ts,tick,price,volume,refPrice,refTimeMs,status,regime,bandLo,bandHi,receiptHash,prevReceiptHash,chainOk,deviationBps,sealedAt,round,rule,causal",
     );
     expect(lines).toHaveLength(3);
     expect(lines[1]).toContain(",17990,179900000,2000000000000000000,179950000,");

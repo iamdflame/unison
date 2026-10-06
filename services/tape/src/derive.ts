@@ -114,6 +114,11 @@ export const toPrint = (r: PrintRow): Print => ({
   prevReceiptHash: r.prevReceiptHash,
   chainOk: r.chainOk,
   deviationBps: r.deviationBps,
+  sealedAt: r.closeTs,
+  round: r.round ?? null,
+  rule: r.round ? "causal" : "clear-time",
+  // the tape's own verdict, not the adapter's: a Chainlink round priced it, observed after the newest order sealed
+  causal: !!r.round && r.closeTs !== null && r.refTimeMs > r.closeTs * 1000,
 });
 
 const CSV_COLUMNS = [
@@ -136,6 +141,10 @@ const CSV_COLUMNS = [
   "prevReceiptHash",
   "chainOk",
   "deviationBps",
+  "sealedAt",
+  "round",
+  "rule",
+  "causal",
 ] as const satisfies readonly (keyof Print)[];
 
 export function printsCsv(prints: readonly Print[]): string {
@@ -195,6 +204,18 @@ export function percentile(sorted: readonly number[], p: number): number {
   return sorted[Math.min(sorted.length, Math.max(1, rank)) - 1]!;
 }
 
+/** Causal prints (SPEC §7.4): how many, whether every one was observed after its auction sealed, and how long after. */
+function causalStats(prints: readonly PrintRow[]): Fairness["causal"] {
+  const c = prints.filter((p) => p.round && p.closeTs !== null);
+  const lags = c.map((p) => p.refTimeMs - p.closeTs! * 1000).sort((a, b) => a - b);
+  return {
+    prints: c.length,
+    allAfterSeal: c.every((p) => p.refTimeMs > p.closeTs! * 1000),
+    meanLagMs: lags.length ? Math.round(lags.reduce((a, b) => a + b, 0) / lags.length) : 0,
+    p95LagMs: lags.length ? Math.round(percentile(lags, 95)) : 0,
+  };
+}
+
 export function fairness(prints: readonly PrintRow[]): Fairness {
   const traded = prints.filter((p) => p.volume !== "0");
   const devs = traded
@@ -222,6 +243,7 @@ export function fairness(prints: readonly PrintRow[]): Fairness {
     maxAbsDevBps: round2(devs.length ? devs[devs.length - 1]! : 0),
     meanRefLagMs: Math.round(mean(lags)),
     p95RefLagMs: Math.round(percentile(lags, 95)),
+    causal: causalStats(prints),
     chainOk: prints.every((p) => p.chainOk),
     histogram,
   };

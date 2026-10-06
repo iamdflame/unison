@@ -485,6 +485,7 @@ export class Indexer implements TapeState {
           const prev = this.store.printBefore(rec.row.marketId, rec.row.block, rec.row.logIndex);
           Object.assign(rec.row, derivePrint(rec.row, prev, this.anchorOf(rec.row.marketId)));
           rec.row.closeTs = ts.get(rec.row.upTo) ?? this.store.blockTs(rec.row.upTo) ?? null;
+          rec.row.round = this.store.causalRef(rec.row.marketId, rec.row.upTo)?.round ?? null;
         }
         if (!this.store.insert(rec)) continue;
         if (rec.table === "prints") this.store.putBlockTs(rec.row.block, sec);

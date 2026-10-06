@@ -11,6 +11,7 @@ import { decodeErrorResult, toFunctionSelector, type Abi, type Hex } from "viem"
 import { unisonExchangeAbi } from "./abis/UnisonExchange.ts";
 import { orderGatewayAbi } from "./abis/OrderGateway.ts";
 import { liquidityVaultAbi } from "./abis/LiquidityVault.ts";
+import { chainlinkCausalReferenceAbi } from "./abis/ChainlinkCausalReference.ts";
 
 type AbiError = Extract<Abi[number], { type: "error" }>;
 
@@ -46,6 +47,12 @@ export const UNISON_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   SessionCap: "Over this session key's limits: a market it may not trade, or too large an order.",
   UnknownPasskey: "This passkey isn't registered yet.",
   ClearRunning: "The vault is waiting for the current auction; retry in a moment.",
+  Sealed: "This order is sealed into its auction. It settles when Chainlink's next price lands.",
+  NotYet: "Waiting for Chainlink's next observation of this market.",
+  NotAfterSeal: "That Chainlink observation was made before the auction sealed.",
+  NotFirstObservation: "An earlier Chainlink observation after the seal exists; the auction must use it.",
+  ObservationExists: "A Chainlink observation after the seal exists; the auction must use it.",
+  BadQuoteRound: "That quote-feed round wasn't the one in force at the observation.",
 };
 
 const signature = (e: AbiError) => `${e.name}(${e.inputs.map((i) => i.type).join(",")})`;
@@ -53,7 +60,7 @@ const signature = (e: AbiError) => `${e.name}(${e.inputs.map((i) => i.type).join
 /** Every custom error the exchange, gateway and vaults can revert with, deduplicated by signature. */
 export const unisonErrorsAbi: readonly AbiError[] = (() => {
   const seen = new Map<string, AbiError>();
-  for (const item of [...unisonExchangeAbi, ...orderGatewayAbi, ...liquidityVaultAbi] as Abi) {
+  for (const item of [...unisonExchangeAbi, ...orderGatewayAbi, ...liquidityVaultAbi, ...chainlinkCausalReferenceAbi] as Abi) {
     if (item.type === "error" && !seen.has(signature(item))) seen.set(signature(item), item);
   }
   return [...seen.values()];

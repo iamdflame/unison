@@ -6,11 +6,16 @@ import {
   encodeErrorResult,
   type Abi,
 } from "viem";
-import { liquidityVaultAbi, orderGatewayAbi, unisonExchangeAbi } from "../src/abis/index.ts";
+import { chainlinkCausalReferenceAbi, liquidityVaultAbi, orderGatewayAbi, unisonExchangeAbi } from "../src/abis/index.ts";
 import { decodeUnisonError, UNISON_ERROR_MESSAGES, UNKNOWN_ERROR_MESSAGE, unisonErrorsAbi } from "../src/errors.ts";
 
-const merged = [...unisonExchangeAbi, ...orderGatewayAbi, ...liquidityVaultAbi] as Abi;
-const data = (errorName: string, args?: readonly unknown[]) => encodeErrorResult({ abi: merged, errorName, args } as never);
+const merged = [...unisonExchangeAbi, ...orderGatewayAbi, ...liquidityVaultAbi, ...chainlinkCausalReferenceAbi] as Abi;
+/** Revert data for `errorName`; arguments default to zero values (e.g. ObservationExists(uint80 round)). */
+const data = (errorName: string, args?: readonly unknown[]) => {
+  const e = merged.find((x) => x.type === "error" && x.name === errorName) as { inputs: { type: string }[] } | undefined;
+  const zero = (t: string) => (/^u?int/.test(t) ? 0n : t === "bool" ? false : t === "address" ? "0x0000000000000000000000000000000000000000" : "0x");
+  return encodeErrorResult({ abi: merged, errorName, args: args ?? e?.inputs.map((i) => zero(i.type)) } as never);
+};
 
 describe("decodeUnisonError", () => {
   it("covers every code in the table from raw revert data (e.g. a RelayFailed reason)", () => {

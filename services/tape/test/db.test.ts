@@ -59,7 +59,7 @@ describe("SqliteTapeStore", () => {
     a.setMeta("indexed", "42");
     a.close();
     const b = new SqliteTapeStore(path);
-    expect((b.db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version).toBe(1);
+    expect((b.db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version).toBe(2);
     expect(b.getMeta("indexed")).toBe("42");
     expect(b.printCount(0)).toBe(1);
     b.close();

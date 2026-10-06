@@ -37,6 +37,18 @@ export interface PrintRow extends LogRef {
   deviationBps: number | null;
   /** timestamp (s) of block `upTo`, when known: the batch close for reference-lag statistics */
   closeTs: number | null;
+  /** causal markets (SPEC §7.4): the Chainlink round that priced the auction, joined from causal_refs when read */
+  round?: string | null;
+}
+
+/** How an auction on a causal market was bound (CausalReference): the Chainlink round that priced it, when the newest
+ *  order in it was sealed, and when the oracle observed the price (unix seconds). */
+export interface CausalRefRow extends LogRef {
+  marketId: number;
+  upTo: number;
+  round: string;
+  sealedAt: number;
+  observedAt: number;
 }
 
 export interface OrderPlacedRow extends LogRef {
@@ -182,7 +194,8 @@ export type TapeRecord =
   | { table: "vault_fills"; row: VaultFillRow }
   | { table: "curve_fills"; row: CurveFillRow }
   | { table: "regime_events"; row: RegimeEventRow }
-  | { table: "references"; row: ReferenceRow };
+  | { table: "references"; row: ReferenceRow }
+  | { table: "causal_refs"; row: CausalRefRow };
 
 export type TapeTable = TapeRecord["table"];
 type RowOf<T extends TapeTable> = Extract<TapeRecord, { table: T }>["row"];
@@ -212,6 +225,8 @@ export interface TapeStore {
   insert(rec: TapeRecord): boolean;
   /** Removes the log stored at (block, logIndex) (only if it came from `tx`, when given); returns it. */
   retract(block: number, logIndex: number, tx?: string): TapeRecord | undefined;
+  /** The newest CausalReference of an auction (a chunked job emits it in an earlier transaction than its print). */
+  causalRef(marketId: number, upTo: number): CausalRefRow | undefined;
   updatePrintDerived(
     block: number,
     logIndex: number,
@@ -388,6 +403,13 @@ const TABLES: Record<TapeTable, readonly Column[]> = {
     ["status", "status", "int"],
     ["signers", "signers", "int"],
   ],
+  causal_refs: [
+    ["market_id", "marketId", "int"],
+    ["up_to", "upTo", "int"],
+    ["round", "round", "text"],
+    ["sealed_at", "sealedAt", "int"],
+    ["observed_at", "observedAt", "int"],
+  ],
 };
 
 const SQL_TYPE: Record<ColType, string> = { int: "INTEGER", text: "TEXT", bool: "INTEGER", real: "REAL" };
@@ -424,6 +446,11 @@ const MIGRATIONS: readonly string[] = [
     'CREATE INDEX regime_market ON regime_events (market_id, kind, block, log_index)',
     'CREATE INDEX references_market ON "references" (market_id, block, log_index)',
     "CREATE TABLE vault_snapshots (vault TEXT NOT NULL, t INTEGER NOT NULL, block INTEGER NOT NULL, nav TEXT NOT NULL, supply TEXT NOT NULL, base TEXT NOT NULL, quote TEXT NOT NULL, spread_pnl TEXT NOT NULL, inventory_pnl TEXT NOT NULL, decimals INTEGER NOT NULL, PRIMARY KEY (vault, t)) WITHOUT ROWID",
+  ].join(";\n"),
+  // v2: causal markets (SPEC §7.4). A fresh database already has the table from the first migration.
+  [
+    tableSql("causal_refs", TABLES.causal_refs).replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS"),
+    "CREATE INDEX IF NOT EXISTS causal_refs_market ON causal_refs (market_id, up_to)",
   ].join(";\n"),
 ];
 
@@ -486,7 +513,20 @@ export class SqliteTapeStore implements TapeStore {
   private rowOf<T extends TapeTable>(table: T, r: Raw): RowOf<T> {
     const out: Raw = {};
     for (const [c, f, t] of [...LOG_COLUMNS, ...TABLES[table]]) out[f] = fromSql(r[c], t);
+    if (table === "prints") out.round = this.causalRef(Number(out.marketId), Number(out.upTo))?.round ?? null;
     return out as unknown as RowOf<T>;
+  }
+
+  causalRef(marketId: number, upTo: number): CausalRefRow | undefined {
+    const r = this.get(
+      "SELECT * FROM causal_refs WHERE market_id = ? AND up_to = ? ORDER BY block DESC, log_index DESC LIMIT 1",
+      marketId,
+      upTo,
+    );
+    if (!r) return undefined;
+    const out: Raw = {};
+    for (const [c, f, t] of [...LOG_COLUMNS, ...TABLES.causal_refs]) out[f] = fromSql(r[c], t);
+    return out as unknown as CausalRefRow;
   }
 
   private rows<T extends TapeTable>(table: T, sql: string, ...params: SQLInputValue[]): RowOf<T>[] {

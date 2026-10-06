@@ -43,6 +43,12 @@ export interface MarketState {
   receiptHash: Hex;
 }
 
+/** A market's causal mode (`causalOf`). */
+export interface CausalState {
+  on: boolean;
+  skewSec: number;
+}
+
 export interface RegimeState {
   extBandBps: number;
   reopenBandBps: number;
@@ -83,8 +89,11 @@ export interface MarketDeployment {
   base: Address;
   quote: Address;
   vault?: Address;
-  reference: "operator" | "chainlink" | "pyth" | "manual";
+  /** chainlink-causal: priced at the first Chainlink observation after its orders (SPEC §7.4) */
+  reference: "operator" | "chainlink" | "chainlink-causal" | "pyth" | "manual";
   seedPrice?: number;
+  /** a market kept on the old rule on purpose, as the standing challenge's baseline: never listed for trading */
+  control?: boolean;
 }
 
 /** Token metadata in a deployment document. */
@@ -108,6 +117,10 @@ export interface Deployment {
   operatorReference?: Address;
   gateway?: Address;
   chainlinkReference?: Address;
+  /** ChainlinkCausalReference: reads Chainlink by the oracle's signed observation time (SPEC §7.4) */
+  causalReference?: Address;
+  /** seconds an order must precede an observation to be in its auction (causal markets) */
+  skewSec?: number;
   pythReference?: Address;
   markets: Record<string, MarketDeployment>;
   accounts?: Record<string, Address>;
