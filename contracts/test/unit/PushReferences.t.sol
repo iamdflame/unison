@@ -30,6 +30,10 @@ contract MockAggregator is AggregatorV3Interface {
     function latestRoundData() external view returns (uint80, int256, uint256, uint256, uint80) {
         return (1, answer, updatedAt, updatedAt, 1);
     }
+
+    function getRoundData(uint80 r) external view returns (uint80, int256, uint256, uint256, uint80) {
+        return (r, answer, updatedAt, updatedAt, r);
+    }
 }
 
 contract MockPyth is IPyth {
@@ -106,7 +110,7 @@ contract PushReferencesTest is Test {
         MockAggregator mon = new MockAggregator(8);
         mon.set(0.032e8, block.timestamp - 2 hours);
         ChainlinkReference cl = new ChainlinkReference(address(this));
-        cl.setFeed(1, AggregatorV3Interface(address(mon)), AggregatorV3Interface(address(0)), 6, 3_600, 3_600, 0, 0);
+        cl.setFeed(1, AggregatorV3Interface(address(mon)), AggregatorV3Interface(address(0)), 6, 3600, 3600, 0, 0);
         (uint256 px,, IReferenceAdapter.Status st) = cl.read(1, 0, "");
         assertEq(px, 32_000);
         assertEq(uint8(st), uint8(IReferenceAdapter.Status.CLOSED));

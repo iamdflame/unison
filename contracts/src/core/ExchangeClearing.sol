@@ -9,6 +9,7 @@ import {OrderMath} from "./OrderMath.sol";
 import {ExchangeLayout as L} from "./ExchangeLayout.sol";
 import {ExchangeBase} from "./ExchangeBase.sol";
 import {IReferenceAdapter} from "../interfaces/IReferenceAdapter.sol";
+import {ICausalReference} from "../interfaces/ICausalReference.sol";
 import {ICurveSource} from "../interfaces/ICurveSource.sol";
 
 /// @title ExchangeClearing — the resumable batch-auction job (SPEC §5)
@@ -58,19 +59,24 @@ abstract contract ExchangeClearing is ExchangeBase {
         return (0, 0, false);
     }
 
-    /// @dev Opens a job: binds the reference (published after the newest covered batch closed, SPEC §7),
-    ///      applies the halt override and the DISCOVERY call-auction cadence.
-    function _openJob(uint256 marketId, Market storage m, Job memory j, uint256 upTo, bytes calldata payload)
-        private
-    {
+    /// @dev Opens a job: binds the reference (published after the newest covered batch closed, SPEC §7; on causal
+    ///      markets, the first oracle observation after the oldest waiting order, SPEC §7.4), applies the halt
+    ///      override and the DISCOVERY call-auction cadence.
+    function _openJob(uint256 marketId, Market storage m, Job memory j, uint256 upTo, bytes calldata payload) private {
         if (!m.active) revert MarketInactive();
         if (upTo >= block.number) revert InvalidParams(); // the batch of the current block is still open
-        if (upTo <= m.lastCleared) revert NothingToClear();
-        (uint256 px, uint256 pubMs, IReferenceAdapter.Status st) =
-            IReferenceAdapter(m.refAdapter).read(marketId, upTo, payload);
-        if (px == 0) revert StaleReference();
-        uint256 newestTs = _newestPendingTs(marketId, m, upTo);
-        if (newestTs != 0 && pubMs < (newestTs + (m.strictAfterClose ? 1 : 0)) * 1000) revert StaleReference();
+        uint256 px;
+        uint256 pubMs;
+        IReferenceAdapter.Status st;
+        if (_s().causal[marketId].on) {
+            (upTo, px, pubMs, st) = _causalReference(marketId, m, upTo, payload);
+        } else {
+            if (upTo <= m.lastCleared) revert NothingToClear();
+            (px, pubMs, st) = IReferenceAdapter(m.refAdapter).read(marketId, upTo, payload);
+            if (px == 0) revert StaleReference();
+            uint256 newestTs = _newestPendingTs(marketId, m, upTo);
+            if (newestTs != 0 && pubMs < (newestTs + (m.strictAfterClose ? 1 : 0)) * 1000) revert StaleReference();
+        }
         Regime storage g = _s().regimes[marketId];
         if (g.halted) st = IReferenceAdapter.Status.HALTED;
         if (
@@ -82,6 +88,69 @@ abstract contract ExchangeClearing is ExchangeBase {
         j.refPrice = px;
         j.refTimeMs = uint64(pubMs);
         j.status = uint8(st);
+    }
+
+    /// @dev Causal markets (SPEC §7.4). The auction for the oldest waiting order prices at the first oracle observation
+    ///      made more than `skewSec` after it, and holds exactly the orders sealed more than `skewSec` before that
+    ///      observation: none left out, none added. The keeper names the observation, the adapter proves it is the
+    ///      first, and the batch boundary follows from it, so the keeper chooses nothing. With nothing waiting, the job
+    ///      runs at the latest observation (vault queues). With no observation after the orders yet, only a closed
+    ///      market may clear: a DISCOVERY call auction at its last observation, recorded with that observation's time.
+    function _causalReference(uint256 marketId, Market storage m, uint256 upTo, bytes calldata payload)
+        private
+        returns (uint256, uint256 px, uint256 pubMs, IReferenceAdapter.Status st)
+    {
+        ICausalReference a = ICausalReference(m.refAdapter);
+        uint256 head = m.pendingHead;
+        uint256 tail = m.pendingTail;
+        uint256 observedAt;
+        uint256 sealedAt;
+        uint80 round;
+        if (head == tail) {
+            (px, observedAt, st, round) = a.latest(marketId);
+        } else {
+            uint256 skew = _s().causal[marketId].skewSec;
+            uint256 oldest = _batchTime(marketId, head);
+            (px, observedAt, st, round) = a.readAfter(marketId, oldest + skew, payload);
+            if (observedAt > oldest + skew) {
+                (upTo, sealedAt) = _sealedBefore(marketId, head, tail, observedAt - skew);
+            } else {
+                // the adapter vouched the market is closed: a call auction over the batches the caller chose
+                if (st != IReferenceAdapter.Status.CLOSED && st != IReferenceAdapter.Status.HALTED) {
+                    revert StaleReference();
+                }
+                sealedAt = _newestPendingTs(marketId, m, upTo);
+            }
+        }
+        if (upTo <= m.lastCleared) revert NothingToClear();
+        if (px == 0) revert StaleReference();
+        pubMs = observedAt * 1000;
+        if (pubMs < m.lastRefTimeMs) revert StaleReference(); // oracle time never runs backwards
+        emit CausalReference(marketId, upTo, round, sealedAt, observedAt);
+        return (upTo, px, pubMs, st);
+    }
+
+    /// @dev The newest waiting batch registered strictly before `cutoff` (unix seconds), and its time. Registration
+    ///      times never decrease along the list and the head qualifies, so a binary search finds it.
+    function _sealedBefore(uint256 marketId, uint256 head, uint256 tail, uint256 cutoff)
+        private
+        view
+        returns (uint256 batch, uint256 ts)
+    {
+        uint256 lo = head;
+        uint256 hi = tail - 1;
+        while (lo < hi) {
+            uint256 mid = (lo + hi + 1) >> 1;
+            if (_batchTime(marketId, mid) < cutoff) lo = mid;
+            else hi = mid - 1;
+        }
+        batch = Pages.load(_plistSlot(marketId, lo));
+        ts = Pages.load(L.groupPage(marketId, batch, 0)) >> 96;
+    }
+
+    /// @dev Registration time of the waiting batch at list index `idx`.
+    function _batchTime(uint256 marketId, uint256 idx) internal view returns (uint256) {
+        return Pages.load(L.groupPage(marketId, Pages.load(_plistSlot(marketId, idx)), 0)) >> 96;
     }
 
     /// @dev Base units the market may still trade today (type(uint256).max = uncapped).
@@ -264,7 +333,9 @@ abstract contract ExchangeClearing is ExchangeBase {
                         uint256 q = cv.bidPerTick < cap ? cv.bidPerTick : cap;
                         if (q != 0) {
                             (c.bidLo, c.bidHi, c.bidQ) = (bot, top, q);
-                            for (uint256 t = bot; t <= top; ++t) x.bids[t - lo] += q;
+                            for (uint256 t = bot; t <= top; ++t) {
+                                x.bids[t - lo] += q;
+                            }
                         }
                     }
                 }
@@ -278,7 +349,9 @@ abstract contract ExchangeClearing is ExchangeBase {
                         uint256 q = cv.askPerTick < cap ? cv.askPerTick : cap;
                         if (q != 0) {
                             (c.askLo, c.askHi, c.askQ) = (bot, top, q);
-                            for (uint256 t = bot; t <= top; ++t) x.asks[t - lo] += q;
+                            for (uint256 t = bot; t <= top; ++t) {
+                                x.asks[t - lo] += q;
+                            }
                         }
                     }
                 }
@@ -327,7 +400,9 @@ abstract contract ExchangeClearing is ExchangeBase {
             j.filledAsk += fa;
             j.work += 1;
             emit CurveFilled(marketId, c.src, j.upTo, fb, pay, fa, get);
-            try ICurveSource(c.src).onAuction{gas: CURVE_GAS}(marketId, j.upTo, j.price, j.refPrice, fb, pay, fa, get) {}
+            try ICurveSource(c.src).onAuction{gas: CURVE_GAS}(
+                marketId, j.upTo, j.price, j.refPrice, fb, pay, fa, get
+            ) {}
                 catch {}
         }
     }
@@ -516,7 +591,9 @@ abstract contract ExchangeClearing is ExchangeBase {
             cp.traded += uint128(volume);
         }
         bytes32 r = keccak256(
-            abi.encode(m.receiptHash, marketId, j.upTo, tick, volume, j.refPrice, j.refTimeMs, j.status, block.timestamp)
+            abi.encode(
+                m.receiptHash, marketId, j.upTo, tick, volume, j.refPrice, j.refTimeMs, j.status, block.timestamp
+            )
         );
         m.receiptHash = r;
         emit BatchCleared(marketId, j.upTo, tick, j.price, volume, j.refPrice, j.refTimeMs, j.status, j.lo, j.hi, r);

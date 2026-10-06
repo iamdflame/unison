@@ -146,7 +146,7 @@ contract UnisonExchange is
     }
 
     function _capBps(uint256 bps) private pure returns (uint16) {
-        return uint16(bps > 5_000 ? 5_000 : bps);
+        return uint16(bps > 5000 ? 5000 : bps);
     }
 
     /// @notice Sets the regime parameters of a market (state fields are preserved).
@@ -161,8 +161,8 @@ contract UnisonExchange is
     ) external onlyRole(OPERATOR_ROLE) {
         _market(marketId);
         if (
-            extBandBps == 0 || reopenBandBps == 0 || discFloorBps == 0 || discCapBps < discFloorBps
-                || discCapBps > 5_000 || reopenBandBps > 5_000 || extBandBps > 5_000 || discCadence == 0
+            extBandBps == 0 || reopenBandBps == 0 || discFloorBps == 0 || discCapBps < discFloorBps || discCapBps > 5000
+                || reopenBandBps > 5000 || extBandBps > 5000 || discCadence == 0
         ) revert InvalidParams();
         Regime storage g = _s().regimes[marketId];
         g.extBandBps = extBandBps;
@@ -251,8 +251,32 @@ contract UnisonExchange is
     }
 
     function setRefAdapter(uint256 marketId, address adapter) external onlyRole(OPERATOR_ROLE) {
-        if (adapter == address(0)) revert InvalidParams();
+        if (adapter == address(0) || _s().causal[marketId].on) revert InvalidParams(); // causal: setCausal
         _market(marketId).refAdapter = adapter;
+    }
+
+    /// @notice Prices a market at oracle observations through an ICausalReference adapter (SPEC §7.4), or returns it
+    ///         to its adapter's `read`. Only while no order waits and no job runs, so no order is judged by two rules.
+    /// @param skewSec clock margin (<= 30 s): an order sealed within this many seconds of an observation waits for the
+    ///                next one
+    function setCausal(uint256 marketId, address adapter, bool on, uint8 skewSec)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        Market storage m = _market(marketId);
+        if (adapter == address(0) || skewSec > 30) revert InvalidParams();
+        if (_s().jobs[marketId].phase != PHASE_IDLE || m.pendingHead != m.pendingTail) revert ClearInProgress();
+        // A resting order from before the switch could trade at an observation that is already public, and its
+        // owner could keep or cancel it knowing that price. Every resting order is cancelled first.
+        for (uint256 i = 0; i < 2 * m.shards; ++i) {
+            if (
+                BookStore.total(_bookKey(marketId, SIDE_BID, i, m.shards)) != 0
+                    || BookStore.total(_bookKey(marketId, SIDE_ASK, i, m.shards)) != 0
+            ) revert ClearInProgress();
+        }
+        m.refAdapter = adapter;
+        _s().causal[marketId] = Causal(on, skewSec);
+        emit CausalSet(marketId, adapter, on, skewSec);
     }
 
     function setKeeperReward(uint256 amount) external onlyRole(OPERATOR_ROLE) {
@@ -366,6 +390,8 @@ contract UnisonExchange is
 
         uint256 shard = uint256(uint160(account)) % m.shards;
         uint256 ioc = flags & L.FLAG_IOC;
+        // causal markets take auction orders only: one auction, then the remainder is returned (SPEC §7.4)
+        if (_s().causal[marketId].on) ioc = L.FLAG_IOC;
         uint256 batch = block.number;
         _addPending(marketId, m, batch, side, shard, ioc, tick, qty);
 
@@ -402,13 +428,14 @@ contract UnisonExchange is
         Job storage j = _s().jobs[o.market];
 
         if (o.batch > m.lastCleared) {
-            // Not cleared yet. Batches inside a running job are frozen.
+            // Not cleared yet. On a causal market the order is sealed into the auction its observation will price:
+            // leaving after that observation exists but before it lands would be a free option against the vault.
+            if (_s().causal[o.market].on) revert Sealed();
+            // Batches inside a running job are frozen.
             if (j.phase != PHASE_IDLE && o.batch <= j.upTo) revert ClearInProgress();
             _subPending(o.market, o.batch, o.side, o.shard, o.flags & L.FLAG_IOC, o.tick, o.qty);
             if (o.side == SIDE_BID) {
-                _credit(
-                    account, m.quoteIdx, OrderMath.buyLock(o.qty, o.tick * m.tickSize, o.maxFeeBps, m.baseUnit)
-                );
+                _credit(account, m.quoteIdx, OrderMath.buyLock(o.qty, o.tick * m.tickSize, o.maxFeeBps, m.baseUnit));
             } else {
                 _credit(account, m.baseIdx, o.qty);
             }
@@ -445,6 +472,7 @@ contract UnisonExchange is
 
     /// @notice Like `clear`, but covering exactly the batches <= `upTo` (the batch a signed reference was
     ///         issued for), so a keeper's transaction may land in any later block without invalidating it.
+    ///         On a causal market the observation sets the batch, and `upTo` only bounds a DISCOVERY call auction.
     function clearUpTo(uint256 marketId, uint256 upTo, bytes calldata payload)
         external
         whenNotPaused
@@ -469,8 +497,7 @@ contract UnisonExchange is
         BookStore.Snap memory s;
         {
             bool set;
-            (set, s.epoch, s.scale, s.survival, s.acc) =
-                L.loadSnap(L.mergeSlot(o.market, o.batch, o.side, bs, o.tick));
+            (set, s.epoch, s.scale, s.survival, s.acc) = L.loadSnap(L.mergeSlot(o.market, o.batch, o.side, bs, o.tick));
             if (!set) revert MissingSnapshot();
         }
         BookStore.Valuation memory v = BookStore.value(k, o.tick, s, o.qty, isBid, m.baseUnit);
@@ -542,6 +569,9 @@ contract UnisonExchange is
         uint256 gp0 = L.groupPage(marketId, batch, 0);
         uint256 head = Pages.load(gp0);
         if ((head & type(uint64).max) != batch) {
+            // The ring slot must not belong to a batch that is still waiting: overwriting it would drop that
+            // batch's orders from its auction and leave them unable to settle.
+            if ((head & type(uint64).max) > m.lastCleared) revert PendingFull();
             if (uint256(m.pendingTail) - uint256(m.pendingHead) >= L.RING) revert PendingFull();
             Pages.store(_plistSlot(marketId, m.pendingTail), batch);
             m.pendingTail += 1;
@@ -627,6 +657,29 @@ contract UnisonExchange is
         return _s().regimes[marketId];
     }
 
+    function causalOf(uint256 marketId) external view returns (Causal memory) {
+        return _s().causal[marketId];
+    }
+
+    /// @notice Batches waiting to be cleared, oldest first (block number, registration time in unix seconds), at most
+    ///         `max`. Keepers find the observation an auction needs from the first one's time.
+    function pendingTimes(uint256 marketId, uint256 max)
+        external
+        view
+        returns (uint256[] memory batches, uint256[] memory times)
+    {
+        Market storage m = _market(marketId);
+        uint256 n = m.pendingTail - m.pendingHead;
+        if (n > max) n = max;
+        batches = new uint256[](n);
+        times = new uint256[](n);
+        for (uint256 i = 0; i < n; ++i) {
+            uint256 b = Pages.load(_plistSlot(marketId, m.pendingHead + i));
+            batches[i] = b;
+            times[i] = Pages.load(L.groupPage(marketId, b, 0)) >> 96;
+        }
+    }
+
     /// @notice The auction band a clear would use right now for `refPrice` under `status` (UI / keepers).
     function previewBand(uint256 marketId, uint256 refPrice, IReferenceAdapter.Status status)
         external
@@ -683,7 +736,7 @@ contract UnisonExchange is
         view
         returns (uint256[] memory qty)
     {
-        if (hi < lo || hi - lo > 4_096) revert InvalidParams();
+        if (hi < lo || hi - lo > 4096) revert InvalidParams();
         uint256 shards = _market(marketId).shards;
         qty = new uint256[](hi - lo + 1);
         for (uint256 i = 0; i < 2 * shards; ++i) {

@@ -9,8 +9,9 @@ import {Pages} from "../libraries/Pages.sol";
 ///           slot  16      eligibility cache (reserved)
 ///           slot  17      open-order bitmap (bit i = order slot i used)
 ///           slots 18..127 orders, 2 slots each → 55 order slots
-///         Pending-order aggregates live in per-market ring buffers (RING batches) whose slots are
-///         reused, so steady-state order entry pays no state-growth gas.
+///         Pending-order aggregates live in per-market ring buffers addressed by block number modulo RING.
+///         A slot is reused only once the batch that held it has been cleared, so two waiting batches never
+///         share storage however long an auction waits for its reference.
 library ExchangeLayout {
     uint256 internal constant MAX_TOKENS = 16;
     uint256 internal constant ELIG_SLOT = 16;
@@ -18,7 +19,9 @@ library ExchangeLayout {
     uint256 internal constant ORDERS_BASE = 18;
     uint256 internal constant MAX_ORDERS = 55;
 
-    uint256 internal constant RING = 256; // pending batch ring size per market
+    /// @dev Pending-batch ring per market: batches up to RING blocks apart (~7 h of 400 ms blocks) may wait at
+    ///      once. An auction priced at an oracle observation can wait minutes for it (SPEC §7.4).
+    uint256 internal constant RING = 65_536;
     uint256 internal constant GROUP_PAGES = 8; // up to 8*127 pending groups per batch
 
     bytes32 internal constant NS_ACCOUNT = keccak256("unison.account");
@@ -97,8 +100,7 @@ library ExchangeLayout {
         returns (uint256)
     {
         uint256 ringIdx = batch % RING;
-        return Pages.base5(NS_PENDING, market, ringIdx, (side << 8) | (shard << 1) | ioc, tick >> 7, 0)
-            + (tick & 127);
+        return Pages.base5(NS_PENDING, market, ringIdx, (side << 8) | (shard << 1) | ioc, tick >> 7, 0) + (tick & 127);
     }
 
     /// @dev Group-list page for a batch: slot0 = tag u64 | count u32 | ts at bit 96 ; slots 1..127 entries
@@ -145,6 +147,13 @@ library ExchangeLayout {
     {
         uint256 w = Pages.load(slot + 1);
         if (w == 0) return (false, 0, 0, 0, 0);
-        return (true, (w >> 128) & type(uint64).max, (w >> 192) & type(uint32).max, w & type(uint128).max, Pages.load(slot));
+        return
+            (
+                true,
+                (w >> 128) & type(uint64).max,
+                (w >> 192) & type(uint32).max,
+                w & type(uint128).max,
+                Pages.load(slot)
+            );
     }
 }

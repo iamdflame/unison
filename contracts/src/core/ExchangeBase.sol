@@ -133,6 +133,16 @@ abstract contract ExchangeBase {
         uint128 dailyCap; // base units per UTC day (0 = no cap)
     }
 
+    /// @notice A market priced at oracle observations (SPEC §7.4): each auction prices at the first observation made
+    ///         after its oldest order was sealed, and holds exactly the orders sealed before that observation.
+    ///         Orders on it are auction orders (one auction, then the remainder is returned) and cannot be
+    ///         cancelled while they wait.
+    struct Causal {
+        bool on;
+        uint8 skewSec; // clock margin between the oracle's clock and the chain's: an order sealed within this many
+        //                seconds of an observation waits for the next one
+    }
+
     /// @custom:storage-location erc7201:unison.exchange.main
     struct MainStorage {
         address[] tokens;
@@ -146,6 +156,8 @@ abstract contract ExchangeBase {
         mapping(uint256 => address[]) sources; // curve sources per market (ICurveSource)
         mapping(uint256 => Caps) caps;
         uint16[3] tierCounts; // symbols per LULD tier (index 1, 2)
+        // v2 (append only)
+        mapping(uint256 => Causal) causal;
     }
 
     // keccak256(abi.encode(uint256(keccak256("unison.exchange.main")) - 1)) & ~bytes32(uint256(0xff))
@@ -215,6 +227,12 @@ abstract contract ExchangeBase {
         uint256 receivedQuote
     );
     event HaltSet(uint256 indexed marketId, bool halted, address by);
+    event CausalSet(uint256 indexed marketId, address adapter, bool on, uint8 skewSec);
+    /// @notice How an auction on a causal market was bound: the oracle round that priced it, when the newest order in
+    ///         it was sealed, and when the oracle observed the price (both unix seconds; observedAt > sealedAt).
+    event CausalReference(
+        uint256 indexed marketId, uint256 indexed upToBlock, uint80 round, uint256 sealedAt, uint256 observedAt
+    );
 
     // ------------------------------------------------------------------ errors
 
@@ -239,6 +257,7 @@ abstract contract ExchangeBase {
     error TooEarly();
     error TooManySources();
     error TierFull();
+    error Sealed(); // the order waits for its auction's observation and cannot leave before it
 
     // ------------------------------------------------------------------ ledger primitives
 
