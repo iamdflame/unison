@@ -5,6 +5,7 @@ import { challengeTerms } from "@unison/sdk";
 import { Code } from "@/components/code/Code";
 import { facts } from "@/lib/content/facts";
 import { site } from "@/lib/content/site";
+import { loadChallengers } from "@/lib/challenge/envio";
 import { netConfig } from "@/lib/venue/config";
 
 export const metadata: Metadata = {
@@ -54,7 +55,8 @@ async function load() {
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null)) as { adversary: Address; thresholdBps: number; minGapSec?: number; updatedAt: string | null; legs: Leg[] } | null)
     : null;
-  return { net, ch, terms, pots, paid, board };
+  const challengers = await loadChallengers(revalidate);
+  return { net, ch, terms, pots, paid, board, challengers };
 }
 
 const ausd = (units: bigint) => `${(Number(units) / 1e6).toLocaleString("en-US", { maximumFractionDigits: 2 })} AUSD`;
@@ -169,6 +171,60 @@ export default async function ChallengePage() {
             {r.board?.updatedAt ? ` Scored ${date(Math.floor(Date.parse(r.board.updatedAt) / 1000))}.` : ""}
           </p>
 
+          {r.challengers?.length ? (
+            <section aria-labelledby="everyone-title" className="mt-16">
+              <h2 id="everyone-title" className="text-display-s text-ink">
+                Every challenger
+              </h2>
+              <p className="mt-3 max-w-2xl text-ink-2">
+                Every account opened in either challenge, scored as the contract would judge its claim: each fill marked to the
+                first Chainlink observation at least {String(r.terms?.horizonSec ?? 60)} s after its order. Indexed from Monad
+                mainnet by Envio HyperIndex.{" "}
+                <a href={`${site.repo}/tree/main/services/indexer`} className="text-ink underline decoration-line-strong underline-offset-4">
+                  The indexer
+                </a>
+                .
+              </p>
+              <div className="mt-6 overflow-x-auto rounded-[var(--radius-xl)] bg-raised shadow-panel">
+                <table className="w-full text-left text-sm">
+                  <thead className="text-ink-3">
+                    <tr className="border-b border-line">
+                      <th scope="col" className="px-4 py-3 font-medium sm:px-5">Account</th>
+                      <th scope="col" className="px-4 py-3 text-right font-medium sm:px-5">Edge after fees</th>
+                      <th scope="col" className="px-4 py-3 text-right font-medium sm:px-5">Counted fills</th>
+                      <th scope="col" className="hidden px-5 py-3 text-right font-medium sm:table-cell">Traded</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {r.challengers.map((c) => {
+                      const ours = c.owner === r.net.deployment.adversary?.address.toLowerCase();
+                      const rule = c.rule === "causal" ? "Unison" : c.rule === "old" ? "Old rule" : "Unknown";
+                      return (
+                        <tr key={c.account}>
+                          <td className="px-4 py-3 sm:px-5">
+                            <span className="whitespace-nowrap">{link(c.account)}</span>
+                            <span className="mt-0.5 block text-xs text-ink-3">
+                              {rule}
+                              {ours ? " · our sniper" : ""}
+                            </span>
+                          </td>
+                          <td className={`figures whitespace-nowrap px-4 py-3 text-right font-semibold sm:px-5 ${c.edgeBps > 0 ? "text-buy" : "text-ink"}`}>
+                            {c.counted ? `${c.edgeBps > 0 ? "+" : ""}${c.edgeBps.toFixed(2)} bp` : "—"}
+                          </td>
+                          <td className="figures whitespace-nowrap px-4 py-3 text-right text-ink sm:px-5">
+                            {c.counted} of {String(r.terms?.minFills ?? 30)}
+                            {c.pendingMarks ? <span className="block text-xs text-ink-3">+{c.pendingMarks} awaiting markout</span> : null}
+                          </td>
+                          <td className="figures hidden whitespace-nowrap px-5 py-3 text-right text-ink sm:table-cell">{ausd(c.notional)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          ) : null}
+
           <section aria-labelledby="terms-title" className="mt-16">
             <h2 id="terms-title" className="text-display-s text-ink">
               The definition
@@ -207,6 +263,16 @@ export default async function ChallengePage() {
             <div className="mt-5">
               <Code code={ENTER} title="take-the-pot.ts" />
             </div>
+            <p className="mt-5 max-w-2xl text-ink-2">
+              An AI agent can do the same from MetaMask&apos;s Agent Wallet CLI, signing with its own wallet:{" "}
+              <code className="figures text-ink">mm unison challenge open</code>, then <code className="figures text-ink">fund</code>,{" "}
+              <code className="figures text-ink">order --settle</code>, <code className="figures text-ink">score</code> and{" "}
+              <code className="figures text-ink">claim</code>.{" "}
+              <a href={`${site.repo}/tree/main/integrations/agent-wallet-plugin`} className="text-ink underline decoration-line-strong underline-offset-4">
+                The plugin
+              </a>
+              .
+            </p>
           </section>
 
           <section aria-labelledby="bot-title" className="mt-16">
