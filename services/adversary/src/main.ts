@@ -2,7 +2,7 @@
  * The house adversary process (see bot.ts). Env:
  *   RPC_URL, DEPLOYMENT (deployments/monad-mainnet.json), ADVERSARY_PRIVATE_KEY,
  *   THRESHOLD_BPS (40: past the vaults' 20 bp half-spread and 3 bp fee by enough that the old rule pays clearly;
- *   scripts/backtest.mjs measured +17.8 bp a trade there, and −23 bp on the causal rule), QTY (10 WMON a leg),
+ *   scripts/backtest.mjs measured +17.8 bp a trade there, and −23 bp on the causal rule), QTY (3 WMON a leg: about $0.09, so each leg needs little capital; the edge is in bp either way),
  *   SLIPPAGE_BPS (50), MIN_GAP_SEC (1800: at most one trade per half hour, since each costs the keeper a clear per leg),
  *   SCORE_EVERY_SEC (600), DRY_RUN (0: 1 logs signals without trading), PORT (8793)
  *
@@ -90,7 +90,7 @@ export async function startAdversary() {
       return true;
     },
   };
-  const qty = parseUnits(env("QTY", "10"), 18);
+  const qty = parseUnits(env("QTY", "3"), 18);
   const bot = new Adversary({
     chain: dry ? { ...c, order: async () => "0x" as Hex } : c,
     legs,

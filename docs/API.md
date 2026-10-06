@@ -75,8 +75,18 @@ interface Print {
   receiptHash: string; prevReceiptHash: string;
   chainOk: boolean;                                      // receipt hash chain verified by the tape
   deviationBps: number | null;                           // (price − ref) / ref in bp, null when no trade
+  sealedAt: number | null;                               // unix s: block `upTo`'s time, when the newest order was sealed
+  round: string | null;                                  // causal markets: the Chainlink round that priced the auction
+  rule: "causal" | "clear-time";                         // which rule priced it (SPEC §7.4)
+  causal: boolean;                                       // the tape's own check: a round priced it, observed after sealedAt
 }
 ```
+
+`rule` says how the reference was taken:
+- `"causal"`: at the first Chainlink observation made after the auction's orders were sealed. `refTimeMs` is the oracle's own observation time (`startedAt`, inside the report its quorum signed), and `round` names it.
+- `"clear-time"`: the older rule, and the old-rule control market. `refTimeMs` is the clear's own time, so it proves nothing about the price's age.
+
+`causal` is the tape's verdict, recomputed from the event and the seal, not copied from the contract. `apps/web/scripts/verify-receipt.mjs <tx>` checks the same from the chain alone, against Chainlink's history.
 
 #### `GET /v1/markets/:id/prints.csv?from=&to=`
 
@@ -95,10 +105,17 @@ Returns `{ candles: { t: number; o: string; h: string; l: string; c: string; v: 
   meanRefLagMs: number; p95RefLagMs: number;                           // reference publish time − batch close
   chainOk: boolean;                                                    // every receipt in the window links
   histogram: { bps: number; count: number }[];                         // deviation buckets of 1 bp, ±50
+  causal: { prints: number; allAfterSeal: boolean; meanLagMs: number; p95LagMs: number };
 }
 ```
 
 The batch close is the timestamp of block `upTo`. The histogram always has 101 buckets, from −50 to +50; deviations beyond them count in the edge buckets.
+
+`causal` covers the window's causal prints:
+- `allAfterSeal` is true when every one was observed after its auction sealed;
+- `meanLagMs` and `p95LagMs` say how long after.
+
+On a causal market a waiting order is sealed: `/pending` lists it until the first Chainlink observation after it prices its auction.
 
 #### `GET /v1/markets/:id/pending`
 
@@ -234,6 +251,32 @@ An expired deadline, a nonce already in flight (`NonceUsed`) and a session-signe
 
 ---
 
+## The house adversary's scoreboard
+
+`services/adversary` is our own sniper in the standing challenge (`/challenge`). It trades Unison's causal WMON market and the old-rule control on the same signal, and serves its scores:
+
+#### `GET /v1/score`
+
+```ts
+{
+  adversary: string;                    // the bot's address
+  thresholdBps: number; minGapSec: number;
+  active: ("unison" | "control")[];     // legs it still trades: a paid or ended challenge is final
+  stats: { fired: number; settled: number; errors: number };
+  updatedAt: string | null;
+  legs: {
+    name: "unison" | "control"; challenge: string; account: string;
+    pot: string; paid: boolean;         // AUSD units held by the challenge; whether it has paid out
+    fills: number; counted: number;     // recorded fills; those inside the window
+    edge: string; notional: string; edgeBps: number;  // marked to Chainlink 60 s after each order
+    ready: boolean; qualifies: boolean; // enough fills; edge over the terms' epsilon
+    claimTx: string | null;
+  }[];
+}
+```
+
+Every number is public chain data. The SDK's `scoreAccount(client, challenge, account)` recomputes it, and the challenge contract's `edgeOf` is the judge. `GET /health` answers `{ "ok": true }`.
+
 ## Chain reads without a contract toolkit (`LightReader`)
 
 `@unison/sdk/light` reads the chain with plain JSON-RPC `eth_call`s, ABI-encoded by hand. `test/light.test.ts` checks each one against viem.
@@ -243,4 +286,6 @@ An expired deadline, a nonce already in flight (`NonceUsed`) and a session-signe
 | `depth(market, side, lo, hi)`, `depthRange(…)` | `UnisonExchange.depth` | resting quantity per tick |
 | `balanceOf(account, token)` | `UnisonExchange.balanceOf` | a free ledger balance |
 | `curve(source, market, refPrice, status, refTick, lo, hi)` | `LiquidityVault.curve` (`ICurveSource`) | the vault's bids and asks for one auction, before the venue caps them by the vault's balances |
-| `reference(adapter, market)` | `IReferenceAdapter.read(market, 0, 0x)` | `{ price, publishTimeMs, status }`: the price an auction would clear against now, for push feeds |
+| `reference(adapter, market)` | `IReferenceAdapter.read(market, 0, 0x)` | `{ price, publishTimeMs, status }`: the price an auction would clear against now, for push feeds. On the causal adapter it is the latest observation, stamped with Chainlink's own observation time |
+| `causalFeed(adapter, market)` | `ChainlinkCausalReference.feeds` | `{ base, quote }`: the Chainlink feeds a causal market reads |
+| `blockTime(block)` | `eth_getBlockByNumber` | a block's timestamp in seconds: when the orders it holds were sealed |

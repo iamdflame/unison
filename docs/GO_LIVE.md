@@ -37,6 +37,39 @@ Run it again with `REHEARSAL=1 FORK_RPC=http://127.0.0.1:8547 node apps/web/scri
 
 **Daylight saving:** the aNVDA session window `[0, 432000]` is Sun 20:00 → Fri 20:00 New York time under EDT. Retune it to `[3600, 435600]` when US daylight time ends on Nov 1 (`setFeed` from the admin).
 
+## The causal cutover (`deploy/monad-mainnet-causal.json`)
+
+The cutover moves mainnet's markets to [SPEC §7.4](SPEC.md). After it, each auction prices at the first Chainlink observation made after its orders were sealed, and a waiting order is sealed. It also opens [the standing challenge](evidence/challenge.md) and puts every admin power behind a public timelock.
+
+**Rehearsals.** Every step below has run through `mainnet-launch.mjs` on anvil forks of Monad mainnet, with `DEPLOYMENT_RECORD=deployments/<fork>.json` so the real record is never touched:
+- **The full dress rehearsal**, at block 110,940,150: every step below, in order, through to the timelock.
+- **The live stack**, on a fork with the upgrade applied in place. A passkey order was sealed, priced at a new observation, cleared by the keeper and claimed, and the tape marked it causal. The bot fired on both markets and settled.
+- **The timelock**: an early execution was refused; after 48 h a stranger executed the scheduled batch, and the delay became 7 days.
+- **The upgrade step again**, at block 110,951,388, with the ±50 bp band for WMON and its control.
+
+**Before it can run:**
+- No order may rest or wait on a market that switches; `UpgradeCausal.s.sol` checks this first. Resting orders belong to their owners, and only the owner can cancel them.
+- The deployer needs about 10 MON of gas for the cutover. Everything it funds is listed in the table below.
+
+| Step | Command (`node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs …`) | Check |
+|---|---|---|
+| 1. Status | `status` | no resting or waiting orders; balances |
+| 2. Upgrade | `upgrade-causal`: the v2 implementation, `ChainlinkCausalReference`, `setCausal` on aNVDA and WMON, WMON's band to ±50 bp, the vaults' `closedMult` to 255, and the old-rule control market and its vault | `causalOf(0)`, `causalOf(1)` = `(true, 2)`; `market(1).bandBps` = 50; the record names `causalReference` and the control |
+| 3. Verify | `forge verify-contract … --chain 143 --verifier sourcify` for the implementation, the adapter and the control vault | Sourcify "full match" |
+| 4. Services | Redeploy `keeper-mainnet` and `tape-mainnet` so they read the new record (both already speak the causal rule) | keeper log `clear.open` with `"causal":true`; tape prints with `"rule":"causal"` |
+| 5. AUSD | `node --conditions=development scripts/ops/mainnet-fund.mjs mon-ausd …` | the deployer's AUSD |
+| 6. Vaults | `seed-vault wmon <AUSD>`, `seed-vault control <AUSD>`; once each first deposit has settled, `stock-wmon wmon <WMON>` and `stock-wmon control <WMON>` | each vault quotes both sides |
+| 7. Challenge | `challenge-deploy`, then `pot unison <AUSD>` and `pot control 1` | `/challenge` shows both pots |
+| 8. Bot | `bot-key` once, then `bot-fund <MON> <WMON> <AUSD>`. Deploy `unison-adversary-mainnet` (`SERVICE=adversary`; settings in [DEPLOY](DEPLOY.md)) and set `NEXT_PUBLIC_MAINNET_ADVERSARY_URL` on Vercel | `GET /v1/score` answers; the first `fire` in its log |
+| 9. Site | Push the record and merge the `causal-cutover` branch (the site's words for the new rule) | `/receipt/mainnet/1/<upTo>` shows sealed → observed → cleared |
+| 10. First prints | A labelled team trade on each causal market | `node apps/web/scripts/verify-receipt.mjs <tx>`: every check passes |
+| 11. Evidence | Transactions and first receipts in [evidence/mainnet.md](evidence/mainnet.md) | — |
+| 12. Timelock | `timelock <owner wallet>`, after the last change the team still needs to make directly | after it, the deployer holds no role, and the scheduled batch is executable by anyone 48 h later |
+
+**After the timelock,** every change to prices, markets or roles waits in public: 48 h at first, then 7 days. Plan around that:
+- **Daylight saving.** aNVDA's session window `[0, 432000]` must become `[3600, 435600]` when US daylight time ends on 1 November. Under a 7-day delay, schedule `setFeed` by 25 October.
+- **What the guardian keeps.** It can still pause, halt and set daily caps, at once. None of these can move a balance or set a price.
+
 ## The full deploy (`deploy/monad-mainnet.json`)
 
 Everything below has been rehearsed on an anvil fork of Monad mainnet (`deploy/monad-fork.json`). Going live needs only keys, funds and the commands below.

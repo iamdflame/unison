@@ -14,10 +14,12 @@ The live setup runs the web app on **Vercel** and the services on **Railway**, b
 | `unison-keeper-mainnet` | Railway, a worker | mainnet | — |
 | `unison-relayer-mainnet` | Railway, `/data` volume | mainnet | https://unison-relayer-mainnet-production.up.railway.app |
 | `unison-tape-mainnet` | Railway, `/data` volume | mainnet | https://unison-tape-mainnet-production.up.railway.app |
+| `unison-adversary-mainnet` | Railway, from the causal cutover | mainnet | its public domain serves `GET /v1/score` ([API](API.md#the-house-adversarys-scoreboard)) |
 
 Mainnet runs **no relay**: every mainnet market reads a Chainlink feed, so nothing there signs prices. Run exactly one instance of each service:
 - the relayer manages one account's nonces in memory;
 - a duplicated keeper races itself;
+- a duplicated adversary trades twice on one signal;
 - the tape's database lives on its volume.
 
 The contracts are on Monad testnet (`deployments/monad-testnet.json`) and Monad mainnet (`deployments/monad-mainnet.json`). Going live on mainnet is in [GO_LIVE.md](GO_LIVE.md); what was deployed is in [evidence/mainnet.md](evidence/mainnet.md).
@@ -34,6 +36,7 @@ The contracts are on Monad testnet (`deployments/monad-testnet.json`) and Monad 
 | `NEXT_PUBLIC_NETWORK`, `NEXT_PUBLIC_CHAIN_ID` | `testnet`, `10143` | the default network (free test funds, a lively book) |
 | `NEXT_PUBLIC_RPC_URL`, `NEXT_PUBLIC_TAPE_URL`, `NEXT_PUBLIC_RELAYER_URL` | the testnet's | the default network's services |
 | `NEXT_PUBLIC_MAINNET_TAPE_URL`, `NEXT_PUBLIC_MAINNET_RELAYER_URL`, `NEXT_PUBLIC_MAINNET_RPC_URL` | the mainnet services, `https://rpc.monad.xyz` | the second network the venue switch offers |
+| `NEXT_PUBLIC_MAINNET_ADVERSARY_URL` | the adversary's public domain | `/challenge` shows its scoreboard (read on the server, cached a minute) |
 | `NEXT_PUBLIC_PASSKEY_RP_ID` | `www.unisonfi.com` | the domain every new passkey belongs to |
 | `NEXT_PUBLIC_PASSKEY_LEGACY_RP_IDS` | `unison-omega.vercel.app` | passkeys made there before the domain moved, still offered at sign-in |
 
@@ -47,7 +50,7 @@ The contracts are on Monad testnet (`deployments/monad-testnet.json`) and Monad 
 
 **Common setup:**
 - Project `unison`, one service per process.
-- Every service builds `ops/docker/railway.Dockerfile` through `RAILWAY_DOCKERFILE_PATH`, with `SERVICE` (`relay`, `keeper`, `relayer`, `tape`) selecting the process. This is the Fly recipe without BuildKit cache mounts, which Railway rejects.
+- Every service builds `ops/docker/railway.Dockerfile` through `RAILWAY_DOCKERFILE_PATH`, with `SERVICE` (`relay`, `keeper`, `relayer`, `tape`, `adversary`) selecting the process. This is the Fly recipe without BuildKit cache mounts, which Railway rejects.
 - Each service's variables are documented at the top of its `src/main.ts`.
 
 | Variable | Testnet | Mainnet |
@@ -57,12 +60,14 @@ The contracts are on Monad testnet (`deployments/monad-testnet.json`) and Monad 
 | relayer and tape `RPC_URL` | `https://testnet-rpc.monad.xyz` | `https://rpc.monad.xyz` |
 | keeper `RELAY_URL` | `http://unison-relay.railway.internal:8787` | unset (no operator markets) |
 | keeper `CLEAR_GAS`, `MIN_CLEAR_GAS`, `MAX_CLEAR_GAS`, `POLL_MS` | `auto`, `2000000`, `25000000`, `2000` | the same |
+| keeper `RPC_TIMEOUT_MS` | `10000` (the default) | the same; raise it only against a local fork, which fetches remote state on first touch |
+| adversary `RPC_URL`, `THRESHOLD_BPS`, `MIN_GAP_SEC`, `QTY`, `SCORE_EVERY_SEC`, `PORT` | — | `https://rpc.monad.xyz`, `40`, `1800`, `3`, `600`, `8793` ([why these](evidence/challenge.md#the-live-settings)) |
 | relayer `FAUCET` | `1` | `0` |
 | relayer `JOBS_DB`, tape `DB_PATH` | `/data/relayer.db`, `/data/tape-v2.db` | `/data/relayer.db`, `/data/tape.db` |
 | tape `TEAM_ACCOUNTS` | — | the operator keys and the team's trading accounts, counted apart in `GET /v1/stats` |
 | `CORS_ORIGINS` (relayer, tape) | `https://www.unisonfi.com,https://unisonfi.com,https://unison-omega.vercel.app` | the same |
 | `TRUST_PROXY` | `1` | `1` |
-| Secrets | `RELAY_PRIVATE_KEY`, `KEEPER_PRIVATE_KEY`, `RELAYER_PRIVATE_KEY` | `KEEPER_PRIVATE_KEY`, `RELAYER_PRIVATE_KEY` |
+| Secrets | `RELAY_PRIVATE_KEY`, `KEEPER_PRIVATE_KEY`, `RELAYER_PRIVATE_KEY` | `KEEPER_PRIVATE_KEY`, `RELAYER_PRIVATE_KEY`, `ADVERSARY_PRIVATE_KEY` |
 
 **Create a service:**
 
