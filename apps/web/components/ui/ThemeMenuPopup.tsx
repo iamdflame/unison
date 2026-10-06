@@ -30,8 +30,14 @@ export function ThemeMenuPopup() {
   const [open, setOpen] = useState(() => themeHandoff.open);
   useEffect(() => {
     if (themeHandoff.focused) trigger.current?.focus();
+    // read again after commit: a press can land on the stand-in after this first render read the flag, and before the
+    // stand-in left the page
+    const pressed = themeHandoff.open;
     themeHandoff.focused = false;
     themeHandoff.open = false;
+    if (!pressed) return;
+    const id = setTimeout(() => setOpen(true), 0);
+    return () => clearTimeout(id);
   }, []);
   return (
     <Menu.Root open={open} onOpenChange={setOpen}>

@@ -21,8 +21,14 @@ export function MobileMenuSheet() {
   const trigger = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (menuHandoff.focused) trigger.current?.focus();
+    // read again after commit: a tap can land on the stand-in after this first render read the flag, and before the
+    // stand-in left the page
+    const tapped = menuHandoff.open;
     menuHandoff.focused = false;
     menuHandoff.open = false;
+    if (!tapped) return;
+    const id = setTimeout(() => setOpen(true), 0);
+    return () => clearTimeout(id);
   }, []);
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>

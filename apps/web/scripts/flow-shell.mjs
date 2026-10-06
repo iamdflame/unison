@@ -42,6 +42,32 @@ const check = async (name, fn) => {
   await ctx.close();
 }
 
+// A tap made before the sheet's code has arrived still opens it (the stand-in hands it over).
+{
+  const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  await ctx.addInitScript(() => localStorage.setItem("unison.tour.v1", "done"));
+  const p = await ctx.newPage();
+  let released = false;
+  await p.route(/_next\/static\/chunks\/.*\.js/, async (route) => {
+    // hold back only the sheet's own chunk: the one that names its sections
+    const res = await route.fetch();
+    const body = await res.text();
+    if (body.includes('"Sections"')) {
+      await new Promise((r) => setTimeout(r, 1500));
+      released = true;
+    }
+    await route.fulfill({ response: res, body });
+  });
+  await p.goto(`${base}/legal/terms`, { waitUntil: "domcontentloaded" });
+  await hydrated(p, "Menu");
+  await check("an early tap on the phone menu opens it once it arrives", async () => {
+    if (released) throw new Error("the sheet arrived before the tap: the test did not exercise the handoff");
+    await p.getByRole("button", { name: "Menu" }).tap();
+    await p.getByRole("dialog").getByRole("link", { name: "Fairness" }).waitFor({ timeout: 10_000 });
+  });
+  await ctx.close();
+}
+
 // Desktop: the light switch by mouse, then by keyboard.
 {
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
