@@ -52,6 +52,8 @@ Trading mainnet itself needs AUSD on Monad and a browser wallet to deposit it. E
 | Continuous venues pay whoever is fastest: snipers drain LPs and widen spreads. Oracle-priced pools leak the same way: a push feed is seconds old when it lands. | Every auction prices after its orders are sealed. On a week of real MON prices, a sniper earns **+17.8 bp a trade on the old rule and loses 23.0 bp on Unison** ([evidence](docs/evidence/challenge.md)). In a market-hours benchmark it earned **$0 in 0 fills**, against $473–$6,171/day on the alternatives ([evidence](docs/evidence/fairness.md)). |
 | SEC Release 34-106402 (Sep 2026) lets tokenized-securities venues run permissioned AMM pools, under conditions. | The conditions are code: daily ADV caps inside the auction, LULD tier limits, eligibility routing, halt mirroring, and a hash-chained tape. |
 
+Who trades it first, how it earns, where it stands and the next 90 days: [docs/MARKET.md](docs/MARKET.md).
+
 ## How it works
 
 ```
@@ -152,7 +154,7 @@ research/    sniper-bench/ (fairness benchmark)
 deploy/      network configs: monad-mainnet-beta.json (the live beta), monad-mainnet.json (the full 10-market
              deploy, every address verified on-chain), fork rehearsals
 deployments/ what was deployed: monad-mainnet.json, monad-testnet.json, fork rehearsals
-docs/        SPEC, ARCHITECTURE, API, AGENTS, MONAD, GO_LIVE, DEPLOY, THREAT_MODEL, TSV_COMPLIANCE, evidence/
+docs/        SPEC, ARCHITECTURE, API, AGENTS, MONAD, MARKET, GO_LIVE, DEPLOY, THREAT_MODEL, TSV_COMPLIANCE, evidence/
 ```
 
 ## Tech stack
