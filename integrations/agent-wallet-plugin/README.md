@@ -79,10 +79,16 @@ pnpm install
 pnpm --filter mm-plugin-unison stage     # builds, writes oclif.manifest.json, and stages the package outside the repo
 mm config set experimentalPlugins true
 mm config set experimentalAllowUnverifiedInstalls true
-mm plugins install "file:<the staged path it prints>" --accept-permissions
+npm_config_install_links=true mm plugins install "file:<the staged path it prints>" --accept-permissions
 ```
 
-The plugin is staged outside the repository on purpose. Installed in place, Node would resolve the plugin's host import from this package's own `node_modules`, a second copy of the CLI that the host warns breaks plugins. `minCliVersion` is `>=6.2.0`: the host checks it with `semver.satisfies`, and the template's `^6.2.0` would refuse today's `mm` 7.
+The stage script also prints the command for PowerShell.
+
+The plugin is staged outside the repository, and installed as a copy, on purpose. Node resolves a plugin's `@metamask/agent-wallet/plugin` import from where the plugin really lives:
+- **Installed in place**, it would find this package's own dev copy of the CLI, which the host warns breaks plugins.
+- **Linked**, npm's default for `file:`, it would find no copy of the host at all.
+
+Copied into `mm`'s plugin directory, as an npm install does, it finds the running CLI, which `mm` links in beside its plugins. `minCliVersion` is `>=6.2.0`: the host checks it with `semver.satisfies`, and the template's `^6.2.0` would refuse today's `mm` 7.
 
 ## The contracts it calls (Monad mainnet, chain 143)
 
