@@ -5,13 +5,22 @@
 Unison is a venue for tokenized assets on Monad: US equities (Anchored aStocks), FX (Mento GBPm), gold and MON, quoted in AUSD.
 
 **Live at https://www.unisonfi.com.**
-- **Monad mainnet:** a small beta with real assets (Anchored's aNVDA and wrapped MON against AUSD), priced by Chainlink. Every contract is verified on Sourcify, and the first fills are on-chain ([evidence](docs/evidence/mainnet.md)).
+- **Monad mainnet:** a small beta with real assets (Anchored's aNVDA and wrapped MON against AUSD), priced by Chainlink at the first observation made after each auction's orders were sealed. Every contract is verified on Sourcify, and the fills are on-chain ([evidence](docs/evidence/mainnet.md)).
 - **Monad testnet:** for practice, with free test funds.
 - **The switch:** the venue pill picks the network.
 
-- **Every block, one price.** Every 300 ms block is a sealed batch, and all of its orders execute at one uniform price, so arriving first buys no better price. In session that price is checked against a reference taken *after* the batch closed, so stale quotes cannot be sniped. On mainnet that reference is a Chainlink feed read as the batch clears; on the testnet it is a relay's price, signed for that batch.
+- **The oracle is the clock.** Every 300 ms block seals a batch of orders. On mainnet, the auction for the oldest waiting order prices at **the first Chainlink observation made after it was sealed**, and takes every batch sealed before that observation and nothing later. The contract checks this on chain:
+  - it reads the observation time inside the report Chainlink's quorum signed;
+  - it proves that observation is the first after the seal;
+  - it derives which batches are in.
+
+  So the price didn't exist when anyone in the auction placed their order. Waiting orders can't be cancelled, and the keeper chooses nothing: not the price, not the batch, not the moment ([how, and what it costs](docs/evidence/causal.md)).
+- **One price for everyone.** All of an auction's orders execute at one uniform price, so arriving first buys no better price.
+- **Snipe us.** A standing challenge pays a pot to anyone whose fills beat Unison's price by more than 2 bp, marked to Chainlink a minute later and judged by a contract. A control market kept on the old rule runs beside it. We replayed our own sniper over a week of real prices:
+  - on the old rule it earns +17.8 bp a trade;
+  - on Unison it loses 23.0 bp a trade ([evidence](docs/evidence/challenge.md)).
 - **Weekends are priced, not frozen.** When the home market closes, Unison keeps pricing the asset with call auctions inside a band that widens with √time. When the home market reopens, its first auction is a reopening cross.
-- **Liquidity from block one.** An LP vault quotes around the reference every block, and anyone can buy into it.
+- **Liquidity from block one.** An LP vault quotes around the reference in every auction, and anyone can buy into it. On mainnet it stops quoting while the reference is closed, so nobody trades it against a stale price.
 - **Built for regulated securities.** SEC tokenized-securities-venue conditions (volume caps, tiers, eligibility, halts, public tape) are part of the contracts.
 
 > Track 01 — Onchain Finance & Trading · Monad Metropolis Hackathon
@@ -24,16 +33,17 @@ Unison is a venue for tokenized assets on Monad: US equities (Anchored aStocks),
 |---|---|
 | Tokenized stocks are 59% of permissioned-asset market cap but 0.2% of volume (Pantera, Sep 2026). Liquidity is the bottleneck. | A vault quotes every block, and its LPs are not taxed by latency arbitrage (below). |
 | The reference market is open about 32 of the week's 168 hours. NVDA opened more than 2% away from Friday's close on **24%** of Mondays, and MSTR on **53%** (5-year study). | DISCOVERY mode keeps trading inside a √t-widening band. The opening cross clears weekend orders at the open. |
-| Continuous venues pay whoever is fastest: snipers drain LPs and widen spreads. | Frequent batch auctions per block: in a market-hours benchmark the sniper earned **$0 in 0 fills**, against $487–$6,171/day on the alternatives ([evidence](docs/evidence/fairness.md)). At night there is no later reference; the vault quotes wider and caps each auction instead. |
+| Continuous venues pay whoever is fastest: snipers drain LPs and widen spreads. Oracle-priced pools leak the same way: a push feed is seconds old when it lands. | Every auction prices after its orders are sealed. On a week of real MON prices, a sniper earns **+17.8 bp a trade on the old rule and loses 23.0 bp on Unison** ([evidence](docs/evidence/challenge.md)). In a market-hours benchmark it earned **$0 in 0 fills**, against $487–$6,171/day on the alternatives ([evidence](docs/evidence/fairness.md)). |
 | SEC Release 34-106402 (Sep 2026) lets tokenized-securities venues run permissioned AMM pools, under conditions. | The conditions are code: daily ADV caps inside the auction, LULD tier limits, eligibility routing, halt mirroring, and a hash-chained tape. |
 
 ## How it works
 
 ```
- block b    orders → pending ring (batch b)                 nobody can join an earlier batch
- block b+1  keeper: clearUpTo(b, reference(b))              reference read or signed AFTER b closed
-              │  MERGE    batches ≤ b join the books         (a Chainlink read, or a relay signature bound to b)
-              │  AUCTION  band = ref ± regime width          LIVE / EXTENDED / DISCOVERY √t / REOPENING
+ block b      orders → pending ring (batch b), sealed       no cancel; nobody joins an earlier batch
+ Chainlink    observation r, signed at startedAt(r)          the first with startedAt(r) > sealedAt(oldest) + 2 s
+ r lands      anyone: clear(market, r)                       the contract proves startedAt(r−1) ≤ that bound < startedAt(r)
+              │  MERGE    every batch sealed before r         and nothing sealed after it: the keeper chooses nothing
+              │  AUCTION  band = price(r) ± regime width     LIVE / EXTENDED / DISCOVERY √t / REOPENING
               │           t* = argmax volume                 tie-breaks: min imbalance, closest to ref
               │           vault curve + books, exact pro-rata at the margin
               │  APPLY    level by level, resumable           no call ever does unbounded work
@@ -46,9 +56,9 @@ Unison is a venue for tokenized assets on Monad: US equities (Anchored aStocks),
 1. **Batch per Monad block** (Budish–Cramton–Shim frequent batch auctions).
    - One clearing price per batch: maximum volume, then minimum imbalance, then closest to the reference.
    - Pro-rata at the marginal price, apportioned exactly.
-   - Per-block batches only make sense on a 300 ms chain with page-priced storage.
-2. **A reference taken after the close.** References are adapters:
-   - **Mainnet:** Chainlink feeds read as each batch clears: the tokenized-equity feed wNVDAx-USD (24/5) for aNVDA, and MON/USD for WMON.
+   - Sealing per block, and an auction for every new price, only make sense on a 300 ms chain with page-priced storage.
+2. **A reference observed after the seal.** References are adapters:
+   - **Mainnet:** `ChainlinkCausalReference` reads Chainlink's rounds by the observation time their quorum signed (`startedAt`), not the time they landed. It proves a round is the first after a given time, and checks the AUSD/USD round in force at it (more than 50 bp off $1 halts). The feeds are the tokenized-equity feed wNVDAx-USD (24/5) for aNVDA and MON/USD for WMON. One WMON market is kept on the old rule as the challenge's control.
    - **Testnet:** relays sign `Reference(venue, market, batch, price, publishTimeMs, status)`, bound to one batch, with a k-of-n quorum over secp256k1 or P-256 keys and slashable bonds.
    - **Pyth:** an adapter for pull updates is built, but waits: Pyth's Hermes has required a paid key since 26 August 2026.
    - **CRE:** a Chainlink CRE workflow audits an operator reference and can halt the market or slash a relay. It runs in simulation until CRE deploy access is granted.
@@ -86,22 +96,26 @@ Unison is a venue for tokenized assets on Monad: US equities (Anchored aStocks),
 
 | Claim | Evidence |
 |---|---|
-| Correct and solvent | 75 Foundry tests (71, plus 4 on a Monad mainnet fork), 1,000-run fuzzing, invariant suite with gas-limited clears, 3,000-step market simulation with strong-solvency checks (`contracts/test`) |
+| Correct and solvent | 111 Foundry tests (105, plus 6 on a Monad mainnet fork), 1,000-run fuzzing, invariant suites with gas-limited clears and causal clears, 3,000-step market simulation with strong-solvency checks (`contracts/test`) |
+| Priced after the seal | 21 unit tests of the causal rule: not the first round, a sealed order left out, a later one slipped in, a cancel while sealed, time running backwards, an AUSD depeg. Fork tests upgrade the live mainnet exchange in place and clear WMON and aNVDA on real Chainlink rounds. `node apps/web/scripts/verify-receipt.mjs <tx>` checks any auction against Chainlink's history from the chain alone |
+| Snipers win on the old rule and lose on Unison | The house bot replayed over 7 days of Coinbase trades and Chainlink rounds (+17.8 bp a trade on the old rule, −23.0 bp on Unison, never above −15.8 bp over 30 fills). On mainnet the same bot trades both markets live, and a contract pays whoever beats the definition ([challenge](docs/evidence/challenge.md), `/challenge`) |
 | Two independent implementations agree | Solidity and `@unison/engine` match bit-for-bit on 300 clearings, 200 apportionments and 200 random book histories (`pnpm contracts:diff`) |
 | Works with real Monad assets | Mainnet-fork tests on Foundry's Monad EVM: real aNVDA (minted by Anchored's minter), AUSD, WMON and GBPm, plus live Chainlink feeds. Anchored's denylist is mirrored. The full 10-market production deploy was rehearsed on a fork ([test/fork](contracts/test/fork/MonadFork.t.sol)). The mainnet beta was rehearsed end to end on a fork: the real deploy script, vault seeding, a passkey account funded from a browser wallet, a 0.01-share aNVDA buy filled by the vault, and its certificate ([`deployments/monad-fork-beta.json`](deployments/monad-fork-beta.json), `apps/web/scripts/flow-mainnet.mjs`) |
 | Cheap on Monad | A 200-order auction is 6.1M gas, about **$0.02**. The same clear is about 40% cheaper under Monad's page pricing than Ethereum's ([gas](docs/evidence/gas.md)) |
-| Unsnipeable (benchmark) | In a simulated benchmark, sniper P&L is $0 versus $473–$6,171/day on AMM, oracle-AMM and CLOB designs, and at equal spread the vault earns 7.7× a CLOB maker ([fairness](docs/evidence/fairness.md)). It has not yet been measured on a public tape |
+| Unsnipeable (benchmark) | In a simulated benchmark, sniper P&L is $0 versus $473–$6,171/day on AMM, oracle-AMM and CLOB designs, and at equal spread the vault earns 7.7× a CLOB maker ([fairness](docs/evidence/fairness.md)). On mainnet the standing challenge measures it in the open |
 | End to end | Devnet golden path: relay → keeper → vault funding → traders cross → uniform print → auto-claim → AI agent session key → gasless relayed order → filled (`pnpm --filter @unison/keeper e2e`) |
 | Live on Monad mainnet | Real aNVDA sold into the vault at one price per auction, every print on the receipt chain; all 8 contracts verified on Sourcify (exact match); outside traders counted apart from the team (`GET /v1/stats`) ([mainnet evidence](docs/evidence/mainnet.md)) |
 
 ## Repository
 
 ```
-contracts/   Foundry. core/ (exchange, clearing, book), pricing/ (references), liquidity/ (vault),
-             access/ (gateway), compliance/ (eligibility), script/ (DevNet, Deploy)
+contracts/   Foundry. core/ (exchange, clearing, book), pricing/ (references, the causal adapter), liquidity/ (vault),
+             access/ (gateway), compliance/ (eligibility), challenge/ (the standing challenge),
+             script/ (DevNet, Deploy, UpgradeCausal, DeployChallenge, HandoverTimelock)
 packages/    engine/ (bit-exact TS clearing + book), sdk/ (viem client, signing, calendar, ABIs)
 services/    relay/ (signed references), keeper/ (clear jobs, vaults, auto-claim), relayer/ (gasless orders),
-             tape/ (indexer: prints, orders, receipts, live stream), mcp/ (tools for AI agents)
+             tape/ (indexer: prints, orders, receipts, live stream), mcp/ (tools for AI agents),
+             adversary/ (our own sniper in the standing challenge, and its backtest)
 apps/web/    the website and the trading app (Next.js); design system in apps/web/DESIGN.md;
              scripts/ops/ funds and launches mainnet (keys from .secrets, never printed)
 bots/        house order flow for devnets
