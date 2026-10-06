@@ -1,9 +1,18 @@
 {
   "admin": "0x55DF8EA97d41b7F487c6Dcc077dFd0B487E3557D",
+  "causalReference": "0xB161400dDfC592fD66b57dDaE46966ED74Ce891d",
+  "causalStartBlock": 111052108,
   "chainId": 143,
   "chainlinkReference": "0xf5B4dcd734038f104Ef2Fd3F150418dDd38f0578",
+  "challenge": {
+    "control": "0x5Ce9D9f491E2d16c94F56eD09BEa23e7109976e9",
+    "end": 1793145599,
+    "start": 1791294517,
+    "unison": "0xDcD3E86518db6A40C4feBa576efff598cA3B90d1"
+  },
   "eligibility": "0xB5191aca4CA04beDbE744E96F984302e6d8987b8",
   "exchange": "0x1696170d40E703F1378989383c21Ec96ED1Adf75",
+  "exchangeImplementation": "0xBcE55ebB12E017a2A1a484375Fa006E32Fb656eF",
   "gateway": "0xfB246Ac236872534305d7d058B22AdB7Cb58033A",
   "guardian": "0x0562b2b0914b3Bb082A623657729452fc9bf26E4",
   "label": "monad-mainnet",
@@ -12,22 +21,33 @@
       "base": "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A",
       "id": 1,
       "quote": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
-      "reference": "chainlink",
+      "reference": "chainlink-causal",
       "seedPrice": 33900,
       "symbol": "WMON/AUSD",
       "vault": "0x92f15839efcD72E6C9236ca63F1de4ee159CeeF3"
+    },
+    "WMON/AUSD (old rule)": {
+      "base": "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A",
+      "control": true,
+      "id": 2,
+      "quote": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "reference": "chainlink",
+      "seedPrice": 33900,
+      "symbol": "WMON/AUSD (old rule)",
+      "vault": "0x15F7d52593ac7F6840E7d9d74e718e772E194dCb"
     },
     "aNVDA/AUSD": {
       "base": "0x701193374879131f923532987c7Ef363a91a80eB",
       "id": 0,
       "quote": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
-      "reference": "chainlink",
+      "reference": "chainlink-causal",
       "seedPrice": 235790000,
       "symbol": "aNVDA/AUSD",
       "vault": "0x76d9FeAb2d1DD7e689eA253503b848633792f8Db"
     }
   },
   "operatorReference": "0x2673fBF6Fd9E66ab564AD1B31689DD712E59e746",
+  "skewSec": 2,
   "startBlock": 110849209,
   "tokens": {
     "AUSD": {

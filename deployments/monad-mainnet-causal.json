@@ -1,0 +1,9 @@
+{
+  "causalReference": "0xB161400dDfC592fD66b57dDaE46966ED74Ce891d",
+  "controlId": 2,
+  "controlSymbol": "WMON/AUSD (old rule)",
+  "controlVault": "0x15F7d52593ac7F6840E7d9d74e718e772E194dCb",
+  "exchangeImplementation": "0xBcE55ebB12E017a2A1a484375Fa006E32Fb656eF",
+  "skewSec": 2,
+  "startBlock": 111052108
+}

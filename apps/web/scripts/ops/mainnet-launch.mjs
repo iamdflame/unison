@@ -12,6 +12,7 @@
  *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs seed-vault <wmon|control> <AUSD> requestDeposit
  *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs stock-wmon <wmon|control> <WMON> the vault's WMON
  *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs redeem-nvda <percent>            of the deployer's shares
+ *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs team-sell-wmon <wmon|control> <WMON> a labelled team trade
  *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs bot-key                          the adversary's key
  *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs bot-fund <MON> <WMON> <AUSD>     fund it and its accounts
  *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs timelock <proposer>              the final handover
@@ -242,6 +243,20 @@ if (cmd === "deploy") {
   await send("approve aNVDA to the venue", { address: m.base, abi: erc20Abi, functionName: "approve", args: [d.exchange, qty] });
   await send("deposit aNVDA", { address: d.exchange, abi: venueAbi, functionName: "deposit", args: [m.base, qty] });
   await send("sell aNVDA into the vault's bid", { address: d.exchange, abi: venueAbi, functionName: "placeOrder", args: [BigInt(m.id), 1n, tick, qty, 0n] });
+} else if (cmd === "team-sell-wmon") {
+  // A labelled team trade (the deployer is in the tape's TEAM_ACCOUNTS): a little WMON sold through the vault's bid, so
+  // the market prints and its receipt can be checked. The limit sits 1% under the reference; the auction sets the price.
+  const { d, m, adapter } = wmonMarket(arg);
+  if (!arg2) throw new Error("usage: team-sell-wmon <wmon|control> <WMON>");
+  const qty = parseUnits(arg2, 18);
+  const [price, , status] = await pub.readContract({ address: adapter, abi: refAbi, functionName: "read", args: [BigInt(m.id), 0n, "0x"] });
+  const tick = (price * 99n) / 100n; // WMON's tick is a millionth of an AUSD, the reference's own unit
+  console.log(`reference $${formatUnits(price, 6)} (status ${status}); selling ${arg2} WMON at ≥ $${formatUnits(tick, 6)}, one auction`);
+  const hash = await wallet.writeContract({ address: m.base, abi: wmonAbi, functionName: "deposit", value: qty, gas: 80_000n });
+  console.log(`wrap ${arg2} MON: ${(await pub.waitForTransactionReceipt({ hash })).status} ${hash}`);
+  await send("approve WMON to the venue", { address: m.base, abi: erc20Abi, functionName: "approve", args: [d.exchange, qty] });
+  await send("deposit WMON", { address: d.exchange, abi: venueAbi, functionName: "deposit", args: [m.base, qty] });
+  await send(`sell ${arg2} WMON into the ${arg} vault's bid`, { address: d.exchange, abi: venueAbi, functionName: "placeOrder", args: [BigInt(m.id), 1n, tick, qty, 1n] });
 } else if (cmd === "sweep") {
   // everything the deployer holds goes to `to`, except a MON reserve for the admin's own transactions
   const to = arg;

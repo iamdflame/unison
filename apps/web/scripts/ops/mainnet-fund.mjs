@@ -4,6 +4,7 @@
  * .secrets/mainnet.env and never printed.
  *
  *   node scripts/ops/mainnet-fund.mjs gas                fund keeper / relayer / guardian
+ *   node scripts/ops/mainnet-fund.mjs keeper <MON>       top the keeper up by <MON>
  *   node scripts/ops/mainnet-fund.mjs mon-ausd <MON>      swap MON → AUSD (aborts below MIN_USD_PER_MON, default 0.030)
  *   node scripts/ops/mainnet-fund.mjs ausd-anvda <AUSD>   swap AUSD → aNVDA (aborts above MAX_USD_PER_SHARE, default 300)
  *   node scripts/ops/mainnet-fund.mjs balances
@@ -80,6 +81,10 @@ else if (cmd === "gas") {
   for (const [n, amt] of [["KEEPER", "100"], ["RELAYER", "40"], ["GUARDIAN", "2"]]) {
     await wait(await wallet.sendTransaction({ to: env[`${n}_ADDRESS`], value: parseEther(amt) }), `${amt} MON → ${n.toLowerCase()}`);
   }
+  await balances();
+} else if (cmd === "keeper") {
+  if (!arg || !(Number(arg) > 0)) throw new Error("usage: keeper <MON>");
+  await wait(await wallet.sendTransaction({ to: env.KEEPER_ADDRESS, value: parseEther(arg) }), `${arg} MON → keeper`);
   await balances();
 } else if (cmd === "mon-ausd") {
   const minUsd = Number(process.env.MIN_USD_PER_MON ?? "0.030");
