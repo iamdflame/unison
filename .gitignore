@@ -79,3 +79,7 @@ apps/web/lib/venue/deployments.generated.ts
 
 # a file whose name says keepprivate never leaves this machine
 *keepprivate*
+
+# local fork rehearsals that are not evidence (the dev stack and re-rehearsals)
+deployments/monad-fork-live.json
+deployments/monad-fork-dress*.json

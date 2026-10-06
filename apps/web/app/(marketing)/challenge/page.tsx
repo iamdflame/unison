@@ -86,6 +86,8 @@ if (s.qualifies) await wallet.writeContract({ address: CHALLENGE, abi: latencyCh
 export default async function ChallengePage() {
   const r = await load();
   const gap = facts.causal.oldRuleGap;
+  const replay = facts.challenge;
+  const bp = (x: number) => `${x < 0 ? "−" : "+"}${Math.abs(x).toFixed(1)}`;
   const explorer = r?.net.explorer?.replace(/\/$/, "");
   const link = (addr: string, label?: string) =>
     explorer ? (
@@ -213,7 +215,7 @@ export default async function ChallengePage() {
             </h2>
             <p className="mt-3 max-w-2xl text-ink-2">
               It watches MON on Coinbase and Kraken. When the price has moved more than{" "}
-              {r.board?.thresholdBps ?? 25} bp from Chainlink&apos;s last landed round (the vaults&apos; spread and fee, and a
+              {r.board?.thresholdBps ?? 40} bp from Chainlink&apos;s last landed round (the vaults&apos; spread and fee, and a
               margin), it trades toward the move on both markets at once
               {r.board?.minGapSec ? `, at most once every ${Math.round(r.board.minGapSec / 60)} minutes (each trade pays the keeper for a clear on each market)` : ""}. It
               counts as the team&apos;s in every tally of outside demand, and it may claim, so the definition is shown to pay
@@ -244,6 +246,24 @@ export default async function ChallengePage() {
             The measurements
           </a>
           ; <Link href="/fairness" className="text-ink underline decoration-line-strong underline-offset-4">the record</Link>.
+        </p>
+      </section>
+
+      <section aria-labelledby="replay-title" className="mt-16">
+        <h2 id="replay-title" className="text-display-s text-ink">
+          Our sniper, against last week
+        </h2>
+        <p className="mt-3 max-w-2xl text-ink-2">
+          Before funding either pot, we replayed the bot over a week of real prices: {replay.trades.toLocaleString("en-US")}{" "}
+          Coinbase trades against {replay.rounds.toLocaleString("en-US")} Chainlink rounds. At its settings (
+          {replay.thresholdBps} bp, at most once every {replay.gapMin} minutes) it earned {bp(replay.oldRule.edgeBps)} bp a
+          trade on the old rule, {replay.oldRule.winsPct}% of trades winning: enough to claim the control&apos;s pot in about{" "}
+          {Math.round(replay.oldRule.qualifiesH)} hours. On the causal rule the same trades lost {Math.abs(replay.causal.edgeBps).toFixed(1)} bp
+          each, and its best run of 30 fills or more was {bp(replay.causal.bestPrefixBps)} bp; the pot pays only above +2 bp.{" "}
+          <a href={`${site.repo}/blob/main/docs/evidence/challenge.md`} className="text-ink underline decoration-line-strong underline-offset-4">
+            The replay, at every setting
+          </a>
+          .
         </p>
       </section>
     </article>

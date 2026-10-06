@@ -58,6 +58,12 @@ contract UpgradeCausal is Script {
                 uint16(vm.parseJsonUint(cfg, _k(i, "depegBps")))
             );
             ex.setCausal(id, address(cref), true, skew);
+            // optional: a narrower band around a fresh observation. Fewer price levels for every clear to walk (WMON
+            // at a $0.000001 tick: ±50 bp is 300 levels a side, not 1,200), and still far wider than the vault's quotes
+            if (vm.keyExistsJson(cfg, _k(i, "bandBps"))) {
+                UnisonExchange.Market memory m = ex.market(id);
+                ex.setMarketParams(id, uint16(vm.parseJsonUint(cfg, _k(i, "bandBps"))), m.feeBps, m.maxBandTicks, m.active);
+            }
             _closedMult(
                 LiquidityVault(vm.parseJsonAddress(cfg, _k(i, "vault"))),
                 uint8(vm.parseJsonUint(cfg, _k(i, "closedMult")))

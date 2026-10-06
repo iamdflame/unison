@@ -72,6 +72,19 @@ export const facts = {
     /** the old rule: observations that moved more than the WMON vault's spread + fee (23 bp) */
     oldRuleGap: { overBps: 23, pctOfRounds: 6.1, perHour: 5.3 },
   },
+
+  /**
+   * The house sniper replayed over a week of real prices on both rules, at its live settings
+   * (services/adversary/scripts/backtest.mjs, 6 Oct 2026): docs/evidence/challenge.md.
+   */
+  challenge: {
+    trades: 208_414,
+    rounds: 15_992,
+    thresholdBps: 40,
+    gapMin: 30,
+    oldRule: { edgeBps: 17.8, winsPct: 72, qualifiesH: 33.1 },
+    causal: { edgeBps: -23.0, bestPrefixBps: -15.8 },
+  },
 } as const;
 
 /**
@@ -95,6 +108,7 @@ export const sources = {
   weekend: "docs/evidence/weekend-gaps.md",
   cre: "cre/unison/workflows/audit/config.production.json",
   causal: "docs/evidence/causal.md",
+  challenge: "docs/evidence/challenge.md",
 } as const;
 
 /** "$6,171" */

@@ -58,6 +58,26 @@ describe("every site number is backed by the evidence files", () => {
     expect(halts.schedule).toBe("0 * * * * *");
   });
 
+  it("the sniper replayed on both rules, at its live settings", () => {
+    const doc = repo("docs/evidence/challenge.md");
+    const k = facts.challenge;
+    const bp = (x: number) => `${x < 0 ? "−" : "+"}${Math.abs(x).toFixed(1)}`;
+    expect(doc).toContain(`${n(k.trades)} trades`);
+    expect(doc).toContain(`${n(k.rounds)} rounds`);
+    // the live settings' row, in bold: threshold, gap, then the control's and Unison's cells in the table's order
+    const row = doc.split("\n").find((l) => l.startsWith(`| **${k.thresholdBps} bp** | **${k.gapMin} min** |`));
+    const cells = row?.split("|").map((c) => c.trim().replace(/\*\*/g, ""));
+    expect(cells?.[5]).toBe(bp(k.oldRule.edgeBps));
+    expect(cells?.[7]).toBe(`${k.oldRule.winsPct}%`);
+    expect(cells?.[8]).toBe(`${k.oldRule.qualifiesH} h`);
+    expect(cells?.[10]).toBe(bp(k.causal.edgeBps));
+    expect(cells?.[13]).toBe(bp(k.causal.bestPrefixBps));
+    // the bot runs at the settings the page quotes
+    const bot = repo("services/adversary/src/main.ts");
+    expect(bot).toContain(`env("THRESHOLD_BPS", "${k.thresholdBps}")`);
+    expect(bot).toContain(`env("MIN_GAP_SEC", "${k.gapMin * 60}")`);
+  });
+
   it("the causal clock: waits and the old rule's gap, from Chainlink's history", () => {
     const causal = repo("docs/evidence/causal.md");
     const k = facts.causal;
