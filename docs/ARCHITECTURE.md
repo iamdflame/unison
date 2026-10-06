@@ -10,7 +10,7 @@ Unison has three layers:
 
 | Network | Contracts | Services | Prices |
 |---|---|---|---|
-| **Monad mainnet** (143), a capped beta | exchange, gateway, `ChainlinkReference`, `IssuerDenylistEligibility` (Anchored's denylist), two vaults ([record](../deployments/monad-mainnet.json)) | keeper, relayer (no faucet), tape | Chainlink feeds read as each batch clears. No relay. |
+| **Monad mainnet** (143), a capped beta | exchange, gateway, `ChainlinkCausalReference`, `ChainlinkReference` (the old-rule control only), `IssuerDenylistEligibility` (Anchored's denylist), three vaults, the standing challenge ([record](../deployments/monad-mainnet.json)) | keeper, relayer (no faucet), tape, house adversary | Each auction prices at the first Chainlink observation made after its orders were sealed ([SPEC §7.4](SPEC.md)). The control market keeps the old rule on purpose. No relay. |
 | **Monad testnet** (10143) | exchange, gateway, `OperatorSignedReference`, three vaults, mock tokens ([record](../deployments/monad-testnet.json)) | relay, keeper, relayer (faucet), tape | the relay's signed references |
 
 The services run on Railway and the web app on Vercel, at https://www.unisonfi.com, where the venue switch picks the network ([DEPLOY](DEPLOY.md)).

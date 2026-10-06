@@ -15,7 +15,7 @@ export function FrontRun() {
           <p className="text-lede mt-6 text-ink-2">
             On most venues, whoever sees the price move first trades against everyone else&apos;s stale quotes. Inside a
             Unison batch, every order gets one price, so arriving first buys no better one. In session, that price is
-            checked against a reference published after the batch closes, so there is nothing left to race for.
+            set by a reference observed only after the auction&apos;s orders are sealed, so there is nothing left to race for.
           </p>
           <p className="text-lede mt-6 text-ink-2">
             Snipers take from whoever quotes. Under each venue: what its liquidity keeps, and what a taker pays for it.

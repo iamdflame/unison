@@ -1,6 +1,6 @@
 # Unison Protocol Specification — v0.3
 
-> Status: normative draft for P1–P2. The Solidity contracts, the TypeScript reference clearing (`packages/clearing-ref`), the SDK, and the indexer MUST agree with this document. When code and spec disagree, the code has a bug or the spec gets amended. Never silently diverge.
+> Status: normative draft for P1–P2. The Solidity contracts, the TypeScript reference clearing (`packages/engine`), the SDK, and the indexer MUST agree with this document. When code and spec disagree, the code has a bug or the spec gets amended. Never silently diverge.
 
 ## 1. Model
 

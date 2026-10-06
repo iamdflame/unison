@@ -25,15 +25,27 @@ Unison is a venue for tokenized assets on Monad: US equities (Anchored aStocks),
 
 > Track 01 — Onchain Finance & Trading · Monad Metropolis Hackathon
 
+## For judges
+
+Nothing below needs an account, a wallet or a download except step 3, and step 3 needs only a passkey (Face ID, Touch ID or Windows Hello) and the free testnet faucet.
+
+1. **A real mainnet auction, proven.** https://www.unisonfi.com/receipt/mainnet/1/111055816 shows the order sealed, then Chainlink's observation 6 s later, then the clear. From a clone, `node apps/web/scripts/verify-receipt.mjs 0x128b8b18f4ae90cf0f79f439f5886f2f3ff548f2ebb3dcd7a847c2284351596e` checks it from the chain alone.
+2. **The live market, on mainnet.** https://www.unisonfi.com/trade/WMON?network=mainnet: the next auction waits for Chainlink's next price, typically 34 s.
+3. **Trade it yourself on the testnet.** On https://www.unisonfi.com/trade/aNVDA (the testnet is the default), press **Sign in**, then **Create a passkey**, then **Add test funds**. Tap the **Ask** price and buy 1 aNVDA. The order joins the next auction and fills against the vault within seconds; the fill opens a certificate whose receipt the tape recomputes. No real money is involved.
+4. **Snipe us.** https://www.unisonfi.com/challenge: two pots, the contract's definition of an edge, and our own sniper's live score on both rules.
+5. **Everything at once.** https://www.unisonfi.com/status lists the services and markets. https://www.unisonfi.com/?demo=1 runs every market in your browser on the real clearing engine, with a paper account.
+
+Trading mainnet itself needs AUSD on Monad and a browser wallet to deposit it. Every mainnet address and transaction is in [docs/evidence/mainnet.md](docs/evidence/mainnet.md).
+
 ---
 
 ## Why it matters
 
 | Today | Unison |
 |---|---|
-| Tokenized stocks are 59% of permissioned-asset market cap but 0.2% of volume (Pantera, Sep 2026). Liquidity is the bottleneck. | A vault quotes every block, and its LPs are not taxed by latency arbitrage (below). |
+| Tokenized stocks are 59% of permissioned-asset market cap but 0.2% of volume (Pantera, Sep 2026). Liquidity is the bottleneck. | A vault quotes into every auction, and its LPs are not taxed by latency arbitrage (below). |
 | The reference market is open about 32 of the week's 168 hours. NVDA opened more than 2% away from Friday's close on **24%** of Mondays, and MSTR on **53%** (5-year study). | DISCOVERY mode keeps trading inside a √t-widening band. The opening cross clears weekend orders at the open. |
-| Continuous venues pay whoever is fastest: snipers drain LPs and widen spreads. Oracle-priced pools leak the same way: a push feed is seconds old when it lands. | Every auction prices after its orders are sealed. On a week of real MON prices, a sniper earns **+17.8 bp a trade on the old rule and loses 23.0 bp on Unison** ([evidence](docs/evidence/challenge.md)). In a market-hours benchmark it earned **$0 in 0 fills**, against $487–$6,171/day on the alternatives ([evidence](docs/evidence/fairness.md)). |
+| Continuous venues pay whoever is fastest: snipers drain LPs and widen spreads. Oracle-priced pools leak the same way: a push feed is seconds old when it lands. | Every auction prices after its orders are sealed. On a week of real MON prices, a sniper earns **+17.8 bp a trade on the old rule and loses 23.0 bp on Unison** ([evidence](docs/evidence/challenge.md)). In a market-hours benchmark it earned **$0 in 0 fills**, against $473–$6,171/day on the alternatives ([evidence](docs/evidence/fairness.md)). |
 | SEC Release 34-106402 (Sep 2026) lets tokenized-securities venues run permissioned AMM pools, under conditions. | The conditions are code: daily ADV caps inside the auction, LULD tier limits, eligibility routing, halt mirroring, and a hash-chained tape. |
 
 ## How it works
@@ -61,7 +73,7 @@ Unison is a venue for tokenized assets on Monad: US equities (Anchored aStocks),
    - **Mainnet:** `ChainlinkCausalReference` reads Chainlink's rounds by the observation time their quorum signed (`startedAt`), not the time they landed. It proves a round is the first after a given time, and checks the AUSD/USD round in force at it (more than 50 bp off $1 halts). The feeds are the tokenized-equity feed wNVDAx-USD (24/5) for aNVDA and MON/USD for WMON. One WMON market is kept on the old rule as the challenge's control.
    - **Testnet:** relays sign `Reference(venue, market, batch, price, publishTimeMs, status)`, bound to one batch, with a k-of-n quorum over secp256k1 or P-256 keys and slashable bonds.
    - **Pyth:** an adapter for pull updates is built, but waits: Pyth's Hermes has required a paid key since 26 August 2026.
-   - **CRE:** a Chainlink CRE workflow audits an operator reference and can halt the market or slash a relay. It runs in simulation until CRE deploy access is granted.
+   - **CRE:** Chainlink CRE workflows (an audit of the reference, Nasdaq halt mirroring, daily caps) are written and unit-tested in `cre/`. Deploying them to a DON waits for CRE access.
 3. **Regimes.**
 
    | Regime | Behaviour |
@@ -106,6 +118,16 @@ Unison is a venue for tokenized assets on Monad: US equities (Anchored aStocks),
 | End to end | Devnet golden path: relay → keeper → vault funding → traders cross → uniform print → auto-claim → AI agent session key → gasless relayed order → filled (`pnpm --filter @unison/keeper e2e`) |
 | Live on Monad mainnet | The causal cutover on 6 October 2026: the first causal print passes every check of `verify-receipt.mjs` (observed 6 s after the seal), and the same sale on the old-rule control paid the sniper 40 bp more. Every print is on the receipt chain; every contract is verified on Sourcify; outside traders are counted apart from the team (`GET /v1/stats`) ([mainnet evidence](docs/evidence/mainnet.md)) |
 
+## Why Monad
+
+Unison's design depends on Monad's specific properties. The full table, with the evidence for each row, is in [docs/MONAD.md](docs/MONAD.md).
+- **300 ms blocks:** every block seals a batch, so an order's seal sits close to the Chainlink observation that prices it.
+- **Page-priced storage (MIP-8):** the book is laid out page by page, so a clear costs 1.77M gas under Monad's rules against 3.01M under Ethereum's. An auction for every new price stays affordable.
+- **Parallel execution:** no shared hot slot on the order path.
+- **P-256 precompile:** passkey accounts are verified on chain.
+- **128 KB contracts:** the exchange is one contract, with no proxy hops in the clearing loop.
+- **Real assets already on chain:** Anchored's aStocks, Agora's AUSD and Chainlink's feeds.
+
 ## Repository
 
 ```
@@ -118,7 +140,7 @@ services/    relay/ (signed references), keeper/ (clear jobs, vaults, auto-claim
              adversary/ (our own sniper in the standing challenge, and its backtest)
 apps/web/    the website and the trading app (Next.js); design system in apps/web/DESIGN.md;
              scripts/ops/ funds and launches mainnet (keys from .secrets, never printed)
-bots/        house order flow for devnets
+bots/        house order flow for devnets and the testnet (never mainnet)
 research/    sniper-bench/ (fairness benchmark)
 deploy/      network configs: monad-mainnet-beta.json (the live beta), monad-mainnet.json (the full 10-market
              deploy, every address verified on-chain), fork rehearsals
@@ -126,9 +148,25 @@ deployments/ what was deployed: monad-mainnet.json, monad-testnet.json, fork reh
 docs/        SPEC, ARCHITECTURE, API, AGENTS, MONAD, GO_LIVE, DEPLOY, THREAT_MODEL, TSV_COMPLIANCE, evidence/
 ```
 
+## Tech stack
+
+| Layer | What |
+|---|---|
+| Contracts | Solidity 0.8.33 (via-IR, Prague), Foundry, OpenZeppelin Contracts (upgradeable) |
+| Prices | Chainlink price feeds (OCR2, read by their signed observation time), Chainlink CRE workflows |
+| SDK and engine | TypeScript, viem; `@unison/engine` is a bit-exact TypeScript port of the clearing |
+| Services | Node 24, Hono, `node:sqlite` (tape), MCP server for AI agents |
+| Web | Next.js 16, React 19, Tailwind CSS, Base UI, Motion, three.js, NumberFlow |
+| Accounts | WebAuthn passkeys verified on Monad's P-256 precompile; EIP-712 orders relayed gaslessly |
+| Hosting | Vercel (web), Railway (keeper, tape, relayer, relay, adversary) |
+
 ## Quickstart
 
+Requirements: Node 24 or later, pnpm 12, Foundry (forge 1.8 or later) and git.
+
 ```bash
+git clone https://github.com/iamdflame/unison && cd unison
+git submodule update --init --recursive   # forge-std and OpenZeppelin
 pnpm install
 pnpm verify                         # contracts build + tests, TS typecheck + tests, Solidity/TS differential fuzz
 
@@ -185,18 +223,42 @@ Quality gates, run from `apps/web`:
 ## Status
 
 - **Built:** the full engine and every component listed above.
-- **Mainnet beta, live:** [`deploy/monad-mainnet-beta.json`](deploy/monad-mainnet-beta.json) lists aNVDA/AUSD and WMON/AUSD with real assets. Every price is a Chainlink feed read as each batch clears (wNVDAx-USD, 24/5; MON/USD), so no Unison key signs a mainnet price. The vaults are small, each market has a daily cap, and Anchored's denylist is mirrored. **Live since 5 October 2026**: exchange `0x1696170d40E703F1378989383c21Ec96ED1Adf75` on chain 143, with every address, launch transaction and first print in [docs/evidence/mainnet.md](docs/evidence/mainnet.md). Trade it at https://www.unisonfi.com/trade/aNVDA?network=mainnet ([runbook](docs/GO_LIVE.md)).
-- **Live evidence:** the first weekend DISCOVERY cycle (Fri Oct 9 → Mon Oct 12) will be published in `docs/evidence/`.
+- **Mainnet beta, live since 5 October 2026.** Exchange `0x1696170d40E703F1378989383c21Ec96ED1Adf75` on chain 143. Since 6 October, aNVDA/AUSD and WMON/AUSD price every auction at the first Chainlink observation made after its orders were sealed ([`deploy/monad-mainnet-causal.json`](deploy/monad-mainnet-causal.json)).
+  - WMON/AUSD (old rule) is the standing challenge's control.
+  - No Unison key signs a mainnet price.
+  - The vaults are small, each market has a daily cap, and Anchored's denylist is mirrored.
+  - Every address, transaction and first print is in [docs/evidence/mainnet.md](docs/evidence/mainnet.md) ([runbook](docs/GO_LIVE.md)).
+- **Admin:** the deployer key still holds the admin roles. They move behind a public timelock (48 h, rising to 7 days) before judging, after which every change to prices, markets or roles waits in public.
+- **Live evidence:** the first weekend DISCOVERY cycle (aNVDA closed from Fri 9 October 20:00 ET, reopening on Chainlink's first observation after Sun 11 October 20:00 ET) will be published in `docs/evidence/`.
 - **Equity references:** on testnet the relay signs prices from market data (Alpaca IEX, or a labelled simulation). On mainnet they are Chainlink's tokenized-equity feeds. (Pyth's Hermes has required a paid key since 26 August 2026, so the Pyth adapter waits.)
-- **Other venues on Monad:** Monday Trade has offered permissionless 24/5 trading of Anchored aStocks since April 2026, continuously, spot and perpetuals. Unison's difference is the auction: one price per batch against a reference read after it closes, liquidity that isn't picked off, and price discovery through the weekend.
+- **Other venues on Monad:** Monday Trade has offered permissionless 24/5 trading of Anchored aStocks since April 2026, continuously, spot and perpetuals. Unison's difference is the auction: one price per auction, at a Chainlink observation made after its orders were sealed, liquidity that isn't picked off, and price discovery through the weekend.
 - **Public testnet: live.** https://www.unisonfi.com, on Monad testnet (chain 10143), lists aNVDA, aSPY and aQQQ; the other markets run as a labelled browser simulation. Passkey accounts, a faucet, gasless orders and certificates work end to end. Addresses: `deployments/monad-testnet.json`.
-- **Hosting.** The web app runs on Vercel. The services run on Railway: relay, keeper, relayer and tape for the testnet, and keeper, relayer and tape for mainnet, which needs no relay ([DEPLOY](docs/DEPLOY.md)).
-- **Frontend:** reviewed over nine rounds by fresh-context design, luxury and trading judges.
+- **Hosting.** The web app runs on Vercel. The services run on Railway: relay, keeper, relayer and tape for the testnet, and keeper, relayer, tape and the house adversary for mainnet, which needs no relay ([DEPLOY](docs/DEPLOY.md)).
+- **Frontend:** reviewed over ten rounds by fresh-context AI review panels with design, luxury and trading personas.
+
+## Acknowledgements and pre-existing code
+
+- **Built during the hackathon.** Everything in this repository was written for it; the first commit is dated 3 October 2026.
+- **Derived code:** [`contracts/src/libraries/WebAuthn.sol`](contracts/src/libraries/WebAuthn.sol) follows Daimo's and Coinbase Smart Wallet's WebAuthnSol (MIT), as its header says.
+- **Libraries:**
+  - Contracts: [OpenZeppelin Contracts](https://github.com/OpenZeppelin/openzeppelin-contracts) and their upgradeable variant (MIT), [forge-std](https://github.com/foundry-rs/forge-std) (MIT/Apache-2.0), [Foundry](https://github.com/foundry-rs/foundry).
+  - TypeScript: [viem](https://viem.sh) (MIT), [@noble/curves and @noble/hashes](https://github.com/paulmillr/noble-curves) (MIT), [Hono](https://hono.dev) (MIT), [zod](https://zod.dev) (MIT), the [Model Context Protocol SDK](https://github.com/modelcontextprotocol/typescript-sdk) (MIT), the [Chainlink CRE SDK](https://docs.chain.link/cre).
+  - Web: [Next.js](https://nextjs.org) and [React](https://react.dev) (MIT), [Base UI](https://base-ui.com) (MIT), [three.js](https://threejs.org) and react-three-fiber (MIT), [NumberFlow](https://number-flow.barvian.me) (MIT), [lucide](https://lucide.dev) (ISC), [cmdk](https://cmdk.paco.me) (MIT), [Shiki](https://shiki.style) (MIT), [Sonner](https://sonner.emilkowal.ski) (MIT), Tailwind CSS (MIT).
+  - Fonts: Bodoni Moda, Mona Sans and Fragment Mono, under the SIL Open Font License 1.1 (`apps/web/assets/fonts/LICENSE.md`).
+- **Data and services:**
+  - Chainlink price feeds on Monad;
+  - Coinbase and Kraken public market data (the backtest and the house adversary);
+  - Anchored's aStocks and Agora's AUSD, as listed assets.
 
 ## AI disclosure
 
-This project was built with **Claude Code** (Anthropic) as the primary engineering agent, directed by the team. Claude Code wrote the research, the specification, the contracts, the TypeScript services and SDK, the tests and these docs. Every claim above links to code and tests that can be reproduced locally.
+This project was built with **Claude Code** (Anthropic) as the primary engineering agent, directed by the team.
+- **What Claude Code wrote:** the research, the specification, the contracts, the TypeScript services and SDK, the web app and its brand system, the tests and these docs.
+- **AI review:** design and claims were reviewed by fresh-context AI panels.
+- **What the team did:** directed the work, made the decisions, tested on real devices, funded and operated mainnet, and signed every mainnet transaction from its own keys.
+
+Every claim above links to code and tests that can be reproduced locally.
 
 ## License
 
-MIT
+[MIT](LICENSE)

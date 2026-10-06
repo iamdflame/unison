@@ -10,7 +10,7 @@
 
 **What it lists:**
 - aNVDA/AUSD and WMON/AUSD, with real assets.
-- Prices are Chainlink feeds read as each batch clears: wNVDAx-USD (24/5) over AUSD/USD, and MON/USD. No relay signs anything, so `relaySigners` is empty.
+- Prices come from Chainlink's feeds: wNVDAx-USD (24/5) over AUSD/USD, and MON/USD. At launch they were read as each batch cleared. Since the causal cutover on 6 October, each auction prices at the first observation made after its orders were sealed (below). No relay signs anything, so `relaySigners` is empty.
 - Small vaults, a daily cap per market, and Anchored's `COMPLIANCE()` denylist mirrored at every aNVDA deposit and withdrawal.
 
 **Rehearsed on a fork.** The whole beta was rehearsed end to end on an anvil fork of Monad mainnet (`deploy/monad-fork-beta.json` → `deployments/monad-fork-beta.json`):
