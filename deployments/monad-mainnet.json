@@ -1,5 +1,12 @@
 {
   "admin": "0x55DF8EA97d41b7F487c6Dcc077dFd0B487E3557D",
+  "adversary": {
+    "accounts": [
+      "0xB1964fD4521977d71FE058A8b96140faddB611b6",
+      "0xAc888Ed66Ba7599D89C59886E947A346D5a054f6"
+    ],
+    "address": "0xcEc80166Ab48cb3C4ebD98671524761b1fd81276"
+  },
   "causalReference": "0xB161400dDfC592fD66b57dDaE46966ED74Ce891d",
   "causalStartBlock": 111052108,
   "chainId": 143,

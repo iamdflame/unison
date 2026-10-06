@@ -19,7 +19,7 @@
  * no progress. Auto mode therefore never estimates a continuation: a paused job (and the attempt after a failed
  * clear) gets the full maxClearGas, which must cover the auction's one non-yielding step.
  */
-import { decodeEventLog, parseAbi, type Address, type Hex } from "viem";
+import { BaseError, ContractFunctionRevertedError, decodeEventLog, parseAbi, type Address, type Hex } from "viem";
 import {
   causalFeed,
   causalPayload,
@@ -40,11 +40,16 @@ const adapterReadAbi = parseAbi([
   "function read(uint256 marketId, uint256 batch, bytes payload) view returns (uint256 price, uint256 publishTimeMs, uint8 status)",
 ]);
 
-/** An error, briefly: its first line, plus viem's `details` (the RPC's own reply) when there is one. */
-function why(e: unknown): { error: string; details?: string } {
+/**
+ * An error, briefly: its first line, the revert itself (its name when the ABI knows it, else its selector, which viem
+ * puts on a later line of the message), and viem's `details` (the RPC's own reply) when there is one.
+ */
+function why(e: unknown): { error: string; revert?: string; details?: string } {
   const err = e as Error & { details?: string; shortMessage?: string };
   const error = (err.shortMessage ?? err.message ?? String(e)).split("\n")[0]!;
-  return err.details ? { error, details: err.details.slice(0, 300) } : { error };
+  const rev = e instanceof BaseError ? e.walk((x) => x instanceof ContractFunctionRevertedError) : null;
+  const revert = rev instanceof ContractFunctionRevertedError ? (rev.data?.errorName ?? rev.signature ?? rev.reason) : undefined;
+  return { error, ...(revert ? { revert } : {}), ...(err.details ? { details: err.details.slice(0, 300) } : {}) };
 }
 
 /** The Chainlink history the causal path reads (injectable, so the policy can be tested without a chain). */

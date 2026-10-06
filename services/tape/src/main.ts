@@ -13,6 +13,7 @@ import { createTapeApp } from "./api.ts";
 import { SqliteTapeStore } from "./db.ts";
 import { Indexer } from "./ingest.ts";
 import { StreamHub } from "./stream.ts";
+import { teamAccounts } from "./team.ts";
 
 const env = (k: string, d?: string): string => {
   const v = process.env[k] ?? d;
@@ -48,11 +49,8 @@ export async function startTape() {
     rateBurst: Number(env("RATE_BURST", "120")),
     ratePerSec: Number(env("RATE_PER_SEC", "30")),
     trustProxy: env("TRUST_PROXY", process.env.FLY_APP_NAME ? "1" : "0") === "1",
-    // the deployment's own accounts, plus TEAM_ACCOUNTS (comma-separated): the team's trading accounts
-    team: [
-      ...Object.values(deployment.accounts ?? {}),
-      ...(process.env.TEAM_ACCOUNTS ?? "").split(",").map((s) => s.trim()).filter(Boolean),
-    ],
+    // the deployment's own accounts, its house adversary, and TEAM_ACCOUNTS (comma-separated): the team's trading accounts
+    team: teamAccounts(deployment, process.env.TEAM_ACCOUNTS),
   });
   const port = Number(env("PORT", "8790"));
   // serve first: /health answers while the indexer is still reading market metadata or backfilling

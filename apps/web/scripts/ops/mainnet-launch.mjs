@@ -204,6 +204,7 @@ if (cmd === "deploy") {
     const hash = await botWallet.writeContract({ address: WMON, abi: wmonAbi, functionName: "deposit", value: wmon, gas: 80_000n });
     console.log(`wrap ${arg2} MON: ${(await pub.waitForTransactionReceipt({ hash })).status} ${hash}`);
   }
+  const accounts = [];
   for (const name of ["unison", "control"]) {
     const challenge = d.challenge[name];
     let acct = await pub.readContract({ address: challenge, abi: latencyChallengeAbi, functionName: "accountOf", args: [bot.address] });
@@ -216,7 +217,13 @@ if (cmd === "deploy") {
       await as(`approve ${label} to the ${name} account`, { address: token, abi: erc20Abi, functionName: "approve", args: [acct, amount] });
       await as(`deposit ${label} into the ${name} account`, { address: acct, abi: challengeAccountAbi, functionName: "deposit", args: [token, amount] });
     }
+    accounts.push(acct);
   }
+  // the record names the adversary and its challenge accounts, so the tape counts their fills as the team's
+  const rec = dep();
+  rec.adversary = { address: bot.address, accounts };
+  writeFileSync(OUT, JSON.stringify(rec, null, 2));
+  console.log(`${RECORD}: adversary ${bot.address}, accounts ${accounts.join(", ")}`);
 } else if (cmd === "timelock") {
   if (!arg || !isAddress(arg)) throw new Error("usage: timelock <proposer: the owner's wallet>");
   if (dep().timelock) throw new Error("the deployment already names a timelock");

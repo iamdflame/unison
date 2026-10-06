@@ -124,6 +124,8 @@ export interface Deployment {
   pythReference?: Address;
   /** the standing challenge (contracts/src/challenge): one LatencyChallenge on a causal market, one on the control */
   challenge?: { unison: Address; control: Address; start: number; end: number };
+  /** the house adversary (services/adversary) and the challenge accounts it trades through: the team's, never outside demand */
+  adversary?: { address: Address; accounts: Address[] };
   markets: Record<string, MarketDeployment>;
   accounts?: Record<string, Address>;
   [token: string]: unknown;
