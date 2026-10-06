@@ -101,6 +101,7 @@ const SURFACE: [string, [string, string][]][] = [
       ["GET /v1/accounts/:addr/orders", "orders with per-auction fills at each batch's price"],
       ["GET /v1/receipts/:market/:account/:slot", "a fill's receipt, recomputed"],
       ["GET /v1/stream", "SSE: heads, prints, regime, account:0x…"],
+      ["GET /v1/stats", "who trades: accounts with fills, the team counted apart"],
     ],
   ],
   [
