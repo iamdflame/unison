@@ -28,8 +28,8 @@ export function SignIn({ open, onOpenChange }: { open: boolean; onOpenChange: (o
   const quote = useVenueAccount((a) => a.quote);
   const [busy, setBusy] = useState<string | null>(null);
   const [depositOpen, setDepositOpen] = useState(false);
-  // a sign-in that found nothing offers the domains older passkeys were made for
-  const [olderDomains, setOlderDomains] = useState<string[]>([]);
+  // passkeys made before the site moved to www.unisonfi.com belong to its old domain: offered as a second way in
+  const [olderDomains] = useState<string[]>(() => legacyRpIds());
   const net = v.net;
   // the passkey prompt must not wait on the network (and lose its user activation): load the signer as the sheet opens
   useEffect(() => {
@@ -80,10 +80,7 @@ export function SignIn({ open, onOpenChange }: { open: boolean; onOpenChange: (o
                   disabled={!!busy}
                   onClick={run(
                     "signin",
-                    () => signInWithPasskey(net).catch((e: unknown) => {
-                      setOlderDomains(legacyRpIds());
-                      throw e;
-                    }),
+                    () => signInWithPasskey(net),
                     "Welcome back.",
                   )}
                   className="press w-full rounded-[var(--radius-sm)] py-3 text-sm font-semibold text-ink hairline disabled:opacity-50"
@@ -98,7 +95,7 @@ export function SignIn({ open, onOpenChange }: { open: boolean; onOpenChange: (o
                     onClick={run(`signin:${rp}`, () => signInWithPasskey(net, rp), "Welcome back.")}
                     className="press w-full rounded-[var(--radius-sm)] py-2.5 text-sm font-medium text-ink-2 hover-fine:text-ink disabled:opacity-50"
                   >
-                    {busy === `signin:${rp}` ? "Signing in…" : `Use a passkey made on ${rp}`}
+                    {busy === `signin:${rp}` ? "Signing in…" : `Made your passkey on ${rp}? Use it here`}
                   </button>
                 ))}
               </div>

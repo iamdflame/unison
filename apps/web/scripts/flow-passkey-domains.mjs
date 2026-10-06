@@ -4,7 +4,7 @@
  *
  *   A. a passkey made on the vercel.app alias belongs to www.unisonfi.com, and signs in there;
  *   B. a passkey made for the vercel.app alias before that (a "legacy" one) signs in on www.unisonfi.com through
- *      "Use a passkey made on unison-omega.vercel.app".
+ *      "Made your passkey on unison-omega.vercel.app? Use it here".
  *
  *   node scripts/flow-passkey-domains.mjs
  */
@@ -56,7 +56,7 @@ await check("A. a passkey made on the vercel.app alias belongs to www.unisonfi.c
   await p.getByRole("button", { name: "I already have one" }).click();
   await p.getByText("Your account.").waitFor({ timeout: 60_000 });
   const back = await storedIdentity(p);
-  if (back?.account !== made.account) throw new Error(`signed in as ${back?.account}, made ${made.account}`);
+  if (back?.account?.toLowerCase() !== made.account.toLowerCase()) throw new Error(`signed in as ${back?.account}, made ${made.account}`);
   await ctx.close();
 });
 
@@ -82,8 +82,7 @@ await check("B. a legacy passkey (made for the vercel.app alias) signs in on www
     },
   });
   await signInSheet(p, MAIN);
-  await p.getByRole("button", { name: "I already have one" }).click();
-  const older = p.getByRole("button", { name: `Use a passkey made on ${new URL(ALIAS).hostname}` });
+  const older = p.getByRole("button", { name: `Made your passkey on ${new URL(ALIAS).hostname}? Use it here` });
   await older.waitFor({ timeout: 30_000 });
   await older.click();
   await p.getByText("Your account.").waitFor({ timeout: 60_000 });
