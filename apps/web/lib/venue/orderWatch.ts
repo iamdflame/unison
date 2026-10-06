@@ -20,6 +20,8 @@ export interface OrderWatch {
   side: "buy" | "sell";
   limit: number;
   ioc: boolean;
+  /** a causal market's auction order (SPEC §7.4): it waits, sealed, for Chainlink's next observation */
+  causal?: boolean;
   /** batch (block) the order was sent into */
   block: number;
   toastId: string | number;
@@ -59,9 +61,10 @@ function settle(w: OrderWatch): boolean {
   if (o.status === "filled" || o.status === "partial") {
     const fill = acct.fills.find((f) => f.ticker === w.ticker && f.orderId === id && f.block >= w.block - 2); // newest first
     const price = fill ? w.fmt(fill.tick) : `$${(o.quote / o.filled).toFixed(2)}`;
-    const of = o.status === "partial" ? ` of ${o.qty}` : "";
     const rest = o.status !== "partial" ? "" : w.ioc ? " The rest was released." : " The rest stays in the book at your limit.";
-    toast.success(`${w.side === "buy" ? "Bought" : "Sold"} ${o.filled.toFixed(2)}${of} ${w.ticker} at ${price}`, {
+    // a fraction of a share keeps its digits: 0.0067 is not 0.01
+    const q = (x: number) => x.toLocaleString("en-US", { maximumFractionDigits: x < 1 ? 4 : 2 });
+    toast.success(`${w.side === "buy" ? "Bought" : "Sold"} ${q(o.filled)}${o.status === "partial" ? ` of ${q(o.qty)}` : ""} ${w.ticker} at ${price}`, {
       id: w.toastId,
       description: `The same price as everyone in block ${(fill?.block ?? o.batches.at(-1) ?? o.placedBlock).toLocaleString("en-US")}.${rest}`,
       action: fill ? { label: "Certificate", onClick: () => w.onCertificate(fill) } : undefined,
@@ -70,7 +73,12 @@ function settle(w: OrderWatch): boolean {
     return true;
   }
   if (o.status === "expired") {
-    toast("Not filled this batch", { id: w.toastId, description: "Your this-batch-only order expired and your funds are released." });
+    toast(w.causal ? "Not filled in its auction" : "Not filled this batch", {
+      id: w.toastId,
+      description: w.causal
+        ? "Nothing met your limit at Chainlink's next price. Your funds are back."
+        : "Your this-batch-only order expired and your funds are released.",
+    });
     return true;
   }
   if (o.status === "cancelled") {

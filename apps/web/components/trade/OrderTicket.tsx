@@ -14,6 +14,7 @@ import { watchOrder } from "@/lib/venue/orderWatch";
 import { preloadSignIn, SignInSheet } from "@/components/app/SignInSheet";
 import { certificate, certificateFor } from "./certificateStore";
 import { priceFormat } from "@/lib/content/markets";
+import { causalWait } from "@/lib/content/facts";
 import { clearBatch } from "@/lib/sim/batch";
 
 const money = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -54,6 +55,7 @@ export function OrderTicket({
     bookLoaded: s.bookLoaded ?? true,
     // the auction this order would join, if it lands in time
     next: nextAuction(s),
+    causal: s.causal ?? false,
   }));
   const free = useVenueAccount((a) => ({ quote: a.quote, base: a.base[ticker] ?? 0 }));
   const v = useVenue();
@@ -94,7 +96,10 @@ export function OrderTicket({
   };
   // the mainnet beta trades real shares from a small vault: a first order is a hundredth of one (about $2.40 of NVDA)
   const [qtyText, setQtyText] = useState(live && v.net?.network === "mainnet" ? "0.01" : "1");
-  const [ioc, setIoc] = useState(false);
+  const [iocChoice, setIoc] = useState(false);
+  // a causal market (SPEC §7.4) takes auction orders only: one auction, priced after the order is sealed
+  const ioc = m.causal || iocChoice;
+  const wait = m.causal ? causalWait(spec.symbol) : null;
   const qty = Math.max(0, Number(qtyText) || 0);
   // the chart draws the order being composed: publish its side and limit while this ticket is on screen
   useEffect(() => {
@@ -194,11 +199,13 @@ export function OrderTicket({
       ? `the next auction, within about ${(spec.regime.discCadence * BEAT_MS) / 1000} s`
       : "about 0.3 s";
     const toastId = toast.loading(
-      `${side === "buy" ? "Buy" : "Sell"} ${qty} ${ticker} in the next ${discovery ? "auction" : "batch"}`,
+      `${side === "buy" ? "Buy" : "Sell"} ${qty} ${ticker} in the next ${discovery || m.causal ? "auction" : "batch"}`,
       {
-        description: live
-          ? `Limit ${fmt(limit)} · signed and relayed, no gas`
-          : `Limit ${fmt(limit)} · clears in ${when}`,
+        description: m.causal
+          ? `Limit ${fmt(limit)} · sealed until Chainlink's next price${wait ? `, typically ${wait.p50}` : ""}`
+          : live
+            ? `Limit ${fmt(limit)} · signed and relayed, no gas`
+            : `Limit ${fmt(limit)} · clears in ${when}`,
       },
     );
     const net = live ? v.net : null;
@@ -208,6 +215,7 @@ export function OrderTicket({
       side,
       limit,
       ioc,
+      causal: m.causal,
       block: market.store.get().block,
       toastId,
       fmt,
@@ -372,11 +380,27 @@ export function OrderTicket({
 
         {/* How long the order lives, said in words, with what happens to what doesn't fill. */}
         <p className="mt-3.5 text-xs font-medium text-ink-3" id={ids.duration}>
-          How long
+          {m.causal ? "When it trades" : "How long"}
         </p>
+        {m.causal ? (
+          <p data-testid="causal-note" className="figures mt-2 rounded-[var(--radius-md)] bg-sunken px-3 py-2.5 text-xs leading-relaxed text-ink-2">
+            In the next auction, at the first price Chainlink observes after you place it
+            {wait ? (
+              <>
+                : typically <span className="font-medium text-ink">{wait.p50}</span> {wait.when}
+                {wait.offHours ? `, about ${wait.offHours} otherwise` : ""}.
+              </>
+            ) : (
+              "."
+            )}{" "}
+            Nobody can see that price before your order is in. What doesn&apos;t fill comes back, and until its auction
+            runs the order is sealed: it can&apos;t be cancelled.
+          </p>
+        ) : null}
         <div
           role="radiogroup"
           aria-labelledby={ids.duration}
+          hidden={m.causal}
           className="mt-2 grid grid-cols-2 gap-1 rounded-[var(--radius-md)] bg-sunken p-1"
         >
           {(
@@ -398,7 +422,7 @@ export function OrderTicket({
           ))}
         </div>
         {/* which auction it joins (the next, if it lands in time), and what happens after it */}
-        <p className="figures mt-2 text-xs leading-relaxed text-ink-3">
+        <p className="figures mt-2 text-xs leading-relaxed text-ink-3" hidden={m.causal}>
           Joins the {discovery ? "auction" : "batch"} at block {m.next.toLocaleString("en-US")} if it lands in time
           {ioc
             ? "; what doesn't fill there is cancelled, and its funds come back."
@@ -422,10 +446,10 @@ export function OrderTicket({
             </dd>
           </div>
           <div className="flex flex-wrap justify-between gap-x-4 gap-y-0.5">
-            <dt className="text-ink-3">Held while it rests</dt>
+            <dt className="text-ink-3">{m.causal ? "Held until its auction" : "Held while it rests"}</dt>
             <dd className="figures text-ink">{side === "buy" ? money(lock) : `${n(lock)} ${ticker}`}</dd>
             <dd className="basis-full text-xs text-ink-3">
-              {side === "buy" ? `Reserved at the ${spec.maxFeeBps} bp cap; you pay ${spec.feeBps} bp, and the rest comes back.` : "Until it fills or you cancel."}
+              {side === "buy" ? `Reserved at the ${spec.maxFeeBps} bp cap; you pay ${spec.feeBps} bp, and the rest comes back.` : m.causal ? "Until its auction; what doesn't sell comes back." : "Until it fills or you cancel."}
             </dd>
           </div>
         </dl>

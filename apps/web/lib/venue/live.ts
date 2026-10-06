@@ -98,7 +98,8 @@ export class LiveMarket {
     this.marketId = net.deployment.markets[spec.symbol]!.id;
     const tick = Number(spec.seedPrice) / Number(spec.tickSize);
     const regime = regimeNow(spec, new Date());
-    this.store = createStore<MarketState>({ spec, block: 0, refTick: tick, regime, lo: tick, hi: tick, book: [], prints: [], last: null, forming: 0, lastAuction: 0, vault: [], bookLoaded: false });
+    const causal = net.deployment.markets[spec.symbol]?.reference === "chainlink-causal";
+    this.store = createStore<MarketState>({ spec, block: 0, refTick: tick, regime, lo: tick, hi: tick, book: [], prints: [], last: null, forming: 0, lastAuction: 0, vault: [], bookLoaded: false, causal });
   }
 
   /** Reference-counted. Lists retain without the book (`book: false`): only the terminal polls depth. */
@@ -195,7 +196,14 @@ export class LiveMarket {
     const vaultAddr = dep?.vault as Address | undefined;
     // A push-feed market's reference moves without a print (the tape knows it only from the last trade): read it the
     // way the venue does when it clears, so the band, the vault's quote and the ticket match the next auction.
-    const pushRef = dep?.reference === "chainlink" ? (this.net.deployment.chainlinkReference as Address | undefined) : undefined;
+    // a causal market (SPEC §7.4) reads its causal adapter: the latest observation, stamped with Chainlink's own time
+    const pushRef =
+      dep?.reference === "chainlink"
+        ? (this.net.deployment.chainlinkReference as Address | undefined)
+        : dep?.reference === "chainlink-causal"
+          ? (this.net.deployment.causalReference as Address | undefined)
+          : undefined;
+    const causal = dep?.reference === "chainlink-causal";
     const NAME: Record<number, MarketState["regime"]["name"]> = { 0: "LIVE", 1: "EXTENDED", 2: "DISCOVERY", 3: "HALTED" };
     let alive = true;
     const refreshBook = async () => {
@@ -207,7 +215,8 @@ export class LiveMarket {
           const name = NAME[r.status] ?? this.store.get().regime.name;
           const bandBps = name === "LIVE" ? this.spec.bandBps : name === "EXTENDED" ? this.spec.regime.extBandBps : name === "HALTED" ? 0 : this.store.get().regime.bandBps;
           const half = Math.max(1, Math.round((refTick * bandBps) / 10_000));
-          this.store.set((s) => ({ ...s, refTick, regime: { ...s.regime, name, bandBps }, lo: refTick - half, hi: refTick + half }));
+          const refAt = causal ? Number(r.publishTimeMs) : undefined;
+          this.store.set((s) => ({ ...s, refTick, regime: { ...s.regime, name, bandBps }, lo: refTick - half, hi: refTick + half, ...(refAt ? { refAt } : {}) }));
         }
       }
       const m = this.store.get();
@@ -260,7 +269,17 @@ export class LiveMarket {
     const { relayer } = liveClients(this.net);
     try {
       const { relayOrder } = await loadSigner();
-      const { job, nonce } = await relayOrder(this.net, { marketId: this.marketId, side, tick, qty: BigInt(Math.round(qty * Number(this.baseUnit))), ioc });
+      // a causal market takes auction orders only, and a relayer may hold its signature for at most 60 s
+      const causal = !!this.store.get().causal;
+      if (causal) ioc = true;
+      const { job, nonce } = await relayOrder(this.net, {
+        marketId: this.marketId,
+        side,
+        tick,
+        qty: BigInt(Math.round(qty * Number(this.baseUnit))),
+        ioc,
+        ...(causal ? { ttlSeconds: 60 } : {}),
+      });
       const placed: MyOrder = { id: Number(nonce % 1_000_000_000n), side, tick, qty, filled: 0, quote: 0, fee: 0, ioc, status: "pending", placedBlock: this.store.get().block, batches: [], locked: 0 };
       liveAccount.set((a) => ({ ...a, orders: { ...a.orders, [this.spec.ticker]: [placed, ...(a.orders[this.spec.ticker] ?? [])] } }));
       relayer

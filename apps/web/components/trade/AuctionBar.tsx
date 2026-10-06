@@ -2,8 +2,10 @@
 
 import { BatchRing } from "@/components/app/BatchRing";
 import { nextAuction, type MarketState } from "@/lib/demo/engine";
+import { causalWait } from "@/lib/content/facts";
 import { BEAT_MS } from "@/lib/motion/tokens";
 import { useMarketMoment } from "@/lib/time/useMarketMoment";
+import { useSecond } from "@/lib/time/useSecond";
 
 // a count and its noun never part at a line end
 const plural = (n: number, one: string) => `${n.toLocaleString("en-US")} ${n === 1 ? one : `${one}s`}`.replace(/ /g, " ");
@@ -42,6 +44,7 @@ export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick:
   const unit = m.spec.ticker;
   const stock = m.spec.kind === "equity" || m.spec.kind === "etf" || m.spec.kind === "gold";
   const moment = useMarketMoment();
+  const now = useSecond();
   // a stock's discovery ends when pre-market opens: the first auction after it is the reopening cross
   const span = moment ? `${Math.floor(moment.minutesToChange / 60)} h ${moment.minutesToChange % 60} min` : "";
   const reopens = discovery && stock && moment ? `in ${moment.minutesToChange < 60 ? `${moment.minutesToChange} min` : span}, at ${nyTime.format(moment.nextChange)} ET` : null;
@@ -83,7 +86,13 @@ export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick:
   ) : (
     <BatchRing size={18} block={regime === "HALTED" ? null : m.block} />
   );
-  const nextLabel = regime === "HALTED" ? "Paused while halted" : discovery ? `${((Math.max(1, left) * BEAT_MS) / 1000).toFixed(1)} s` : "Every block";
+  // a causal market (SPEC §7.4) runs an auction at each Chainlink observation that finds orders waiting
+  const causal = !!m.causal && !discovery && regime !== "HALTED";
+  const wait = causal ? causalWait(m.spec.symbol) : null;
+  const observed = m.refAt && now ? Math.max(0, Math.round((now - m.refAt) / 1000)) : null;
+  const observedAgo = observed === null ? "" : observed < 90 ? `${observed} s ago` : `${Math.round(observed / 60)} min ago`;
+  const nextLabel = regime === "HALTED" ? "Paused while halted" : discovery ? `${((Math.max(1, left) * BEAT_MS) / 1000).toFixed(1)} s` : causal ? "Chainlink's next price" : "Every block";
+  const nextSub = discovery ? plural(m.forming, "new order") : causal ? `typically ${wait?.p50 ?? "under a minute"}${observedAgo ? ` · last ${observedAgo}` : ""}` : "about 0.3 s each";
   const imbalance = indicative
     ? Math.abs(indicative.imbalance) >= 0.01
       ? `${indicative.imbalance > 0 ? "buyers" : "sellers"} left with ${qty(Math.abs(indicative.imbalance))}`
@@ -104,7 +113,7 @@ export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick:
       <div className="hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,1.2fr)_minmax(0,1.2fr)] gap-x-6 sm:grid" aria-live="off">
         <div className="flex items-start gap-3">
           <span className="mt-1">{escapement}</span>
-          {cell(discovery ? "Next auction in" : "Auctions", nextLabel, discovery ? plural(m.forming, "new order") : "about 0.3 s each")}
+          {cell(discovery ? "Next auction in" : causal ? "Next auction at" : "Auctions", nextLabel, nextSub)}
         </div>
         {cell("Clears now", indicative ? fmt(indicative.tick) : "No cross yet", indicative ? `${qty(indicative.volume)} ${unit} · ${imbalance}` : "buyers and sellers don't meet")}
         {cell(
@@ -137,6 +146,11 @@ export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick:
               <>
                 Next auction in <span className="tnum">{nextLabel}</span>
                 <span className="figures font-normal text-ink-2"> · {plural(m.forming, "new order")}</span>
+              </>
+            ) : causal ? (
+              <>
+                Next auction at Chainlink&apos;s next price
+                <span className="figures font-normal text-ink-2"> · {nextSub}</span>
               </>
             ) : (
               "An auction every block, about 0.3 s"

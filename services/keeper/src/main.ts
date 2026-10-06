@@ -1,7 +1,8 @@
 /**
  * Keeper process. Env: RPC_URL, DEPLOYMENT, KEEPER_PRIVATE_KEY, RELAY_URL (http://127.0.0.1:8787),
  * CLEAR_GAS (8000000, or "auto" = estimateGas × 1.2 for an opening clear), MIN_CLEAR_GAS (2000000) and MAX_CLEAR_GAS
- * (25000000: auto mode's continuations and retries), REPRICE_EVERY (5 blocks), AUTO_CLAIM (1), POLL_MS (250)
+ * (25000000: auto mode's continuations and retries), REPRICE_EVERY (5 blocks), AUTO_CLAIM (1), POLL_MS (250),
+ * RPC_TIMEOUT_MS (10000)
  */
 import { createPublicClient, createWalletClient, http, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -19,7 +20,8 @@ export const parseClearGas = (v: string): bigint | "auto" => (v.trim().toLowerCa
 export async function startKeeper() {
   const deployment = await loadDeploymentFile(env("DEPLOYMENT", "../../deployments/31337.json"));
   const chain = chainById(deployment.chainId);
-  const transport = http(env("RPC_URL", chain.rpcUrls.default.http[0]));
+  // RPC_TIMEOUT_MS: a local fork fetches remote state on first touch and can take far longer than the 10 s default
+  const transport = http(env("RPC_URL", chain.rpcUrls.default.http[0]), { timeout: Number(env("RPC_TIMEOUT_MS", "10000")) });
   const account = privateKeyToAccount(env("KEEPER_PRIVATE_KEY") as Hex);
   const publicClient = createPublicClient({ chain, transport, pollingInterval: Number(env("POLL_MS", "250")) });
   const walletClient = createWalletClient({ chain, transport, account });

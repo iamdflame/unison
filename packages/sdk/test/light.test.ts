@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { encodeAbiParameters, encodeFunctionData, toFunctionSelector, type Address, type Hex } from "viem";
 import { liquidityVaultAbi } from "../src/abis/LiquidityVault.ts";
 import { unisonExchangeAbi } from "../src/abis/UnisonExchange.ts";
+import { chainlinkCausalReferenceAbi } from "../src/abis/ChainlinkCausalReference.ts";
 import {
   BALANCE_OF_SELECTOR,
   CURVE_SELECTOR,
@@ -9,6 +10,9 @@ import {
   decodeRead,
   encodeReadCall,
   READ_SELECTOR,
+  FEEDS_SELECTOR,
+  encodeFeedsCall,
+  decodeFeeds,
   decodeUint,
   decodeUintArray,
   DEPTH_SELECTOR,
@@ -27,6 +31,17 @@ describe("light reads match the ABI", () => {
   it("reads a reference adapter exactly as viem encodes and decodes it", () => {
     const abi = [{ type: "function", name: "read", stateMutability: "view", inputs: [{ type: "uint256" }, { type: "uint256" }, { type: "bytes" }], outputs: [{ type: "uint256" }, { type: "uint256" }, { type: "uint8" }] }] as const;
     expect(READ_SELECTOR).toBe(toFunctionSelector("read(uint256,uint256,bytes)"));
+    expect(FEEDS_SELECTOR).toBe(toFunctionSelector("feeds(uint256)"));
+    expect(encodeFeedsCall(7n)).toBe(
+      encodeFunctionData({ abi: chainlinkCausalReferenceAbi, functionName: "feeds", args: [7n] }),
+    );
+    const base = "0xbcd78f76005b7515837af6b50c7c52bcf73822fb";
+    const quote = "0xe20751c7b5867bcbef815ffc1b284c3f412a9e13";
+    const feedsRet = encodeAbiParameters(
+      [{ type: "address" }, { type: "address" }, { type: "uint8" }, { type: "uint8" }, { type: "uint8" }, { type: "uint32" }, { type: "uint32" }, { type: "uint32" }, { type: "uint32" }, { type: "uint16" }, { type: "bool" }],
+      [base, quote, 8, 8, 6, 3_900, 3_900, 0, 0, 50, true],
+    );
+    expect(decodeFeeds(feedsRet)).toEqual({ base, quote });
     expect(encodeReadCall(0n)).toBe(encodeFunctionData({ abi, functionName: "read", args: [0n, 0n, "0x"] }));
     expect(encodeReadCall(7n, 110_850_455n)).toBe(encodeFunctionData({ abi, functionName: "read", args: [7n, 110_850_455n, "0x"] }));
     const ret = encodeAbiParameters([{ type: "uint256" }, { type: "uint256" }, { type: "uint8" }], [240_619_370n, 1_791_233_102_000n, 2]);

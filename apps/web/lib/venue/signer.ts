@@ -225,11 +225,19 @@ async function signAction(net: NetConfig, id: PasskeyIdentity, primaryType: "Ord
 /** Builds, signs and relays an order; resolves with the relayer job and the order's nonce once it is accepted. */
 export async function relayOrder(
   net: NetConfig,
-  o: { marketId: number; side: "buy" | "sell"; tick: number; qty: bigint; ioc: boolean },
+  o: { marketId: number; side: "buy" | "sell"; tick: number; qty: bigint; ioc: boolean; ttlSeconds?: number },
 ): Promise<{ job: string; nonce: bigint }> {
   const id = identity.get();
   if (!id) throw new Error("Sign in with a passkey first.");
-  const order = buildOrder({ account: id.account, marketId: BigInt(o.marketId), side: o.side === "buy" ? Side.BID : Side.ASK, tick: o.tick, qty: o.qty, ioc: o.ioc });
+  const order = buildOrder({
+    account: id.account,
+    marketId: BigInt(o.marketId),
+    side: o.side === "buy" ? Side.BID : Side.ASK,
+    tick: o.tick,
+    qty: o.qty,
+    ioc: o.ioc,
+    ...(o.ttlSeconds ? { ttlSeconds: o.ttlSeconds } : {}),
+  });
   const sig = await signAction(net, id, "Order", order);
   const { id: job } = await new RelayerClient(net.relayerUrl).postOrder(order, sig);
   return { job, nonce: order.nonce };

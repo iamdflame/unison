@@ -14,9 +14,9 @@ describe("every site number is backed by the evidence files", () => {
   const halts = JSON.parse(repo("cre/unison/workflows/halts/config.production.json"));
 
   it("sniper P&L per venue", () => {
-    expect(fairness).toMatch(new RegExp(`xy=k AMM[^|]*\| \$${n(facts.sniper.xyk)} \|`));
-    expect(fairness).toMatch(new RegExp(`Push-oracle AMM[^|]*\| \$${n(facts.sniper.pushOracleAmm)} \|`));
-    expect(fairness).toMatch(new RegExp(`CLOB \+ market makers[^|]*\| \$${n(facts.sniper.clob)} \|`));
+    expect(fairness).toMatch(new RegExp(String.raw`xy=k AMM[^|]*\| \$${n(facts.sniper.xyk)} \|`));
+    expect(fairness).toMatch(new RegExp(String.raw`Push-oracle AMM[^|]*\| \$${n(facts.sniper.pushOracleAmm)} \|`));
+    expect(fairness).toMatch(new RegExp(String.raw`CLOB \+ market makers[^|]*\| \$${n(facts.sniper.clob)} \|`));
     expect(fairness).toMatch(/\*\*Unison\*\* \(vault ±2 bp, fee 1 bp\) \| \*\*\$0\*\*/);
   });
 
@@ -48,14 +48,27 @@ describe("every site number is backed by the evidence files", () => {
   });
 
   it("weekend gaps", () => {
-    expect(gaps).toMatch(new RegExp(`\| NVDA \|[^\n]*\| ${facts.weekend.nvdaMondaysGappedPct}% \|`));
-    expect(gaps).toMatch(new RegExp(`\| MSTR \|[^\n]*\| ${facts.weekend.mstrMondaysGappedPct}% \|`));
+    expect(gaps).toMatch(new RegExp(String.raw`\| NVDA \|[^\n]*\| ${facts.weekend.nvdaMondaysGappedPct}% \|`));
+    expect(gaps).toMatch(new RegExp(String.raw`\| MSTR \|[^\n]*\| ${facts.weekend.mstrMondaysGappedPct}% \|`));
   });
 
   it("Chainlink CRE cadence and threshold", () => {
     expect(audit.schedule).toBe(`*/${facts.cre.auditEverySec} * * * * *`);
     expect(audit.maxDeviationBps).toBe(facts.cre.haltAboveBps);
     expect(halts.schedule).toBe("0 * * * * *");
+  });
+
+  it("the causal clock: waits and the old rule's gap, from Chainlink's history", () => {
+    const causal = repo("docs/evidence/causal.md");
+    const k = facts.causal;
+    expect(causal).toMatch(new RegExp(String.raw`WMON/AUSD \| [^\n]*\| \*\*${k.wait["WMON/AUSD"]!.p50}\*\* \| ${k.wait["WMON/AUSD"]!.p90} \|`));
+    expect(causal).toMatch(new RegExp(String.raw`in US market hours \| aNVDA/AUSD \|[^\n]*\*\*${k.wait["aNVDA/AUSD"]!.p50}\*\* \| ${k.wait["aNVDA/AUSD"]!.p90} \|`));
+    expect(causal).toContain(`${k.wait["aNVDA/AUSD"]!.offHours}`);
+    expect(causal).toContain(`over ${k.oldRuleGap.overBps} bp (WMON vault 20 bp + fee 3 bp): **${k.oldRuleGap.pctOfRounds}% of rounds, ${k.oldRuleGap.perHour} an hour**`);
+    expect(causal).toContain(`${n(k.roundsChecked)} rounds`);
+    expect(causal).toContain(`typically ${k.landsAfterSec} s before`);
+    const cfg = JSON.parse(repo("deploy/monad-mainnet-causal.json"));
+    expect(cfg.skewSec).toBe(k.skewSec);
   });
 
   it("calendar arithmetic", () => {

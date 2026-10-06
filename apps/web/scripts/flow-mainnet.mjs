@@ -87,7 +87,8 @@ await check("aNVDA's About panel names Chainlink, and no Unison key", async () =
   const facts = p.locator('section[aria-labelledby="facts-title"]');
   await facts.waitFor({ timeout: 30_000 });
   await facts.getByText(/Chainlink's tokenized-equity feed/).waitFor({ timeout: 15_000 });
-  await facts.getByText(/No Unison key signs it/).waitFor();
+  // the beta read the latest round at the clear; the causal rule (SPEC §7.4) reads the first observation after the orders
+  await facts.getByText(/No Unison key signs it|no trader, keeper or Unison key can choose another/).waitFor();
   await facts.getByText(/Monad mainnet, with real assets/).waitFor();
   await shot("2-trade");
 });

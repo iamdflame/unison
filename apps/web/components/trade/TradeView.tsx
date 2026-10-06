@@ -214,6 +214,7 @@ export function TradeView({ ticker }: { ticker: string }) {
               fmt={fmt}
               decimals={decimals}
               onCancel={(id) => void market.cancel(id)}
+              sealed={!!m.causal}
               onCertificate={(f) => certificate.set(certificateFor(f, spec, live ? v.net : null))}
             />
             <MarketFacts m={m} />
@@ -297,11 +298,14 @@ function Activity({
   decimals,
   onCancel,
   onCertificate,
+  sealed = false,
 }: {
   ticker: string;
   fmt: (t: number) => string;
   decimals: number;
   onCancel: (id: number) => void;
+  /** a causal market: an order waiting for its auction can't be cancelled (SPEC §7.4) */
+  sealed?: boolean;
   onCertificate: (f: MyFill) => void;
 }) {
   const ordersOrNull = useVenueAccount((a) => a.orders[ticker] ?? null);
@@ -342,12 +346,14 @@ function Activity({
                 </span>
                 <span className="tnum text-ink">
                   {shares(o.filled)} / {o.qty} at {o.side === "buy" ? "≤" : "≥"} {fmt(o.tick)}
-                  <span className="ml-3 text-ink-3">{o.settling ? "Filling…" : STATUS_LABEL[o.status]}</span>
+                  <span className="ml-3 text-ink-3">
+                    {o.settling ? "Filling…" : sealed && o.status === "pending" ? "Sealed · waits for Chainlink" : STATUS_LABEL[o.status]}
+                  </span>
                   {o.filled > 0 ? (
                     <span className="ml-3 text-ink-2">avg ${(o.quote / o.filled).toFixed(decimals)}</span>
                   ) : null}
                 </span>
-                {o.status === "open" || o.status === "pending" || o.status === "partial" ? (
+                {(o.status === "open" || o.status === "pending" || o.status === "partial") && !(sealed && o.status === "pending") ? (
                   <button
                     type="button"
                     onClick={() => onCancel(o.id)}

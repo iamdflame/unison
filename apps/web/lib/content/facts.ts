@@ -53,6 +53,25 @@ export const facts = {
 
   /** contracts/src/core/ExchangeLayout.sol MAX_ORDERS; deploy/monad-mainnet.json */
   limits: { openOrdersPerAccount: 55, markets: 10 },
+
+  /**
+   * The causal clock (SPEC §7.4): an auction prices at the first Chainlink observation after its orders were sealed.
+   * Measured from the feeds' own history on Monad mainnet, 6 Oct 2026 (apps/web/scripts/measure-causal.mjs).
+   * docs/evidence/causal.md; skewSec is deploy/monad-mainnet-causal.json.
+   */
+  causal: {
+    skewSec: 2,
+    /** observation to on chain, p50 */
+    landsAfterSec: 13,
+    roundsChecked: 8_100,
+    /** an order's wait for the first observation after it, on chain */
+    wait: {
+      "WMON/AUSD": { p50: "34 s", p90: "1.2 min", when: "around the clock" },
+      "aNVDA/AUSD": { p50: "1.5 min", p90: "5.3 min", when: "in US market hours", offHours: "15.2 min" },
+    } as Record<string, { p50: string; p90: string; when: string; offHours?: string }>,
+    /** the old rule: observations that moved more than the WMON vault's spread + fee (23 bp) */
+    oldRuleGap: { overBps: 23, pctOfRounds: 6.1, perHour: 5.3 },
+  },
 } as const;
 
 /**
@@ -64,12 +83,18 @@ export const shipped = {
   clob: facts.fairnessTable.find((r) => r.key === "CLOB + market makers")!,
 } as const;
 
+/** How long a causal market's next price typically takes, for a sentence ("typically 34 s"). */
+export function causalWait(symbol: string): { p50: string; p90: string; when: string; offHours?: string } | null {
+  return facts.causal.wait[symbol] ?? null;
+}
+
 export const sources = {
   sniper: "docs/evidence/fairness.md",
   lp: "docs/evidence/fairness.md",
   gas: "docs/evidence/gas.md",
   weekend: "docs/evidence/weekend-gaps.md",
   cre: "cre/unison/workflows/audit/config.production.json",
+  causal: "docs/evidence/causal.md",
 } as const;
 
 /** "$6,171" */

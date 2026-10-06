@@ -97,6 +97,13 @@ export interface MarketState {
   vault: SimOrder[];
   /** live only: false until the book (pending orders, resting depth, the vault's quote) has been read once */
   bookLoaded?: boolean;
+  /**
+   * live causal markets (SPEC §7.4): each auction prices at the first Chainlink observation after its orders, every
+   * order is an auction order, and a waiting order is sealed
+   */
+  causal?: boolean;
+  /** live causal markets: when Chainlink observed the reference shown (unix ms) */
+  refAt?: number;
   /** the simulated vault's books, kept as LiquidityVault reports them (absent live: the chain has the real ones) */
   vaultBook?: VaultBook;
 }

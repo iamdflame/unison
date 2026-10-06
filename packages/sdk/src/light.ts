@@ -24,6 +24,8 @@ export const CURVE_SELECTOR = "0x0b9606a8";
  * against now. Push feeds (Chainlink) take an empty payload; it is the read the venue makes when it clears.
  */
 export const READ_SELECTOR = "0xf273ee0a";
+/** `feeds(uint256 marketId)` on ChainlinkCausalReference: the Chainlink feeds a causal market reads (SPEC §7.4). */
+export const FEEDS_SELECTOR = "0x4a5479f3";
 /** Ticks per `depth` call: the contract accepts at most hi - lo = 4,096. */
 const CHUNK = 4_096n;
 const MAX = (1n << 256n) - 1n;
@@ -47,6 +49,16 @@ export const encodeCurveCall = (marketId: bigint, refPrice: bigint, status: numb
 
 /** The reference read with an empty payload (offset 0x60, length 0). */
 export const encodeReadCall = (marketId: bigint, batch = 0n): Hex => `${READ_SELECTOR}${word(marketId)}${word(batch)}${word(0x60n)}${word(0n)}`;
+
+export const encodeFeedsCall = (marketId: bigint): Hex => `${FEEDS_SELECTOR}${word(marketId)}`;
+
+/** Return data of `feeds` → the base/USD feed and the quote/USD feed (zero address: the quote token is USD). */
+export function decodeFeeds(data: Hex): { base: Address; quote: Address } {
+  const h = data.slice(2);
+  if (h.length < 2 * 64) throw new Error(`short return data for feeds: ${data}`);
+  const a = (i: number) => `0x${h.slice(i * 64 + 24, (i + 1) * 64)}` as Address;
+  return { base: a(0), quote: a(1) };
+}
 
 /** Return data → (price in quote units per whole token, publish time in ms, IReferenceAdapter.Status). */
 export function decodeRead(data: Hex): { price: bigint; publishTimeMs: bigint; status: number } {
@@ -131,6 +143,11 @@ export class LightReader {
   /** The reference an auction would clear against if it cleared now, from a push-feed adapter (Chainlink). */
   async reference(adapter: Address, marketId: bigint): Promise<{ price: bigint; publishTimeMs: bigint; status: number }> {
     return decodeRead(await this.call(encodeReadCall(marketId), adapter));
+  }
+
+  /** The Chainlink feeds a causal market reads, from its ChainlinkCausalReference. */
+  async causalFeed(adapter: Address, marketId: bigint): Promise<{ base: Address; quote: Address }> {
+    return decodeFeeds(await this.call(encodeFeedsCall(marketId), adapter));
   }
 
   /** A curve source's quote for one auction (call it with the reference the next auction would use). */
