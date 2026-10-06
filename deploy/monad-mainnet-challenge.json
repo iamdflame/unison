@@ -1,0 +1,25 @@
+{
+  "label": "monad-mainnet",
+  "_notes": [
+    "The standing challenge (contracts/src/challenge/LatencyChallenge.sol), deployed by contracts/script/DeployChallenge.s.sol after the causal cutover.",
+    "Two instances with the same terms: one on Unison's causal WMON/AUSD (market 1), one on the old-rule control (market 2). Fills on both are marked to MON/USD over AUSD/USD through the causal reference's market 1 feeds.",
+    "Latency profit: every fill in the window, each marked to the first Chainlink observation at least horizonSec after its order, averaging more than epsilonBps after fees over at least minFills fills.",
+    "The window runs from deployment to the end of judging (27 October 2026, 23:59:59 UTC); an unclaimed pot returns to the sponsor three days later.",
+    "team: accounts that can't enter (the venue's own keys, the owner's passkey account and wallet). The house adversary is not on it: it is labelled as the team's in every count of outside demand, and eligible here so the definition is shown to pay where there is an edge."
+  ],
+  "unisonMarketId": 1,
+  "markoutMarketId": 1,
+  "end": 1793145599,
+  "horizonSec": 60,
+  "epsilonBps": 2,
+  "minFills": 30,
+  "sponsor": "0x1CD2B147EfE092c3BdE0B474bCE3Bd33ae3dbB37",
+  "team": [
+    "0x55DF8EA97d41b7F487c6Dcc077dFd0B487E3557D",
+    "0xCA2B2DFF387Aa614eAB645B0Ba7863cCFA5a274e",
+    "0xf46f4f9Da2Ba1c627632d5D465377cfCDFa3A241",
+    "0x0562b2b0914b3Bb082A623657729452fc9bf26E4",
+    "0x13250C2DE5CE381432F4F1c77249af6789D62da7",
+    "0x1CD2B147EfE092c3BdE0B474bCE3Bd33ae3dbB37"
+  ]
+}

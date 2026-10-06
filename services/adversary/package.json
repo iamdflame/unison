@@ -1,0 +1,28 @@
+{
+  "name": "@unison/adversary",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The house adversary: an open-source latency sniper that trades Unison's causal WMON market and the old-rule control side by side, through the standing challenge's accounts, and claims any pot it wins.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "start": "node --conditions=development src/main.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@unison/sdk": "workspace:*",
+    "viem": "^2.37.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  },
+  "exports": {
+    ".": {
+      "development": "./src/main.ts",
+      "import": "./src/main.ts"
+    }
+  }
+}

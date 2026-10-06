@@ -12,6 +12,8 @@ const contracts = [
   ["LiquidityVault", "liquidityVaultAbi"],
   ["ChainlinkReference", "chainlinkReferenceAbi"],
   ["ChainlinkCausalReference", "chainlinkCausalReferenceAbi"],
+  ["LatencyChallenge", "latencyChallengeAbi"],
+  ["ChallengeAccount", "challengeAccountAbi"],
   ["PythReference", "pythReferenceAbi"],
   ["ManualReference", "manualReferenceAbi"],
   ["OrderGateway", "orderGatewayAbi"],
