@@ -182,8 +182,17 @@ export default async function ReceiptPage({ params }: { params: Promise<Params> 
           Check it yourself
         </h2>
         <p className="mt-3 max-w-2xl text-ink-2">
-          From the chain alone: the receipt hash recomputes, the round&apos;s observation time is the receipt&apos;s, the
-          seal is the block&apos;s own time, and the round before it was not after the seal.
+          {causal ? (
+            <>
+              From the chain alone: the receipt hash recomputes, the round&apos;s observation time is the receipt&apos;s, the
+              seal is the block&apos;s own time, and the round before it was not after the seal.
+            </>
+          ) : (
+            <>
+              From the chain alone: the receipt hash recomputes from the auction&apos;s own event and links to the one before
+              it. Under the older rule there is no observation to check against the seal: that is what the rule lacked.
+            </>
+          )}
         </p>
         <div className="mt-5 grid gap-4">
           <Code
