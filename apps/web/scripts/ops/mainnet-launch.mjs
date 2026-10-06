@@ -7,6 +7,14 @@
  *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs sweep <to>   send what the deployer holds to <to>, keeping RESERVE_MON (10)
  *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs status
  *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs upgrade-causal   the causal cutover (SPEC §7.4)
+ *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs challenge-deploy the standing challenge (both pots)
+ *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs pot <unison|control> <AUSD>      fund a pot
+ *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs seed-vault <wmon|control> <AUSD> requestDeposit
+ *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs stock-wmon <wmon|control> <WMON> the vault's WMON
+ *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs redeem-nvda <percent>            of the deployer's shares
+ *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs bot-key                          the adversary's key
+ *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs bot-fund <MON> <WMON> <AUSD>     fund it and its accounts
+ *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs timelock <proposer>              the final handover
  *
  * `deploy` refuses a chain other than 143 and refuses to overwrite deployments/monad-mainnet.json.
  * `upgrade-causal` runs contracts/script/UpgradeCausal.s.sol (which first checks that no job runs, no order waits and
@@ -14,12 +22,12 @@
  * causal.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { createPublicClient, createWalletClient, erc20Abi, formatEther, formatUnits, http, isAddress, parseAbi, parseEther, parseUnits } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
-import { monad } from "@unison/sdk";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import { challengeAccountAbi, latencyChallengeAbi, monad } from "@unison/sdk";
 
 const root = process.cwd();
 const env = Object.fromEntries(
@@ -29,17 +37,29 @@ const env = Object.fromEntries(
     .map((l) => l.trim().split("=")),
 );
 const RPC = process.env.RPC_URL ?? "https://rpc-mainnet.monadinfra.com";
-const OUT = join(root, "deployments/monad-mainnet.json");
+// DEPLOYMENT_RECORD=deployments/<name>.json rehearses on a fork (with RPC_URL and FORGE_RPC pointing at it): every
+// record the scripts write is then named after it, and deployments/monad-mainnet.json is never touched
+const RECORD = process.env.DEPLOYMENT_RECORD ?? "deployments/monad-mainnet.json";
+const BASE = RECORD.replace(/^deployments\//, "").replace(/\.json$/, "");
+const OUT = join(root, RECORD);
 const deployer = privateKeyToAccount(env.DEPLOYER_PRIVATE_KEY);
 const pub = createPublicClient({ chain: monad, transport: http(RPC) });
 const wallet = createWalletClient({ chain: monad, transport: http(RPC), account: deployer });
 const venueAbi = parseAbi([
   "function deposit(address token, uint256 amount)",
+  "function depositFor(address account, address token, uint256 amount)",
   "function placeOrder(uint256 marketId, uint256 side, uint256 tick, uint256 qty, uint256 flags) returns (uint256)",
   "function balanceOf(address account, address token) view returns (uint256)",
   "function withdraw(address token, uint256 amount, address to)",
 ]);
-const vaultAbi = parseAbi(["function requestDeposit(uint256 assets)", "function totalSupply() view returns (uint256)", "function nav() view returns (uint256)"]);
+const vaultAbi = parseAbi([
+  "function requestDeposit(uint256 assets)",
+  "function requestRedeem(uint256 shares)",
+  "function balanceOf(address) view returns (uint256)",
+  "function totalSupply() view returns (uint256)",
+  "function nav() view returns (uint256)",
+]);
+const wmonAbi = parseAbi(["function deposit() payable"]);
 const refAbi = parseAbi(["function read(uint256 marketId, uint256 batch, bytes payload) view returns (uint256 price, uint256 publishTimeMs, uint8 status)"]);
 
 const send = async (what, req) => {
@@ -53,7 +73,26 @@ const send = async (what, req) => {
 const dep = () => JSON.parse(readFileSync(OUT, "utf8"));
 const nvda = () => dep().markets["aNVDA/AUSD"];
 
-const [cmd, arg] = process.argv.slice(2);
+const [cmd, arg, arg2, arg3] = process.argv.slice(2);
+/** A forge script from contracts/, on the public endpoint, with the deployer's key; prints the lines that matter. */
+const forgeScript = (script, extraEnv, pattern) => {
+  const forge = process.env.FORGE ?? join(homedir(), ".foundry/bin/forge");
+  const r = spawnSync(forge, ["script", script, "--rpc-url", process.env.FORGE_RPC ?? "https://rpc.monad.xyz", "--broadcast", "--slow"], {
+    cwd: join(root, "contracts"),
+    env: { ...process.env, DEPLOYER_PRIVATE_KEY: env.DEPLOYER_PRIVATE_KEY, DEPLOYMENT: `../${RECORD}`, ...extraEnv },
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  console.log(`${r.stdout}\n${r.stderr}`.split("\n").filter((l) => pattern.test(l) || /ONCHAIN|Error|error|revert|Paid/.test(l)).join("\n"));
+  if (r.status !== 0) process.exit(r.status ?? 1);
+};
+/** The market a subcommand names: "wmon" (Unison's causal WMON/AUSD) or "control" (the old-rule market). */
+const wmonMarket = (which) => {
+  const d = dep();
+  const m = Object.values(d.markets).find((x) => (which === "control" ? x.control : x.symbol === "WMON/AUSD"));
+  if (!m) throw new Error(`no ${which} market in the deployment`);
+  return { d, m, adapter: which === "control" ? d.chainlinkReference : d.causalReference };
+};
 if (cmd === "deploy") {
   if ((await pub.getChainId()) !== 143) throw new Error("not Monad mainnet");
   if (existsSync(OUT)) throw new Error(`${OUT} exists: already deployed`);
@@ -71,7 +110,7 @@ if (cmd === "deploy") {
   if (r.status !== 0) process.exit(r.status ?? 1);
 } else if (cmd === "upgrade-causal") {
   if ((await pub.getChainId()) !== 143) throw new Error("not Monad mainnet");
-  if (dep().causalReference) throw new Error("deployments/monad-mainnet.json already names a causalReference");
+  if (dep().causalReference) throw new Error(`${RECORD} already names a causalReference`);
   const forge = process.env.FORGE ?? join(homedir(), ".foundry/bin/forge");
   // forge broadcasts on the public endpoint: the load-balanced one has answered "block not found" mid-script
   const r = spawnSync(forge, ["script", "script/UpgradeCausal.s.sol", "--rpc-url", process.env.FORGE_RPC ?? "https://rpc.monad.xyz", "--broadcast", "--slow"], {
@@ -79,8 +118,9 @@ if (cmd === "deploy") {
     env: {
       ...process.env,
       DEPLOYER_PRIVATE_KEY: env.DEPLOYER_PRIVATE_KEY,
-      DEPLOYMENT: "../deployments/monad-mainnet.json",
+      DEPLOYMENT: `../${RECORD}`,
       CAUSAL_CONFIG: "../deploy/monad-mainnet-causal.json",
+      CAUSAL_OUT: `${BASE}-causal`,
     },
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
@@ -88,11 +128,104 @@ if (cmd === "deploy") {
   const lines = `${r.stdout}\n${r.stderr}`.split("\n").filter((l) => /implementation|causal reference|control market|written|ONCHAIN|Error|error|revert|Estimated|Transactions saved|Paid/.test(l));
   console.log(lines.join("\n"));
   if (r.status !== 0) process.exit(r.status ?? 1);
-  const m = spawnSync(process.execPath, ["scripts/merge-causal.mjs", "deployments/monad-mainnet.json", "deployments/monad-mainnet-causal.json", "deploy/monad-mainnet-causal.json"], {
+  const m = spawnSync(process.execPath, ["scripts/merge-causal.mjs", RECORD, `deployments/${BASE}-causal.json`, "deploy/monad-mainnet-causal.json"], {
     cwd: root,
     stdio: "inherit",
   });
   if (m.status !== 0) process.exit(m.status ?? 1);
+} else if (cmd === "challenge-deploy") {
+  if (!dep().causalReference) throw new Error("run upgrade-causal first");
+  if (dep().challenge) throw new Error("the deployment already names a challenge");
+  forgeScript("script/DeployChallenge.s.sol", { CHALLENGE_CONFIG: "../deploy/monad-mainnet-challenge.json", CHALLENGE_OUT: `${BASE}-challenge` }, /challenge on|written/);
+  const m = spawnSync(process.execPath, ["scripts/merge-challenge.mjs", RECORD, `deployments/${BASE}-challenge.json`], { cwd: root, stdio: "inherit" });
+  if (m.status !== 0) process.exit(m.status ?? 1);
+} else if (cmd === "pot") {
+  const d = dep();
+  const to = d.challenge?.[arg];
+  if (!to || !arg2) throw new Error("usage: pot <unison|control> <AUSD>");
+  const amount = parseUnits(arg2, 6);
+  await send(`fund the ${arg} pot with ${arg2} AUSD`, { address: d.tokens.AUSD.address, abi: erc20Abi, functionName: "transfer", args: [to, amount] });
+} else if (cmd === "seed-vault") {
+  const { m } = wmonMarket(arg);
+  if (!arg2) throw new Error("usage: seed-vault <wmon|control> <AUSD>");
+  const amount = parseUnits(arg2, 6);
+  await send(`approve ${arg2} AUSD to the ${arg} vault`, { address: m.quote, abi: erc20Abi, functionName: "approve", args: [m.vault, amount] });
+  await send(`requestDeposit ${arg2} AUSD`, { address: m.vault, abi: vaultAbi, functionName: "requestDeposit", args: [amount] });
+  console.log("the keeper settles it at the first reference observed after this request");
+} else if (cmd === "stock-wmon") {
+  // the vault starts with AUSD only; its LP (the deployer, holding every share) adds WMON so it quotes both sides.
+  // Only once its first deposit has settled, so the shares were priced on AUSD alone.
+  const { d, m } = wmonMarket(arg);
+  if (!arg2) throw new Error("usage: stock-wmon <wmon|control> <WMON>");
+  const supply = await pub.readContract({ address: m.vault, abi: vaultAbi, functionName: "totalSupply" });
+  if (supply === 0n) throw new Error("the vault's first deposit hasn't settled yet: wait for the keeper to process it");
+  const qty = parseUnits(arg2, 18);
+  const hash = await wallet.writeContract({ address: m.base, abi: wmonAbi, functionName: "deposit", value: qty, gas: 80_000n });
+  console.log(`wrap ${arg2} MON: ${(await pub.waitForTransactionReceipt({ hash })).status} ${hash}`);
+  await send("approve WMON to the venue", { address: m.base, abi: erc20Abi, functionName: "approve", args: [d.exchange, qty] });
+  await send(`add ${arg2} WMON to the ${arg} vault's inventory`, { address: d.exchange, abi: venueAbi, functionName: "depositFor", args: [m.vault, m.base, qty] });
+} else if (cmd === "redeem-nvda") {
+  const m = nvda();
+  const pct = BigInt(arg ?? "0");
+  if (pct <= 0n || pct > 100n) throw new Error("usage: redeem-nvda <percent of the deployer's shares>");
+  const shares = ((await pub.readContract({ address: m.vault, abi: vaultAbi, functionName: "balanceOf", args: [deployer.address] })) * pct) / 100n;
+  await send(`requestRedeem ${pct}% of the deployer's aNVDA vault shares`, { address: m.vault, abi: vaultAbi, functionName: "requestRedeem", args: [shares] });
+} else if (cmd === "bot-key") {
+  // the adversary's own key, generated here and kept in .secrets/mainnet.env: only its address is printed
+  if (!env.ADVERSARY_PRIVATE_KEY) {
+    const pk = generatePrivateKey();
+    appendFileSync(join(root, ".secrets/mainnet.env"), `\nADVERSARY_PRIVATE_KEY=${pk}\n`);
+    console.log(`new adversary key: ${privateKeyToAccount(pk).address}`);
+  } else console.log(`adversary: ${privateKeyToAccount(env.ADVERSARY_PRIVATE_KEY).address}`);
+} else if (cmd === "bot-fund") {
+  // MON for its gas, then WMON and AUSD split across its two challenge accounts (opened here if it has none)
+  if (!env.ADVERSARY_PRIVATE_KEY) throw new Error("run bot-key first");
+  const d = dep();
+  if (!d.challenge) throw new Error("run challenge-deploy first");
+  const [mon, wmon, ausd] = [parseEther(arg ?? "0"), parseUnits(arg2 ?? "0", 18), parseUnits(arg3 ?? "0", 6)];
+  const bot = privateKeyToAccount(env.ADVERSARY_PRIVATE_KEY);
+  const botWallet = createWalletClient({ chain: monad, transport: http(RPC), account: bot });
+  const as = async (what, req) => {
+    const gas = ((await pub.estimateContractGas({ account: bot, ...req })) * 125n) / 100n;
+    const hash = await botWallet.writeContract({ ...req, gas });
+    const r = await pub.waitForTransactionReceipt({ hash });
+    console.log(`${what}: ${r.status} ${hash}`);
+    if (r.status !== "success") throw new Error(`${what} reverted`);
+  };
+  const WMON = d.markets["WMON/AUSD"].base;
+  const AUSD = d.tokens.AUSD.address;
+  if (mon + wmon > 0n) {
+    const hash = await wallet.sendTransaction({ to: bot.address, value: mon + wmon, gas: 21_000n });
+    console.log(`send ${formatEther(mon + wmon)} MON to the adversary: ${(await pub.waitForTransactionReceipt({ hash })).status} ${hash}`);
+  }
+  if (ausd > 0n) await send(`send ${arg3} AUSD to the adversary`, { address: AUSD, abi: erc20Abi, functionName: "transfer", args: [bot.address, ausd] });
+  if (wmon > 0n) {
+    const hash = await botWallet.writeContract({ address: WMON, abi: wmonAbi, functionName: "deposit", value: wmon, gas: 80_000n });
+    console.log(`wrap ${arg2} MON: ${(await pub.waitForTransactionReceipt({ hash })).status} ${hash}`);
+  }
+  for (const name of ["unison", "control"]) {
+    const challenge = d.challenge[name];
+    let acct = await pub.readContract({ address: challenge, abi: latencyChallengeAbi, functionName: "accountOf", args: [bot.address] });
+    if (/^0x0+$/.test(acct)) {
+      await as(`open the adversary's ${name} account`, { address: challenge, abi: latencyChallengeAbi, functionName: "open" });
+      acct = await pub.readContract({ address: challenge, abi: latencyChallengeAbi, functionName: "accountOf", args: [bot.address] });
+    }
+    for (const [token, amount, label] of [[WMON, wmon / 2n, "WMON"], [AUSD, ausd / 2n, "AUSD"]]) {
+      if (amount === 0n) continue;
+      await as(`approve ${label} to the ${name} account`, { address: token, abi: erc20Abi, functionName: "approve", args: [acct, amount] });
+      await as(`deposit ${label} into the ${name} account`, { address: acct, abi: challengeAccountAbi, functionName: "deposit", args: [token, amount] });
+    }
+  }
+} else if (cmd === "timelock") {
+  if (!arg || !isAddress(arg)) throw new Error("usage: timelock <proposer: the owner's wallet>");
+  if (dep().timelock) throw new Error("the deployment already names a timelock");
+  forgeScript("script/HandoverTimelock.s.sol", { TIMELOCK_PROPOSER: arg, TIMELOCK_OUT: `${BASE}-timelock` }, /timelock|operation|executable|written/);
+  const t = JSON.parse(readFileSync(join(root, `deployments/${BASE}-timelock.json`), "utf8"));
+  const d = dep();
+  Object.assign(d, { admin: t.timelock, timelock: t.timelock, timelockProposer: t.proposer, timelockDelaySec: t.delaySec, timelockFinalDelaySec: t.finalDelaySec, timelockOperation: t.operation, timelockExecutableAfter: t.executableAfter });
+  const sorted = (v) => (Array.isArray(v) ? v.map(sorted) : v && typeof v === "object" ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, sorted(v[k])])) : v);
+  writeFileSync(OUT, JSON.stringify(sorted(d), null, 2));
+  console.log(`${RECORD}: admin is now the timelock ${t.timelock}`);
 } else if (cmd === "seed") {
   const m = nvda();
   const amount = parseUnits(arg, 6);
