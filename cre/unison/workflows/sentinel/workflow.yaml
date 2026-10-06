@@ -1,0 +1,17 @@
+# The feed sentinel for the causal mainnet. Both targets read Monad mainnet; writes are dry runs unless --broadcast.
+#   cre workflow simulate unison/workflows/sentinel --target production-settings --non-interactive --trigger-index 0
+#   cre workflow simulate unison/workflows/sentinel --target demo-settings --non-interactive --trigger-index 0   # forced halt path
+production-settings:
+  user-workflow:
+    workflow-name: "unison-sentinel"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.production.json"
+    secrets-path: ""
+demo-settings:
+  user-workflow:
+    workflow-name: "unison-sentinel-demo"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.demo.json"
+    secrets-path: ""

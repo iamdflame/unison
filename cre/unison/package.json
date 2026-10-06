@@ -8,7 +8,7 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "compile": "bun x cre-compile workflows/audit/main.ts dist/audit.wasm && bun x cre-compile workflows/caps/main.ts dist/caps.wasm && bun x cre-compile workflows/halts/main.ts dist/halts.wasm"
+    "compile": "bun x cre-compile workflows/audit/main.ts dist/audit.wasm && bun x cre-compile workflows/caps/main.ts dist/caps.wasm && bun x cre-compile workflows/halts/main.ts dist/halts.wasm && bun x cre-compile workflows/sentinel/main.ts dist/sentinel.wasm"
   },
   "dependencies": {
     "@chainlink/cre-sdk": "^1.23.0",

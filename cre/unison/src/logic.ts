@@ -118,3 +118,22 @@ export function haltDecisions(
   }
   return out;
 }
+
+/**
+ * The sentinel's rule for a causal market (SPEC §7.4). Chainlink's MON/USD feed updates on a 2 bp deviation, so the
+ * feed and the exchanges can legitimately differ by a lot for the ~13 s an observation is in flight. A divergence
+ * means a broken feed only when the feed has also gone quiet: halt when they differ by more than `maxDeviationBps`
+ * AND the latest observation is older than `maxSilentSec`.
+ */
+export function sentinelDecision(input: {
+  feedPrice: bigint;
+  observedAt: bigint;
+  now: bigint;
+  consensus: bigint;
+  maxDeviationBps: number;
+  maxSilentSec: number;
+}): { dev: bigint; silentSec: bigint; halt: boolean } {
+  const dev = deviationBps(input.feedPrice, input.consensus);
+  const silentSec = input.now > input.observedAt ? input.now - input.observedAt : 0n;
+  return { dev, silentSec, halt: dev > BigInt(input.maxDeviationBps) && silentSec > BigInt(input.maxSilentSec) };
+}

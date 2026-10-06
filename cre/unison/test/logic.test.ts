@@ -13,6 +13,7 @@ import {
   median,
   parseNasdaqHalts,
   pick,
+  sentinelDecision,
   toQuoteUnits,
 } from "../src/logic.ts";
 
@@ -94,5 +95,25 @@ describe("halt mirroring", () => {
     const [, halted, reason] = decodeAbiParameters([{ type: "uint256" }, { type: "bool" }, { type: "bytes32" }], data);
     expect(halted).toBe(true);
     expect(hexToString(reason, { size: 32 })).toBe("LUDP");
+  });
+});
+
+describe("feed sentinel (causal mainnet)", () => {
+  const base = { feedPrice: 28_994n, maxDeviationBps: 75, maxSilentSec: 120 };
+  it("leaves a healthy feed alone, even far from the exchanges while an observation is in flight", () => {
+    // MON jumped 1.5% on the exchanges; Chainlink observed 8 s ago and its next report is still landing
+    const d = sentinelDecision({ ...base, observedAt: 1_000n, now: 1_008n, consensus: 29_430n });
+    expect(d.dev).toBe(148n);
+    expect(d.halt).toBe(false);
+  });
+  it("leaves a quiet feed alone while it agrees with the exchanges (MON can sit inside 2 bp for an hour)", () => {
+    expect(sentinelDecision({ ...base, observedAt: 1_000n, now: 4_000n, consensus: 29_000n }).halt).toBe(false);
+  });
+  it("halts when the feed is both far off and silent: a stuck or broken feed", () => {
+    const d = sentinelDecision({ ...base, observedAt: 1_000n, now: 1_300n, consensus: 29_430n });
+    expect(d).toEqual({ dev: 148n, silentSec: 300n, halt: true });
+  });
+  it("never counts a future observation as silence", () => {
+    expect(sentinelDecision({ ...base, observedAt: 2_000n, now: 1_000n, consensus: 40_000n }).silentSec).toBe(0n);
   });
 });

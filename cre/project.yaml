@@ -16,3 +16,8 @@ production-settings:
   rpcs:
     - chain-name: monad-mainnet
       url: https://rpc.monad.xyz
+# The feed sentinel's forced-divergence demo (thresholds at zero), reading Monad mainnet like production.
+demo-settings:
+  rpcs:
+    - chain-name: monad-mainnet
+      url: https://rpc.monad.xyz

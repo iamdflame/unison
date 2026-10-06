@@ -1,0 +1,21 @@
+{
+  "schedule": "*/30 * * * * *",
+  "chainSelectorName": "monad-mainnet",
+  "isTestnet": false,
+  "causalReference": "0xB161400dDfC592fD66b57dDaE46966ED74Ce891d",
+  "receiver": "0x0000000000000000000000000000000000000000",
+  "gasLimit": "400000",
+  "quoteDecimals": 6,
+  "maxDeviationBps": 75,
+  "maxSilentSec": 120,
+  "markets": [
+    {
+      "marketId": 1,
+      "symbol": "MON",
+      "sources": [
+        { "name": "coinbase", "url": "https://api.exchange.coinbase.com/products/MON-USD/ticker", "path": "price", "headers": { "User-Agent": "unison-cre-sentinel" } },
+        { "name": "kraken", "url": "https://api.kraken.com/0/public/Ticker?pair=MONUSD", "path": "result.MONUSD.c.0" }
+      ]
+    }
+  ]
+}

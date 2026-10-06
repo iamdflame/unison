@@ -39,3 +39,19 @@ export const EXCHANGE_ABI = [
     ],
   },
 ] as const;
+
+/** ChainlinkCausalReference.latest: the latest observation, stamped with the time Chainlink's quorum signed. */
+export const CAUSAL_REFERENCE_ABI = [
+  {
+    type: "function",
+    name: "latest",
+    stateMutability: "view",
+    inputs: [{ name: "marketId", type: "uint256" }],
+    outputs: [
+      { name: "price", type: "uint256" },
+      { name: "observedAt", type: "uint256" },
+      { name: "status", type: "uint8" },
+      { name: "round", type: "uint80" },
+    ],
+  },
+] as const;

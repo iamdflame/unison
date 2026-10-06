@@ -10,13 +10,11 @@
   "apiKeySecret": "ALPACA_KEY_ID",
   "apiKeyHeader": "APCA-API-KEY-ID",
   "markets": [
-    { "marketId": 0, "symbol": "NVDA", "tier": 1, "baseDecimals": 18 },
-    { "marketId": 1, "symbol": "SPY", "tier": 1, "baseDecimals": 18 },
-    { "marketId": 2, "symbol": "QQQ", "tier": 1, "baseDecimals": 18 },
-    { "marketId": 3, "symbol": "AAPL", "tier": 1, "baseDecimals": 18 },
-    { "marketId": 4, "symbol": "TSLA", "tier": 1, "baseDecimals": 18 },
-    { "marketId": 5, "symbol": "COIN", "tier": 2, "baseDecimals": 18 },
-    { "marketId": 6, "symbol": "MSTR", "tier": 2, "baseDecimals": 18 },
-    { "marketId": 7, "symbol": "GLD", "tier": 1, "baseDecimals": 18 }
+    {
+      "marketId": 0,
+      "symbol": "NVDA",
+      "tier": 1,
+      "baseDecimals": 18
+    }
   ]
 }

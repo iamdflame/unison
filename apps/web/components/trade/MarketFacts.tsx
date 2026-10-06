@@ -40,7 +40,7 @@ export function MarketFacts({ m }: { m: MarketState }) {
         : reference === "chainlink" && stock
         ? `Chainlink's tokenized-equity feed for ${s.underlying} on Monad, over its AUSD/USD feed, read as each batch clears. No Unison key signs it. The feed runs 24/5 (Sunday 8 pm to Friday 8 pm New York time); outside those hours, or if it goes stale, the market finds its own price in call auctions around the last close.`
         : reference === "operator"
-        ? `Signed by the venue's relay after each batch closes (${REFERENCE_RULES.quorum === 1 ? "one signing key today" : `${REFERENCE_RULES.quorum} signers`}), from market data (Alpaca in production, simulated here), and refused if older than ${REFERENCE_RULES.maxAgeSec} s. An outside check, Chainlink CRE comparing it with Alpaca IEX and Finnhub, halts the market past ${facts.cre.haltAboveBps} bp; it runs in simulation today. While the primary market is closed the reference holds at the last close.`
+        ? `Signed by the venue's relay after each batch closes (${REFERENCE_RULES.quorum === 1 ? "one signing key today" : `${REFERENCE_RULES.quorum} signers`}), from market data (Alpaca in production, simulated here), and refused if older than ${REFERENCE_RULES.maxAgeSec} s. An outside check, a Chainlink CRE workflow comparing it with Alpaca IEX and Finnhub that halts the market past ${facts.cre.haltAboveBps} bp, is written and tested; it runs in Chainlink's simulator. While the primary market is closed the reference holds at the last close.`
         : "Chainlink price feeds on Monad, read as each batch clears. No Unison key signs them.",
     ],
     [

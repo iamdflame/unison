@@ -62,8 +62,9 @@ export function Markets() {
         ))}
       </div>
       <p className="mt-4 max-w-3xl text-sm text-ink-3">
-        Stocks, funds and gold clear against a reference the venue signs after each batch, checked against Chainlink
-        (in simulation today); the pound and MON clear against Chainlink price feeds.
+        On mainnet, every auction prices at a Chainlink observation made after its orders were sealed. On the testnet,
+        the venue&apos;s relay signs a reference after each batch. Markets not listed on a network run as a labelled
+        simulation.
       </p>
     </section>
   );

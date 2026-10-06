@@ -50,6 +50,8 @@ export const facts = {
 
   /** cre/unison/workflows/*\/config.production.json */
   cre: { auditEverySec: 30, haltAboveBps: 75, haltMirrorEverySec: 60 },
+  /** cre/unison/workflows/sentinel/config.production.json: the causal mainnet's feed sentinel (docs/evidence/cre.md) */
+  sentinel: { everySec: 30, haltAboveBps: 75, silentSec: 120 },
 
   /** contracts/src/core/ExchangeLayout.sol MAX_ORDERS; deploy/monad-mainnet.json */
   limits: { openOrdersPerAccount: 55, markets: 10 },

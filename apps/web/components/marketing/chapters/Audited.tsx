@@ -8,9 +8,9 @@ import { site } from "@/lib/content/site";
 import { BEAT_MS } from "@/lib/motion/tokens";
 
 /**
- * Chapter 4: checked by Chainlink. The audit as a stepped instrument (one step per beat, nothing in between): seven
- * independent nodes each price the stock from separate sources, the network agrees on a median, and the result is
- * compared with the reference Unison clears against. Inside 0.75%: carry on. Outside: halt and slash.
+ * Chapter 4: watched by Chainlink. The sentinel as a stepped instrument (one step per beat, nothing in between): seven
+ * independent nodes each price MON from separate exchanges, the network agrees on a median, and the result is compared
+ * with the Chainlink observation Unison clears against. Far off and silent: halt. Otherwise: carry on.
  */
 const NODES = 7;
 const STEPS = NODES + 4; // nodes report, consensus, compare, verdict, rest
@@ -47,26 +47,27 @@ export function Audited() {
     <section aria-labelledby="audited-title" className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-12 lg:py-24">
       <div ref={ref} className="grid grid-cols-1 items-start gap-x-16 gap-y-12 lg:grid-cols-12">
         <div className="lg:col-span-5">
-          {/* honest about today: one signer publishes the reference, and the check on it runs in a simulator */}
+          {/* honest about today: the sentinel reads mainnet from Chainlink's CRE simulator, not yet a live network */}
           <h2 id="audited-title" className="text-display-l text-ink">
-            A second opinion, every&nbsp;{facts.cre.auditEverySec}&nbsp;seconds.
+            A second opinion, every&nbsp;{facts.sentinel.everySec}&nbsp;seconds.
           </h2>
           <p className="text-lede mt-6 text-ink-2">
-            Today one signer publishes the reference Unison clears against. A Chainlink workflow checks that signer
-            from outside. Every {facts.cre.auditEverySec} seconds it prices each stock from separate market-data
-            sources and compares. More than {(facts.cre.haltAboveBps / 100).toFixed(2)}% apart, trading halts and the
-            signer&apos;s bond is slashed.
+            Unison&apos;s prices are Chainlink&apos;s own observations. A second Chainlink workflow watches them from
+            outside: every {facts.sentinel.everySec} seconds, independent nodes price MON from Coinbase and Kraken and
+            agree on a median. If the feed is more than {(facts.sentinel.haltAboveBps / 100).toFixed(2)}% off and has been
+            silent for {facts.sentinel.silentSec / 60} minutes, trading halts. A gap alone is not enough: while a new price
+            is in flight, the feed trails the market by design.
           </p>
           <p className="mt-6 text-sm text-ink-3">
-            The workflow runs in Chainlink&apos;s CRE simulator today and moves to the live network once access is granted.
-            Halts on the primary market are mirrored within a minute.{" "}
+            It runs in Chainlink&apos;s CRE simulator today, reading Monad mainnet, and moves to a live network once access
+            is granted. Halts on the primary market are mirrored within a minute.{" "}
             <a className="underline decoration-line-strong underline-offset-4 hover-fine:text-ink" href={`${site.repo}/tree/main/cre/unison`}>
               The workflows
             </a>
           </p>
         </div>
         <figure className="lg:col-span-7">
-          <svg viewBox="0 0 520 440" className="mx-auto h-auto w-full max-w-[620px]" role="img" aria-label="Seven independent nodes price the stock, agree on a median, and compare it with the reference. The deviation is within limits.">
+          <svg viewBox="0 0 520 440" className="mx-auto h-auto w-full max-w-[620px]" role="img" aria-label="Seven independent nodes price MON, agree on a median, and compare it with Chainlink's latest observation. The feed is within limits.">
             {/* seven independent nodes as the jewels of a ring: each chaton is set, flat and engraved, as its node reports */}
             <circle cx="260" cy="220" r="170" fill="none" stroke="var(--champagne)" strokeWidth="0.8" />
             <circle cx="260" cy="220" r="176" fill="none" stroke="var(--champagne)" strokeWidth="0.5" strokeOpacity="0.6" />
@@ -87,19 +88,19 @@ export function Audited() {
               {consensus ? "CONSENSUS" : "NODES REPORTING"}
             </text>
             <text x="260" y="232" textAnchor="middle" className="numerals" fill="var(--ink)" style={{ fontSize: 30 }}>
-              {consensus ? "$180.02" : `${reported}/${NODES}`}
+              {consensus ? "$0.02888" : `${reported}/${NODES}`}
             </text>
             <text x="260" y="256" textAnchor="middle" className="tnum" fill="var(--ink-3)" style={{ fontSize: 12 }}>
-              {verdict ? "Reference $180.00 · 0.01% apart" : consensus ? "Median of medians" : "Alpaca IEX · Finnhub"}
+              {verdict ? "Chainlink $0.02886 · 0.07% apart" : consensus ? "Median of medians" : "Coinbase · Kraken"}
             </text>
           </svg>
           <figcaption className="mx-auto mt-4 flex max-w-[620px] items-center gap-3 text-sm">
             {/* the verdict as an engraved mark, in the same small capitals as the hallmark beside it */}
             <span className={`dial-label inline-flex shrink-0 items-center gap-1.5 text-[11px] transition-colors duration-200 ${verdict ? "text-buy" : "text-ink-3"}`}>
               <span aria-hidden className={`size-[5px] rounded-full ${verdict ? "bg-buy" : "bg-ink-3"}`} />
-              {verdict ? `Within ${(facts.cre.haltAboveBps / 100).toFixed(2)}%` : "Auditing"}
+              {verdict ? `Within ${(facts.sentinel.haltAboveBps / 100).toFixed(2)}%` : "Watching"}
             </span>
-            <span className="text-ink-3">Past {(facts.cre.haltAboveBps / 100).toFixed(2)}%, the market halts and the signer&apos;s bond is slashed.</span>
+            <span className="text-ink-3">Past {(facts.sentinel.haltAboveBps / 100).toFixed(2)}% with the feed silent, the market halts.</span>
             <Hallmark className="ml-auto">CRE simulator</Hallmark>
           </figcaption>
         </figure>

@@ -56,6 +56,11 @@ describe("every site number is backed by the evidence files", () => {
     expect(audit.schedule).toBe(`*/${facts.cre.auditEverySec} * * * * *`);
     expect(audit.maxDeviationBps).toBe(facts.cre.haltAboveBps);
     expect(halts.schedule).toBe("0 * * * * *");
+    const sentinel = JSON.parse(repo("cre/unison/workflows/sentinel/config.production.json"));
+    expect(sentinel.schedule).toBe(`*/${facts.sentinel.everySec} * * * * *`);
+    expect(sentinel.maxDeviationBps).toBe(facts.sentinel.haltAboveBps);
+    expect(sentinel.maxSilentSec).toBe(facts.sentinel.silentSec);
+    expect(sentinel.causalReference).toBe(JSON.parse(repo("deployments/monad-mainnet.json")).causalReference);
   });
 
   it("the sniper replayed on both rules, at its live settings", () => {

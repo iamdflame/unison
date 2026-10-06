@@ -4,14 +4,14 @@ staging-settings:
   workflow-artifacts:
     workflow-path: "./main.ts"
     config-path: "./config.staging.json"
-    secrets-path: "../../secrets.yaml"
+    secrets-path: ""
 production-settings:
   user-workflow:
     workflow-name: "unison-halts"
   workflow-artifacts:
     workflow-path: "./main.ts"
     config-path: "./config.production.json"
-    secrets-path: "../../secrets.yaml"
+    secrets-path: ""
 simulation-settings:
   user-workflow:
     workflow-name: "unison-halts-sim"

@@ -58,9 +58,11 @@ export default function RiskPage() {
           title: "The reference price",
           body: (
             <p>
-              Each batch clears against a reference: a price signed by the venue&apos;s relay, or a Chainlink feed, checked
-              against independent sources. A wrong or stale reference would mean wrong clearing prices, inside the band.
-              The audit by Chainlink&apos;s CRE workflow, which halts a market that strays more than {facts.cre.haltAboveBps} bp, runs in simulation today.
+              Each auction clears against a reference: on mainnet, Chainlink&apos;s observation made after the auction&apos;s
+              orders were sealed; on the testnet, a price signed by the venue&apos;s relay. A wrong or stale reference would
+              mean wrong clearing prices, inside the band. A Chainlink CRE sentinel watches the mainnet feed against
+              Coinbase and Kraken and halts a market whose feed is more than {facts.sentinel.haltAboveBps} bp off and silent for{" "}
+              {facts.sentinel.silentSec / 60} minutes. It runs in Chainlink&apos;s simulator today, until deploy access is granted.
             </p>
           ),
         },

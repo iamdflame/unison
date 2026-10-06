@@ -73,7 +73,7 @@ Trading mainnet itself needs AUSD on Monad and a browser wallet to deposit it. E
    - **Mainnet:** `ChainlinkCausalReference` reads Chainlink's rounds by the observation time their quorum signed (`startedAt`), not the time they landed. It proves a round is the first after a given time, and checks the AUSD/USD round in force at it (more than 50 bp off $1 halts). The feeds are the tokenized-equity feed wNVDAx-USD (24/5) for aNVDA and MON/USD for WMON. One WMON market is kept on the old rule as the challenge's control.
    - **Testnet:** relays sign `Reference(venue, market, batch, price, publishTimeMs, status)`, bound to one batch, with a k-of-n quorum over secp256k1 or P-256 keys and slashable bonds.
    - **Pyth:** an adapter for pull updates is built, but waits: Pyth's Hermes has required a paid key since 26 August 2026.
-   - **CRE:** Chainlink CRE workflows (an audit of the reference, Nasdaq halt mirroring, daily caps) are written and unit-tested in `cre/`. Deploying them to a DON waits for CRE access.
+   - **CRE:** a Chainlink CRE sentinel watches the mainnet feed against Coinbase and Kraken, and halts a market whose feed is both more than 75 bp off and silent for 2 minutes. A second workflow mirrors Nasdaq halts. Both run against Monad mainnet in Chainlink's simulator ([logs](docs/evidence/cre.md)). Deploying to a DON waits for CRE access.
 3. **Regimes.**
 
    | Regime | Behaviour |

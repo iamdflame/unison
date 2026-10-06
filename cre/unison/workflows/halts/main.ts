@@ -74,6 +74,9 @@ const onCron = (runtime: Runtime<Config>): string => {
     const r = decodeFunctionResult({ abi: EXCHANGE_ABI, functionName: "regimeOf", data: bytesToHex(call.data) });
     onchain.set(m.marketId, r.halted);
   }
+  for (const m of cfg.markets) {
+    runtime.log(`${m.symbol}: ${halts.get(m.symbol)?.active ? "halted" : "trading"} on Nasdaq, ${onchain.get(m.marketId) ? "halted" : "trading"} on Unison`);
+  }
   const actions = haltDecisions(halts, cfg.markets, onchain);
   for (const a of actions) {
     const report = runtime.report(prepareReportRequest(encodeHalt(a.marketId, a.halted, a.reason))).result();
