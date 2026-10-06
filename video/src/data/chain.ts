@@ -39,6 +39,27 @@ export const PHOTO_FINISH = {
   date: "6 October 2026",
 };
 
+/** The film's own sale, captured live on www.unisonfi.com by capture/live.mjs: a passkey account sells 9 WMON on
+ * 6 October 2026. Every check of apps/web/scripts/verify-receipt.mjs passes (src/data/verify-film-sale.txt). */
+export const FILM_SALE = {
+  account: "0x686ec4AE35A0dDF9011eA6a864aEc6871d00F382",
+  quantity: "9 WMON",
+  limit: "0.028293",
+  upTo: 111_170_181,
+  sealedAt: "23:34:49",
+  /** 13 s after the seal */
+  observedAt: "23:35:02",
+  landedAt: "23:35:14",
+  /** block 111,170,272 */
+  clearedAt: "23:35:16",
+  price: "0.028344",
+  reference: "0.028397",
+  received: "0.26 AUSD",
+  receiptHash: "0xdd21f25c29f3169a3858da05f42406a77d4ca3f02333388e3b898fd9b6d8ed76",
+  tx: "0x5fbb8b5f892ebe831d4f4b03d5a8b792d8977ee3998f0dc2a8edc48333c26e67",
+  receipt: "https://www.unisonfi.com/receipt/mainnet/1/111170181",
+};
+
 /** The agent wallet's sale through MetaMask Agent Wallet: docs/evidence/agent-wallet.md. */
 export const AGENT_SALE = {
   wallet: "0x5E986eC96d2979f278814452ad08c33C3c0AEA4b",

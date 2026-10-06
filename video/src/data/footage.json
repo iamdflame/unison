@@ -1,0 +1,108 @@
+{
+  "01-arrive": {
+    "file": "footage/01-arrive.mp4",
+    "seconds": 4.351,
+    "capturedAt": "2026-10-06T23:34:34.861Z",
+    "clicks": []
+  },
+  "02-create": {
+    "file": "footage/02-create.mp4",
+    "seconds": 6.112,
+    "capturedAt": "2026-10-06T23:43:31.135Z",
+    "clicks": [
+      {
+        "at": 0.332,
+        "x": 1726,
+        "y": 28,
+        "label": "Sign in"
+      },
+      {
+        "at": 1.728,
+        "x": 960,
+        "y": 551,
+        "label": "Create a passkey"
+      }
+    ]
+  },
+  "02-signin": {
+    "file": "footage/02-signin.mp4",
+    "seconds": 4.855,
+    "capturedAt": "2026-10-06T23:43:21.721Z",
+    "clicks": [
+      {
+        "at": 0.343,
+        "x": 1726,
+        "y": 28,
+        "label": "Sign in"
+      },
+      {
+        "at": 1.793,
+        "x": 960,
+        "y": 607,
+        "label": "I already have one"
+      }
+    ]
+  },
+  "03-sell": {
+    "file": "footage/03-sell.mp4",
+    "seconds": 39.072,
+    "capturedAt": "2026-10-06T23:34:44.139Z",
+    "clicks": [
+      {
+        "at": 1.145,
+        "x": 1669,
+        "y": 129,
+        "label": "Sell"
+      },
+      {
+        "at": 2.144,
+        "x": 1684,
+        "y": 259,
+        "label": "the reference"
+      },
+      {
+        "at": 2.644,
+        "x": 1586,
+        "y": 376,
+        "label": "quantity"
+      },
+      {
+        "at": 3.728,
+        "x": 1586,
+        "y": 815,
+        "label": "Sell"
+      },
+      {
+        "at": 4.679,
+        "x": 1586,
+        "y": 815,
+        "label": "Confirm"
+      }
+    ]
+  },
+  "04-certificate": {
+    "file": "footage/04-certificate.mp4",
+    "seconds": 7.799,
+    "capturedAt": "2026-10-06T23:35:22.736Z",
+    "clicks": [
+      {
+        "at": 0.313,
+        "x": 285,
+        "y": 853,
+        "label": "Fills"
+      },
+      {
+        "at": 1.638,
+        "x": 760,
+        "y": 892,
+        "label": "Certificate"
+      }
+    ]
+  },
+  "05-receipt": {
+    "file": "footage/05-receipt.mp4",
+    "seconds": 4.461,
+    "capturedAt": "2026-10-06T23:35:34.611Z",
+    "clicks": []
+  }
+}

@@ -19,7 +19,9 @@
     "remotion": "4.0.533"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/react": "^19.3.0",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.0",
+    "viem": "^2.57.2"
   }
 }

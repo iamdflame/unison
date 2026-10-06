@@ -4,3 +4,6 @@ footage/
 out/
 node_modules/
 .remotion/
+
+# encoded footage, from capture/encode.mjs
+public/footage/
