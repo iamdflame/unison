@@ -27,3 +27,6 @@ apps/web/playwright-report/
 apps/web/test-results/
 apps/web/.lighthouseci/
 docs/evidence/raw/
+
+# a file whose name says keepprivate never leaves this machine
+*keepprivate*

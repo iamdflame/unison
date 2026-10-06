@@ -76,3 +76,6 @@ apps/web/brand/explore/*.html
 
 # web: bundled from deployments/*.json by apps/web/scripts/sync-deployments.mjs
 apps/web/lib/venue/deployments.generated.ts
+
+# a file whose name says keepprivate never leaves this machine
+*keepprivate*

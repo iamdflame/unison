@@ -23,3 +23,6 @@ scripts/
 **/coverage/
 services/*/data/
 research/
+
+# a file whose name says keepprivate never leaves this machine
+*keepprivate*
