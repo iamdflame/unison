@@ -39,6 +39,8 @@ Steps 1, 2, 4 and 5 need no account, wallet or download. Step 3 needs only a pas
    - `mm unison challenge score --rule old --address 0xcEc80166Ab48cb3C4ebD98671524761b1fd81276` shows our sniper winning on the old rule;
    - `mm unison order WMON buy 10` trades through the agent's own wallet.
 
+   An agent wallet already did, on 6 October: a sealed sale and a purchase, each priced at Chainlink's observation 7–8 s after its seal, each receipt checked 6 of 6 by the agent ([the run](docs/evidence/agent-wallet.md)).
+
 Trading mainnet itself needs AUSD on Monad and a browser wallet to deposit it. Every mainnet address and transaction is in [docs/evidence/mainnet.md](docs/evidence/mainnet.md).
 
 ---

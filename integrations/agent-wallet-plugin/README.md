@@ -2,19 +2,24 @@
 
 **Unison for MetaMask Agent Wallet.** Your agent trades WMON and tokenized stocks on Monad mainnet in sealed batch auctions. Each order's price doesn't exist when it is sent: the auction prices it at Chainlink's first observation after the order's block, at one price for everyone in the auction. Then the agent checks its own receipt from the chain.
 
-Run in MetaMask's `mm` 7.0.0 against Monad mainnet on 6 October 2026:
+An agent wallet made by MetaMask's `mm` 7.0.0 traded on Monad mainnet on 6 October 2026 ([the whole run](../../docs/evidence/agent-wallet.md)):
 
 ```
-$ mm unison receipt https://www.unisonfi.com/receipt/mainnet/1/111055816
-PASS  receipt hash recomputes: 0x803dea559b45aa0679696bb2d4e1bab50bf904719bbb2b9530781d5a4f5de65e
-PASS  the receipt's reference time is Chainlink's observation time (1791295082)
-PASS  observed strictly before the report landed on chain (a signed observation, not a block time)
-PASS  the newest order was sealed in block 111055816, at 1791295076
-PASS  observed 6 s after the seal (more than the 2 s skew)
-PASS  the round before it was observed at 1791295052, not after the seal: no earlier observation qualified
+$ mm unison order WMON sell 10
+Intent: Unison: sealed sell of 10 WMON at ≥ 0.028502 AUSD, priced at Chainlink's next observation
+Tx submitted: https://monadvision.com/tx/0xdeb070f9b98975fe8f2cf51b8f485876752a7d7169e1daa5e36a47bf119d7039
+Sealed in block 111160954. Its price doesn't exist yet: the auction prices at Chainlink's first observation after this block.
+Priced: 0.028605 AUSD, one price for everyone in the auction (Chainlink: 0.028659).
+Receipt: 6 of 6 checks pass against Chainlink's own history. https://www.unisonfi.com/receipt/mainnet/1/111160954
 
-Verified: 6 of 6 checks pass. https://www.unisonfi.com/receipt/mainnet/1/111055816
+Hint: Sold 10 WMON at 0.028605 AUSD, the auction's one price; receipt 6/6 verified: https://www.unisonfi.com/receipt/mainnet/1/111160954
+```
 
+The order was sealed at 22:48:23 UTC. Chainlink's oracles observed MON 8 s later, and the auction cleared at that price. The agent then checked all six facts from the chain, in 45 seconds end to end. It bought 9 WMON back the same way, then withdrew. The plugin never touched a key: MetaMask's agent wallet signed each transaction, showing its intent first.
+
+The standing challenge, read by the same CLI. These are the same house sniper running the same strategy on both pots:
+
+```
 $ mm unison challenge score --address 0xcEc80166Ab48cb3C4ebD98671524761b1fd81276
 8 of 30 counted fills, edge -21.2 bp (0.001469 AUSD lost); the pot pays above 2 bp. Not yet. Pot: 18 AUSD.
 
@@ -22,7 +27,7 @@ $ mm unison challenge score --rule old --address 0xcEc80166Ab48cb3C4ebD986715247
 8 of 30 counted fills, edge 12.29 bp (0.000853 AUSD); the pot pays above 2 bp. Not yet. Pot: 1 AUSD.
 ```
 
-The second and third commands are the same house sniper running the same strategy on both pots. It loses on Unison's rule and wins on the old one.
+It loses on Unison's rule and wins on the old one.
 
 ## Why an agent wants this
 
