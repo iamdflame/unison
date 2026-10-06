@@ -14,3 +14,4 @@ export * from "./relayer.ts";
 export * from "./light.ts";
 export * from "./causal.ts";
 export * from "./challenge.ts";
+export * from "./verify.ts";

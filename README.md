@@ -29,7 +29,7 @@ Unison is a venue for tokenized assets on Monad: US equities (Anchored aStocks),
 
 Nothing below needs an account, a wallet or a download except step 3, and step 3 needs only a passkey (Face ID, Touch ID or Windows Hello) and the free testnet faucet.
 
-1. **A real mainnet auction, proven.** https://www.unisonfi.com/receipt/mainnet/1/111055816 shows the order sealed, then Chainlink's observation 6 s later, then the clear. From a clone, `node apps/web/scripts/verify-receipt.mjs 0x128b8b18f4ae90cf0f79f439f5886f2f3ff548f2ebb3dcd7a847c2284351596e` checks it from the chain alone.
+1. **A real mainnet auction, proven.** https://www.unisonfi.com/receipt/mainnet/1/111055816 shows the order sealed, then Chainlink's observation 6 s later, then the clear. From a clone, after `pnpm install`, `node apps/web/scripts/verify-receipt.mjs 0x128b8b18f4ae90cf0f79f439f5886f2f3ff548f2ebb3dcd7a847c2284351596e` checks it from the chain alone.
 2. **The live market, on mainnet.** https://www.unisonfi.com/trade/WMON?network=mainnet: the next auction waits for Chainlink's next price, typically 34 s.
 3. **Trade it yourself on the testnet.** On https://www.unisonfi.com/trade/aNVDA (the testnet is the default), press **Sign in**, then **Create a passkey**, then **Add test funds**. Tap the **Ask** price and buy 1 aNVDA. The order joins the next auction and fills against the vault within seconds; the fill opens a certificate whose receipt the tape recomputes. No real money is involved.
 4. **Snipe us.** https://www.unisonfi.com/challenge: two pots, the contract's definition of an edge, and our own sniper's live score on both rules.
