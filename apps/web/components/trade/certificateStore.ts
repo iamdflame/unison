@@ -18,8 +18,10 @@ export interface CertificateData extends MyFill {
   maxFeeBps: number;
   /** blocks between call auctions while the market is closed */
   discCadence: number;
-  /** live fills: where the tape can check the receipt */
-  live?: { tapeUrl: string; marketId: number; account: string; slot: number; explorer?: string };
+  /** the auction priced at Chainlink's first observation after its orders were sealed (SPEC §7.4) */
+  causal?: boolean;
+  /** live fills: where the tape can check the receipt, and the auction's receipt page */
+  live?: { tapeUrl: string; marketId: number; account: string; slot: number; explorer?: string; page: string };
   /**
    * The tape's check (live): "recomputed" when the receipt chain links through this batch and the fill recomputes
    * from its uniform price; "linked" when only the chain could be checked; "unverified" when the check failed.
@@ -43,6 +45,9 @@ export function certificateFor(fill: MyFill, spec: MarketSpec, net: NetConfig | 
     feeBps: spec.feeBps,
     maxFeeBps: spec.maxFeeBps,
     discCadence: spec.regime.discCadence,
-    ...(net && account && marketId !== undefined ? { live: { tapeUrl: net.tapeUrl, marketId, account, slot: fill.orderId, explorer: net.explorer } } : {}),
+    causal: net?.deployment.markets[spec.symbol]?.reference === "chainlink-causal",
+    ...(net && account && marketId !== undefined
+      ? { live: { tapeUrl: net.tapeUrl, marketId, account, slot: fill.orderId, explorer: net.explorer, page: `/receipt/${net.network}/${marketId}/${fill.block}` } }
+      : {}),
   };
 }

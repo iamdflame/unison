@@ -20,6 +20,10 @@ export interface TourContext {
   faucet: boolean;
   signedIn: boolean;
   regime: RegimeName;
+  /** each auction prices at Chainlink's first observation after its orders were sealed (SPEC §7.4) */
+  causal: boolean;
+  /** a causal market's typical wait for that observation ("34 s"), when measured */
+  wait: string | null;
   /** who is closed, while the market is: "Wall Street", for a stock */
   closedWho: string;
   /** blocks between auctions while closed, and that in seconds */
@@ -53,19 +57,32 @@ export interface TourStep {
   foot?: (c: TourContext) => string;
 }
 
+/** On a causal market the reference's own clock sets the pace: orders seal each block, and price at Chainlink's next observation. */
+const causalOpen = (c: TourContext) =>
+  `Your order is sealed in the Monad block it lands in, then waits for Chainlink's next observation of the price, typically ${c.wait ?? "under a minute"}. The auction prices at that observation, made after every order in it was sealed, so no one can trade against a price they already know.`;
+
 const REGIME: Record<RegimeName, (c: TourContext) => [string, string]> = {
-  LIVE: () => [
-    "Open: an auction every block",
-    "While its market trades, every Monad block holds an auction, about 0.3 s apart. Each clears against a reference price read after the auction closes, so no order can be placed against it.",
-  ],
-  EXTENDED: () => [
-    "Extended hours",
-    "Pre-market or after hours: still an auction every block, about 0.3 s apart, in a wider band.",
-  ],
-  DISCOVERY: (c) => [
-    `Closed: an auction every ${c.discSeconds} s`,
-    `${c.closedWho} is closed, so there is no live price to copy. Orders gather for ${c.discCadence} blocks and clear together at one price, in a band around the last close that widens the longer it stays closed.`,
-  ],
+  LIVE: (c) =>
+    c.causal
+      ? ["Open: an auction at each new Chainlink price", causalOpen(c)]
+      : [
+          "Open: an auction every block",
+          "While its market trades, every Monad block holds an auction, about 0.3 s apart. Each clears against a reference price read after the auction closes, so no order can be placed against it.",
+        ],
+  EXTENDED: (c) =>
+    c.causal
+      ? ["Extended hours", causalOpen(c)]
+      : ["Extended hours", "Pre-market or after hours: still an auction every block, about 0.3 s apart, in a wider band."],
+  DISCOVERY: (c) =>
+    c.causal
+      ? [
+          `Closed: an auction every ${c.discSeconds} s`,
+          `${c.closedWho} is closed and Chainlink has no new price, so there is none to copy. Orders gather for ${c.discCadence} blocks and clear together at one price, in a band around the last price that widens the longer it stays closed. The vault stops quoting until Chainlink prices again.`,
+        ]
+      : [
+          `Closed: an auction every ${c.discSeconds} s`,
+          `${c.closedWho} is closed, so there is no live price to copy. Orders gather for ${c.discCadence} blocks and clear together at one price, in a band around the last close that widens the longer it stays closed.`,
+        ],
   REOPENING: () => [
     "The reopening cross",
     "The first auction after the close, in a wider band, so the opening price can be found.",
@@ -133,7 +150,7 @@ export const STEPS: TourStep[] = [
     body: (c) =>
       c.compact
         ? "Buy or Sell opens the ticket. Set a limit, the most you'll pay or the least you'll take, and a quantity. Before you send it, the ticket shows what fills now and the most it can cost."
-        : `Choose a side, then a limit: the most you'll pay, or the least you'll take. The chips set it to the last trade, the ${c.regime === "DISCOVERY" ? "close" : "reference"} or where it clears now. Then a quantity, and how long the order lives.`,
+        : `Choose a side, then a limit: the most you'll pay, or the least you'll take. The chips set it to the last trade, the ${c.regime === "DISCOVERY" ? "close" : "reference"} or where it clears now. Then a quantity${c.causal ? ": every order here joins one auction, and what doesn't fill comes back." : ", and how long the order lives."}`,
   },
   {
     id: "outcome",
@@ -162,7 +179,7 @@ export const STEPS: TourStep[] = [
     scroll: "center",
     title: () => "Orders, fills, certificates",
     body: (c) =>
-      `Your orders wait here until they fill, expire or you cancel them. Each fill opens a certificate of execution: the auction it cleared in and its one price${c.live ? ", checked against the venue's receipt chain" : ""}.`,
+      `${c.causal ? "Your orders wait here, sealed, until their auction runs." : "Your orders wait here until they fill, expire or you cancel them."} Each fill opens a certificate of execution: the auction it cleared in and its one price${c.live ? ", checked against the venue's receipt chain" : ""}.`,
     foot: (c) => (c.compact ? `Replay this tour from "About ${c.ticker} on Unison", below.` : `Replay this tour any time: ${c.shortcut}, then Take the tour.`),
   },
 ];

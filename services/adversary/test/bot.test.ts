@@ -69,6 +69,41 @@ describe("the adversary", () => {
     expect(orders).toHaveLength(4);
   });
 
+  it("keeps its own pace: one trade per gap, however often the market moves", async () => {
+    const s = { price: 30_000n, round: 7n, open: new Set<Address>(), ran: new Set<Address>() };
+    const { chain, orders } = fakeChain(s);
+    let t = 1_000_000;
+    const b = new Adversary({ chain, legs, thresholdBps: 25, qty: 10n, tickSize: 1n, slippageBps: 50, minGapSec: 1800, now: () => t, log: () => {} });
+    expect(await b.onPrice(0.0301)).toBe(true);
+    s.ran.add(UNISON).add(CONTROL);
+    await b.settle();
+    s.round = 8n;
+    t += 1_799_000;
+    expect(await b.onPrice(0.0302)).toBe(false); // a new round and a real move, but inside the gap
+    t += 1_000;
+    expect(await b.onPrice(0.0302)).toBe(true);
+    expect(orders).toHaveLength(4);
+  });
+
+  it("stops trading a leg whose challenge is over, and still settles what it has open there", async () => {
+    const s = { price: 30_000n, round: 7n, open: new Set<Address>(), ran: new Set<Address>() };
+    const { chain, orders, settled } = fakeChain(s);
+    const b = bot(chain);
+    await b.onPrice(0.0301);
+    b.retire("control");
+    s.ran.add(UNISON).add(CONTROL);
+    expect(await b.settle()).toBe(2);
+    expect(settled).toEqual([UNISON, CONTROL]);
+    s.round = 8n;
+    expect(await b.onPrice(0.0302)).toBe(true);
+    expect(orders.slice(2).map((o) => o.account)).toEqual([UNISON]);
+    b.retire("unison");
+    s.ran.add(UNISON);
+    await b.settle();
+    s.round = 9n;
+    expect(await b.onPrice(0.0303)).toBe(false); // nothing left to trade
+  });
+
   it("records each leg once its auction has run", async () => {
     const s = { price: 30_000n, round: 7n, open: new Set<Address>(), ran: new Set<Address>() };
     const { chain, settled } = fakeChain(s);

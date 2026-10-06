@@ -122,6 +122,8 @@ export interface Deployment {
   /** seconds an order must precede an observation to be in its auction (causal markets) */
   skewSec?: number;
   pythReference?: Address;
+  /** the standing challenge (contracts/src/challenge): one LatencyChallenge on a causal market, one on the control */
+  challenge?: { unison: Address; control: Address; start: number; end: number };
   markets: Record<string, MarketDeployment>;
   accounts?: Record<string, Address>;
   [token: string]: unknown;

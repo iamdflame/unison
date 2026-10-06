@@ -95,6 +95,16 @@ function vaultParams(v: number[] | undefined): VaultParams | null {
 
 export const marketByTicker = (ticker: string) => MARKETS.find((m) => m.ticker.toLowerCase() === ticker.toLowerCase());
 
+/** A deployment market's short name: the base ticker, with a control's note ("WMON · old rule" for "WMON/AUSD (old rule)"). */
+export function marketName(symbol: string): string {
+  const m = /^([^/\s]+)\/\S+(?:\s+\((.+)\))?$/.exec(symbol);
+  if (!m) return symbol;
+  return m[2] ? `${m[1]} · ${m[2]}` : m[1]!;
+}
+
+/** The spec a deployment market is shown with: a control is priced like the market it shadows. */
+export const specOfSymbol = (symbol: string) => MARKETS.find((s) => s.symbol === symbol.split(" ")[0]);
+
 /** A market's prices: one tick in dollars, the decimals prices print with, and tick → "$180.27". */
 export function priceFormat(spec: MarketSpec) {
   const unit = Number(spec.tickSize) / 1e6;

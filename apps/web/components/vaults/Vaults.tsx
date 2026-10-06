@@ -178,7 +178,7 @@ function QuoteGauge({ bid, ask, width }: { bid: number; ask: number; width: numb
 /** /vaults/[ticker]: the vault's quote as an instrument, what it holds and has earned, and how to join it. */
 export function VaultDetail({ ticker }: { ticker: string }) {
   const spec = marketByTicker(ticker)!;
-  const { value: m } = useMarket(ticker, (s) => ({ refTick: s.refTick, regime: s.regime.name, last: s.last?.tick ?? null }), shallowEqual, { book: false });
+  const { value: m } = useMarket(ticker, (s) => ({ refTick: s.refTick, regime: s.regime.name, last: s.last?.tick ?? null, causal: !!s.causal }), shallowEqual, { book: false });
   const vault = useVaultView(spec);
   const { unit } = priceFormat(spec);
   const p = spec.vault!;
@@ -196,7 +196,7 @@ export function VaultDetail({ ticker }: { ticker: string }) {
           <h1 className="text-display-m text-ink">{spec.ticker} vault</h1>
           <p className="text-lede mt-4 text-ink-2">Always-on liquidity for {spec.name}, priced against the reference every batch.</p>
         </div>
-        <RegimeBadge name={m.regime} bandBps={undefined} />
+        <RegimeBadge name={m.regime} bandBps={undefined} causal={m.causal} />
       </header>
 
       <section aria-labelledby="quote-title" className="mt-8 rounded-[var(--radius-xl)] bg-raised p-6 shadow-panel sm:p-8">

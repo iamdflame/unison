@@ -1,11 +1,14 @@
 "use client";
 
 import type { MarketSummary, TapeHealth } from "@unison/sdk";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { Address } from "viem";
 import { RegimeBadge } from "@/components/app/RegimeBadge";
-import { MARKETS, priceFormat, type MarketSpec } from "@/lib/content/markets";
+import { causalWait } from "@/lib/content/facts";
+import { MARKETS, marketName, priceFormat, specOfSymbol, type MarketSpec } from "@/lib/content/markets";
 import { shallowEqual } from "@/lib/store/createStore";
 import { useMarket, useVenue } from "@/lib/venue";
+import type { NetConfig } from "@/lib/venue/config";
 import { liveClients } from "@/lib/venue/live";
 
 type Level = "ok" | "slow" | "down";
@@ -31,6 +34,9 @@ async function probe<T>(url: string): Promise<Probe<T>> {
   }
 }
 
+/** A causal market (SPEC §7.4): its deployment record names the causal adapter as its reference. */
+const causalIn = (net: NetConfig | null, id: number) => !!net && Object.values(net.deployment.markets).some((d) => d.id === id && d.reference === "chainlink-causal");
+
 const ago = (ms: number) => (ms < 1500 ? "just now" : ms < 60_000 ? `${Math.round(ms / 1000)} s ago` : ms < 3_600_000 ? `${Math.round(ms / 60_000)} min ago` : `${Math.round(ms / 3_600_000)} h ago`);
 
 /** The venue's health, live: chain, indexer, relayer, reference relay, and every market's last clear. */
@@ -43,6 +49,13 @@ export function Status() {
   const [markets, setMarkets] = useState<MarketSummary[] | null>(null);
   /** per market: the oldest batch an order still waits in (null: nothing waiting) */
   const [waiting, setWaiting] = useState<Record<number, number | null>>({});
+  /**
+   * per causal market whose oldest waiting order Chainlink has already priced: the latest it can have reached the chain
+   * (unix ms). Waiting for Chainlink is the rule working; waiting after it is the keeper's delay.
+   */
+  const [pricedBy, setPricedBy] = useState<Record<number, number>>({});
+  /** when this page first saw each market's oldest batch priced: frequent observations must not hide a stalled keeper */
+  const firstSeen = useRef<Record<number, { batch: number; at: number }>>({});
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -58,8 +71,32 @@ export function Status() {
       const pend = ms
         ? await Promise.all(ms.map((m) => liveClients(net).tape.pending(m.id).then((p) => [m.id, p.orders.length ? Math.min(...p.orders.map((o) => o.batch)) : null] as const).catch(() => [m.id, null] as const)))
         : [];
+      // A causal market's orders wait for Chainlink's next observation by design. What counts is how long one made after
+      // the oldest order has been on chain without a clear: no longer than since this page first saw it, and no longer
+      // than since the latest observation landed (an observation lands about 13 s after it is made; 20 s bounds it).
+      const causalRef = net.deployment.causalReference as Address | undefined;
+      const skewSec = net.deployment.skewSec ?? 2;
+      const priced = causalRef
+        ? await Promise.all(
+            pend
+              .filter(([id, oldest]) => oldest !== null && causalIn(net, id))
+              .map(([id, oldest]) =>
+                Promise.all([liveClients(net).reader.blockTime(BigInt(oldest!)), liveClients(net).reader.reference(causalRef, BigInt(id))])
+                  .then(([sealedSec, r]) => {
+                    const observedSec = Number(r.publishTimeMs / 1000n);
+                    if (observedSec <= sealedSec + skewSec) return null;
+                    const seen = firstSeen.current[id];
+                    const at = seen?.batch === oldest ? seen.at : Date.now();
+                    firstSeen.current[id] = { batch: oldest!, at };
+                    return [id, Math.min(at, (observedSec + 20) * 1000)] as const;
+                  })
+                  .catch(() => null),
+              ),
+          )
+        : [];
       if (!alive) return;
       setWaiting(Object.fromEntries(pend));
+      setPricedBy(Object.fromEntries(priced.filter((o) => o !== null)));
       setTape(t.data && t.data.lagBlocks > 20 ? { ...t, level: "slow" } : t);
       setRelayer(r);
       setRelay(rl);
@@ -79,12 +116,18 @@ export function Status() {
   if (!net) return <SimulatedStatus />;
 
   const head = tape?.data?.head;
+  const causalMarket = (id: number) => causalIn(net, id);
+  const causalNames = (markets ?? []).filter((m) => causalMarket(m.id)).map((m) => marketName(m.symbol));
   // A quiet market may go minutes without a clear (the keeper only pays for one that trades or merges). Lagging
   // means orders waiting on batches the keeper should have cleared by now.
   const STALE_BLOCKS = 40;
+  // On a causal market that is an auction Chainlink has priced, on chain for over 45 s, still not cleared.
+  const CAUSAL_STALE_MS = 45_000;
   const lagging = (id: number) => {
     const oldest = waiting[id];
-    return head !== undefined && oldest !== null && oldest !== undefined && head - oldest > STALE_BLOCKS;
+    if (oldest === null || oldest === undefined) return false;
+    if (causalMarket(id)) return pricedBy[id] !== undefined && now - pricedBy[id] > CAUSAL_STALE_MS;
+    return head !== undefined && head - oldest > STALE_BLOCKS;
   };
   const issues = [tape, relayer, relay].filter((p) => p && p.level !== "ok").length + (markets ?? []).filter((m) => lagging(m.id)).length;
   const network = net.network === "mainnet" ? "Monad mainnet" : net.network === "testnet" ? "Monad testnet" : "the local devnet";
@@ -141,24 +184,32 @@ export function Status() {
             </thead>
             <tbody className="divide-y divide-line">
               {(markets ?? []).map((m) => {
-                const spec = MARKETS.find((s) => s.symbol === m.symbol);
+                const spec = specOfSymbol(m.symbol);
                 const { fmt } = spec ? priceFormat(spec) : { fmt: (t: number) => String(t) };
                 const last = m.lastPrint;
                 return (
                   <tr key={m.id}>
                     <th scope="row" className="px-6 py-3.5 font-semibold text-ink">
-                      {m.symbol.split("/")[0]}
+                      {marketName(m.symbol)}
                     </th>
                     <td className="px-4 py-3.5">
-                      <RegimeBadge name={m.halted ? "HALTED" : m.regime} plain />
+                      <RegimeBadge name={m.halted ? "HALTED" : m.regime} plain causal={causalMarket(m.id)} />
                     </td>
                     <td className="tnum px-4 py-3.5 text-right text-ink-2">
                       {lagging(m.id) ? (
                         <span className="inline-flex items-center gap-1.5 text-ink">
-                          <span aria-hidden className={`size-2 rounded-full ${LEVEL.slow.dot}`} /> Orders waiting {(head! - waiting[m.id]!).toLocaleString("en-US")} blocks
+                          <span aria-hidden className={`size-2 rounded-full ${LEVEL.slow.dot}`} />
+                          {causalMarket(m.id)
+                            ? `Priced by Chainlink ${ago(now - pricedBy[m.id]!)} or earlier; not cleared`
+                            : `Orders waiting ${(head! - waiting[m.id]!).toLocaleString("en-US")} blocks`}
                         </span>
                       ) : last ? (
-                        `#${last.upTo.toLocaleString("en-US")} · ${ago(now - last.ts)}`
+                        <>
+                          {`#${last.upTo.toLocaleString("en-US")} · ${ago(now - last.ts)}`}
+                          {causalMarket(m.id) && waiting[m.id] != null ? (
+                            <span className="block text-xs text-ink-3">{pricedBy[m.id] !== undefined ? "Priced by Chainlink, clearing" : "Orders sealed, waiting for Chainlink"}</span>
+                          ) : null}
+                        </>
                       ) : (
                         "Never"
                       )}
@@ -171,7 +222,12 @@ export function Status() {
             </tbody>
           </table>
         </div>
-        <p className="mt-4 text-sm text-ink-3">The keeper clears a market when orders are waiting and the auction would trade, so a quiet market prints less often than its cadence, and its last batch can be minutes old.</p>
+        <p className="mt-4 text-sm text-ink-3">
+          The keeper clears a market when orders are waiting and the auction would trade, so a quiet market prints less often than its cadence, and its last batch can be minutes old.
+          {causalNames.length
+            ? ` On ${causalNames.join(" and ")}, orders wait for Chainlink's next observation by design (typically ${causalWait("WMON/AUSD")?.p50 ?? "half a minute"} for MON); a market is flagged only once Chainlink has priced its waiting orders and 45 s pass without a clear.`
+            : null}
+        </p>
       </section>
     </>
   );

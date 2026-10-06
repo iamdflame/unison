@@ -41,14 +41,34 @@ const MEANS: Record<RegimeName, string> = {
   HALTED: "Trading is paused, as it is on the primary market. Cancel, claim and withdraw still work.",
 };
 
+/** On a causal market (SPEC §7.4) the reference's own clock sets the pace: an auction at each new Chainlink price. */
+const CAUSAL_MEANS: Partial<Record<RegimeName, string>> = {
+  LIVE: "Its market is open: each auction prices at Chainlink's first observation after its orders were sealed.",
+  EXTENDED: "Pre-market or after-hours: each auction prices at Chainlink's first observation after its orders were sealed.",
+  DISCOVERY: `No new Chainlink price: a call auction among traders every ${facts.discoveryBlocks} blocks, in a band around the last price that widens with time. The vault doesn't quote.`,
+};
+
 /**
  * `plain` is for tables, where every row would otherwise carry the same filled chip: the glyph and the words only,
  * in ink (a halt keeps its colour, since it is the exception the table is read for).
  */
-export function RegimeBadge({ name, bandBps, plain = false, className = "" }: { name: RegimeName; bandBps?: number; plain?: boolean; className?: string }) {
+export function RegimeBadge({
+  name,
+  bandBps,
+  plain = false,
+  causal = false,
+  className = "",
+}: {
+  name: RegimeName;
+  bandBps?: number;
+  plain?: boolean;
+  /** the market prices at the first Chainlink observation after its orders (SPEC §7.4) */
+  causal?: boolean;
+  className?: string;
+}) {
   const look = plain ? `text-sm font-medium ${name === "HALTED" ? "text-halt" : "text-ink"}` : `rounded-[var(--radius-xs)] px-2 py-1 text-xs font-semibold ${TONE[name]}`;
   return (
-    <span title={MEANS[name]} className={`inline-flex items-center gap-1.5 ${look} ${className}`}>
+    <span title={(causal && CAUSAL_MEANS[name]) || MEANS[name]} className={`inline-flex items-center gap-1.5 ${look} ${className}`}>
       <Glyph name={name} />
       {REGIME_LABEL[name]}
       {bandBps !== undefined ? <span className={`tnum font-normal ${plain ? "text-ink-2" : ""}`}>{bandLabel(bandBps)}</span> : null}

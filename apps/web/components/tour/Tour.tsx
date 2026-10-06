@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import { createPortal } from "react-dom";
+import { causalWait } from "@/lib/content/facts";
 import { marketByTicker } from "@/lib/content/markets";
 import { demoMarket, PAPER_QUOTE } from "@/lib/demo/engine";
 import { BEAT_MS } from "@/lib/motion/tokens";
@@ -160,6 +161,7 @@ export function Tour() {
   const market = useMemo(() => (v.mode === "live" && v.net ? (liveMarket(spec, v.net) ?? demoMarket(spec)) : demoMarket(spec)), [spec, v.mode, v.net]);
   const live = v.mode === "live" && market !== demoMarket(spec);
   const regime = useStore(market.store, (s) => s.regime.name);
+  const causal = useStore(market.store, (s) => !!s.causal);
   const signedIn = !!useStore(identity, (x) => x);
   const plan = useMemo(() => stepsFor(compact), [compact]);
   const index = Math.min(step, plan.length - 1);
@@ -174,6 +176,8 @@ export function Tour() {
     faucet: !!v.net?.faucet,
     signedIn,
     regime,
+    causal,
+    wait: causal ? (causalWait(spec.symbol)?.p50 ?? null) : null,
     closedWho: stock ? "Wall Street" : spec.kind === "fx" ? "The currency market" : "Its reference market",
     discCadence: spec.regime.discCadence,
     discSeconds: (spec.regime.discCadence * BEAT_MS) / 1000,

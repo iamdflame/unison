@@ -115,16 +115,29 @@ export class LightReader {
     this.fetchImpl = fetchImpl;
   }
 
-  private async call(data: Hex, to: Address = this.exchange): Promise<Hex> {
+  private async rpc<T>(method: string, params: unknown[]): Promise<T> {
     const res = await this.fetchImpl(this.rpcUrl, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: ++this.id, method: "eth_call", params: [{ to, data }, "latest"] }),
+      body: JSON.stringify({ jsonrpc: "2.0", id: ++this.id, method, params }),
     });
-    if (!res.ok) throw new Error(`eth_call failed: HTTP ${res.status}`);
-    const body = (await res.json()) as { result?: Hex; error?: { message?: string } };
-    if (body.error || typeof body.result !== "string") throw new Error(`eth_call failed: ${body.error?.message ?? "no result"}`);
+    if (!res.ok) throw new Error(`${method} failed: HTTP ${res.status}`);
+    const body = (await res.json()) as { result?: T | null; error?: { message?: string } };
+    if (body.error || body.result === undefined || body.result === null) throw new Error(`${method} failed: ${body.error?.message ?? "no result"}`);
     return body.result;
+  }
+
+  private async call(data: Hex, to: Address = this.exchange): Promise<Hex> {
+    const r = await this.rpc<Hex>("eth_call", [{ to, data }, "latest"]);
+    if (typeof r !== "string") throw new Error("eth_call failed: no result");
+    return r;
+  }
+
+  /** A block's timestamp in seconds: when the orders it holds were sealed. */
+  async blockTime(n: bigint): Promise<number> {
+    const b = await this.rpc<{ timestamp?: unknown }>("eth_getBlockByNumber", [`0x${n.toString(16)}`, false]);
+    if (typeof b.timestamp !== "string") throw new Error("eth_getBlockByNumber failed: no timestamp");
+    return Number(BigInt(b.timestamp));
   }
 
   /** Resting quantity per tick, lo..hi inclusive (at most 4,096 ticks). */

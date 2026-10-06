@@ -73,11 +73,13 @@ describe("the tour's stops", () => {
     expect(compact).toEqual([null, "price", "regime", "strip", "chart", "thumb", "account", "activity"]);
   });
   it("say what is true for every regime, venue and layout", () => {
-    // the simulation, the testnet (test money, a faucet) and the mainnet beta (real money, no faucet)
+    // the simulation, the testnet (test money, a faucet) and the mainnet beta (real money, no faucet), on its causal
+    // markets (each auction at Chainlink's next observation) and on the old-rule control
     const venues = [
-      { live: false, mainnet: false, network: null, faucet: false },
-      { live: true, mainnet: false, network: "Monad testnet", faucet: true },
-      { live: true, mainnet: true, network: "Monad mainnet", faucet: false },
+      { live: false, mainnet: false, network: null, faucet: false, causal: false, wait: null },
+      { live: true, mainnet: false, network: "Monad testnet", faucet: true, causal: false, wait: null },
+      { live: true, mainnet: true, network: "Monad mainnet", faucet: false, causal: true, wait: "34 s" },
+      { live: true, mainnet: true, network: "Monad mainnet", faucet: false, causal: false, wait: null },
     ];
     for (const regime of ["LIVE", "EXTENDED", "DISCOVERY", "REOPENING", "HALTED"] as const)
       for (const venue of venues)
@@ -90,6 +92,9 @@ describe("the tour's stops", () => {
               if (!venue.live) expect(text, s.id).not.toMatch(/receipt chain|test funds/);
               // real money is never called test money, paper or a simulation
               if (venue.mainnet) expect(text, s.id).not.toMatch(/test (money|funds)|paper|simulat|mock/i);
+              // a causal market never promises a per-block auction or a cancel: its orders are sealed until Chainlink prices them
+              if (venue.causal) expect(text, `${s.id} ${regime}`).not.toMatch(/every block|0\.3 s|you cancel/);
+              if (venue.causal && s.id === "regime" && (regime === "LIVE" || regime === "EXTENDED")) expect(text).toMatch(/Chainlink.*typically 34 s/);
             }
           }
   });

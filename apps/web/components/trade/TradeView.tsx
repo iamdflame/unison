@@ -115,7 +115,7 @@ export function TradeView({ ticker }: { ticker: string }) {
               <div data-tour="regime">
                 <dt className="text-xs text-ink-3">Regime</dt>
                 <dd>
-                  <RegimeBadge name={m.regime.name} bandBps={m.regime.bandBps} />
+                  <RegimeBadge name={m.regime.name} bandBps={m.regime.bandBps} causal={!!m.causal} />
                 </dd>
               </div>
               <div>

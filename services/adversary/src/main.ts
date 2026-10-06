@@ -2,7 +2,8 @@
  * The house adversary process (see bot.ts). Env:
  *   RPC_URL, DEPLOYMENT (deployments/monad-mainnet.json), ADVERSARY_PRIVATE_KEY,
  *   THRESHOLD_BPS (25: the WMON vaults' 20 bp spread plus the 3 bp fee, and a margin), QTY (10 WMON a leg),
- *   SLIPPAGE_BPS (50), SCORE_EVERY_SEC (600), DRY_RUN (0: 1 logs signals without trading), PORT (8793)
+ *   SLIPPAGE_BPS (50), MIN_GAP_SEC (1800: at most one trade per half hour, since each costs the keeper a clear per leg),
+ *   SCORE_EVERY_SEC (600), DRY_RUN (0: 1 logs signals without trading), PORT (8793)
  *
  * GET /v1/score serves the latest scores (both pots, both accounts, every claim): public data, recomputable by anyone
  * from the chain with the SDK's scoreAccount, which is what this serves.
@@ -96,6 +97,7 @@ export async function startAdversary() {
     qty,
     tickSize: 1n,
     slippageBps: Number(env("SLIPPAGE_BPS", "50")),
+    minGapSec: Number(env("MIN_GAP_SEC", "1800")),
   });
 
   // the exchange price: Coinbase's MON-USD ticker, Kraken's MON/USD as a second source
@@ -130,6 +132,8 @@ export async function startAdversary() {
           pub.readContract({ address: terms.pot, abi: erc20Abi, functionName: "balanceOf", args: [challenge] }),
           pub.readContract({ address: challenge, abi: latencyChallengeAbi, functionName: "paid" }),
         ]);
+        // a paid or ended challenge's score is final: trading there would only spend the keeper's gas
+        if (paid || Date.now() / 1000 > Number(terms.end)) bot.retire(name);
         out.push({
           name,
           challenge,
@@ -160,7 +164,7 @@ export async function startAdversary() {
     if (req.url?.startsWith("/v1/score")) {
       res.end(
         JSON.stringify(
-          { adversary: account.address, thresholdBps: bot.cfg.thresholdBps, stats: bot.stats, ...board },
+          { adversary: account.address, thresholdBps: bot.cfg.thresholdBps, minGapSec: bot.cfg.minGapSec, active: bot.active.map((l) => l.name), stats: bot.stats, ...board },
           (_k, v: unknown) => (typeof v === "bigint" ? v.toString() : v),
         ),
       );
@@ -173,7 +177,7 @@ export async function startAdversary() {
   server.listen(Number(env("PORT", "8793")));
   const scoreTimer = setInterval(() => void score(), Number(env("SCORE_EVERY_SEC", "600")) * 1000);
   void score();
-  log({ msg: "adversary up", address: account.address, legs, dry, thresholdBps: bot.cfg.thresholdBps, qty });
+  log({ msg: "adversary up", address: account.address, legs, dry, thresholdBps: bot.cfg.thresholdBps, minGapSec: bot.cfg.minGapSec, qty });
   return {
     bot,
     stop: () => {

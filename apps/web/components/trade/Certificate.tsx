@@ -2,6 +2,7 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { X } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import { Lockup } from "@/components/brand/Lockup";
 import { MARK_PARTS } from "@/components/brand/geometry";
@@ -245,7 +246,7 @@ export function CertificateDialog() {
                       ],
                       ["Your limit", `${data.side === "buy" ? "≤" : "≥"} ${fmt(data.limitTick)}`],
                       [data.closed ? "Last close" : "Reference", `${fmt(data.refTick)} · ${vsRef >= 0 ? "+" : "−"}${Math.abs(vsRef).toFixed(1)} bp`],
-                      ["Auction", data.closed ? `Call, every ${data.discCadence} blocks` : "Every block"],
+                      ["Auction", data.closed ? `Call, every ${data.discCadence} blocks` : data.causal ? "At Chainlink's next price" : "Every block"],
                       ["Notional", money(notional)],
                       ["Fee", `${money(fee)} · ${data.feeBps} bp`],
                       ...(data.side === "buy" ? [["Reserve returned", money(Math.max(0, returned))]] : []),
@@ -277,6 +278,14 @@ export function CertificateDialog() {
                                 : data.live
                                   ? ". Verifying…"
                                   : "."}
+                          {data.live ? (
+                            <>
+                              {" "}
+                              <Link href={data.live.page} className="text-ink underline decoration-line-strong underline-offset-2 hover-fine:decoration-ink">
+                                {data.causal ? "See the three times" : "Open the receipt"}
+                              </Link>
+                            </>
+                          ) : null}
                         </>
                       ) : (
                         "Simulation: cleared by the real clearing engine in your browser."

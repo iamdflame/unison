@@ -56,3 +56,15 @@ describe("regimeNow", async () => {
     expect(sunday).toBeLessThanOrEqual(nvda.regime.discCapBps);
   });
 });
+
+describe("deployment market names", async () => {
+  const { marketName, specOfSymbol } = await import("../lib/content/markets.ts");
+  it("name the control as the old rule, and price it like the market it shadows", () => {
+    expect(marketName("WMON/AUSD (old rule)")).toBe("WMON · old rule");
+    expect(marketName("aNVDA/AUSD")).toBe("aNVDA");
+    expect(marketName("odd")).toBe("odd");
+    expect(specOfSymbol("WMON/AUSD (old rule)")?.ticker).toBe("WMON");
+    expect(specOfSymbol("aNVDA/AUSD")?.ticker).toBe("aNVDA");
+    expect(specOfSymbol("nothing/AUSD")).toBeUndefined();
+  });
+});

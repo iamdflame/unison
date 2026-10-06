@@ -52,7 +52,7 @@ async function load() {
   const board = url
     ? ((await fetch(`${url}/v1/score`, { next: { revalidate } })
         .then((r) => (r.ok ? r.json() : null))
-        .catch(() => null)) as { adversary: Address; thresholdBps: number; updatedAt: string | null; legs: Leg[] } | null)
+        .catch(() => null)) as { adversary: Address; thresholdBps: number; minGapSec?: number; updatedAt: string | null; legs: Leg[] } | null)
     : null;
   return { net, ch, terms, pots, paid, board };
 }
@@ -214,8 +214,10 @@ export default async function ChallengePage() {
             <p className="mt-3 max-w-2xl text-ink-2">
               It watches MON on Coinbase and Kraken. When the price has moved more than{" "}
               {r.board?.thresholdBps ?? 25} bp from Chainlink&apos;s last landed round (the vaults&apos; spread and fee, and a
-              margin), it trades toward the move on both markets at once. It counts as the team&apos;s in every tally of
-              outside demand, and it may claim, so the definition is shown to pay where there is an edge.
+              margin), it trades toward the move on both markets at once
+              {r.board?.minGapSec ? `, at most once every ${Math.round(r.board.minGapSec / 60)} minutes (each trade pays the keeper for a clear on each market)` : ""}. It
+              counts as the team&apos;s in every tally of outside demand, and it may claim, so the definition is shown to pay
+              where there is an edge. Once a challenge has paid out, it stops trading that market.
               {r.board?.adversary ? <> Its address is {link(r.board.adversary)}.</> : null}{" "}
               <a href={`${site.repo}/tree/main/services/adversary`} className="text-ink underline decoration-line-strong underline-offset-4">
                 Its source

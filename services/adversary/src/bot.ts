@@ -42,6 +42,13 @@ export interface AdversaryConfig {
   tickSize: bigint;
   /** how far past the exchange price the limit goes, so a real move fills */
   slippageBps: number;
+  /**
+   * at most one trade per this many seconds. Every trade costs the keeper one clear per leg, and Monad charges the gas
+   * limit (about 0.3 MON a clear), so the house sets its own pace instead of firing at every move
+   */
+  minGapSec?: number;
+  /** the clock (ms), for tests */
+  now?: () => number;
   log?: (m: Record<string, unknown>) => void;
 }
 
@@ -59,6 +66,9 @@ export class Adversary {
   private busy = false;
   /** the Chainlink round the last trade was made against: one trade per move */
   private lastRound = -1n;
+  private lastFiredAt = -Infinity;
+  /** legs whose challenge is over (paid, or past its end): their scoreboard is final, so no more trades there */
+  private readonly retired = new Set<string>();
   readonly stats = { fired: 0, settled: 0, errors: 0 };
 
   constructor(cfg: AdversaryConfig) {
@@ -75,11 +85,26 @@ export class Adversary {
    * A new exchange price (USD per MON). Trades on both legs at once if the price has moved past the threshold from
    * Chainlink's latest landed round, no order is open, and this round hasn't been traded against already.
    */
+  /** Stops trading a leg (its challenge has paid out or ended). Open orders there are still settled. */
+  retire(name: Leg["name"]) {
+    if (this.retired.has(name)) return;
+    this.retired.add(name);
+    this.log({ action: "retired", leg: name });
+  }
+
+  get active(): readonly Leg[] {
+    return this.cfg.legs.filter((l) => !this.retired.has(l.name));
+  }
+
   async onPrice(usd: number): Promise<boolean> {
     if (this.busy) return false;
+    const now = (this.cfg.now ?? Date.now)();
+    if (now - this.lastFiredAt < (this.cfg.minGapSec ?? 0) * 1000) return false;
+    const legs = this.active;
+    if (!legs.length) return false;
     this.busy = true;
     try {
-      const { chain, legs } = this.cfg;
+      const { chain } = this.cfg;
       const open = await Promise.all(legs.map((l) => chain.orderOpen(l.account)));
       if (open.some(Boolean)) return false;
       const { price, round } = await chain.latest();
@@ -90,6 +115,7 @@ export class Adversary {
       const limitUsd = usd * (1 + ((side === 0 ? 1 : -1) * this.cfg.slippageBps) / 10_000);
       const tick = BigInt(Math.round((limitUsd * 1e6) / Number(this.cfg.tickSize)));
       this.lastRound = round;
+      this.lastFiredAt = now;
       this.stats.fired++;
       const txs = await Promise.all(legs.map((l) => chain.order(l.account, side, tick, this.cfg.qty)));
       this.log({

@@ -139,4 +139,19 @@ describe("LightReader", () => {
     const { reader } = rpc(() => ({ error: "execution reverted" }));
     await expect(reader.balanceOf(me, ausd)).rejects.toThrow("execution reverted");
   });
+
+  it("reads a block's timestamp, and refuses a block the node doesn't have", async () => {
+    const seen: unknown[] = [];
+    const fetchImpl = (async (_url: string, init: RequestInit) => {
+      const req = JSON.parse(String(init.body)) as { id: number; method: string; params: [string, boolean] };
+      seen.push(req.params);
+      expect(req.method).toBe("eth_getBlockByNumber");
+      const result = req.params[0] === "0x69c4b1e" ? { number: req.params[0], timestamp: "0x68e3a1f5" } : null;
+      return new Response(JSON.stringify({ jsonrpc: "2.0", id: req.id, result }));
+    }) as typeof fetch;
+    const reader = new LightReader("http://rpc.test", exchange, fetchImpl);
+    expect(await reader.blockTime(110_906_142n)).toBe(0x68e3a1f5);
+    expect(seen[0]).toEqual(["0x69c4b1e", false]);
+    await expect(reader.blockTime(1n)).rejects.toThrow("no result");
+  });
 });

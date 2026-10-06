@@ -2,7 +2,7 @@
 
 import { Check, Copy } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { marketByTicker } from "@/lib/content/markets";
+import { marketByTicker, marketName } from "@/lib/content/markets";
 import { demoMarket } from "@/lib/demo/engine";
 import { useVenue } from "@/lib/venue";
 import { liveClients } from "@/lib/venue/live";
@@ -209,10 +209,15 @@ export function Contracts() {
     ["Exchange", d.exchange],
     ...(d.gateway ? ([["Order gateway", d.gateway]] as [string, string][]) : []),
     ...(d.operatorReference ? ([["Signed reference", d.operatorReference]] as [string, string][]) : []),
-    ...(d.chainlinkReference ? ([["Chainlink reference", d.chainlinkReference]] as [string, string][]) : []),
-    ...Object.values(d.markets).flatMap((m) =>
-      m.vault ? ([[`${m.symbol.split("/")[0]} vault`, m.vault]] as [string, string][]) : [],
-    ),
+    ...(d.causalReference ? ([["Causal reference (Chainlink, by observation time)", d.causalReference]] as [string, string][]) : []),
+    ...(d.chainlinkReference ? ([[d.causalReference ? "Chainlink reference (old rule, the control)" : "Chainlink reference", d.chainlinkReference]] as [string, string][]) : []),
+    ...Object.values(d.markets).flatMap((m) => (m.vault ? ([[`${marketName(m.symbol)} vault`, m.vault]] as [string, string][]) : [])),
+    ...(d.challenge
+      ? ([
+          ["Challenge on Unison", d.challenge.unison],
+          ["Challenge on the control", d.challenge.control],
+        ] as [string, string][])
+      : []),
     ...Object.values(d.tokens ?? {}).map((t) => [t.symbol, t.address] as [string, string]),
   ];
   return (
