@@ -1,4 +1,4 @@
-import { type Address, encodeFunctionData, erc20Abi, type Hex, parseEventLogs, type PublicClient } from "viem";
+import { type Address, encodeFunctionData, erc20Abi, type Hex, parseAbi, parseEventLogs, type PublicClient } from "viem";
 import { unisonExchangeAbi } from "@unison/sdk/abis/index.ts";
 import { UnisonError, type Writer } from "./chain.ts";
 import type { MarketState } from "./markets.ts";
@@ -219,11 +219,41 @@ export async function balances(client: PublicClient, account: Address) {
 }
 
 /** Approves the exchange for exactly `amount` if needed, then deposits it to the agent's Unison balance. */
+const wmonAbi = parseAbi(["function deposit() payable"]);
+/** MON kept back from wrapping for the transactions that follow: Monad charges the gas limit, a few hundredths each. */
+const GAS_RESERVE = 500_000_000_000_000_000n;
+
+/**
+ * Before a WMON deposit, wraps exactly the shortfall from the wallet's MON (WMON.deposit), keeping half a MON for gas.
+ * Any other token must already be in the wallet.
+ */
+export async function ensureInWallet(w: Writer, token: Token, need: bigint): Promise<Hex | null> {
+  const have = await w.client.readContract({ address: token.address, abi: erc20Abi, functionName: "balanceOf", args: [w.account] });
+  if (have >= need) return null;
+  if (token.symbol !== "WMON") {
+    throw new UnisonError("UNISON_WALLET_SHORT", `the wallet has ${fromUnits(have, token.decimals)} ${token.symbol}`, `Fund the agent wallet with ${token.symbol} on Monad first.`);
+  }
+  const short = need - have;
+  const mon = await w.client.getBalance({ address: w.account });
+  if (mon < short + GAS_RESERVE) {
+    throw new UnisonError("UNISON_WALLET_SHORT", `the wallet has ${fromUnits(have, 18)} WMON and ${fromUnits(mon, 18, 6)} MON; wrapping ${fromUnits(short, 18)} MON would leave too little for gas`, "Fund the agent wallet with more MON on Monad, or deposit less.");
+  }
+  const shown = fromUnits(short, 18);
+  const sent = await w.send({
+    to: token.address,
+    data: encodeFunctionData({ abi: wmonAbi, functionName: "deposit" }),
+    value: short,
+    summary: `Unison: wrap ${shown} MON into WMON for a deposit`,
+    details: { amount: `${shown} MON`, contract: token.address },
+  });
+  return sent.hash;
+}
+
 export async function deposit(w: Writer, token: Token, amount: string) {
   const v = toUnits(amount, token.decimals);
-  const have = await w.client.readContract({ address: token.address, abi: erc20Abi, functionName: "balanceOf", args: [w.account] });
-  if (have < v) throw new UnisonError("UNISON_WALLET_SHORT", `the wallet has ${fromUnits(have, token.decimals)} ${token.symbol}`, `Fund the agent wallet with ${token.symbol} on Monad first.`);
   const txs: Hex[] = [];
+  const wrapped = await ensureInWallet(w, token, v);
+  if (wrapped) txs.push(wrapped);
   const allowance = await w.client.readContract({ address: token.address, abi: erc20Abi, functionName: "allowance", args: [w.account, exchange] });
   if (allowance < v) {
     const a = await w.send({

@@ -40,7 +40,7 @@ An agent that trades on a venue priced by an oracle can be sniped. A faster bot 
 | `unison quote <market> <side> <qty>` | The limit, what the order locks, the fee; before signing anything | none |
 | `unison receipt <tx \| link \| market upTo>` | Checks an auction from the chain: the receipt hash, and the price's place in Chainlink's history | none |
 | `unison balance` | Wallet and Unison balances, MON for gas, open order slots | `wallet-read` |
-| `unison deposit <amount> [token]` | Approves exactly that amount, then deposits it to the Unison balance | `wallet-read`, `wallet-submit` |
+| `unison deposit <amount> [token]` | Approves exactly that amount, then deposits it to the Unison balance. For WMON, first wraps any shortfall from the wallet's MON, keeping half a MON for gas | `wallet-read`, `wallet-submit` |
 | `unison order <market> <side> <qty>` | Seals an order, waits for its auction, settles it, verifies the receipt | `wallet-read`, `wallet-submit` |
 | `unison claim` | Claims settled orders the keeper hasn't | `wallet-read`, `wallet-submit` |
 | `unison withdraw <amount\|all> [token]` | Back to the wallet | `wallet-read`, `wallet-submit` |

@@ -18,7 +18,7 @@ All commands are `mm unison …`. Add `--json` and read the fields named below. 
    - `tokens[].onUnison` is what orders can use.
 
    An order trades only from `onUnison`.
-3. If `onUnison` is short: `mm unison deposit <amount> AUSD --json`. It approves exactly that amount, never more.
+3. If `onUnison` is short: `mm unison deposit <amount> AUSD --json`, or `… WMON`. It approves exactly that amount, never more. A WMON deposit first wraps any shortfall from the wallet's MON, keeping half a MON for gas, so a wallet holding only MON can sell WMON.
 4. `mm unison quote <market> <buy|sell> <qty> --json`:
    - `limit` is the worst price the order accepts;
    - `locks` is what the order holds until its auction runs;

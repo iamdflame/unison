@@ -10,7 +10,7 @@ const inputs = { amount: amountInput(0, "How much to put in the challenge accoun
 type Result = Awaited<ReturnType<typeof fund>>;
 
 export default class ChallengeFund extends PluginCommand<Result> {
-  static override description = "Moves tokens from the agent wallet into its challenge account's Unison balance, approving the account for exactly that amount.";
+  static override description = "Moves tokens from the agent wallet into its challenge account's Unison balance, approving the account for exactly that amount. WMON is wrapped from the wallet's MON if it falls short.";
   static override examples = ["<%= config.bin %> unison challenge fund 2", "<%= config.bin %> unison challenge fund 30 WMON --rule old"];
   static override flags = schemaToFlags(inputs);
   static override args = schemaToArgs(inputs);

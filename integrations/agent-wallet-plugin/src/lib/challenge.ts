@@ -3,7 +3,7 @@ import { challengeAccountAbi, latencyChallengeAbi, unisonExchangeAbi } from "@un
 import { challengeTerms, scoreAccount } from "@unison/sdk/challenge.ts";
 import { explainRevert, UnisonError, type Writer } from "./chain.ts";
 import { readMarket } from "./markets.ts";
-import { planOrder, type Side, sideName } from "./trading.ts";
+import { ensureInWallet, planOrder, type Side, sideName } from "./trading.ts";
 import { fromUnits, toUnits } from "./units.ts";
 import { challenges, exchange, markets, type Token, tokens } from "./venue.ts";
 
@@ -65,6 +65,8 @@ export async function fund(w: Writer, rule: Rule, token: Token, amount: string) 
   const account = await requireAccount(w, rule);
   const v = toUnits(amount, token.decimals);
   const txs: Hex[] = [];
+  const wrapped = await ensureInWallet(w, token, v);
+  if (wrapped) txs.push(wrapped);
   const allowance = await w.client.readContract({ address: token.address, abi: erc20Abi, functionName: "allowance", args: [w.account, account] });
   if (allowance < v) {
     txs.push(

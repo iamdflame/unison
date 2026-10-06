@@ -111,6 +111,34 @@ describe.skipIf(!runs)("the write paths, on an anvil fork of Monad mainnet", () 
     expect(await client.readContract({ address: opened.account, abi: challengeAccountAbi, functionName: "orderOpen" })).toBe(true);
   });
 
+  it("wraps exactly the missing MON when a WMON deposit needs more than the wallet holds", async () => {
+    // the agent holds 20 WMON: a 25 WMON deposit wraps the other 5 from its MON, then deposits all 25
+    expect(await client.readContract({ address: WMON.address, abi: erc20Abi, functionName: "balanceOf", args: [AGENT] })).toBe(parseEther("20"));
+    const onUnison = await venueBalance(client, AGENT, WMON);
+    const r = await deposit(w, WMON, "25");
+    expect(r.transactions).toHaveLength(3); // wrap, approve, deposit
+    expect(await venueBalance(client, AGENT, WMON)).toBe(onUnison + parseEther("25"));
+    expect(await client.readContract({ address: WMON.address, abi: erc20Abi, functionName: "balanceOf", args: [AGENT] })).toBe(0n);
+  });
+
+  it("refuses to wrap MON the wallet needs for gas", async () => {
+    const poor = "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC" as const; // anvil's third account
+    await client.request({ method: "anvil_setBalance" as never, params: [poor, "0xDE0B6B3A7640000"] as never }); // 1 MON
+    const wallet = createWalletClient({ transport: http(LOCAL) });
+    const p: Writer = {
+      client,
+      account: poor,
+      async send(call) {
+        const hash = await wallet.sendTransaction({ account: poor, chain: null, to: call.to, data: call.data, value: call.value });
+        return { hash, receipt: await client.waitForTransactionReceipt({ hash }) };
+      },
+    };
+    const e = await deposit(p, WMON, "0.8").catch((x: UnisonError) => x);
+    expect(e).toBeInstanceOf(UnisonError);
+    expect((e as UnisonError).code).toBe("UNISON_WALLET_SHORT");
+    expect(await client.getBalance({ address: poor })).toBe(parseEther("1"));
+  });
+
   it("withdraws what isn't locked", async () => {
     const left = await venueBalance(client, AGENT, AUSD);
     const r = await withdraw(w, AUSD, "all");

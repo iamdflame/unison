@@ -11,7 +11,7 @@ type Result = Awaited<ReturnType<typeof deposit>>;
 
 export default class UnisonDeposit extends PluginCommand<Result> {
   static override description =
-    "Deposits tokens from the agent wallet to its Unison balance, which orders trade from. Approves the exchange for exactly that amount, never more.";
+    "Deposits tokens from the agent wallet to its Unison balance, which orders trade from. Approves the exchange for exactly that amount, never more. A WMON deposit wraps the wallet's MON first if its WMON falls short.";
   static override examples = ["<%= config.bin %> unison deposit 2", "<%= config.bin %> unison deposit 10 WMON"];
   static override flags = schemaToFlags(inputs);
   static override args = schemaToArgs(inputs);
