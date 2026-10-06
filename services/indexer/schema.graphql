@@ -1,0 +1,65 @@
+# A standing challenge: one LatencyChallenge contract on a market.
+type Challenge {
+  id: ID! # the LatencyChallenge address, lowercase
+  rule: String! # "causal" (Unison) or "old" (the control)
+  paid: Boolean!
+  claimedBy: String
+  claimTx: String
+  accounts: [Account!]! @derivedFrom(field: "challenge")
+}
+
+# A challenger's account (a ChallengeAccount contract), scored as LatencyChallenge.edgeOf scores it.
+type Account {
+  id: ID! # the ChallengeAccount address, lowercase
+  challenge: Challenge!
+  owner: String!
+  orders: Int!
+  fills: Int! # recorded fills
+  counted: Int! # fills inside the challenge window, marked so far
+  pendingMarks: Int! # fills inside the window still waiting for their markout observation
+  edge: BigInt! # quote units (AUSD, 6 decimals) after fees, summed over counted fills
+  notional: BigInt! # quote units, summed over counted fills
+  edgeBps: Float! # edge / notional × 10,000
+  lastPlacedAt: BigInt!
+  fillList: [Fill!]! @derivedFrom(field: "account")
+}
+
+# One recorded fill, and its markout once Chainlink has observed 60 s or more after the order.
+type Fill {
+  id: ID! # account-index
+  account: Account!
+  index: Int!
+  placedAt: BigInt!
+  side: Int! # 0 buy, 1 sell
+  base: BigInt!
+  quote: BigInt!
+  inWindow: Boolean!
+  pending: Boolean! @index
+  markRound: BigInt
+  markObservedAt: BigInt
+  markPrice: BigInt
+  edge: BigInt
+}
+
+# A MON/USD observation: its time is the one inside the report Chainlink's quorum signed (startedAt on the proxy).
+type Observation {
+  id: ID! # aggregator round id
+  answer: BigInt!
+  observedAt: BigInt!
+  minute: BigInt! @index # observedAt / 60, so a late fill can find its markout without scanning every round
+}
+
+# An AUSD/USD round, for the quote in force at each MON/USD observation.
+type QuoteRound {
+  id: ID! # aggregator round id
+  answer: BigInt!
+  observedAt: BigInt!
+  previous: String # the round before it, for walking back
+}
+
+# Singletons: the newest MON/USD observation ("base") and the newest AUSD/USD round ("quote").
+type Head {
+  id: ID!
+  round: String!
+  observedAt: BigInt!
+}

@@ -1,0 +1,42 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+# Unison's standing challenge on Monad mainnet (chain 143), indexed with Envio HyperIndex (HyperSync:
+# https://monad.hypersync.xyz). Every challenge account, every fill, marked to Chainlink exactly as
+# LatencyChallenge.edgeOf marks it: the first MON/USD observation at least 60 s after the order, over the AUSD/USD
+# round in force at that observation.
+name: unison-challenge
+description: Every standing-challenge account on Unison and its edge, marked to Chainlink as the contract marks it.
+field_selection:
+  transaction_fields:
+    - hash
+contracts:
+  - name: LatencyChallenge
+    events:
+      - event: Opened(address indexed owner, address account)
+      - event: Claimed(address indexed account, address indexed owner, uint256 fills, int256 edge, uint256 notional, uint256 amount)
+  - name: ChallengeAccount
+    events:
+      - event: OrderSent(uint256 slot, uint8 side, uint256 tick, uint256 qty, uint64 placedAt)
+      - event: FillRecorded(uint256 indexed index, uint64 placedAt, uint8 side, uint128 base, uint128 quote)
+  - name: MonUsdAggregator
+    events:
+      - event: NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, address transmitter, uint32 observationsTimestamp, int192[] observations, bytes observers, int192 juelsPerFeeCoin, bytes32 configDigest, uint40 epochAndRound)
+  - name: AusdUsdAggregator
+    events:
+      - event: NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, address transmitter, uint32 observationsTimestamp, int192[] observations, bytes observers, int192 juelsPerFeeCoin, bytes32 configDigest, uint40 epochAndRound)
+chains:
+  - id: 143
+    start_block: 111054183
+    contracts:
+      - name: LatencyChallenge
+        address:
+          - 0xDcD3E86518db6A40C4feBa576efff598cA3B90d1 # on Unison's causal WMON market
+          - 0x5Ce9D9f491E2d16c94F56eD09BEa23e7109976e9 # on the old-rule control
+      # each account is created by LatencyChallenge.open and registered from its Opened event
+      - name: ChallengeAccount
+      # the aggregators behind the MON/USD (0xBcD7…22fb) and AUSD/USD (0xE207…9e13) proxies, phase 1
+      - name: MonUsdAggregator
+        address: 0x2A347b30e1DA22Ec136142cdA88Bec59fDB6e9d3
+      - name: AusdUsdAggregator
+        address: 0x7A0eC994Daec8DC342C101e9Bd5337A14FB39001
+        # the AUSD/USD round in force at the window's start can be older than the window
+        start_block: 110000000

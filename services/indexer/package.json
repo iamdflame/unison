@@ -1,0 +1,21 @@
+{
+  "name": "@unison/indexer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Envio HyperIndex on Monad mainnet: every standing-challenge account and its fills, marked to Chainlink as LatencyChallenge.edgeOf marks them.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "codegen": "envio codegen",
+    "dev": "envio dev",
+    "start": "envio start",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "envio": "3.14.0"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}

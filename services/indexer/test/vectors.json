@@ -1,0 +1,146 @@
+[
+  {
+    "rule": "causal",
+    "challenge": "0xDcD3E86518db6A40C4feBa576efff598cA3B90d1",
+    "account": "0xB1964fD4521977d71FE058A8b96140faddB611b6",
+    "contract": {
+      "edge": "-1033",
+      "notional": "520574",
+      "fills": "6"
+    },
+    "rows": [
+      {
+        "placedAt": "1791295076",
+        "side": 1,
+        "base": "3000000000000000000",
+        "quote": "86799",
+        "markAnswer": "2903000",
+        "markObservedAt": "1791295142",
+        "quoteAnswer": "99985245",
+        "quoteObservedAt": "1791293104"
+      },
+      {
+        "placedAt": "1791297169",
+        "side": 0,
+        "base": "3000000000000000000",
+        "quote": "87471",
+        "markAnswer": "2919643",
+        "markObservedAt": "1791297303",
+        "quoteAnswer": "99985195",
+        "quoteObservedAt": "1791296706"
+      },
+      {
+        "placedAt": "1791299084",
+        "side": 1,
+        "base": "3000000000000000000",
+        "quote": "86883",
+        "markAnswer": "2901031",
+        "markObservedAt": "1791299163",
+        "quoteAnswer": "99985195",
+        "quoteObservedAt": "1791296706"
+      },
+      {
+        "placedAt": "1791301854",
+        "side": 1,
+        "base": "3000000000000000000",
+        "quote": "86104",
+        "markAnswer": "2871702",
+        "markObservedAt": "1791301942",
+        "quoteAnswer": "99990999",
+        "quoteObservedAt": "1791300307"
+      },
+      {
+        "placedAt": "1791304568",
+        "side": 1,
+        "base": "3000000000000000000",
+        "quote": "85369",
+        "markAnswer": "2856700",
+        "markObservedAt": "1791304643",
+        "quoteAnswer": "99990549",
+        "quoteObservedAt": "1791303909"
+      },
+      {
+        "placedAt": "1791309668",
+        "side": 0,
+        "base": "3000000000000000000",
+        "quote": "87948",
+        "markAnswer": "2921199",
+        "markObservedAt": "1791309744",
+        "quoteAnswer": "99993872",
+        "quoteObservedAt": "1791307510"
+      }
+    ]
+  },
+  {
+    "rule": "old",
+    "challenge": "0x5Ce9D9f491E2d16c94F56eD09BEa23e7109976e9",
+    "account": "0xAc888Ed66Ba7599D89C59886E947A346D5a054f6",
+    "contract": {
+      "edge": "818",
+      "notional": "521363",
+      "fills": "6"
+    },
+    "rows": [
+      {
+        "placedAt": "1791295076",
+        "side": 1,
+        "base": "3000000000000000000",
+        "quote": "87150",
+        "markAnswer": "2903000",
+        "markObservedAt": "1791295142",
+        "quoteAnswer": "99985245",
+        "quoteObservedAt": "1791293104"
+      },
+      {
+        "placedAt": "1791297169",
+        "side": 0,
+        "base": "3000000000000000000",
+        "quote": "87102",
+        "markAnswer": "2919643",
+        "markObservedAt": "1791297303",
+        "quoteAnswer": "99985195",
+        "quoteObservedAt": "1791296706"
+      },
+      {
+        "placedAt": "1791299084",
+        "side": 1,
+        "base": "3000000000000000000",
+        "quote": "87114",
+        "markAnswer": "2901031",
+        "markObservedAt": "1791299163",
+        "quoteAnswer": "99985195",
+        "quoteObservedAt": "1791296706"
+      },
+      {
+        "placedAt": "1791301854",
+        "side": 1,
+        "base": "3000000000000000000",
+        "quote": "86524",
+        "markAnswer": "2871702",
+        "markObservedAt": "1791301942",
+        "quoteAnswer": "99990999",
+        "quoteObservedAt": "1791300307"
+      },
+      {
+        "placedAt": "1791304568",
+        "side": 1,
+        "base": "3000000000000000000",
+        "quote": "85687",
+        "markAnswer": "2856700",
+        "markObservedAt": "1791304643",
+        "quoteAnswer": "99990549",
+        "quoteObservedAt": "1791303909"
+      },
+      {
+        "placedAt": "1791309668",
+        "side": 0,
+        "base": "3000000000000000000",
+        "quote": "87786",
+        "markAnswer": "2921199",
+        "markObservedAt": "1791309744",
+        "quoteAnswer": "99993872",
+        "quoteObservedAt": "1791307510"
+      }
+    ]
+  }
+]
