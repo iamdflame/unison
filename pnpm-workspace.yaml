@@ -5,11 +5,14 @@ packages:
   - "bots"
   - "cre/*"
   - "research/*"
+  - "integrations/*"
 
 # Dependencies allowed to run install scripts (vitest bundler; ESLint resolver binary).
 allowBuilds:
   esbuild: true
   unrs-resolver: true
+  # @oclif/plugin-plugins (under the MetaMask Agent Wallet plugin's dev dependency) carries yarn; its install script is not needed
+  yarn: false
 
 minimumReleaseAgeExclude:
   - lucide-react@1.51.0

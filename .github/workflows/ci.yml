@@ -42,6 +42,30 @@ jobs:
       - run: pnpm -r --if-present typecheck
       - run: pnpm -r --if-present test
 
+  agent-wallet-plugin:
+    name: MetaMask Agent Wallet plugin (bundle, manifest, write paths on a mainnet fork)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Bundle, and write the oclif manifest through the host's own plugin SDK
+        working-directory: integrations/agent-wallet-plugin
+        run: pnpm build
+      - name: Tests, with the write paths against Monad mainnet's contracts on an anvil fork
+        working-directory: integrations/agent-wallet-plugin
+        env:
+          FORK: "1"
+          ANVIL: anvil
+        run: pnpm test
+
   indexer:
     name: Envio indexer (codegen, types, the handlers replaying mainnet)
     runs-on: ubuntu-latest

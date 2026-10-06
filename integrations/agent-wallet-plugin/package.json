@@ -1,0 +1,81 @@
+{
+  "name": "mm-plugin-unison",
+  "version": "0.1.0",
+  "description": "Unison for MetaMask Agent Wallet: sealed batch auctions on Monad, priced at Chainlink's next observation, with a receipt your agent checks from the chain itself.",
+  "license": "MIT",
+  "type": "module",
+  "keywords": [
+    "oclif-plugin",
+    "metamask",
+    "agent-wallet",
+    "monad",
+    "chainlink",
+    "batch-auction",
+    "unison"
+  ],
+  "homepage": "https://www.unisonfi.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iamdflame/unison.git",
+    "directory": "integrations/agent-wallet-plugin"
+  },
+  "files": [
+    "dist",
+    "oclif.manifest.json",
+    "skills",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs && node scripts/manifest.mjs",
+    "stage": "node scripts/build.mjs && node scripts/manifest.mjs && node scripts/stage.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "oclif": {
+    "bin": "mm",
+    "commands": "./dist/commands",
+    "topicSeparator": " ",
+    "topics": {
+      "unison": {
+        "description": "Trade on Unison: sealed batch auctions on Monad, priced at Chainlink's next observation"
+      },
+      "unison:challenge": {
+        "description": "The standing challenge: a pot for any account whose fills beat Chainlink's next observation"
+      }
+    }
+  },
+  "mm": {
+    "schemaVersion": 1,
+    "minCliVersion": ">=6.2.0",
+    "capabilities": [],
+    "commands": [
+      { "id": "unison:markets", "capabilities": [], "dataAccess": [], "targetChains": [143] },
+      { "id": "unison:quote", "capabilities": [], "dataAccess": [], "targetChains": [143] },
+      { "id": "unison:receipt", "capabilities": [], "dataAccess": [], "targetChains": [143] },
+      { "id": "unison:balance", "capabilities": ["wallet-read"], "dataAccess": ["accounts", "balances"], "targetChains": [143] },
+      { "id": "unison:deposit", "capabilities": ["wallet-read", "wallet-submit"], "dataAccess": ["accounts", "balances"], "targetChains": [143] },
+      { "id": "unison:order", "capabilities": ["wallet-read", "wallet-submit"], "dataAccess": ["accounts", "balances"], "targetChains": [143] },
+      { "id": "unison:claim", "capabilities": ["wallet-read", "wallet-submit"], "dataAccess": ["accounts"], "targetChains": [143] },
+      { "id": "unison:withdraw", "capabilities": ["wallet-read", "wallet-submit"], "dataAccess": ["accounts", "balances"], "targetChains": [143] },
+      { "id": "unison:challenge:score", "capabilities": ["wallet-read"], "dataAccess": ["accounts"], "targetChains": [143] },
+      { "id": "unison:challenge:open", "capabilities": ["wallet-read", "wallet-submit"], "dataAccess": ["accounts"], "targetChains": [143] },
+      { "id": "unison:challenge:fund", "capabilities": ["wallet-read", "wallet-submit"], "dataAccess": ["accounts", "balances"], "targetChains": [143] },
+      { "id": "unison:challenge:order", "capabilities": ["wallet-read", "wallet-submit"], "dataAccess": ["accounts"], "targetChains": [143] },
+      { "id": "unison:challenge:settle", "capabilities": ["wallet-read", "wallet-submit"], "dataAccess": ["accounts"], "targetChains": [143] },
+      { "id": "unison:challenge:claim", "capabilities": ["wallet-read", "wallet-submit"], "dataAccess": ["accounts"], "targetChains": [143] },
+      { "id": "unison:challenge:withdraw", "capabilities": ["wallet-read", "wallet-submit"], "dataAccess": ["accounts", "balances"], "targetChains": [143] }
+    ]
+  },
+  "peerDependencies": {
+    "@metamask/agent-wallet": ">=6.2.0"
+  },
+  "devDependencies": {
+    "@metamask/agent-wallet": "7.0.0",
+    "@oclif/core": "^4.11.4",
+    "@types/node": "^24.0.0",
+    "esbuild": "0.28.2",
+    "typescript": "^5.9.0",
+    "viem": "^2.37.0",
+    "vitest": "^3.2.0"
+  }
+}

@@ -27,13 +27,17 @@ Unison is a venue for tokenized assets on Monad: US equities (Anchored aStocks),
 
 ## For judges
 
-Nothing below needs an account, a wallet or a download except step 3, and step 3 needs only a passkey (Face ID, Touch ID or Windows Hello) and the free testnet faucet.
+Steps 1, 2, 4 and 5 need no account, wallet or download. Step 3 needs only a passkey (Face ID, Touch ID or Windows Hello) and the free testnet faucet. Step 6 needs MetaMask's `mm` CLI, and only its order needs a signed-in wallet.
 
 1. **A real mainnet auction, proven.** https://www.unisonfi.com/receipt/mainnet/1/111055816 shows the order sealed, then Chainlink's observation 6 s later, then the clear. From a clone, after `pnpm install`, `node apps/web/scripts/verify-receipt.mjs 0x128b8b18f4ae90cf0f79f439f5886f2f3ff548f2ebb3dcd7a847c2284351596e` checks it from the chain alone.
 2. **The live market, on mainnet.** https://www.unisonfi.com/trade/WMON?network=mainnet: the next auction waits for Chainlink's next price, typically 34 s.
 3. **Trade it yourself on the testnet.** On https://www.unisonfi.com/trade/aNVDA (the testnet is the default), press **Sign in**, then **Create a passkey**, then **Add test funds**. Tap the **Ask** price and buy 1 aNVDA. The order joins the next auction and fills against the vault within seconds; the fill opens a certificate whose receipt the tape recomputes. No real money is involved.
 4. **Snipe us.** https://www.unisonfi.com/challenge: two pots, the contract's definition of an edge, and our own sniper's live score on both rules.
 5. **Everything at once.** https://www.unisonfi.com/status lists the services and markets. https://www.unisonfi.com/?demo=1 runs every market in your browser on the real clearing engine, with a paper account.
+6. **From an AI agent.** With MetaMask's Agent Wallet CLI and [our plugin](integrations/agent-wallet-plugin):
+   - `mm unison receipt https://www.unisonfi.com/receipt/mainnet/1/111055816` runs the same six checks;
+   - `mm unison challenge score --rule old --address 0xcEc80166Ab48cb3C4ebD98671524761b1fd81276` shows our sniper winning on the old rule;
+   - `mm unison order WMON buy 10` trades through the agent's own wallet.
 
 Trading mainnet itself needs AUSD on Monad and a browser wallet to deposit it. Every mainnet address and transaction is in [docs/evidence/mainnet.md](docs/evidence/mainnet.md).
 
@@ -97,6 +101,7 @@ Trading mainnet itself needs AUSD on Monad and a browser wallet to deposit it. E
 7. **OrderGateway.**
    - EIP-712 signed orders, relayed gaslessly.
    - Session keys with caps on markets, size and notional, which can never withdraw. This is how you hand an AI agent a budget.
+   - [MetaMask Agent Wallet plugin](integrations/agent-wallet-plugin) (`mm unison …`): an agent trades, verifies receipts and enters the standing challenge from MetaMask's CLI. Its own wallet signs every transaction, under the policy its owner set.
    - WebAuthn passkey accounts verified on Monad's P-256 precompile. One passkey works on every domain the site answers on (related origins, `/.well-known/webauthn`).
 8. **TSV compliance.**
    - Daily volume caps are enforced inside the auction. The price is still discovered uncapped; only executed volume is limited.
@@ -137,7 +142,9 @@ contracts/   Foundry. core/ (exchange, clearing, book), pricing/ (references, th
 packages/    engine/ (bit-exact TS clearing + book), sdk/ (viem client, signing, calendar, ABIs)
 services/    relay/ (signed references), keeper/ (clear jobs, vaults, auto-claim), relayer/ (gasless orders),
              tape/ (indexer: prints, orders, receipts, live stream), mcp/ (tools for AI agents),
-             adversary/ (our own sniper in the standing challenge, and its backtest)
+             adversary/ (our own sniper in the standing challenge, and its backtest),
+             indexer/ (Envio HyperIndex: every challenger's score, marked to Chainlink as the contract marks it)
+integrations/ agent-wallet-plugin/ (MetaMask Agent Wallet: mm unison markets, order, receipt, challenge)
 apps/web/    the website and the trading app (Next.js); design system in apps/web/DESIGN.md;
              scripts/ops/ funds and launches mainnet (keys from .secrets, never printed)
 bots/        house order flow for devnets and the testnet (never mainnet)
@@ -155,7 +162,8 @@ docs/        SPEC, ARCHITECTURE, API, AGENTS, MONAD, GO_LIVE, DEPLOY, THREAT_MOD
 | Contracts | Solidity 0.8.33 (via-IR, Prague), Foundry, OpenZeppelin Contracts (upgradeable) |
 | Prices | Chainlink price feeds (OCR2, read by their signed observation time), Chainlink CRE workflows |
 | SDK and engine | TypeScript, viem; `@unison/engine` is a bit-exact TypeScript port of the clearing |
-| Services | Node 24, Hono, `node:sqlite` (tape), MCP server for AI agents |
+| Services | Node 24, Hono, `node:sqlite` (tape), Envio HyperIndex (the challenge's indexer) |
+| Agents | MCP server; MetaMask Agent Wallet plugin (`mm unison`), signing through the agent's own wallet |
 | Web | Next.js 16, React 19, Tailwind CSS, Base UI, Motion, three.js, NumberFlow |
 | Accounts | WebAuthn passkeys verified on Monad's P-256 precompile; EIP-712 orders relayed gaslessly |
 | Hosting | Vercel (web), Railway (keeper, tape, relayer, relay, adversary) |
@@ -242,7 +250,7 @@ Quality gates, run from `apps/web`:
 - **Derived code:** [`contracts/src/libraries/WebAuthn.sol`](contracts/src/libraries/WebAuthn.sol) follows Daimo's and Coinbase Smart Wallet's WebAuthnSol (MIT), as its header says.
 - **Libraries:**
   - Contracts: [OpenZeppelin Contracts](https://github.com/OpenZeppelin/openzeppelin-contracts) and their upgradeable variant (MIT), [forge-std](https://github.com/foundry-rs/forge-std) (MIT/Apache-2.0), [Foundry](https://github.com/foundry-rs/foundry).
-  - TypeScript: [viem](https://viem.sh) (MIT), [@noble/curves and @noble/hashes](https://github.com/paulmillr/noble-curves) (MIT), [Hono](https://hono.dev) (MIT), [zod](https://zod.dev) (MIT), the [Model Context Protocol SDK](https://github.com/modelcontextprotocol/typescript-sdk) (MIT), the [Chainlink CRE SDK](https://docs.chain.link/cre).
+  - TypeScript: [viem](https://viem.sh) (MIT), [@noble/curves and @noble/hashes](https://github.com/paulmillr/noble-curves) (MIT), [Hono](https://hono.dev) (MIT), [zod](https://zod.dev) (MIT), the [Model Context Protocol SDK](https://github.com/modelcontextprotocol/typescript-sdk) (MIT), the [Chainlink CRE SDK](https://docs.chain.link/cre), [Envio HyperIndex](https://docs.envio.dev), [oclif](https://oclif.io) (MIT) and [esbuild](https://esbuild.github.io) (MIT). The MetaMask Agent Wallet plugin builds against [`@metamask/agent-wallet`](https://docs.metamask.io/agent-wallet/plugins/), which the host CLI provides at run time; the plugin's layout follows MetaMask's plugin template.
   - Web: [Next.js](https://nextjs.org) and [React](https://react.dev) (MIT), [Base UI](https://base-ui.com) (MIT), [three.js](https://threejs.org) and react-three-fiber (MIT), [NumberFlow](https://number-flow.barvian.me) (MIT), [lucide](https://lucide.dev) (ISC), [cmdk](https://cmdk.paco.me) (MIT), [Shiki](https://shiki.style) (MIT), [Sonner](https://sonner.emilkowal.ski) (MIT), Tailwind CSS (MIT).
   - Fonts: Bodoni Moda, Mona Sans and Fragment Mono, under the SIL Open Font License 1.1 (`apps/web/assets/fonts/LICENSE.md`).
 - **Data and services:**
