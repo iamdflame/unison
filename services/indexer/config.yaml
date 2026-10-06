@@ -25,9 +25,12 @@ contracts:
       - event: NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, address transmitter, uint32 observationsTimestamp, int192[] observations, bytes observers, int192 juelsPerFeeCoin, bytes32 configDigest, uint40 epochAndRound)
 chains:
   - id: 143
-    start_block: 111054183
+    # The AUSD/USD round in force when the window opened (aggregator round 7761, observed at 1791293104) landed in this
+    # block, so the chain starts here. Envio needs every contract's start_block at or after the chain's.
+    start_block: 111049356
     contracts:
       - name: LatencyChallenge
+        start_block: 111054183 # Unison's challenge was deployed in this block, the control four blocks later
         address:
           - 0xDcD3E86518db6A40C4feBa576efff598cA3B90d1 # on Unison's causal WMON market
           - 0x5Ce9D9f491E2d16c94F56eD09BEa23e7109976e9 # on the old-rule control
@@ -35,8 +38,7 @@ chains:
       - name: ChallengeAccount
       # the aggregators behind the MON/USD (0xBcD7…22fb) and AUSD/USD (0xE207…9e13) proxies, phase 1
       - name: MonUsdAggregator
+        start_block: 111054183 # no fill is marked before the challenges exist
         address: 0x2A347b30e1DA22Ec136142cdA88Bec59fDB6e9d3
       - name: AusdUsdAggregator
         address: 0x7A0eC994Daec8DC342C101e9Bd5337A14FB39001
-        # the AUSD/USD round in force at the window's start can be older than the window
-        start_block: 110000000

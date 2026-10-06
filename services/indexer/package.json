@@ -9,13 +9,15 @@
     "codegen": "envio codegen",
     "dev": "envio dev",
     "start": "envio start",
+    "types": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
     "envio": "3.14.0"
   },
   "devDependencies": {
-    "typescript": "^7.0.2",
+    "@types/node": "^24.0.0",
+    "typescript": "6.0.3",
     "vitest": "^5.0.3"
   }
 }

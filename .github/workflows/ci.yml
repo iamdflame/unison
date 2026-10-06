@@ -43,7 +43,7 @@ jobs:
       - run: pnpm -r --if-present test
 
   indexer:
-    name: Envio indexer (codegen, handler tests on simulated events)
+    name: Envio indexer (codegen, types, the handlers replaying mainnet)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -56,7 +56,10 @@ jobs:
       - name: Codegen
         working-directory: services/indexer
         run: pnpm codegen
-      - name: Tests (the arithmetic against the contract, and the handlers end to end)
+      - name: Types (the handlers, checked as envio start checks them)
+        working-directory: services/indexer
+        run: pnpm types
+      - name: Tests (the arithmetic against the contract, and the handlers replaying mainnet)
         working-directory: services/indexer
         run: pnpm test
 

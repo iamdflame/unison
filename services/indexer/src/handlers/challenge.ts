@@ -1,6 +1,7 @@
 /**
- * Envio HyperIndex handlers for Unison's standing challenge on Monad mainnet. The arithmetic lives in score.ts and is
- * unit-tested against the contract's own edgeOf; these handlers only move events into entities.
+ * Envio HyperIndex handlers for Unison's standing challenge on Monad mainnet. The arithmetic lives in ../score.ts and is
+ * unit-tested against the contract's own edgeOf; these handlers only move events into entities. Envio loads every file
+ * under src/handlers/ on start.
  *
  *   LatencyChallenge.Opened      registers the new ChallengeAccount (factory pattern) and creates its Account
  *   LatencyChallenge.Claimed     marks the challenge paid
@@ -10,12 +11,12 @@
  *   MonUsdAggregator.NewTransmission   stores the observation, then marks every waiting fill it is the markout of
  *   AusdUsdAggregator.NewTransmission  stores the AUSD/USD round, for the quote in force at each observation
  */
-import { indexer } from "envio";
-import { CHALLENGES, edgeBps, edgeOf, inWindow, marksFill, priceOf, TERMS } from "./score.ts";
+import { indexer, type Entity, type EvmOnEventContext } from "envio";
+import { CHALLENGES, edgeBps, edgeOf, inWindow, marksFill, priceOf, TERMS } from "../score.ts";
 
-type Ctx = Parameters<Parameters<typeof indexer.onEvent>[1]>[0]["context"];
-type FillRow = NonNullable<Awaited<ReturnType<Ctx["Fill"]["get"]>>>;
-type QuoteRow = NonNullable<Awaited<ReturnType<Ctx["QuoteRound"]["get"]>>>;
+type Ctx = EvmOnEventContext;
+type FillRow = Entity<"Fill">;
+type QuoteRow = Entity<"QuoteRound">;
 
 const lower = (a: string) => a.toLowerCase();
 /** How far forward a late fill looks for its markout: MON/USD's heartbeat is an hour, so it lands within 61 minutes. */
@@ -29,14 +30,24 @@ async function quoteAt(context: Ctx, t: bigint): Promise<QuoteRow | undefined> {
   return r;
 }
 
-/** Marks one fill at one observation, and adds it to its account's score (edgeOf's arithmetic, in score.ts). */
+/**
+ * Marks one fill at its markout observation, and adds it to its account's score (edgeOf's arithmetic, in score.ts).
+ * Only this observation may mark it, so a fill with no AUSD/USD round known is closed unpriced, never left for a later
+ * observation to mark at the wrong price. The chain's start block makes that unreachable; it would show as fills >
+ * counted.
+ */
 async function mark(context: Ctx, fill: FillRow, round: bigint, answer: bigint, observedAt: bigint) {
   const q = await quoteAt(context, observedAt);
-  if (!q) return; // no AUSD/USD round known at that time yet: it stays pending
+  const acc = await context.Account.get(fill.account_id);
+  if (!q) {
+    context.log.error(`No AUSD/USD round in force at ${observedAt} for fill ${fill.id}: closed unpriced`);
+    context.Fill.set({ ...fill, pending: false, markRound: round, markObservedAt: observedAt, markPrice: undefined, edge: undefined });
+    if (acc) context.Account.set({ ...acc, pendingMarks: Math.max(0, acc.pendingMarks - 1) });
+    return;
+  }
   const price = priceOf(answer, q.answer);
   const e = edgeOf(fill.side, fill.base, fill.quote, price);
   context.Fill.set({ ...fill, pending: false, markRound: round, markObservedAt: observedAt, markPrice: price, edge: e });
-  const acc = await context.Account.get(fill.account_id);
   if (!acc) return;
   const edge = acc.edge + e;
   const notional = acc.notional + fill.quote;
