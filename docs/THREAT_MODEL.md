@@ -48,7 +48,7 @@
 ## Known limitations (stated)
 
 - **Equity reference data.** On the testnet: the IEX feed or a labelled simulation. On the mainnet beta: Chainlink's tokenized-equity feed wNVDAx-USD, which is Backed's xStock price "Calculated" with a share multiplier of about 1, in Chainlink's risk tier "new", and not Anchored's own price. At scale: a licensed consolidated feed (Pyth Pro / Chainlink Data Streams).
-- **Mainnet beta exposure** is capped by small vaults (about $40 at launch) and daily caps (1 aNVDA, 20,000 WMON a day). The admin roles stay with the deployer key until they move behind a public timelock (48 h, rising to 7 days; `contracts/script/HandoverTimelock.s.sol`). A guardian key can pause and halt.
+- **Mainnet beta exposure** is capped by small vaults (about $40 in aNVDA's, $21 in WMON's and $4 in the old-rule control's after the cutover) and daily caps (1 aNVDA, 20,000 WMON a day). The admin roles stay with the deployer key until they move behind a public timelock (48 h, rising to 7 days; `contracts/script/HandoverTimelock.s.sol`). A guardian key can pause and halt.
 - **Passkeys and domains.** Passkeys belong to `www.unisonfi.com`, and the vercel.app alias reaches them as a related origin (Chrome, Edge, Safari). A browser without Related Origin Requests makes the passkey for its own host. On-chain verification doesn't depend on the domain.
 - **Relay measurement lag (testnet).** A relay that lags the true price by δ leaks an edge of order σ·√δ. That's negligible in normal conditions, but larger during news; bands cap it.
 - **The causal clock is as fast as Chainlink.** An order waits for the next observation: 34 s typically on WMON, 1.5 min on aNVDA in US market hours and about 15 min overnight. The ticket says so before you trade.

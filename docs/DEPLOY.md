@@ -14,7 +14,7 @@ The live setup runs the web app on **Vercel** and the services on **Railway**, b
 | `unison-keeper-mainnet` | Railway, a worker | mainnet | — |
 | `unison-relayer-mainnet` | Railway, `/data` volume | mainnet | https://unison-relayer-mainnet-production.up.railway.app |
 | `unison-tape-mainnet` | Railway, `/data` volume | mainnet | https://unison-tape-mainnet-production.up.railway.app |
-| `unison-adversary-mainnet` | Railway, from the causal cutover | mainnet | its public domain serves `GET /v1/score` ([API](API.md#the-house-adversarys-scoreboard)) |
+| `unison-adversary-mainnet` | Railway | mainnet | https://unison-adversary-mainnet-production.up.railway.app (`GET /v1/score`, [API](API.md#the-house-adversarys-scoreboard)) |
 
 Mainnet runs **no relay**: every mainnet market reads a Chainlink feed, so nothing there signs prices. Run exactly one instance of each service:
 - the relayer manages one account's nonces in memory;

@@ -9,7 +9,7 @@ export default function TermsPage() {
     <LegalPage
       path="/legal/terms"
       title="Terms of use"
-      updated="October 5, 2026"
+      updated="October 6, 2026"
       intro={
         <p>
           Unison is software: smart contracts on Monad and the services and website around them. These terms cover using

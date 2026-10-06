@@ -77,9 +77,11 @@ The bot is set to **40 bp with a 30-minute gap**. Those settings:
 - keep the keeper's bill small. Every trade costs one clear on each market, and Monad charges the gas limit;
 - stop trading a market once its challenge has paid out.
 
-With the narrower band below, a WMON clear is charged about 0.16 MON (a 1.6M gas limit at 102 gwei). That makes the keeper's gas for the bot's trades from the cutover to the end of judging about 95 MON:
-- about 9 MON a day while both legs trade;
-- about 4.4 MON a day once the control has paid out.
+On mainnet, the keeper charges each clear at least its 2M gas floor, about 0.2 MON at 102 gwei. The first live causal WMON clear, two orders and the vault, was charged 2.63M. That makes the keeper's gas for the bot's trades from the cutover to the end of judging about 150 MON:
+- about 13 MON a day while both legs trade;
+- about 7 MON a day once the control has paid out.
+
+The keeper held 167 MON after the cutover.
 
 ## The band, and what a clear costs
 

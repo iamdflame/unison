@@ -104,7 +104,7 @@ Unison is a venue for tokenized assets on Monad: US equities (Anchored aStocks),
 | Cheap on Monad | A 200-order auction is 6.1M gas, about **$0.02**. The same clear is about 40% cheaper under Monad's page pricing than Ethereum's ([gas](docs/evidence/gas.md)) |
 | Unsnipeable (benchmark) | In a simulated benchmark, sniper P&L is $0 versus $473–$6,171/day on AMM, oracle-AMM and CLOB designs, and at equal spread the vault earns 7.7× a CLOB maker ([fairness](docs/evidence/fairness.md)). On mainnet the standing challenge measures it in the open |
 | End to end | Devnet golden path: relay → keeper → vault funding → traders cross → uniform print → auto-claim → AI agent session key → gasless relayed order → filled (`pnpm --filter @unison/keeper e2e`) |
-| Live on Monad mainnet | Real aNVDA sold into the vault at one price per auction, every print on the receipt chain; all 8 contracts verified on Sourcify (exact match); outside traders counted apart from the team (`GET /v1/stats`) ([mainnet evidence](docs/evidence/mainnet.md)) |
+| Live on Monad mainnet | The causal cutover on 6 October 2026: the first causal print passes every check of `verify-receipt.mjs` (observed 6 s after the seal), and the same sale on the old-rule control paid the sniper 40 bp more. Every print is on the receipt chain; every contract is verified on Sourcify; outside traders are counted apart from the team (`GET /v1/stats`) ([mainnet evidence](docs/evidence/mainnet.md)) |
 
 ## Repository
 

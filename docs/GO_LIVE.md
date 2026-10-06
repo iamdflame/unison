@@ -2,9 +2,9 @@
 
 ## The mainnet beta (`deploy/monad-mainnet-beta.json`)
 
-**Launched 5 October 2026.** Addresses, transactions and the first prints are in [evidence/mainnet.md](evidence/mainnet.md).
-- The admin is still the deployer key; its handover to the team's wallet (step 3) is pending.
-- The services run on Railway: `unison-keeper-mainnet`, `unison-relayer-mainnet` and `unison-tape-mainnet` ([DEPLOY](DEPLOY.md)).
+**Launched 5 October 2026; moved to the causal rule on 6 October 2026** ([the cutover](#the-causal-cutover-deploymonad-mainnet-causaljson)). Addresses, transactions and the first prints are in [evidence/mainnet.md](evidence/mainnet.md).
+- The admin is still the deployer key until the timelock step of the cutover.
+- The services run on Railway: `unison-keeper-mainnet`, `unison-relayer-mainnet`, `unison-tape-mainnet` and, since the cutover, `unison-adversary-mainnet` ([DEPLOY](DEPLOY.md)).
 - Every contract is verified on Sourcify.
 - `apps/web/scripts/ops/` holds the funding and launch scripts that ran it (`mainnet-fund.mjs`, `mainnet-launch.mjs`).
 
