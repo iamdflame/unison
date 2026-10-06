@@ -61,7 +61,7 @@ async function mark(context: Ctx, fill: FillRow, round: bigint, answer: bigint, 
   });
 }
 
-indexer.contractRegister({ contract: "LatencyChallenge", event: "Opened" }, ({ event, context }) => {
+indexer.contractRegister({ contract: "LatencyChallenge", event: "Opened" }, async ({ event, context }) => {
   context.chain.ChallengeAccount.add(event.params.account);
 });
 
