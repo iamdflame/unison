@@ -43,9 +43,6 @@ export interface CausalFeed {
   depegBps: number;
 }
 
-/** The first round of a Chainlink proxy phase has no predecessor in its phase. */
-const firstOfPhase = (round: bigint) => (round & 0xffff_ffff_ffff_ffffn) <= 1n;
-
 export async function latestObservation(client: PublicClient, feed: Address): Promise<Observation> {
   const [round, answer, startedAt, updatedAt] = await client.readContract({
     address: feed,
@@ -71,36 +68,51 @@ export async function observation(client: PublicClient, feed: Address, round: bi
 }
 
 /**
- * The first observation of `feed` made strictly after `afterSec`, or null when none has landed yet. It walks back
- * from the latest round, so it is cheapest right after a round lands, which is when a keeper asks.
+ * The newest round of `feed`'s current phase observed at or before `atSec` (`before`), and the one after it
+ * (`after`, or null when `before` is the latest). Round ids are consecutive within a phase and observation times only
+ * move forward, so it gallops back from the latest round and then bisects: a few dozen reads at most, however old.
  */
-export async function firstObservationAfter(
+async function bracket(
   client: PublicClient,
   feed: Address,
-  afterSec: bigint,
-  maxBack = 2_000,
-): Promise<Observation | null> {
-  let cur = await latestObservation(client, feed);
-  if (cur.observedAt <= afterSec) return null;
-  for (let i = 0; i < maxBack && !firstOfPhase(cur.round); i++) {
-    const prev = await observation(client, feed, cur.round - 1n);
-    if (!prev || prev.observedAt <= afterSec) break;
-    cur = prev;
+  atSec: bigint,
+): Promise<{ before: Observation | null; after: Observation | null }> {
+  const latest = await latestObservation(client, feed);
+  if (latest.observedAt <= atSec) return { before: latest, after: null };
+  const floor = (latest.round >> 64n) << 64n; // round 0 of the phase (round 1 is its first)
+  let hi = latest; // observed after atSec
+  let step = 1n;
+  let lo: Observation | null = null;
+  while (!lo) {
+    const id = hi.round - step > floor ? hi.round - step : floor + 1n;
+    const o = await observation(client, feed, id);
+    if (!o) return { before: null, after: hi };
+    if (o.observedAt <= atSec) lo = o;
+    else if (id === floor + 1n) return { before: null, after: o }; // even the phase's first round is after it
+    else {
+      hi = o;
+      step *= 2n;
+    }
   }
-  return cur;
+  while (hi.round - lo.round > 1n) {
+    const o = await observation(client, feed, (lo.round + hi.round) / 2n);
+    if (!o) break;
+    if (o.observedAt <= atSec) lo = o;
+    else hi = o;
+  }
+  return { before: lo, after: hi };
+}
+
+/** The first observation of `feed` made strictly after `afterSec`, or null when none has landed yet. */
+export async function firstObservationAfter(client: PublicClient, feed: Address, afterSec: bigint): Promise<Observation | null> {
+  return (await bracket(client, feed, afterSec)).after;
 }
 
 /** The round of `feed` in force at `atSec`: the newest one observed at or before it. */
-export async function roundInForce(client: PublicClient, feed: Address, atSec: bigint, maxBack = 2_000): Promise<Observation> {
-  let cur = await latestObservation(client, feed);
-  for (let i = 0; i < maxBack && cur.observedAt > atSec; i++) {
-    if (firstOfPhase(cur.round)) break;
-    const prev = await observation(client, feed, cur.round - 1n);
-    if (!prev) break;
-    cur = prev;
-  }
-  if (cur.observedAt > atSec) throw new Error(`no round of ${feed} observed at or before ${atSec}`);
-  return cur;
+export async function roundInForce(client: PublicClient, feed: Address, atSec: bigint): Promise<Observation> {
+  const { before } = await bracket(client, feed, atSec);
+  if (!before) throw new Error(`no round of ${feed} observed at or before ${atSec}`);
+  return before;
 }
 
 export async function causalFeed(client: PublicClient, adapter: Address, marketId: bigint): Promise<CausalFeed> {
