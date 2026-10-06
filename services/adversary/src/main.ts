@@ -2,12 +2,16 @@
  * The house adversary process (see bot.ts). Env:
  *   RPC_URL, DEPLOYMENT (deployments/monad-mainnet.json), ADVERSARY_PRIVATE_KEY,
  *   THRESHOLD_BPS (25: the WMON vaults' 20 bp spread plus the 3 bp fee, and a margin), QTY (10 WMON a leg),
- *   SLIPPAGE_BPS (50), SCORE_EVERY_SEC (600), DRY_RUN (0: 1 logs signals without trading)
+ *   SLIPPAGE_BPS (50), SCORE_EVERY_SEC (600), DRY_RUN (0: 1 logs signals without trading), PORT (8793)
+ *
+ * GET /v1/score serves the latest scores (both pots, both accounts, every claim): public data, recomputable by anyone
+ * from the chain with the SDK's scoreAccount, which is what this serves.
  *
  * The deployment names the two challenges (`challenge.unison`, `challenge.control`). On start the bot opens its account
  * in each if it has none; funding them is the operator's (apps/web/scripts/ops/challenge.mjs).
  */
-import { createPublicClient, createWalletClient, http, nonceManager, parseUnits, type Address, type Hex } from "viem";
+import { createServer } from "node:http";
+import { createPublicClient, createWalletClient, erc20Abi, http, nonceManager, parseUnits, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import {
   chainById,
@@ -107,20 +111,66 @@ export async function startAdversary() {
   for (const s of streams) s.onPrice = (p) => void bot.onPrice(p);
 
   const settleTimer = setInterval(() => void bot.settle(), 3_000);
+  // markout rounds never change once found: each fill is looked up once
+  const caches = { unison: new Map<number, { base: bigint; quote: bigint }>(), control: new Map<number, { base: bigint; quote: bigint }>() };
+  const board: { updatedAt: string | null; legs: Record<string, unknown>[] } = { updatedAt: null, legs: [] };
+  const claims: Record<string, Hex> = {};
   const score = async () => {
+    const out: Record<string, unknown>[] = [];
     for (const [name, challenge, leg] of [["unison", ch.unison, legs[0]!], ["control", ch.control, legs[1]!]] as const) {
       try {
-        const s = await scoreAccount(pub, challenge, leg.account);
+        const s = await scoreAccount(pub, challenge, leg.account, undefined, caches[name]);
         log({ action: "score", leg: name, fills: s.fills.length, counted: s.counted, edge: s.edge, notional: s.notional, edgeBps: s.edgeBps, ready: s.ready, qualifies: s.qualifies });
         if (s.qualifies && !dry) {
           const tx = await send(challenge, latencyChallengeAbi, "claim", [leg.account, s.baseRounds, s.quoteRounds]);
+          claims[name] = tx;
           log({ action: "claimed", leg: name, tx });
         }
+        const [pot, paid] = await Promise.all([
+          pub.readContract({ address: terms.pot, abi: erc20Abi, functionName: "balanceOf", args: [challenge] }),
+          pub.readContract({ address: challenge, abi: latencyChallengeAbi, functionName: "paid" }),
+        ]);
+        out.push({
+          name,
+          challenge,
+          account: leg.account,
+          pot,
+          paid,
+          fills: s.fills.length,
+          counted: s.counted,
+          edge: s.edge,
+          notional: s.notional,
+          edgeBps: s.edgeBps,
+          ready: s.ready,
+          qualifies: s.qualifies,
+          claimTx: claims[name] ?? null,
+        });
       } catch (e) {
         log({ level: "warn", action: "score", leg: name, error: (e as Error).message.split("\n")[0] });
       }
     }
+    if (out.length) {
+      board.updatedAt = new Date().toISOString();
+      board.legs = out;
+    }
   };
+  const server = createServer((req, res) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Content-Type", "application/json");
+    if (req.url?.startsWith("/v1/score")) {
+      res.end(
+        JSON.stringify(
+          { adversary: account.address, thresholdBps: bot.cfg.thresholdBps, stats: bot.stats, ...board },
+          (_k, v: unknown) => (typeof v === "bigint" ? v.toString() : v),
+        ),
+      );
+    } else if (req.url === "/health") res.end('{"ok":true}');
+    else {
+      res.statusCode = 404;
+      res.end('{"error":"NOT_FOUND"}');
+    }
+  });
+  server.listen(Number(env("PORT", "8793")));
   const scoreTimer = setInterval(() => void score(), Number(env("SCORE_EVERY_SEC", "600")) * 1000);
   void score();
   log({ msg: "adversary up", address: account.address, legs, dry, thresholdBps: bot.cfg.thresholdBps, qty });
@@ -129,6 +179,7 @@ export async function startAdversary() {
     stop: () => {
       clearInterval(settleTimer);
       clearInterval(scoreTimer);
+      server.close();
       for (const s of streams) s.close();
     },
   };

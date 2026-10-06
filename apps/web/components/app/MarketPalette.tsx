@@ -41,6 +41,7 @@ export function MarketPalette({ open, onOpenChange, go }: { open: boolean; onOpe
             ["Vaults", "/vaults"],
             ["Session keys", "/keys"],
             ["Fairness monitor", "/fairness"],
+            ["The challenge: snipe us", "/challenge"],
             ["Home", "/"],
           ].map(([label, href]) => (
             <Command.Item key={href} value={label} onSelect={() => go(href!)} className="flex cursor-default items-center rounded-xl px-3 py-2.5 text-sm text-ink data-[selected=true]:bg-ink/[0.06]">

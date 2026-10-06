@@ -108,6 +108,8 @@ export async function scoreAccount(
   challenge: Address,
   account: Address,
   terms?: ChallengeTerms,
+  /** markout rounds already found, by fill index: they never change, so a long-lived scorer looks each up once */
+  cache?: Map<number, { base: bigint; quote: bigint }>,
 ): Promise<ChallengeScore> {
   const t = terms ?? (await challengeTerms(client, challenge));
   const fills = await challengeFills(client, account);
@@ -115,7 +117,13 @@ export async function scoreAccount(
   const baseRounds: bigint[] = [];
   const quoteRounds: bigint[] = [];
   let ready = true;
-  for (const f of fills) {
+  for (const [i, f] of fills.entries()) {
+    const known = cache?.get(i);
+    if (known) {
+      baseRounds.push(known.base);
+      quoteRounds.push(known.quote);
+      continue;
+    }
     if (f.placedAt < t.start || f.placedAt > t.end) {
       baseRounds.push(0n);
       quoteRounds.push(0n);
@@ -128,8 +136,10 @@ export async function scoreAccount(
       quoteRounds.push(0n);
       continue;
     }
+    const q = feed.quote === ZERO ? 0n : (await roundInForce(client, feed.quote, b.observedAt)).round;
     baseRounds.push(b.round);
-    quoteRounds.push(feed.quote === ZERO ? 0n : (await roundInForce(client, feed.quote, b.observedAt)).round);
+    quoteRounds.push(q);
+    cache?.set(i, { base: b.round, quote: q });
   }
   let edge = 0n;
   let notional = 0n;

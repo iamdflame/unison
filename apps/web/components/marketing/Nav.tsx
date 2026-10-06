@@ -10,6 +10,7 @@ import { MobileMenu } from "./MobileMenu";
 const LINKS = [
   { href: "/markets", label: "Markets" },
   { href: "/fairness", label: "Fairness" },
+  { href: "/challenge", label: "Challenge" },
   { href: "/developers", label: "Developers" },
 ];
 

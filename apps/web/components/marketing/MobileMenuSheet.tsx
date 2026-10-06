@@ -9,6 +9,7 @@ import { MENU_TRIGGER, MenuGlyph, menuHandoff } from "./MobileMenu";
 const LINKS = [
   ["/markets", "Markets"],
   ["/fairness", "Fairness"],
+  ["/challenge", "Challenge"],
   ["/developers", "Developers"],
   ["/status", "Status"],
   ["/brand", "Brand"],

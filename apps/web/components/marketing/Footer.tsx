@@ -4,7 +4,7 @@ import { site } from "@/lib/content/site";
 
 const COLUMNS = [
   { title: "Trade", links: [["Markets", "/markets"], ["Trade aNVDA", "/trade/aNVDA"], ["Vaults", "/vaults"], ["Portfolio", "/portfolio"]] },
-  { title: "Proof", links: [["Fairness monitor", "/fairness"], ["Evidence", `${site.repo}/tree/main/docs/evidence`], ["Threat model", `${site.repo}/blob/main/docs/THREAT_MODEL.md`], ["Status", "/status"]] },
+  { title: "Proof", links: [["Fairness monitor", "/fairness"], ["The challenge", "/challenge"], ["Evidence", `${site.repo}/tree/main/docs/evidence`], ["Threat model", `${site.repo}/blob/main/docs/THREAT_MODEL.md`], ["Status", "/status"]] },
   { title: "Build", links: [["Developers", "/developers"], ["API", `${site.repo}/blob/main/docs/API.md`], ["Agents and MCP", `${site.repo}/blob/main/docs/AGENTS.md`], ["Source", site.repo]] },
   { title: "Unison", links: [["Brand", "/brand"], ["Terms", "/legal/terms"], ["Privacy", "/legal/privacy"], ["Risk", "/legal/risk"]] },
 ] as const;
