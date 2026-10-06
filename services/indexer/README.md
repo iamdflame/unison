@@ -40,8 +40,10 @@ CI runs codegen, the type check and both test files on every push (`.github/work
 2. Add an indexer from that repository with:
    - **Root Directory** `services/indexer`;
    - **Config File** `config.yaml`;
-   - **Deployment branch** `main`.
-3. Push to `main`, or redeploy from the dashboard. The build installs from this directory's own lockfile, finds `envio` 3.14.0 in its `package.json`, and `pnpm start` runs `envio start`. It indexes from block 111,049,356.
+   - **Deployment branch** `envio`.
+
+   Every push to the deployment branch re-indexes from the start block, and a development plan holds three deployments. So the indexer deploys from `envio`, a branch that moves only when the indexer changes: `git push origin main:envio`.
+3. Push to the branch. The build installs from this directory's own lockfile, finds `envio` 3.14.0 in its `package.json`, and `pnpm start` runs `envio start`. It indexes from block 111,049,356, and Envio Cloud's own HyperSync access needs no API token.
 4. Copy the GraphQL endpoint into the site's `NEXT_PUBLIC_ENVIO_GRAPHQL_URL`, and /challenge lists every challenger from it.
 
 ## Limits
