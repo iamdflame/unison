@@ -1,0 +1,6 @@
+# media stays local: voiceover, music and footage are generated or licensed per use, and renders are uploaded, not committed
+audio/
+footage/
+out/
+node_modules/
+.remotion/

@@ -1,0 +1,25 @@
+{
+  "name": "unison-video",
+  "private": true,
+  "description": "The demo, pitch, ad and bounty videos, rendered with Remotion from the product's real data and footage. Media stays local (see .gitignore).",
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts",
+    "still": "remotion still src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.533",
+    "@remotion/media-utils": "4.0.533",
+    "@types/qrcode": "^1.5.6",
+    "qrcode": "^1.5.4",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "remotion": "4.0.533"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "typescript": "^5.9.0"
+  }
+}

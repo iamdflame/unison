@@ -1,0 +1,11 @@
+auction: market 1, batches up to block 111160954, cleared in block 111161027
+  price 28605, volume 10000000000000000000, reference 28659 at 1791326911000 ms, status 0
+PASS  receipt hash recomputes: 0x71bb199b56e60a9ca07afe3e4df2fd353b6d0f0c28f198949ce33ab8c98299e8
+  Chainlink feed 0xBcD78f76005B7515837af6b50c7C52BCf73822fb, round 18446744073710160724: answer 2865393, observed 1791326911, landed 1791326924
+PASS  the receipt's reference time is Chainlink's observation time (1791326911)
+PASS  observed strictly before the report landed on chain (a signed observation, not a block time)
+PASS  the newest order was sealed in block 111160954, at 1791326903
+PASS  observed 8 s after the seal (more than the 2 s skew)
+PASS  the round before it was observed at 1791326881, not after the seal: no earlier observation qualified
+
+every check passed
