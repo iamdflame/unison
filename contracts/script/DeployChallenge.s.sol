@@ -37,7 +37,9 @@ contract DeployChallenge is Script {
         vm.serializeUint(o, "start", start);
         string memory out = vm.serializeUint(o, "end", vm.parseJsonUint(cfg, ".end"));
         string memory path = string.concat(
-            "../deployments/", vm.envOr("CHALLENGE_OUT", string.concat(vm.parseJsonString(cfg, ".label"), "-challenge")), ".json"
+            "../deployments/",
+            vm.envOr("CHALLENGE_OUT", string.concat(vm.parseJsonString(cfg, ".label"), "-challenge")),
+            ".json"
         );
         vm.writeJson(out, path);
         console.log("challenge on Unison", address(unison));
@@ -50,14 +52,21 @@ contract DeployChallenge is Script {
         string[] memory keys = vm.parseJsonKeys(dep, ".markets");
         for (uint256 i = 0; i < keys.length; ++i) {
             string memory k = string.concat(".markets[\"", keys[i], "\"]");
-            if (vm.keyExistsJson(dep, string.concat(k, ".control")) && vm.parseJsonBool(dep, string.concat(k, ".control"))) {
+            if (
+                vm.keyExistsJson(dep, string.concat(k, ".control"))
+                    && vm.parseJsonBool(dep, string.concat(k, ".control"))
+            ) {
                 return vm.parseJsonUint(dep, string.concat(k, ".id"));
             }
         }
         revert("the deployment has no control market");
     }
 
-    function _terms(uint256 marketId, address causal, uint64 start) internal view returns (LatencyChallenge.Terms memory) {
+    function _terms(uint256 marketId, address causal, uint64 start)
+        internal
+        view
+        returns (LatencyChallenge.Terms memory)
+    {
         string memory wmon = ".markets[\"WMON/AUSD\"]";
         return LatencyChallenge.Terms({
             pot: IERC20(vm.parseJsonAddress(dep, string.concat(wmon, ".quote"))),

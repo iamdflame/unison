@@ -1,0 +1,22 @@
+{
+  "canceller": "0x0562b2b0914b3Bb082A623657729452fc9bf26E4",
+  "delaySec": 172800,
+  "executableAfter": 1791432374,
+  "finalDelaySec": 604800,
+  "operation": "0x94efbbca9467fc7b0dcbf5c2c38d27722efcf0a1bacfcde221182511d463a2c3",
+  "payloads": [
+    "0x79ba5097",
+    "0x79ba5097",
+    "0x79ba5097",
+    "0x64d623530000000000000000000000000000000000000000000000000000000000093a80"
+  ],
+  "proposer": "0x1CD2B147EfE092c3BdE0B474bCE3Bd33ae3dbB37",
+  "salt": "0x4cec7ac276f1c39c60959ba80ddc7958eec75a9d7bddbd3a5a8b677caaa57446",
+  "targets": [
+    "0xB161400dDfC592fD66b57dDaE46966ED74Ce891d",
+    "0xf5B4dcd734038f104Ef2Fd3F150418dDd38f0578",
+    "0xB5191aca4CA04beDbE744E96F984302e6d8987b8",
+    "0xC01723587F77f05Fd04010AdCae366bb1E4Fffd8"
+  ],
+  "timelock": "0xC01723587F77f05Fd04010AdCae366bb1E4Fffd8"
+}

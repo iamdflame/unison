@@ -59,7 +59,8 @@ contract UpgradeCausal is Script {
             );
             ex.setCausal(id, address(cref), true, skew);
             _closedMult(
-                LiquidityVault(vm.parseJsonAddress(cfg, _k(i, "vault"))), uint8(vm.parseJsonUint(cfg, _k(i, "closedMult")))
+                LiquidityVault(vm.parseJsonAddress(cfg, _k(i, "vault"))),
+                uint8(vm.parseJsonUint(cfg, _k(i, "closedMult")))
             );
         }
         (uint256 controlId, address controlVault) =
@@ -75,7 +76,9 @@ contract UpgradeCausal is Script {
         vm.serializeAddress(o, "controlVault", controlVault);
         string memory out = vm.serializeString(o, "controlSymbol", vm.parseJsonString(cfg, ".control.symbol"));
         string memory path = string.concat(
-            "../deployments/", vm.envOr("CAUSAL_OUT", string.concat(vm.parseJsonString(cfg, ".label"), "-causal")), ".json"
+            "../deployments/",
+            vm.envOr("CAUSAL_OUT", string.concat(vm.parseJsonString(cfg, ".label"), "-causal")),
+            ".json"
         );
         vm.writeJson(out, path);
         console.log("implementation", address(impl));
