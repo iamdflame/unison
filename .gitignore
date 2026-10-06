@@ -83,3 +83,6 @@ apps/web/lib/venue/deployments.generated.ts
 # local fork rehearsals that are not evidence (the dev stack and re-rehearsals)
 deployments/monad-fork-live.json
 deployments/monad-fork-dress*.json
+
+# the CRE CLI compiles workflows to a temporary file beside them
+.cre_build_tmp.js
