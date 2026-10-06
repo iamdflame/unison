@@ -76,6 +76,18 @@ export function vaultOrders(c: CurveQuote, baseBal: bigint, quoteBal: bigint, ti
   return out;
 }
 
+/**
+ * The band, in bp, that produced a print's upper edge. The venue rounds the reference to the nearest tick and takes
+ * half = ⌊refTick × bandBps / 10,000⌋ (ExchangeClearing._band), so the smallest whole bandBps giving that half is
+ * ⌈half × 10,000 / refTick⌉. Null when the print carries no band.
+ */
+export function bandOfPrint(bandHi: number, refPrice: bigint, tickSize: bigint): number | null {
+  if (tickSize <= 0n) return null;
+  const refTick = Number((refPrice + tickSize / 2n) / tickSize);
+  const half = bandHi - refTick;
+  return refTick > 0 && half > 0 ? Math.ceil((half * 10_000) / refTick) : null;
+}
+
 export class LiveMarket {
   readonly store: Store<MarketState>;
   readonly marketId: number;
@@ -90,6 +102,12 @@ export class LiveMarket {
   private loaded = false;
   /** a push-feed market whose reference this page reads itself, fresher than the tape's last print */
   private liveRef = false;
+  /**
+   * The band the venue last used in each fixed regime, read back from its prints. It is the market's own on-chain
+   * parameter, which can change (WMON's moved from ±200 to ±50 bp at the causal cutover); the static spec is only the
+   * fallback until a print shows it.
+   */
+  private usedBand: Partial<Record<MarketState["regime"]["name"], number>> = {};
 
   constructor(
     readonly spec: MarketSpec,
@@ -140,9 +158,13 @@ export class LiveMarket {
     const lp = s.lastPrint;
     const lastRef = lp ? Math.round(Number(BigInt(lp.refPrice) / this.tickSize)) : 0;
     const used = lp && lp.bandHi > 0 && lastRef > 0 ? Math.round(((lp.bandHi - lastRef) / lastRef) * 10_000) : null;
+    if (lp && lp.regime !== "DISCOVERY") {
+      const b = bandOfPrint(lp.bandHi, BigInt(lp.refPrice), this.tickSize);
+      if (b !== null) this.usedBand[lp.regime as MarketState["regime"]["name"]] = b;
+    }
     const byName: Record<string, number> = {
-      LIVE: this.spec.bandBps,
-      EXTENDED: this.spec.regime.extBandBps,
+      LIVE: this.usedBand.LIVE ?? this.spec.bandBps,
+      EXTENDED: this.usedBand.EXTENDED ?? this.spec.regime.extBandBps,
       REOPENING: this.spec.regime.reopenBandBps,
       DISCOVERY: regime.bandBps,
       HALTED: 0,
@@ -213,7 +235,14 @@ export class LiveMarket {
           this.liveRef = true;
           const refTick = Math.round(Number(r.price / this.tickSize));
           const name = NAME[r.status] ?? this.store.get().regime.name;
-          const bandBps = name === "LIVE" ? this.spec.bandBps : name === "EXTENDED" ? this.spec.regime.extBandBps : name === "HALTED" ? 0 : this.store.get().regime.bandBps;
+          const bandBps =
+            name === "LIVE"
+              ? (this.usedBand.LIVE ?? this.spec.bandBps)
+              : name === "EXTENDED"
+                ? (this.usedBand.EXTENDED ?? this.spec.regime.extBandBps)
+                : name === "HALTED"
+                  ? 0
+                  : this.store.get().regime.bandBps;
           const half = Math.max(1, Math.round((refTick * bandBps) / 10_000));
           const refAt = causal ? Number(r.publishTimeMs) : undefined;
           this.store.set((s) => ({ ...s, refTick, regime: { ...s.regime, name, bandBps }, lo: refTick - half, hi: refTick + half, ...(refAt ? { refAt } : {}) }));
