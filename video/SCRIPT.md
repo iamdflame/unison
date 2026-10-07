@@ -174,4 +174,91 @@ Same trade. <break time="0.4s" /> Two rules. <break time="0.6s" /> One paid the 
 | `sfx-whoosh.mp3` | a fast, soft air whoosh transition, modern |
 | `sfx-shutter.mp3` | a camera shutter for a photo-finish freeze frame |
 
-That's 18 voice files, 2 music tracks and 6 effects. When they're in `video\audio\`, tell me. The bounty videos (MetaMask, Chainlink CRE and Envio) get their own short scripts next.
+That's 18 voice files, 2 music tracks and 6 effects for the three films; the bounty videos below add 15 short voice files. When they're in `video\audio\`, tell me.
+
+---
+
+## 6. The bounty videos, in the narrator's voice (Brian)
+
+Each runs about two minutes and shows only real runs: the plugin's mainnet transcript, the CRE simulator against mainnet, and the indexer's tests and leaderboard. They reuse `music-pitch.mp3` at a low level.
+
+### The MetaMask Agent Wallet plugin (2:05)
+
+### mm-01.mp3: what it is
+```
+This is mm-plugin-unison. <break time="0.3s" /> It lets an AI agent trade on Unison, <break time="0.2s" /> live on Monad mainnet, <break time="0.2s" /> through MetaMask's Agent Wallet.
+```
+
+### mm-02.mp3: the keys stay with MetaMask
+```
+The plugin never holds a key. <break time="0.3s" /> Every transaction goes through the Agent Wallet's own executor, <break time="0.2s" /> which shows a plain-language intent before it signs. <break time="0.4s" /> Reads go straight to Monad.
+```
+
+### mm-03.mp3: a sealed sale, on mainnet
+```
+Here's a real run on mainnet. <break time="0.3s" /> The agent reads the market, <break time="0.2s" /> gets a quote, <break time="0.2s" /> and sells ten wrapped MON in a sealed auction. <break time="0.4s" /> Its price doesn't exist yet. <break time="0.3s" /> Chainlink observes eight seconds later, <break time="0.2s" /> and everyone in the auction gets that one price.
+```
+
+### mm-04.mp3: the agent checks
+```
+Then the agent checks its own receipt, <break time="0.2s" /> from the chain alone: <break time="0.3s" /> six checks against Chainlink's history. <break time="0.3s" /> Six passes. <break time="0.4s" /> It doesn't have to trust us either.
+```
+
+### mm-05.mp3: the challenge
+```
+Agents can also enter our standing challenge. <break time="0.3s" /> Open a challenge account, trade, <break time="0.2s" /> and a contract scores every fill against Chainlink's next price. <break time="0.4s" /> Our own sniper is in it: <break time="0.2s" /> it wins on the old rule, <break time="0.2s" /> and loses on Unison's.
+```
+
+### mm-06.mp3: close
+```
+Fifteen commands, <break time="0.2s" /> twenty-one unit tests, <break time="0.2s" /> and seven more against a mainnet fork. <break time="0.4s" /> Install it, <break time="0.2s" /> and let your agent try to snipe us.
+```
+
+### The Chainlink CRE sentinel (1:50)
+
+### cre-01.mp3: why a second opinion
+```
+Unison prices every auction at Chainlink's first observation after its orders are sealed. <break time="0.4s" /> The feed is the venue's heartbeat. <break time="0.3s" /> So we built it a second opinion, <break time="0.2s" /> on Chainlink's own Runtime Environment.
+```
+
+### cre-02.mp3: what the workflow does
+```
+Every thirty seconds, <break time="0.2s" /> each node in the network reads the feed's latest observation on Monad mainnet, <break time="0.3s" /> prices MON from Coinbase and Kraken, <break time="0.2s" /> and the nodes agree on a median.
+```
+
+### cre-03.mp3: the rule
+```
+It halts only when the feed is far from the market <break time="0.2s" /> and has gone quiet. <break time="0.4s" /> A healthy feed trailing a fast move must keep trading, <break time="0.3s" /> so a gap alone is never enough.
+```
+
+### cre-04.mp3: against mainnet
+```
+Here it is against mainnet, in Chainlink's simulator. <break time="0.3s" /> Five basis points apart, <break time="0.2s" /> observed forty-five seconds ago: <break time="0.2s" /> keep trading. <break time="0.4s" /> With the thresholds forced to zero, <break time="0.2s" /> it builds the halt report for our receiver contract.
+```
+
+### cre-05.mp3: close
+```
+A halt moves no funds. <break time="0.3s" /> The next auction trades nothing and returns every order. <break time="0.4s" /> Lifting it stays with the guardian.
+```
+
+### The Envio indexer (1:25)
+
+### envio-01.mp3: the scoreboard
+```
+Unison's standing challenge pays anyone who can snipe it. <break time="0.3s" /> Envio's HyperIndex keeps the scoreboard: <break time="0.2s" /> every challenger, on Monad mainnet.
+```
+
+### envio-02.mp3: how
+```
+When anyone opens a challenge account, <break time="0.2s" /> the factory's event registers the new contract on the fly. <break time="0.3s" /> Every order and every fill is indexed, <break time="0.3s" /> and each fill is marked to Chainlink's price sixty seconds later, <break time="0.2s" /> straight from the feed's own events.
+```
+
+### envio-03.mp3: the leaderboard
+```
+The result is a public leaderboard on the challenge page, <break time="0.2s" /> our own sniper labelled as ours. <break time="0.4s" /> It mirrors the contract's own scoring, <break time="0.2s" /> so what you see is what the pot pays.
+```
+
+### envio-04.mp3: close
+```
+Its tests replay real mainnet blocks. <break time="0.4s" /> Snipe us, <break time="0.2s" /> and Envio will show everyone.
+```

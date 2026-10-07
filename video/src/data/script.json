@@ -386,5 +386,303 @@
       "text": "Live on Monad.",
       "pause": 0
     }
+  ],
+  "mm-01": [
+    {
+      "text": "This is mm-plugin-unison.",
+      "pause": 0.3
+    },
+    {
+      "text": "It lets an AI agent trade on Unison,",
+      "pause": 0.2
+    },
+    {
+      "text": "live on Monad mainnet,",
+      "pause": 0.2
+    },
+    {
+      "text": "through MetaMask's Agent Wallet.",
+      "pause": 0
+    }
+  ],
+  "mm-02": [
+    {
+      "text": "The plugin never holds a key.",
+      "pause": 0.3
+    },
+    {
+      "text": "Every transaction goes through the Agent Wallet's own executor,",
+      "pause": 0.2
+    },
+    {
+      "text": "which shows a plain-language intent before it signs.",
+      "pause": 0.4
+    },
+    {
+      "text": "Reads go straight to Monad.",
+      "pause": 0
+    }
+  ],
+  "mm-03": [
+    {
+      "text": "Here's a real run on mainnet.",
+      "pause": 0.3
+    },
+    {
+      "text": "The agent reads the market,",
+      "pause": 0.2
+    },
+    {
+      "text": "gets a quote,",
+      "pause": 0.2
+    },
+    {
+      "text": "and sells ten wrapped MON in a sealed auction.",
+      "pause": 0.4
+    },
+    {
+      "text": "Its price doesn't exist yet.",
+      "pause": 0.3
+    },
+    {
+      "text": "Chainlink observes eight seconds later,",
+      "pause": 0.2
+    },
+    {
+      "text": "and everyone in the auction gets that one price.",
+      "pause": 0
+    }
+  ],
+  "mm-04": [
+    {
+      "text": "Then the agent checks its own receipt,",
+      "pause": 0.2
+    },
+    {
+      "text": "from the chain alone:",
+      "pause": 0.3
+    },
+    {
+      "text": "six checks against Chainlink's history.",
+      "pause": 0.3
+    },
+    {
+      "text": "Six passes.",
+      "pause": 0.4
+    },
+    {
+      "text": "It doesn't have to trust us either.",
+      "pause": 0
+    }
+  ],
+  "mm-05": [
+    {
+      "text": "Agents can also enter our standing challenge.",
+      "pause": 0.3
+    },
+    {
+      "text": "Open a challenge account, trade,",
+      "pause": 0.2
+    },
+    {
+      "text": "and a contract scores every fill against Chainlink's next price.",
+      "pause": 0.4
+    },
+    {
+      "text": "Our own sniper is in it:",
+      "pause": 0.2
+    },
+    {
+      "text": "it wins on the old rule,",
+      "pause": 0.2
+    },
+    {
+      "text": "and loses on Unison's.",
+      "pause": 0
+    }
+  ],
+  "mm-06": [
+    {
+      "text": "Fifteen commands,",
+      "pause": 0.2
+    },
+    {
+      "text": "twenty-one unit tests,",
+      "pause": 0.2
+    },
+    {
+      "text": "and seven more against a mainnet fork.",
+      "pause": 0.4
+    },
+    {
+      "text": "Install it,",
+      "pause": 0.2
+    },
+    {
+      "text": "and let your agent try to snipe us.",
+      "pause": 0
+    }
+  ],
+  "cre-01": [
+    {
+      "text": "Unison prices every auction at Chainlink's first observation after its orders are sealed.",
+      "pause": 0.4
+    },
+    {
+      "text": "The feed is the venue's heartbeat.",
+      "pause": 0.3
+    },
+    {
+      "text": "So we built it a second opinion,",
+      "pause": 0.2
+    },
+    {
+      "text": "on Chainlink's own Runtime Environment.",
+      "pause": 0
+    }
+  ],
+  "cre-02": [
+    {
+      "text": "Every thirty seconds,",
+      "pause": 0.2
+    },
+    {
+      "text": "each node in the network reads the feed's latest observation on Monad mainnet,",
+      "pause": 0.3
+    },
+    {
+      "text": "prices MON from Coinbase and Kraken,",
+      "pause": 0.2
+    },
+    {
+      "text": "and the nodes agree on a median.",
+      "pause": 0
+    }
+  ],
+  "cre-03": [
+    {
+      "text": "It halts only when the feed is far from the market",
+      "pause": 0.2
+    },
+    {
+      "text": "and has gone quiet.",
+      "pause": 0.4
+    },
+    {
+      "text": "A healthy feed trailing a fast move must keep trading,",
+      "pause": 0.3
+    },
+    {
+      "text": "so a gap alone is never enough.",
+      "pause": 0
+    }
+  ],
+  "cre-04": [
+    {
+      "text": "Here it is against mainnet, in Chainlink's simulator.",
+      "pause": 0.3
+    },
+    {
+      "text": "Five basis points apart,",
+      "pause": 0.2
+    },
+    {
+      "text": "observed forty-five seconds ago:",
+      "pause": 0.2
+    },
+    {
+      "text": "keep trading.",
+      "pause": 0.4
+    },
+    {
+      "text": "With the thresholds forced to zero,",
+      "pause": 0.2
+    },
+    {
+      "text": "it builds the halt report for our receiver contract.",
+      "pause": 0
+    }
+  ],
+  "cre-05": [
+    {
+      "text": "A halt moves no funds.",
+      "pause": 0.3
+    },
+    {
+      "text": "The next auction trades nothing and returns every order.",
+      "pause": 0.4
+    },
+    {
+      "text": "Lifting it stays with the guardian.",
+      "pause": 0
+    }
+  ],
+  "envio-01": [
+    {
+      "text": "Unison's standing challenge pays anyone who can snipe it.",
+      "pause": 0.3
+    },
+    {
+      "text": "Envio's HyperIndex keeps the scoreboard:",
+      "pause": 0.2
+    },
+    {
+      "text": "every challenger, on Monad mainnet.",
+      "pause": 0
+    }
+  ],
+  "envio-02": [
+    {
+      "text": "When anyone opens a challenge account,",
+      "pause": 0.2
+    },
+    {
+      "text": "the factory's event registers the new contract on the fly.",
+      "pause": 0.3
+    },
+    {
+      "text": "Every order and every fill is indexed,",
+      "pause": 0.3
+    },
+    {
+      "text": "and each fill is marked to Chainlink's price sixty seconds later,",
+      "pause": 0.2
+    },
+    {
+      "text": "straight from the feed's own events.",
+      "pause": 0
+    }
+  ],
+  "envio-03": [
+    {
+      "text": "The result is a public leaderboard on the challenge page,",
+      "pause": 0.2
+    },
+    {
+      "text": "our own sniper labelled as ours.",
+      "pause": 0.4
+    },
+    {
+      "text": "It mirrors the contract's own scoring,",
+      "pause": 0.2
+    },
+    {
+      "text": "so what you see is what the pot pays.",
+      "pause": 0
+    }
+  ],
+  "envio-04": [
+    {
+      "text": "Its tests replay real mainnet blocks.",
+      "pause": 0.4
+    },
+    {
+      "text": "Snipe us,",
+      "pause": 0.2
+    },
+    {
+      "text": "and Envio will show everyone.",
+      "pause": 0
+    }
   ]
 }
