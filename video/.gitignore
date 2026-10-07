@@ -13,3 +13,6 @@ public/private/
 
 # speech-to-text for aligning the voice (capture/align.mjs): binaries and model, never committed
 whisper.cpp/
+
+# the thumbnails' stills cut from the footage (capture/thumbs.mjs makes them)
+public/thumbs/

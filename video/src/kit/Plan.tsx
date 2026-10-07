@@ -24,8 +24,9 @@ export interface Beat {
   /** each file from second `at` of the beat; or placed so that its line `line` lands on second `on`; `captions`: only
    * these lines get captions (the rest are on screen in the scene's own type) */
   voice?: (({ id: VoiceId; at: number } | { id: VoiceId; line: number; on: number }) & { captions?: number[] })[];
-  /** effects: a file in public/audio and the second of the beat it lands on */
-  sfx?: { file: string; at: number; volume?: number }[];
+  /** effects: a file in public/audio and the second of the beat it lands on; with `voice`, `at` seconds after line
+   * `line` of that voice in this beat, so an effect stays on its word when a take is re-recorded */
+  sfx?: { file: string; at: number; volume?: number; voice?: VoiceId; line?: number }[];
   /** false when the scene sets the narration in its own type: no captions under it */
   captions?: boolean;
 }
@@ -44,7 +45,10 @@ export interface Planned {
  */
 export interface MusicSync {
   file: string;
-  drop?: { track: number; beat: string; at: number };
+  /** the music's level against the voice: 1 as the demo has it */
+  gain?: number;
+  /** the drop lands on second `at` of beat `beat`, or `at` seconds after line `line` of that beat's voice `voice` */
+  drop?: { track: number; beat: string; at: number; voice?: VoiceId; line?: number };
   /** the ending's hit lands on second `at` of beat `beat`, or `at` seconds after line `line` of that beat's voice `voice` */
   end?: { track: number; lead: number; beat: string; at: number; voice?: VoiceId; line?: number };
 }
@@ -57,6 +61,7 @@ export interface MusicCut {
   fadeOut: number;
   /** how far the voice ducks it: 1 fully, 0 not at all (a final hit rings over the last words) */
   duck: number;
+  gain?: number;
 }
 export interface PlanProps {
   beats: Planned[];
@@ -156,8 +161,16 @@ export async function plan(beats: Beat[], music: string | MusicSync | null): Pro
     if (beat.fixed && needs > beat.seconds) console.warn(`${beat.id}: its voice runs ${(needs - beat.seconds).toFixed(1)} s past the scene`);
     const length = s(beat.fixed ? beat.seconds : Math.max(beat.seconds, needs));
     if (beat.captions !== false) for (const v of voices) cues.push(...captionsFor(v.id, from / FPS + v.at, v.seconds, v.only));
+    const lineStart = (id: VoiceId, line: number) => {
+      const v = voices.find((x) => x.id === id);
+      if (!v) throw new Error(`${beat.id}: an effect is placed on ${id}, which isn't in this beat`);
+      return linesOf(v.id, v.at, v.seconds)[line]?.from ?? v.at;
+    };
     const sfx = [];
-    for (const e of beat.sfx ?? []) if ((await lengthOf(e.file)) !== null) sfx.push({ file: e.file, from: from + s(e.at), volume: e.volume ?? 0.6 });
+    for (const e of beat.sfx ?? []) {
+      const at = (e.voice ? lineStart(e.voice, e.line ?? 0) : 0) + e.at;
+      if ((await lengthOf(e.file)) !== null) sfx.push({ file: e.file, from: from + s(at), volume: e.volume ?? 0.6 });
+    }
     const ownWhoosh = (beat.sfx ?? []).some((e) => e.file === "sfx-whoosh.mp3" && e.at < 0.4);
     if (from > 0 && !ownWhoosh && (await lengthOf("sfx-whoosh.mp3")) !== null) sfx.push({ file: "sfx-whoosh.mp3", from: Math.max(0, from - s(0.22)), volume: 0.2 });
     out.push({
@@ -181,9 +194,18 @@ function cutMusic(sync: MusicSync, beats: Beat[], planned: Planned[], total: num
     if (i < 0) throw new Error(`music: no beat "${id}"`);
     return planned[i]!.from / FPS;
   };
+  // when a line of a beat's voice starts, in seconds of the beat
+  const lineIn = (beat: string, voice?: VoiceId, line?: number) => {
+    if (!voice || line === undefined) return 0;
+    const v = planned[beats.findIndex((x) => x.id === beat)]?.voices.find((x) => x.id === voice);
+    if (!v) throw new Error(`music: no voice ${voice} in beat "${beat}"`);
+    return v.lines[line]!;
+  };
+  const gain = sync.gain ?? 1;
   // the file's second at the film's first: its drop lands on the film's (a negative one starts the music late)
-  const offset = sync.drop ? sync.drop.track - (startOf(sync.drop.beat) + sync.drop.at) : 0;
-  const cuts: MusicCut[] = [{ at: Math.max(0, -offset), until: total, from: Math.max(0, offset), fadeIn: 0, fadeOut: 2, duck: 1 }];
+  const offset = sync.drop ? sync.drop.track - (startOf(sync.drop.beat) + lineIn(sync.drop.beat, sync.drop.voice, sync.drop.line) + sync.drop.at) : 0;
+  // a file entered mid-song fades in over a few frames, so it starts on no click
+  const cuts: MusicCut[] = [{ at: Math.max(0, -offset), until: total, from: Math.max(0, offset), fadeIn: offset > 0 ? 0.3 : 0, fadeOut: 2, duck: 1, gain }];
   if (sync.end) {
     const e = sync.end;
     const i = beats.findIndex((b) => b.id === e.beat);
@@ -191,7 +213,7 @@ function cutMusic(sync: MusicSync, beats: Beat[], planned: Planned[], total: num
     const hit = (voice && e.line !== undefined ? voice.lines[e.line]! : 0) + startOf(e.beat) + e.at;
     const splice = hit - e.lead;
     cuts[0] = { ...cuts[0]!, until: splice + 1, fadeOut: 1 };
-    cuts.push({ at: splice, until: total, from: e.track - e.lead, fadeIn: 1, fadeOut: 0, duck: 0.35 });
+    cuts.push({ at: splice, until: total, from: e.track - e.lead, fadeIn: 1, fadeOut: 0, duck: 0.35, gain });
   }
   return cuts;
 }
@@ -281,7 +303,7 @@ export function Film({ beats, plan: p, music }: { beats: Beat[]; plan: PlanProps
                   const end = interpolate(at, [total - s(2), total], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
                   // ducked as far as the cut allows: 0.62 alone, down to 0.22 under a voice
                   const level = 0.62 - (0.62 - duck(at)) * c.duck;
-                  return Math.max(0, fade) * end * level;
+                  return Math.max(0, fade) * end * level * (c.gain ?? 1);
                 }}
               />
             </Sequence>

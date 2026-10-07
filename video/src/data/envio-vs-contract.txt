@@ -1,0 +1,10 @@
+# Envio's leaderboard (GraphQL, https://indexer.dev.hyperindex.xyz/c37634b/v1/graphql) against LatencyChallenge's own scoring
+# (packages/sdk scoreAccount: every fill marked by the contract's rules against Chainlink's history), read 2026-10-07 14:17 UTC
+# edge and notional in AUSD units (6 decimals), after fees
+causal 0xb1964f
+  envio   : {"counted":23,"pending":0,"edge":"-4250","notional":"1910296","edgeBps":"-22.24"}
+  contract: {"counted":"23","ready":true,"edge":"-4250","notional":"1910296","edgeBps":-22.24}
+old 0xac888e
+  envio   : {"counted":23,"pending":0,"edge":"2772","notional":"1912524","edgeBps":"14.49"}
+  contract: {"counted":"23","ready":true,"edge":"2772","notional":"1912524","edgeBps":14.49}
+

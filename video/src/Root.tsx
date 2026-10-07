@@ -1,4 +1,4 @@
-import { Composition } from "remotion";
+import { Composition, Still } from "remotion";
 import { FPS, H, s, W } from "./brand";
 import { Ad, planAd } from "./films/Ad";
 import { Cre, planCre } from "./films/Cre";
@@ -17,6 +17,7 @@ import { Live, LIVE_FRAMES } from "./scenes/Live";
 import { PhotoFinish } from "./scenes/PhotoFinish";
 import { Thirteen } from "./scenes/Thirteen";
 import { Verify } from "./scenes/Verify";
+import { TH, ThumbAd, ThumbCre, ThumbDemo, ThumbEnvio, ThumbMetaMask, ThumbPitch, TW } from "./thumbs/Thumbs";
 
 loadFonts();
 
@@ -111,6 +112,13 @@ export const Root = () => (
     {scene("Thirteen", Thirteen, 14)}
     {scene("Idea", Idea, 12)}
     <Composition id="Live" component={Live} durationInFrames={LIVE_FRAMES} fps={FPS} width={W} height={H} />
+    {/* the uploads' thumbnails (1280 × 720): node capture/thumbs.mjs */}
+    <Still id="ThumbDemo" component={ThumbDemo} width={TW} height={TH} />
+    <Still id="ThumbPitch" component={ThumbPitch} width={TW} height={TH} />
+    <Still id="ThumbAd" component={ThumbAd} width={TW} height={TH} />
+    <Still id="ThumbMetaMask" component={ThumbMetaMask} width={TW} height={TH} />
+    <Still id="ThumbCre" component={ThumbCre} width={TW} height={TH} />
+    <Still id="ThumbEnvio" component={ThumbEnvio} width={TW} height={TH} />
     {scene("Verify", Verify, 12)}
     {scene("PhotoFinish", PhotoFinish, 13)}
     {scene("Challenge", Challenge, 8)}

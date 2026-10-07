@@ -545,5 +545,423 @@
     "diffs": [
       "\"priced\" was read \"price\""
     ]
+  },
+  "mm-01": {
+    "size": 163641,
+    "mtimeMs": 1791380702112.3374,
+    "seconds": 9.169,
+    "lines": [
+      {
+        "from": 0.07,
+        "to": 2.57
+      },
+      {
+        "from": 2.94,
+        "to": 5.29
+      },
+      {
+        "from": 5.58,
+        "to": 7.02
+      },
+      {
+        "from": 7.35,
+        "to": 8.93
+      }
+    ],
+    "heard": "This is M&M Plug-in Unison. It lets an AI agent trade on Unison, live on Monad Mainnet, through MetaMask's Agent Wallet.",
+    "diffs": [
+      "\"plug\" was added",
+      "\"plugin\" was read \"in\""
+    ]
+  },
+  "mm-02": {
+    "size": 195406,
+    "mtimeMs": 1791380733647.728,
+    "seconds": 11.154,
+    "lines": [
+      {
+        "from": 0.13,
+        "to": 1.85
+      },
+      {
+        "from": 2.49,
+        "to": 5.69
+      },
+      {
+        "from": 6.15,
+        "to": 8.89
+      },
+      {
+        "from": 9.39,
+        "to": 10.89
+      }
+    ],
+    "heard": "The plugin never holds a key. Every transaction goes through the agent wallet's own executor, which shows a plain-language intent before it signs. Reads go straight to Monad.",
+    "diffs": []
+  },
+  "mm-03": {
+    "size": 266041,
+    "mtimeMs": 1791380746904.5972,
+    "seconds": 15.569,
+    "lines": [
+      {
+        "from": 0.07,
+        "to": 1.68
+      },
+      {
+        "from": 2.24,
+        "to": 3.52
+      },
+      {
+        "from": 3.84,
+        "to": 4.49
+      },
+      {
+        "from": 4.84,
+        "to": 7.72
+      },
+      {
+        "from": 8.37,
+        "to": 9.83
+      },
+      {
+        "from": 10.43,
+        "to": 12.52
+      },
+      {
+        "from": 12.92,
+        "to": 15.4
+      }
+    ],
+    "heard": "Here's a real run on mainnet. The agent reads the market, gets a quote, and sells 10 wrapped MON in a sealed auction. Its price doesn't exist yet. Chainlink observes 14 seconds later, and everyone in the auction gets that one price.",
+    "diffs": []
+  },
+  "mm-04": {
+    "size": 176180,
+    "mtimeMs": 1791380788184.7427,
+    "seconds": 9.953,
+    "lines": [
+      {
+        "from": 0.13,
+        "to": 2.09
+      },
+      {
+        "from": 2.5,
+        "to": 3.5
+      },
+      {
+        "from": 4,
+        "to": 6.12
+      },
+      {
+        "from": 6.64,
+        "to": 7.58
+      },
+      {
+        "from": 8.07,
+        "to": 9.69
+      }
+    ],
+    "heard": "Then the agent checks its own receipt from the chain alone. Six checks against Chainlink's history. Six passes. It doesn't have to trust us either.",
+    "diffs": []
+  },
+  "mm-05": {
+    "size": 235112,
+    "mtimeMs": 1791380821624.89,
+    "seconds": 13.636,
+    "lines": [
+      {
+        "from": 0.12,
+        "to": 2.45
+      },
+      {
+        "from": 2.93,
+        "to": 4.82
+      },
+      {
+        "from": 5.13,
+        "to": 8.58
+      },
+      {
+        "from": 9.09,
+        "to": 10.18
+      },
+      {
+        "from": 10.62,
+        "to": 11.86
+      },
+      {
+        "from": 12.14,
+        "to": 13.47
+      }
+    ],
+    "heard": "Agents can also enter our standing challenge. Open a challenge account, trade, and a contract scores every fill against Chainlink's next price. Our own sniper is in it. It wins on the old rule and loses on Unisons.",
+    "diffs": []
+  },
+  "mm-06": {
+    "size": 153192,
+    "mtimeMs": 1791380839008.0042,
+    "seconds": 8.516,
+    "lines": [
+      {
+        "from": 0.18,
+        "to": 1.31
+      },
+      {
+        "from": 1.55,
+        "to": 2.87
+      },
+      {
+        "from": 3,
+        "to": 5.07
+      },
+      {
+        "from": 5.57,
+        "to": 6.25
+      },
+      {
+        "from": 6.55,
+        "to": 8.37
+      }
+    ],
+    "heard": "15 commands, 23 unit tests, and 7 more against the mainnet fork. Install it and let your agent try to snipe us.",
+    "diffs": [
+      "\"a\" was read \"the\""
+    ]
+  },
+  "cre-01": {
+    "size": 219648,
+    "mtimeMs": 1791380920932.2678,
+    "seconds": 12.669,
+    "lines": [
+      {
+        "from": 0.1,
+        "to": 5.32
+      },
+      {
+        "from": 6,
+        "to": 7.8
+      },
+      {
+        "from": 8.38,
+        "to": 10.02
+      },
+      {
+        "from": 10.43,
+        "to": 12.48
+      }
+    ],
+    "heard": "Unison prices every auction at Chainlink's first observation after its orders are sealed. The feed is the venue's heartbeat. So we built it a second opinion on Chainlink's own runtime environment.",
+    "diffs": []
+  },
+  "cre-02": {
+    "size": 201675,
+    "mtimeMs": 1791380954043.6802,
+    "seconds": 11.546,
+    "lines": [
+      {
+        "from": 0.07,
+        "to": 2
+      },
+      {
+        "from": 2.37,
+        "to": 6.64
+      },
+      {
+        "from": 7.24,
+        "to": 9.39
+      },
+      {
+        "from": 9.85,
+        "to": 11.29
+      }
+    ],
+    "heard": "Every 30 seconds, each node in the network reads the feed's latest observation on Monad Mainnet, prices mon from Coinbase and Kraken, and the nodes agree on a median.",
+    "diffs": []
+  },
+  "cre-03": {
+    "size": 196660,
+    "mtimeMs": 1791380968183.6057,
+    "seconds": 11.233,
+    "lines": [
+      {
+        "from": 0.14,
+        "to": 3.01
+      },
+      {
+        "from": 3.52,
+        "to": 4.49
+      },
+      {
+        "from": 5.23,
+        "to": 8.46
+      },
+      {
+        "from": 8.91,
+        "to": 11.03
+      }
+    ],
+    "heard": "It halts only when the feed is far from the market and has gone quiet. A healthy feed trailing a fast move must keep trading, so a gap alone is never enough.",
+    "diffs": []
+  },
+  "cre-04": {
+    "size": 227589,
+    "mtimeMs": 1791380981363.3708,
+    "seconds": 13.166,
+    "lines": [
+      {
+        "from": 0.08,
+        "to": 2.79
+      },
+      {
+        "from": 3.21,
+        "to": 4.87
+      },
+      {
+        "from": 5.3,
+        "to": 6.82
+      },
+      {
+        "from": 7.26,
+        "to": 7.92
+      },
+      {
+        "from": 8.66,
+        "to": 10.46
+      },
+      {
+        "from": 10.61,
+        "to": 13.01
+      }
+    ],
+    "heard": "Here it is against MainNet in Chainlink Simulator. 14 basis points apart, observed 16 seconds ago. Keep trading. With the thresholds forced to zero, it builds the HALT report for our receiver contract.",
+    "diffs": [
+      "\"chainlinks\" was read \"chainlink\""
+    ]
+  },
+  "cre-05": {
+    "size": 148177,
+    "mtimeMs": 1791380992399.1304,
+    "seconds": 8.202,
+    "lines": [
+      {
+        "from": 0.13,
+        "to": 1.86
+      },
+      {
+        "from": 2.42,
+        "to": 5.6
+      },
+      {
+        "from": 6.22,
+        "to": 7.94
+      }
+    ],
+    "heard": "A halt moves no funds. The next auction trades nothing and returns every order. Lifting it stays with the Guardian.",
+    "diffs": []
+  },
+  "envio-01": {
+    "size": 159462,
+    "mtimeMs": 1791381065438.6216,
+    "seconds": 8.908,
+    "lines": [
+      {
+        "from": 0.14,
+        "to": 3.24
+      },
+      {
+        "from": 3.88,
+        "to": 6.1
+      },
+      {
+        "from": 6.54,
+        "to": 8.68
+      }
+    ],
+    "heard": "Unison's Standing Challenge pays anyone who can snipe it. Envio's Hyper Index keeps the scoreboard. Every challenger on Monad Mainnet.",
+    "diffs": [
+      "\"hyper\" was added",
+      "\"hyperindex\" was read \"index\""
+    ]
+  },
+  "envio-02": {
+    "size": 259354,
+    "mtimeMs": 1791381084916.3223,
+    "seconds": 15.151,
+    "lines": [
+      {
+        "from": 0.06,
+        "to": 2.56
+      },
+      {
+        "from": 2.91,
+        "to": 6.09
+      },
+      {
+        "from": 6.7,
+        "to": 9
+      },
+      {
+        "from": 9.4,
+        "to": 12.78
+      },
+      {
+        "from": 13.15,
+        "to": 14.95
+      }
+    ],
+    "heard": "When anyone opens a challenge account, the factory's event registers the new contract on the fly. Every order and every fill is indexed, and each fill is marked to Chainlink's price 60 seconds later, straight from the feed's own events.",
+    "diffs": []
+  },
+  "envio-03": {
+    "size": 222155,
+    "mtimeMs": 1791381100874.8567,
+    "seconds": 12.826,
+    "lines": [
+      {
+        "from": 0.13,
+        "to": 3.15
+      },
+      {
+        "from": 3.56,
+        "to": 5.93
+      },
+      {
+        "from": 6.52,
+        "to": 9.81
+      },
+      {
+        "from": 10.34,
+        "to": 12.62
+      }
+    ],
+    "heard": "The result is a public leaderboard on the challenge page, our own sniper labeled as ours. It matches the contract's own score to the last unit, so what you see is what the pot pays.",
+    "diffs": [
+      "\"labelled\" was read \"labeled\""
+    ]
+  },
+  "envio-04": {
+    "size": 112232,
+    "mtimeMs": 1791381117339.5342,
+    "seconds": 5.956,
+    "lines": [
+      {
+        "from": 0.14,
+        "to": 2.52
+      },
+      {
+        "from": 2.92,
+        "to": 3.64
+      },
+      {
+        "from": 3.97,
+        "to": 5.74
+      }
+    ],
+    "heard": "It's tests replay real mainnet blocks. SnipeUs and Envio will show everyone.",
+    "diffs": [
+      "\"snipe\" is missing",
+      "\"us\" was read \"snipeus\""
+    ]
   }
 }
