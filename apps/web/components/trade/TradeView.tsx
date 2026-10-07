@@ -340,7 +340,8 @@ function Activity({
         ) : (
           <ul className="divide-y divide-line">
             {orders.slice(0, 10).map((o) => (
-              <li key={o.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-3 text-sm">
+              // a slot is reused once its order is done: the slot and the block it was placed in name one order
+              <li key={`${o.id}:${o.placedBlock}`} className="grid grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-3 text-sm">
                 <span className={`font-semibold ${o.side === "buy" ? "text-buy" : "text-sell"}`}>
                   {o.side === "buy" ? "Buy" : "Sell"}
                 </span>

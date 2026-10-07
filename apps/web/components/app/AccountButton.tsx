@@ -46,7 +46,8 @@ export function AccountButton() {
           "Sign in"
         ) : (
           <>
-            <span className="figures">{quote.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
+            {/* cents for a live balance under 1,000 (0.74 AUSD isn't "1"); whole units for the paper account's 100,000 */}
+            <span className="figures">{quote.toLocaleString("en-US", quote > 0 && quote < 1000 ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : { maximumFractionDigits: 0 })}</span>
             <span className="text-ink-3">AUSD</span>
           </>
         )}

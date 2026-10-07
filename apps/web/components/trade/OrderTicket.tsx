@@ -118,7 +118,9 @@ export function OrderTicket({
     return Number(l) / 1e6;
   }, [side, qty, limit, unit, spec.maxFeeBps]);
   const affordable = side === "buy" ? lock <= free.quote : qty <= free.base;
-  const inBand = limit >= m.lo && limit <= m.hi;
+  // Only a limit past the band on its own side can't trade yet: a sell above it, a buy below it. A sell below the band
+  // (or a buy above it) trades at the band's edge or better.
+  const outOfReach = side === "sell" ? limit > m.hi : limit < m.lo;
 
   // The batch now forming, cleared as it stands (the book and the vault) and again with your order in it.
   const band = useMemo(() => ({ lo: m.lo, hi: m.hi, refTick: m.refTick }), [m.lo, m.hi, m.refTick]);
@@ -341,9 +343,10 @@ export function OrderTicket({
             <span>{fmt(m.hi)}</span>
           </div>
         </div>
-        {!inBand ? (
+        {outOfReach ? (
           <p className="mt-2 text-xs text-halt">
-            Outside this auction&apos;s band. It rests until the band reaches it.
+            {side === "sell" ? "Above" : "Below"} this auction&apos;s band.{" "}
+            {ioc ? "It fills only if the band reaches it; otherwise it comes back." : "It rests until the band reaches it."}
           </p>
         ) : null}
 
