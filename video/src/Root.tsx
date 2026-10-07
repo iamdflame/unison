@@ -3,6 +3,7 @@ import { FPS, H, s, W } from "./brand";
 import { Ad, planAd } from "./films/Ad";
 import { Cre, planCre } from "./films/Cre";
 import { Demo, planDemo } from "./films/Demo";
+import { Envio, planEnvio } from "./films/Envio";
 import { MetaMask, planMetaMask } from "./films/MetaMask";
 import { Pitch, planPitch } from "./films/Pitch";
 import { loadFonts } from "./fonts";
@@ -88,6 +89,19 @@ export const Root = () => (
       defaultProps={{ beats: [], music: null, cues: [] }}
       calculateMetadata={async () => {
         const { durationInFrames, ...props } = await planCre();
+        return { durationInFrames, props };
+      }}
+    />
+    <Composition
+      id="Envio"
+      component={Envio}
+      fps={FPS}
+      width={W}
+      height={H}
+      durationInFrames={s(45)}
+      defaultProps={{ beats: [], music: null, cues: [] }}
+      calculateMetadata={async () => {
+        const { durationInFrames, ...props } = await planEnvio();
         return { durationInFrames, props };
       }}
     />
