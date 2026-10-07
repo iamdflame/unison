@@ -34,7 +34,7 @@ Steps 1, 2, 4 and 5 need no account, wallet or download. Step 3 needs only a pas
 3. **Trade it yourself on the testnet.** On https://www.unisonfi.com/trade/aNVDA (the testnet is the default), press **Sign in**, then **Create a passkey**, then **Add test funds**. Tap the **Ask** price and buy 1 aNVDA. The order joins the next auction and fills against the vault within seconds; the fill opens a certificate whose receipt the tape recomputes. No real money is involved.
 4. **Snipe us.** https://www.unisonfi.com/challenge: two pots, the contract's definition of an edge, and our own sniper's live score on both rules.
 5. **Everything at once.** https://www.unisonfi.com/status lists the services and markets. https://www.unisonfi.com/?demo=1 runs every market in your browser on the real clearing engine, with a paper account.
-6. **From an AI agent.** With MetaMask's Agent Wallet CLI and [our plugin](integrations/agent-wallet-plugin):
+6. **From an AI agent.** With MetaMask's Agent Wallet CLI and our plugin, [`mm-plugin-unison`](https://www.npmjs.com/package/mm-plugin-unison) on npm (`mm plugins install mm-plugin-unison`; [its source](integrations/agent-wallet-plugin)):
    - `mm unison receipt https://www.unisonfi.com/receipt/mainnet/1/111055816` runs the same six checks;
    - `mm unison challenge score --rule old --address 0xcEc80166Ab48cb3C4ebD98671524761b1fd81276` shows our sniper winning on the old rule;
    - `mm unison order WMON buy 10` trades through the agent's own wallet.

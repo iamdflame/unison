@@ -70,11 +70,21 @@ Every command takes `--json`. [`skills/unison/SKILL.md`](skills/unison/SKILL.md)
 
 ## Install
 
-From npm (once published):
+From npm ([mm-plugin-unison](https://www.npmjs.com/package/mm-plugin-unison)):
 
 ```
 mm config set experimentalPlugins true
-mm plugins install mm-plugin-unison
+mm plugins install mm-plugin-unison --accept-permissions
+mm unison markets
+```
+
+On Windows, the CLI (as of 7 October 2026) can't install a plugin by its npm name: it runs `npm view` without a shell, which can't start `npm.cmd`, and stops with `PLUGIN_METADATA_UNAVAILABLE … spawn npm ENOENT`. Install the same published package from its tarball instead, in PowerShell:
+
+```
+npm pack mm-plugin-unison
+tar -xzf mm-plugin-unison-0.1.2.tgz
+mm config set experimentalAllowUnverifiedInstalls true
+$env:npm_config_install_links="true"; mm plugins install "file:$((Resolve-Path package).Path -replace '\\','/')" --accept-permissions
 ```
 
 From this repository:

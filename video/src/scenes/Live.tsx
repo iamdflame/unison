@@ -311,7 +311,7 @@ export const Live = () => {
                 return (
                   <>
                     <Underline from={point(562, 497)} to={point(654, 497)} draw={ramp(t, seal + 0.05, seal + 0.6)} />
-                    <Underline from={point(1004, 497)} to={point(1066, 497)} draw={ramp(t, price + 1.0, price + 1.6)} />
+                    <Underline from={point(1004, 497)} to={point(1066, 497)} draw={ramp(t, price + 1.6, price + 2.2)} />
                   </>
                 );
               }

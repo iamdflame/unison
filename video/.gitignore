@@ -10,3 +10,6 @@ public/footage/
 
 # the founder's photo, for the pitch: local only
 public/private/
+
+# speech-to-text for aligning the voice (capture/align.mjs): binaries and model, never committed
+whisper.cpp/

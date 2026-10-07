@@ -2,6 +2,7 @@ import { AbsoluteFill, Sequence } from "remotion";
 import { s } from "../brand";
 import { type Beat, Film, plan, type PlanProps, useLine } from "../kit/Plan";
 import { Close } from "../scenes/Close";
+import { MUSIC_DEMO } from "./Demo";
 import { PhotoFinish } from "../scenes/PhotoFinish";
 
 /**
@@ -32,6 +33,12 @@ export const AD: Beat[] = [
   },
 ];
 
-export const planAd = () => plan(AD, "music-demo.mp3");
+// the drop on the freeze frame; the bell as the end card comes up, the music gone quiet just before it
+export const planAd = () =>
+  plan(AD, {
+    file: "music-demo.mp3",
+    drop: { track: MUSIC_DEMO.drop, beat: "ad", at: 9.98 },
+    end: { track: MUSIC_DEMO.bell, lead: 1.5, beat: "ad", voice: "ad-01", line: 4, at: -0.05 },
+  });
 
 export const Ad = (props: PlanProps) => <Film beats={AD} plan={props} music />;

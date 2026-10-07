@@ -68,9 +68,18 @@ export const DEMO: Beat[] = [
   },
   { id: "challenge", Scene: SnipeUs, seconds: 12, voice: [{ id: "demo-10", at: 0.3 }] },
   { id: "agent", Scene: Agent, seconds: 11, voice: [{ id: "demo-11", at: 0.3 }] },
-  { id: "close", Scene: Close, seconds: 8, voice: [{ id: "demo-12", at: 0.4 }] },
+  // the bell rings as the mark appears; "Unison." follows it
+  { id: "close", Scene: Close, seconds: 8, voice: [{ id: "demo-12", at: 0.9 }] },
 ];
 
-export const planDemo = () => plan(DEMO, "music-demo.mp3");
+/** music-demo.mp3's own landmarks (capture/music.mjs): its drop hits at 73.25 s, its closing bell at 229.86 s after
+ * eight seconds falling away. The drop lands on the fill, the bell on the close. */
+export const MUSIC_DEMO = { drop: 73.25, bell: 229.86, fall: 7.8 };
+export const planDemo = () =>
+  plan(DEMO, {
+    file: "music-demo.mp3",
+    drop: { track: MUSIC_DEMO.drop, beat: "live", at: LIVE_CUES.drop },
+    end: { track: MUSIC_DEMO.bell, lead: MUSIC_DEMO.fall, beat: "close", at: 0.25 },
+  });
 
 export const Demo = (props: PlanProps) => <Film beats={DEMO} plan={props} music />;

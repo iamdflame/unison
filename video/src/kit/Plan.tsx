@@ -2,6 +2,7 @@ import { type ComponentType, createContext, useContext } from "react";
 import { AbsoluteFill, Audio, interpolate, Sequence, staticFile, useCurrentFrame } from "remotion";
 import { getAudioDurationInSeconds } from "@remotion/media-utils";
 import { FPS, s } from "../brand";
+import align from "../data/align.json";
 import script from "../data/script.json";
 import { type Cue, Captions } from "./Captions";
 
@@ -32,9 +33,31 @@ export interface Planned {
   voices: { id: VoiceId; from: number; seconds: number; real: boolean; lines: number[] }[];
   sfx: { file: string; from: number; volume: number }[];
 }
+/**
+ * A music file placed on the film's moments rather than from its first second. Its own landmarks (seconds of the
+ * file, measured once from its loudness) land on seconds of named beats: its drop on the film's drop, and its ending,
+ * the file's own run into its last hit, `lead` seconds long, spliced in so that hit lands on the film's last moment.
+ */
+export interface MusicSync {
+  file: string;
+  drop?: { track: number; beat: string; at: number };
+  /** the ending's hit lands on second `at` of beat `beat`, or `at` seconds after line `line` of that beat's voice `voice` */
+  end?: { track: number; lead: number; beat: string; at: number; voice?: VoiceId; line?: number };
+}
+/** A stretch of the music: from second `at` to `until` of the film, playing the file from its second `from`. */
+export interface MusicCut {
+  at: number;
+  until: number;
+  from: number;
+  fadeIn: number;
+  fadeOut: number;
+  /** how far the voice ducks it: 1 fully, 0 not at all (a final hit rings over the last words) */
+  duck: number;
+}
 export interface PlanProps {
   beats: Planned[];
   music: string | null;
+  musicCuts?: MusicCut[];
   cues: Cue[];
   [key: string]: unknown;
 }
@@ -51,9 +74,18 @@ const lengthOf = async (file: string) => {
 /** Without the file: words at 2.6 a second, plus the script's own pauses. */
 const estimate = (id: VoiceId) => script[id].reduce((sum, seg) => sum + seg.text.split(/\s+/).length / 2.6 + seg.pause, 0.3);
 
-/** Each line of a voice file, from the script: when it starts and ends, its share of the speaking time by length. */
+/** Each take as it was really spoken (capture/align.mjs): when each line starts and ends, in seconds of the file. */
+const ALIGNED = align as Partial<Record<string, { seconds: number; lines: { from: number; to: number }[] }>>;
+
+/**
+ * Each line of a voice file: when it starts and ends. From the take itself when it has been aligned (and the file is
+ * still that take), otherwise from the script, each line its share of the speaking time by length.
+ */
 function linesOf(id: VoiceId, start: number, seconds: number) {
   const segs = script[id];
+  const real = ALIGNED[id];
+  if (real && real.lines.length === segs.length && Math.abs(real.seconds - seconds) < 0.15)
+    return segs.map((seg, i) => ({ from: start + real.lines[i]!.from, to: start + real.lines[i]!.to, pause: seg.pause, text: seg.text }));
   const pauses = segs.reduce((p, x) => p + x.pause, 0);
   const speech = Math.max(0.5, seconds - pauses - 0.25);
   const weight = segs.reduce((w, x) => w + x.text.length, 0);
@@ -90,7 +122,7 @@ export function useLine(id: VoiceId, index: number, fallback: number) {
   return useContext(Lines)[id]?.[index] ?? fallback;
 }
 
-export async function plan(beats: Beat[], music: string | null): Promise<PlanProps & { durationInFrames: number }> {
+export async function plan(beats: Beat[], music: string | MusicSync | null): Promise<PlanProps & { durationInFrames: number }> {
   const out: Planned[] = [];
   const cues: Cue[] = [];
   let from = 0;
@@ -118,7 +150,32 @@ export async function plan(beats: Beat[], music: string | null): Promise<PlanPro
     });
     from += length;
   }
-  return { beats: out, music: music && (await lengthOf(music)) !== null ? music : null, cues, durationInFrames: Math.max(1, from) };
+  const file = typeof music === "string" ? music : (music?.file ?? null);
+  const has = file !== null && (await lengthOf(file)) !== null;
+  const total = from / FPS;
+  return { beats: out, music: has ? file : null, musicCuts: has && music && typeof music !== "string" ? cutMusic(music, beats, out, total) : undefined, cues, durationInFrames: Math.max(1, from) };
+}
+
+/** Where each stretch of a synced music file plays: the drop on its beat, then the ending spliced in on its hit. */
+function cutMusic(sync: MusicSync, beats: Beat[], planned: Planned[], total: number): MusicCut[] {
+  const startOf = (id: string) => {
+    const i = beats.findIndex((b) => b.id === id);
+    if (i < 0) throw new Error(`music: no beat "${id}"`);
+    return planned[i]!.from / FPS;
+  };
+  // the file's second at the film's first: its drop lands on the film's (a negative one starts the music late)
+  const offset = sync.drop ? sync.drop.track - (startOf(sync.drop.beat) + sync.drop.at) : 0;
+  const cuts: MusicCut[] = [{ at: Math.max(0, -offset), until: total, from: Math.max(0, offset), fadeIn: 0, fadeOut: 2, duck: 1 }];
+  if (sync.end) {
+    const e = sync.end;
+    const i = beats.findIndex((b) => b.id === e.beat);
+    const voice = e.voice ? planned[i]?.voices.find((v) => v.id === e.voice) : undefined;
+    const hit = (voice && e.line !== undefined ? voice.lines[e.line]! : 0) + startOf(e.beat) + e.at;
+    const splice = hit - e.lead;
+    cuts[0] = { ...cuts[0]!, until: splice + 1, fadeOut: 1 };
+    cuts.push({ at: splice, until: total, from: e.track - e.lead, fadeIn: 1, fadeOut: 0, duck: 0.35 });
+  }
+  return cuts;
 }
 
 /** The music sits under the voice: down while anyone speaks, back up in the gaps. */
@@ -160,7 +217,25 @@ export function Film({ beats, plan: p, music }: { beats: Beat[]; plan: PlanProps
           </Sequence>
         );
       })}
-      {music && p.music ? <Audio src={staticFile(`audio/${p.music}`)} volume={(fr) => duck(fr) * interpolate(fr, [total - s(2), total], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })} /> : null}
+      {music && p.music
+        ? (p.musicCuts ?? [{ at: 0, until: total / FPS, from: 0, fadeIn: 0, fadeOut: 2, duck: 1 }]).map((c) => (
+            <Sequence key={`music-${c.at}`} from={s(c.at)} durationInFrames={Math.max(1, s(c.until - c.at))} name={`music from ${c.from.toFixed(1)} s`}>
+              <Audio
+                src={staticFile(`audio/${p.music}`)}
+                trimBefore={Math.round(c.from * FPS)}
+                volume={(fr) => {
+                  const at = fr + s(c.at);
+                  const len = s(c.until - c.at);
+                  const fade = Math.min(c.fadeIn ? fr / s(c.fadeIn) : 1, c.fadeOut ? (len - fr) / s(c.fadeOut) : 1, 1);
+                  const end = interpolate(at, [total - s(2), total], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+                  // ducked as far as the cut allows: 0.62 alone, down to 0.22 under a voice
+                  const level = 0.62 - (0.62 - duck(at)) * c.duck;
+                  return Math.max(0, fade) * end * level;
+                }}
+              />
+            </Sequence>
+          ))
+        : null}
       <Captions cues={p.cues} />
       {/* a one-frame guard: nothing below the captions should flash at the cut to black */}
       {f >= total ? <AbsoluteFill style={{ background: "black" }} /> : null}

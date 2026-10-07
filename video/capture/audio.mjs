@@ -14,12 +14,21 @@ const TO = join(ROOT, "public", "audio");
 mkdirSync(TO, { recursive: true });
 
 const files = existsSync(FROM) ? readdirSync(FROM).filter((f) => /\.(mp3|wav|m4a)$/i.test(f)) : [];
+/** The name a film reads a file by: "demo1.mp3" and "demo-01.mp3" are both demo-01, "picth1" is pitch-01, "add" the ad. */
+const canonical = (f) => {
+  const m = f.toLowerCase().match(/^(demo|pitch|picth|ptich|mm|cre|envio)[-_ ]?0*(\d+)\.(mp3|wav|m4a)$/);
+  if (m) return `${m[1].startsWith("p") ? "pitch" : m[1]}-${m[2].padStart(2, "0")}.${m[3]}`;
+  if (/^(ad|add)(-?0*1)?\.(mp3|wav|m4a)$/i.test(f)) return `ad-01.${f.split(".").pop().toLowerCase()}`;
+  return f;
+};
 let copied = 0;
 for (const f of files) {
+  const to = canonical(f);
   const a = statSync(join(FROM, f));
-  const b = existsSync(join(TO, f)) ? statSync(join(TO, f)) : null;
+  const b = existsSync(join(TO, to)) ? statSync(join(TO, to)) : null;
   if (b && b.size === a.size && b.mtimeMs >= a.mtimeMs) continue;
-  copyFileSync(join(FROM, f), join(TO, f));
+  copyFileSync(join(FROM, f), join(TO, to));
+  if (to !== f) console.log(`${f} → ${to}`);
   copied++;
 }
 const want = [

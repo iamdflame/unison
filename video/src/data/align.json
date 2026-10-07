@@ -1,0 +1,555 @@
+{
+  "demo-01": {
+    "size": 174926,
+    "mtimeMs": 1791349529251.5088,
+    "seconds": 9.874,
+    "lines": [
+      {
+        "from": 0.15,
+        "to": 3
+      },
+      {
+        "from": 3.69,
+        "to": 5.32
+      },
+      {
+        "from": 5.87,
+        "to": 9.72
+      }
+    ],
+    "heard": "Every price on a blockchain is already old. Chainlink sees the market move. And about 13 seconds later, that price finally lands on Chain.",
+    "diffs": []
+  },
+  "demo-02": {
+    "size": 248069,
+    "mtimeMs": 1791349659766.8438,
+    "seconds": 14.446,
+    "lines": [
+      {
+        "from": 0.13,
+        "to": 5.17
+      },
+      {
+        "from": 5.74,
+        "to": 8.61
+      },
+      {
+        "from": 9.14,
+        "to": 10.61
+      },
+      {
+        "from": 11.03,
+        "to": 14.12
+      }
+    ],
+    "heard": "In those 13 seconds, anyone watching the exchanges already knows the next price. On most venues, they can still trade against the old one. We measured it on MON. Five times an hour, the old price was worth sniping.",
+    "diffs": []
+  },
+  "demo-03": {
+    "size": 217140,
+    "mtimeMs": 1791349693442.3545,
+    "seconds": 12.513,
+    "lines": [
+      {
+        "from": 0.16,
+        "to": 1.59
+      },
+      {
+        "from": 2.02,
+        "to": 3.56
+      },
+      {
+        "from": 4.1,
+        "to": 5.66
+      },
+      {
+        "from": 6.08,
+        "to": 8.15
+      },
+      {
+        "from": 8.62,
+        "to": 10.9
+      },
+      {
+        "from": 11.42,
+        "to": 12.31
+      }
+    ],
+    "heard": "Unison flips the order. Your order is sealed first. Its price is set after at Chainlink's very next observation. One price for everyone in the auction. Nothing to snipe.",
+    "diffs": []
+  },
+  "demo-04": {
+    "size": 127697,
+    "mtimeMs": 1791349715084.4182,
+    "seconds": 6.922,
+    "lines": [
+      {
+        "from": 0.06,
+        "to": 2.73
+      },
+      {
+        "from": 3.22,
+        "to": 4.4
+      },
+      {
+        "from": 4.71,
+        "to": 6.72
+      }
+    ],
+    "heard": "This is unison live on Monad mainnet. You sign in with a passkey. No seed phrase, no extension.",
+    "diffs": []
+  },
+  "demo-05": {
+    "size": 187883,
+    "mtimeMs": 1791349742065.1704,
+    "seconds": 10.684,
+    "lines": [
+      {
+        "from": 0.1,
+        "to": 4.18
+      },
+      {
+        "from": 4.79,
+        "to": 7.65
+      },
+      {
+        "from": 8.2,
+        "to": 10.36
+      }
+    ],
+    "heard": "Sell 9MON at a limit and confirm. The order is sealed right here in this block. Its price doesn't exist yet.",
+    "diffs": [
+      "\"buy\" is missing",
+      "\"nine\" was read \"sell\"",
+      "\"mon\" was read \"9mon\"",
+      "\"one\" was read \"and\"",
+      "\"tap\" was read \"confirm\""
+    ]
+  },
+  "demo-06": {
+    "size": 159462,
+    "mtimeMs": 1791349760405.8335,
+    "seconds": 8.908,
+    "lines": [
+      {
+        "from": 0.16,
+        "to": 0.68
+      },
+      {
+        "from": 1.1,
+        "to": 3.27
+      },
+      {
+        "from": 3.62,
+        "to": 6.45
+      },
+      {
+        "from": 6.94,
+        "to": 8.55
+      }
+    ],
+    "heard": "There, Chainlink's next observation is in, and everyone in the auction got the same price. Every fill gets a certificate.",
+    "diffs": []
+  },
+  "demo-07": {
+    "size": 130204,
+    "mtimeMs": 1791349792599.7961,
+    "seconds": 7.079,
+    "lines": [
+      {
+        "from": 0.12,
+        "to": 2.18
+      },
+      {
+        "from": 2.62,
+        "to": 3.29
+      },
+      {
+        "from": 3.71,
+        "to": 6.83
+      }
+    ],
+    "heard": "The receipt proves which came first, the seal, then its price, observed 49 seconds later.",
+    "diffs": [
+      "\"twenty\" was read \"forty\"",
+      "\"four\" was read \"nine\""
+    ]
+  },
+  "demo-08": {
+    "size": 205855,
+    "mtimeMs": 1791349818142.4158,
+    "seconds": 11.807,
+    "lines": [
+      {
+        "from": 0.06,
+        "to": 1.09
+      },
+      {
+        "from": 1.52,
+        "to": 1.87
+      },
+      {
+        "from": 2.43,
+        "to": 5.11
+      },
+      {
+        "from": 5.59,
+        "to": 6.22
+      },
+      {
+        "from": 6.62,
+        "to": 8.11
+      },
+      {
+        "from": 8.42,
+        "to": 8.9
+      },
+      {
+        "from": 9.44,
+        "to": 10.35
+      },
+      {
+        "from": 10.68,
+        "to": 11.66
+      }
+    ],
+    "heard": "Don't trust us, check. One command rebuilds the auction from the chain alone. The receipt, chain links observation time, the seal. Six checks, six passes.",
+    "diffs": [
+      "\"chain\" was added",
+      "\"chainlinks\" was read \"links\""
+    ]
+  },
+  "demo-09": {
+    "size": 218394,
+    "mtimeMs": 1791349847743.581,
+    "seconds": 12.591,
+    "lines": [
+      {
+        "from": 0.07,
+        "to": 1.26
+      },
+      {
+        "from": 1.56,
+        "to": 4.67
+      },
+      {
+        "from": 5.13,
+        "to": 7.81
+      },
+      {
+        "from": 8.26,
+        "to": 10.08
+      },
+      {
+        "from": 10.55,
+        "to": 12.34
+      }
+    ],
+    "heard": "Here's our own Sniper, selling the same 3 MON under both rules. The old rule filled it at a price that was already stale. Unison priced it after the seal. 40 basis points apart.",
+    "diffs": []
+  },
+  "demo-10": {
+    "size": 225081,
+    "mtimeMs": 1791349868507.9956,
+    "seconds": 13.009,
+    "lines": [
+      {
+        "from": 0.1,
+        "to": 1.45
+      },
+      {
+        "from": 2.04,
+        "to": 6.84
+      },
+      {
+        "from": 7.44,
+        "to": 9.08
+      },
+      {
+        "from": 9.27,
+        "to": 10.98
+      },
+      {
+        "from": 11.43,
+        "to": 12.75
+      }
+    ],
+    "heard": "So, we put money on it. A standing challenge pays anyone who beats the rule, and the board shows every challenger. Over a week of real prices, our sniper wins on the old rule and loses on unison.",
+    "diffs": []
+  },
+  "demo-11": {
+    "size": 217140,
+    "mtimeMs": 1791349888604.1165,
+    "seconds": 12.513,
+    "lines": [
+      {
+        "from": 0.16,
+        "to": 1.28
+      },
+      {
+        "from": 1.77,
+        "to": 5.31
+      },
+      {
+        "from": 5.59,
+        "to": 6.78
+      },
+      {
+        "from": 7.26,
+        "to": 12.37
+      }
+    ],
+    "heard": "Agents can trade it, too. Through MetaMask's Agent Wallet, an agent sells in a sealed auction, then checks its own receipt. And we built a chain-link sentinel that checks the feed against two exchanges every 30 seconds.",
+    "diffs": [
+      "\"chain\" was added",
+      "\"chainlink\" was read \"link\""
+    ]
+  },
+  "demo-12": {
+    "size": 114740,
+    "mtimeMs": 1791349906123.7622,
+    "seconds": 6.113,
+    "lines": [
+      {
+        "from": 0.15,
+        "to": 0.78
+      },
+      {
+        "from": 1.27,
+        "to": 3.2
+      },
+      {
+        "from": 3.63,
+        "to": 4.36
+      },
+      {
+        "from": 4.63,
+        "to": 5.79
+      }
+    ],
+    "heard": "Unison, prices nobody saw first, snipe us, the pot is still full.",
+    "diffs": []
+  },
+  "pitch-01": {
+    "size": 154446,
+    "mtimeMs": 1791350364885.4026,
+    "seconds": 8.594,
+    "lines": [
+      {
+        "from": 0.14,
+        "to": 0.91
+      },
+      {
+        "from": 1.35,
+        "to": 3.37
+      },
+      {
+        "from": 3.73,
+        "to": 5.02
+      },
+      {
+        "from": 5.46,
+        "to": 7.47
+      },
+      {
+        "from": 7.74,
+        "to": 8.44
+      }
+    ],
+    "heard": "I'm Dflame. I've traded crypto and stocks for a year. And I build products. Crypto never closes. Stocks do.",
+    "diffs": []
+  },
+  "pitch-02": {
+    "size": 236366,
+    "mtimeMs": 1791350407239.3408,
+    "seconds": 13.714,
+    "lines": [
+      {
+        "from": 0.14,
+        "to": 2.37
+      },
+      {
+        "from": 2.51,
+        "to": 6.18
+      },
+      {
+        "from": 6.62,
+        "to": 10.37
+      },
+      {
+        "from": 10.54,
+        "to": 13.56
+      }
+    ],
+    "heard": "When I trade a tokenized stock on-chain, the price I get is one somebody faster has already seen. Every oracle price is about 13 seconds old when it lands, and that gap gets paid to whoever is fastest.",
+    "diffs": []
+  },
+  "pitch-03": {
+    "size": 176180,
+    "mtimeMs": 1791350430359.405,
+    "seconds": 9.953,
+    "lines": [
+      {
+        "from": 0.06,
+        "to": 1.56
+      },
+      {
+        "from": 2.03,
+        "to": 3.34
+      },
+      {
+        "from": 3.4,
+        "to": 6.15
+      },
+      {
+        "from": 6.62,
+        "to": 7.85
+      },
+      {
+        "from": 8.08,
+        "to": 9.8
+      }
+    ],
+    "heard": "So I built UNISON. Orders are sealed first, then priced at Chainlink's very next observation. One price for everyone, with a receipt anyone can check.",
+    "diffs": []
+  },
+  "pitch-04": {
+    "size": 249323,
+    "mtimeMs": 1791350485580.8752,
+    "seconds": 14.524,
+    "lines": [
+      {
+        "from": 0.13,
+        "to": 2.19
+      },
+      {
+        "from": 2.51,
+        "to": 7.85
+      },
+      {
+        "from": 8.31,
+        "to": 11.24
+      },
+      {
+        "from": 11.69,
+        "to": 12.75
+      },
+      {
+        "from": 13.2,
+        "to": 14.35
+      }
+    ],
+    "heard": "It's live on Monad Mainnet. On the same trade, the old rule paid a sniper 40 basis points more than Unison did. Our own sniper runs a standing challenge on both rules. It wins on the old one and loses on ours.",
+    "diffs": []
+  },
+  "pitch-05": {
+    "size": 291537,
+    "mtimeMs": 1791350517220.5918,
+    "seconds": 17.162,
+    "lines": [
+      {
+        "from": 0.11,
+        "to": 3.1
+      },
+      {
+        "from": 3.25,
+        "to": 6.76
+      },
+      {
+        "from": 7.17,
+        "to": 12.49
+      },
+      {
+        "from": 12.99,
+        "to": 14.87
+      },
+      {
+        "from": 15.27,
+        "to": 16.96
+      }
+    ],
+    "heard": "Tokenized stocks just hit a record $3.8 billion and people want to trade stocks on chain. In June, stock perpetuals traded 16 times the volume of the tokens themselves. Issuing the tokens is solved. Liquid markets for them aren't.",
+    "diffs": [
+      "\"dollars\" is missing"
+    ]
+  },
+  "pitch-06": {
+    "size": 264787,
+    "mtimeMs": 1791350545905.4675,
+    "seconds": 15.491,
+    "lines": [
+      {
+        "from": 0.14,
+        "to": 3.99
+      },
+      {
+        "from": 4.2,
+        "to": 6.41
+      },
+      {
+        "from": 6.85,
+        "to": 9.21
+      },
+      {
+        "from": 9.27,
+        "to": 10.87
+      },
+      {
+        "from": 11.21,
+        "to": 12.02
+      },
+      {
+        "from": 12.44,
+        "to": 13.02
+      },
+      {
+        "from": 13.38,
+        "to": 15.27
+      }
+    ],
+    "heard": "Next, an audit, more stocks as chain links feeds arrive, and market makers running vaults. If you make markets, issue tokenized stocks, or think you're fast enough, come snipe us. Unison, prices nobody saw first.",
+    "diffs": [
+      "\"chain\" was added",
+      "\"chainlinks\" was read \"links\""
+    ]
+  },
+  "ad-01": {
+    "size": 197914,
+    "mtimeMs": 1791350614859.3513,
+    "seconds": 11.311,
+    "lines": [
+      {
+        "from": 0.2,
+        "to": 1.07
+      },
+      {
+        "from": 1.54,
+        "to": 2.26
+      },
+      {
+        "from": 2.79,
+        "to": 3.98
+      },
+      {
+        "from": 4.56,
+        "to": 6.52
+      },
+      {
+        "from": 7.11,
+        "to": 7.67
+      },
+      {
+        "from": 8.12,
+        "to": 9.81
+      },
+      {
+        "from": 10.21,
+        "to": 11.19
+      }
+    ],
+    "heard": "Same trade two rules one paid the sniper one price the order after it was sealed unison prices nobody saw first live on Monad",
+    "diffs": [
+      "\"priced\" was read \"price\""
+    ]
+  }
+}
