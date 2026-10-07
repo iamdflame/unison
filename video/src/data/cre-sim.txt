@@ -1,0 +1,65 @@
+# Chainlink CRE CLI v1.36.0, cre workflow simulate against Monad mainnet, 2026-10-07T02:26Z
+
+$ cre workflow simulate unison/workflows/sentinel --target production-settings --non-interactive --trigger-index 0
+Initializing...
+Loading settings...
+! Using default private key for chain write simulation. To use your own key, set CRE_ETH_PRIVATE_KEY in your .env file or system environment.
+Checking RPC connectivity...
+Compiling workflow...
+✓ Workflow compiled
+✓ Simulation limits enabled
+  HTTP: req=120kb resp=250kb timeout=10s | ConfHTTP: req=125kb resp=500kb timeout=1m30s | Consensus obs=25kb | ChainWrite evm_report=50kb evm_gas=10000000 solana_report=265b solana_cu=300000 | WASM binary=100mb compressed=20mb
+  Binary hash: 300582400b7414068674eddcc3edc7b30bebd15bf62a145ea3a8eb63c8de42ca
+  Config hash: f730fad01c6b11b05a77228dde0b53c11ac689dcb07146012c5c25eeb5cf924f
+2026-10-07T02:26:39Z [SIMULATION] Simulator Initialized
+
+2026-10-07T02:26:39Z [SIMULATION] Running trigger trigger=cron-trigger@1.0.0
+2026-10-07T02:26:41Z [USER LOG] MON: Chainlink round 18446744073710161055 at 27045 (observed 16 s ago) vs exchanges 27007 → 14 bp
+
+✓ Workflow Simulation Result:
+"MON:ok:14bp:16s"
+
+2026-10-07T02:26:41Z [SIMULATION] Execution finished signal received
+2026-10-07T02:26:41Z [SIMULATION] Skipping WorkflowEngineV2
+
+╭──────────────────────────────────────────────────────╮
+│ Simulation complete! Ready to deploy your workflow?  │
+│                                                      │
+│ Run cre account access to request deployment access. │
+╰──────────────────────────────────────────────────────╯
+
+⚠️  Update available! You’re running 1.36.0, but 1.37.0 is the latest.
+Run `cre update` or visit https://github.com/smartcontractkit/cre-cli/releases to upgrade.
+
+
+$ cre workflow simulate unison/workflows/sentinel --target demo-settings --non-interactive --trigger-index 0
+Initializing...
+Loading settings...
+! Using default private key for chain write simulation. To use your own key, set CRE_ETH_PRIVATE_KEY in your .env file or system environment.
+Checking RPC connectivity...
+Compiling workflow...
+✓ Workflow compiled
+✓ Simulation limits enabled
+  HTTP: req=120kb resp=250kb timeout=10s | ConfHTTP: req=125kb resp=500kb timeout=1m30s | Consensus obs=25kb | ChainWrite evm_report=50kb evm_gas=10000000 solana_report=265b solana_cu=300000 | WASM binary=100mb compressed=20mb
+  Binary hash: 300582400b7414068674eddcc3edc7b30bebd15bf62a145ea3a8eb63c8de42ca
+  Config hash: fa3a65f64006b1f86ea408bf02b5b34219dca0ea251b09326d20239f37a35b54
+2026-10-07T02:26:48Z [SIMULATION] Simulator Initialized
+
+2026-10-07T02:26:48Z [SIMULATION] Running trigger trigger=cron-trigger@1.0.0
+2026-10-07T02:26:49Z [USER LOG] MON: Chainlink round 18446744073710161055 at 27045 (observed 25 s ago) vs exchanges 27007 → 14 bp
+
+✓ Workflow Simulation Result:
+"MON:HALT:14bp:25s"
+
+2026-10-07T02:26:49Z [SIMULATION] Execution finished signal received
+2026-10-07T02:26:49Z [SIMULATION] Skipping WorkflowEngineV2
+
+╭──────────────────────────────────────────────────────╮
+│ Simulation complete! Ready to deploy your workflow?  │
+│                                                      │
+│ Run cre account access to request deployment access. │
+╰──────────────────────────────────────────────────────╯
+
+⚠️  Update available! You’re running 1.36.0, but 1.37.0 is the latest.
+Run `cre update` or visit https://github.com/smartcontractkit/cre-cli/releases to upgrade.
+

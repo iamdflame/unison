@@ -1,6 +1,7 @@
 import { Composition } from "remotion";
 import { FPS, H, s, W } from "./brand";
 import { Ad, planAd } from "./films/Ad";
+import { Cre, planCre } from "./films/Cre";
 import { Demo, planDemo } from "./films/Demo";
 import { MetaMask, planMetaMask } from "./films/MetaMask";
 import { Pitch, planPitch } from "./films/Pitch";
@@ -74,6 +75,19 @@ export const Root = () => (
       defaultProps={{ beats: [], music: null, cues: [] }}
       calculateMetadata={async () => {
         const { durationInFrames, ...props } = await planMetaMask();
+        return { durationInFrames, props };
+      }}
+    />
+    <Composition
+      id="Cre"
+      component={Cre}
+      fps={FPS}
+      width={W}
+      height={H}
+      durationInFrames={s(61)}
+      defaultProps={{ beats: [], music: null, cues: [] }}
+      calculateMetadata={async () => {
+        const { durationInFrames, ...props } = await planCre();
         return { durationInFrames, props };
       }}
     />

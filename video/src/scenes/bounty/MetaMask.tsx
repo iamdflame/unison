@@ -1,6 +1,7 @@
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
-import { C, F, s, settle } from "../../brand";
+import { AbsoluteFill, useCurrentFrame } from "remotion";
+import { C, F, s } from "../../brand";
 import live from "../../data/mm-live.json";
+import { Arrow, Head, Node, ramp } from "../../kit/Diagram";
 import { useLine } from "../../kit/Plan";
 import { type TermLine, Terminal } from "../../kit/Terminal";
 
@@ -10,7 +11,6 @@ import { type TermLine, Terminal } from "../../kit/Terminal";
  * docs/evidence/agent-wallet.md; the challenge scores from src/data/mm-session.txt). Long transaction links are
  * shortened with an ellipsis; nothing else is changed.
  */
-const ramp = (t: number, a: number, b: number) => settle(interpolate(t, [a, b], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }));
 const short = (line: string) => line.replace(/(https:\/\/monadvision\.com\/tx\/0x[0-9a-f]{6})[0-9a-f]{52}([0-9a-f]{6})/g, "$1…$2");
 const step = (prefix: string) => {
   const st = live.steps.find((x) => x.command.startsWith(prefix));
@@ -37,15 +37,6 @@ const SCORE_OLD = "9 of 30 counted fills, edge 14.15 bp (0.001103 AUSD); the pot
 const SCORE_UNISON = "9 of 30 counted fills, edge -18.59 bp (0.001447 AUSD lost); the pot pays above 2 bp. Not yet. Pot: 18 AUSD.";
 const COMMANDS = ["markets", "quote", "balance", "deposit", "order", "receipt", "claim", "withdraw", "challenge open", "challenge fund", "challenge order", "challenge settle", "challenge score", "challenge claim", "challenge withdraw"];
 
-function Head({ eyebrow, title, show }: { eyebrow: string; title: string; show: number }) {
-  return (
-    <div style={{ position: "absolute", top: 70, left: 140, opacity: show }}>
-      <div style={{ fontFamily: F.text, fontSize: 24, color: C.ink3, letterSpacing: "0.14em" }}>{eyebrow}</div>
-      <div style={{ fontFamily: F.display, fontSize: 76, marginTop: 8, color: C.ink }}>{title}</div>
-    </div>
-  );
-}
-
 export const MmTitle = () => {
   const t = useCurrentFrame() / s(1);
   const at = [useLine("mm-01", 0, 0.3), useLine("mm-01", 1, 2.2), useLine("mm-01", 2, 4.4), useLine("mm-01", 3, 5.6)];
@@ -67,24 +58,6 @@ export const MmTitle = () => {
     </AbsoluteFill>
   );
 };
-
-function Node({ x, y, w, title, sub, show, color = C.ink }: { x: number; y: number; w: number; title: string; sub: string; show: number; color?: string }) {
-  return (
-    <div style={{ position: "absolute", left: x, top: y, width: w, padding: "26px 28px", borderRadius: 22, background: C.raised, boxShadow: `0 0 0 1px ${C.lineStrong}`, opacity: show, transform: `translateY(${(1 - show) * 14}px)` }}>
-      <div style={{ fontFamily: F.text, fontSize: 30, fontWeight: 600, color }}>{title}</div>
-      <div style={{ fontFamily: F.text, fontSize: 21, color: C.ink3, marginTop: 8, lineHeight: 1.4 }}>{sub}</div>
-    </div>
-  );
-}
-function Arrow({ x0, x1, y, label, show, color = C.ink3 }: { x0: number; x1: number; y: number; label: string; show: number; color?: string }) {
-  return (
-    <div style={{ position: "absolute", left: x0, top: y, width: (x1 - x0) * show, opacity: show > 0 ? 1 : 0 }}>
-      <div style={{ height: 2, background: color }} />
-      <div style={{ position: "absolute", right: -2, top: -6, width: 0, height: 0, borderTop: "7px solid transparent", borderBottom: "7px solid transparent", borderLeft: `12px solid ${color}`, opacity: show > 0.95 ? 1 : 0 }} />
-      <div style={{ position: "absolute", left: 0, right: 0, top: 12, textAlign: "center", fontFamily: F.mono, fontSize: 18, color, whiteSpace: "nowrap", opacity: show }}>{label}</div>
-    </div>
-  );
-}
 
 export const MmKeys = () => {
   const t = useCurrentFrame() / s(1);

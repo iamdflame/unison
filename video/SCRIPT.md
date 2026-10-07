@@ -233,7 +233,7 @@ It halts only when the feed is far from the market <break time="0.2s" /> and has
 
 ### cre-04.mp3: against mainnet
 ```
-Here it is against mainnet, in Chainlink's simulator. <break time="0.3s" /> Five basis points apart, <break time="0.2s" /> observed forty-five seconds ago: <break time="0.2s" /> keep trading. <break time="0.4s" /> With the thresholds forced to zero, <break time="0.2s" /> it builds the halt report for our receiver contract.
+Here it is against mainnet, in Chainlink's simulator. <break time="0.3s" /> Fourteen basis points apart, <break time="0.2s" /> observed sixteen seconds ago: <break time="0.2s" /> keep trading. <break time="0.4s" /> With the thresholds forced to zero, <break time="0.2s" /> it builds the halt report for our receiver contract.
 ```
 
 ### cre-05.mp3: close

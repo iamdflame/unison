@@ -67,6 +67,23 @@ cre workflow simulate unison/workflows/halts --target production-settings --non-
 "no-change"
 ```
 
+**Again on 7 October 2026, 02:26 UTC**, for the video ([full log](../../video/src/data/cre-sim.txt)):
+
+```
+$ cre workflow simulate unison/workflows/sentinel --target production-settings --non-interactive --trigger-index 0
+2026-10-07T02:26:39Z [SIMULATION] Running trigger trigger=cron-trigger@1.0.0
+2026-10-07T02:26:41Z [USER LOG] MON: Chainlink round 18446744073710161055 at 27045 (observed 16 s ago) vs exchanges 27007 → 14 bp
+✓ Workflow Simulation Result:
+"MON:ok:14bp:16s"
+
+$ cre workflow simulate unison/workflows/sentinel --target demo-settings --non-interactive --trigger-index 0
+2026-10-07T02:26:49Z [USER LOG] MON: Chainlink round 18446744073710161055 at 27045 (observed 25 s ago) vs exchanges 27007 → 14 bp
+✓ Workflow Simulation Result:
+"MON:HALT:14bp:25s"
+```
+
+MON had fallen about 4% in the hour before; the feed was 14 bp from the exchanges and 16 s old, so the market kept trading.
+
 ## What is not live yet
 
 - **No live DON yet.** Deploying to a DON needs CRE deploy access, which is in early access. Until then the workflows run in Chainlink's simulator, as above.
