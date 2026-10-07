@@ -52,6 +52,13 @@ function why(e: unknown): { error: string; revert?: string; details?: string } {
   return { error, ...(revert ? { revert } : {}), ...(err.details ? { details: err.details.slice(0, 300) } : {}) };
 }
 
+/** OperatorSignedReference's FutureReport(): a report stamped more than 2 s after the block that reads it. */
+const isFutureReport = (e: unknown) => {
+  const r = why(e).revert;
+  return r === "FutureReport" || r === "0xc6072fe9";
+};
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 /** The Chainlink history the causal path reads (injectable, so the policy can be tested without a chain). */
 export interface CausalHistory {
   payload(adapter: Address, marketId: bigint, afterSec: bigint): Promise<{ payload: Hex; base: Observation } | null>;
@@ -78,6 +85,10 @@ export interface KeeperConfig {
   history?: CausalHistory;
   /** unix seconds now (default: the system clock) */
   now?: () => bigint;
+  /** operator markets: an opening whose report is stamped ahead of the chain is tried this many times (default 11) … */
+  futureReportTries?: number;
+  /** … this far apart (default 700 ms): about 7 s in all, well inside a report's freshness (maxAgeMs, 15 s on testnet) */
+  futureReportWaitMs?: number;
 }
 
 interface Tracked {
@@ -202,6 +213,26 @@ export class Keeper {
     return g < min ? min : g > max ? max : g;
   }
 
+  /**
+   * The relay stamps a report with its own clock as it signs, and OperatorSignedReference refuses one stamped more
+   * than 2 s after the block that reads it (FutureReport). The latest block an RPC has executed can trail the clock by
+   * about that much: block times are whole seconds, Monad executes a few blocks behind consensus, and a public RPC
+   * lags a little more, and a container's clock can run fast. So an opening simulated at once can fail where the same
+   * report passes a moment later. Wait for the chain to catch up, briefly, rather than leave the auction until the
+   * next order arrives.
+   */
+  private async simulateOpening(marketId: bigint, upTo: bigint, payload: Hex) {
+    const tries = this.cfg.futureReportTries ?? 11;
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await this.cfg.client.simulateClearUpTo(marketId, upTo, payload);
+      } catch (e) {
+        if (attempt >= tries || !isFutureReport(e)) throw e;
+        await sleep(this.cfg.futureReportWaitMs ?? 700);
+      }
+    }
+  }
+
   async fetchPayload(marketId: bigint, batch: bigint): Promise<{ payload: Hex; status: number }> {
     const r = await fetch(`${this.cfg.relayUrl}/reference/${marketId}?batch=${batch}`, {
       signal: AbortSignal.timeout(3_000),
@@ -265,7 +296,7 @@ export class Keeper {
         }
         // Monad charges the gas limit: only pay for a clear that trades, merges stale pending orders,
         // or gives a waiting vault queue its post-request reference.
-        const sim = await c.simulateClearUpTo(marketId, upTo, payload);
+        const sim = await this.simulateOpening(marketId, upTo, payload);
         const mustMerge = pending && age >= this.cfg.maxPendingAge;
         if (sim.volume === 0n && !mustMerge && !vaultWaiting) return 0;
         const gas = await this.clearGasFor("clearUpTo", [marketId, upTo, payload], marketId);

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, type Mock } from "vitest";
-import { encodeAbiParameters, encodeEventTopics, type Address, type Hex } from "viem";
+import { ContractFunctionRevertedError, encodeAbiParameters, encodeEventTopics, type Address, type Hex } from "viem";
 import { Status, unisonExchangeAbi, type UnisonClient } from "@unison/sdk";
 import { Keeper } from "../src/keeper.ts";
 import { parseClearGas } from "../src/main.ts";
@@ -104,6 +104,7 @@ function keeper(client: UnisonClient, clearGas: bigint | "auto" = 8_000_000n) {
     maxPendingAge: 10n,
     autoClaim: false,
     log: () => {},
+    futureReportWaitMs: 0,
   });
   k.fetchPayload = async (_m, _b) => ({ payload: "0xabcd" as Hex, status: stateStatus });
   return k;
@@ -138,6 +139,36 @@ describe("keeper cost policy (Monad charges the gas limit)", () => {
     const { client, sent } = fakeClient({ ...base, pending: true, simVolume: 5n, lastCleared: 196n });
     await keeper(client).tick(200n);
     expect(sent).toEqual(["open:199"]);
+  });
+
+  // OperatorSignedReference's FutureReport(): the relay's stamp is ahead of the latest block the RPC has executed
+  const futureReport = () => new ContractFunctionRevertedError({ abi: [], data: "0xc6072fe9", functionName: "clearUpTo" });
+
+  it("waits for the chain to catch up with a report stamped ahead of it, then clears", async () => {
+    const { client, sent } = fakeClient({ ...base, pending: true, simVolume: 5n, lastCleared: 196n });
+    const sim = client.simulateClearUpTo as unknown as Mock;
+    const settles = sim.getMockImplementation()!;
+    let ahead = 2;
+    sim.mockImplementation(async (...a: unknown[]) => {
+      if (ahead-- > 0) throw futureReport();
+      return settles(...a);
+    });
+    await keeper(client).tick(200n);
+    expect(sent).toEqual(["open:199"]);
+    expect(sim).toHaveBeenCalledTimes(3);
+  });
+
+  it("gives up on a report still ahead after its tries, and sends nothing", async () => {
+    const { client, sent } = fakeClient({ ...base, pending: true, simVolume: 5n, lastCleared: 196n });
+    const sim = client.simulateClearUpTo as unknown as Mock;
+    sim.mockImplementation(async () => {
+      throw futureReport();
+    });
+    const k = keeper(client);
+    await k.tick(200n);
+    expect(sent).toEqual([]);
+    expect(sim).toHaveBeenCalledTimes(11);
+    expect(k.stats.errors).toBe(1);
   });
 
   it("merges pending orders once they exceed the age budget, even without a trade", async () => {
