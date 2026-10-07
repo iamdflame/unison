@@ -19,7 +19,8 @@ export interface Beat {
   seconds: number;
   /** the scene's timeline is fixed (footage): a voice must fit, the beat doesn't stretch */
   fixed?: boolean;
-  voice?: { id: VoiceId; at: number }[];
+  /** each file from second `at` of the beat; or placed so that its line `line` lands on second `on` */
+  voice?: ({ id: VoiceId; at: number } | { id: VoiceId; line: number; on: number })[];
   /** effects: a file in public/audio and the second of the beat it lands on */
   sfx?: { file: string; at: number; volume?: number }[];
 }
@@ -98,7 +99,9 @@ export async function plan(beats: Beat[], music: string | null): Promise<PlanPro
       (beat.voice ?? []).map(async (v) => {
         const file = `${v.id}.mp3`;
         const real = await lengthOf(file);
-        return { id: v.id, at: v.at, seconds: real ?? estimate(v.id), real: real !== null };
+        const seconds = real ?? estimate(v.id);
+        const at = "at" in v ? v.at : Math.max(0, v.on - (linesOf(v.id, 0, seconds)[v.line]?.from ?? 0));
+        return { id: v.id, at, seconds, real: real !== null };
       }),
     );
     const needs = Math.max(0, ...voices.map((v) => v.at + v.seconds + 0.7));
