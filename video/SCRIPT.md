@@ -211,7 +211,7 @@ Agents can also enter our standing challenge. <break time="0.3s" /> Open a chall
 
 ### mm-06.mp3: close
 ```
-Fifteen commands, <break time="0.2s" /> twenty-one unit tests, <break time="0.2s" /> and seven more against a mainnet fork. <break time="0.4s" /> Install it, <break time="0.2s" /> and let your agent try to snipe us.
+Fifteen commands, <break time="0.2s" /> twenty-three unit tests, <break time="0.2s" /> and seven more against a mainnet fork. <break time="0.4s" /> Install it, <break time="0.2s" /> and let your agent try to snipe us.
 ```
 
 ### The Chainlink CRE sentinel (1:50)

@@ -74,7 +74,8 @@ export const Terminal = ({
               style={{
                 color: COLOR[kind],
                 whiteSpace: "pre-wrap",
-                wordBreak: "break-all",
+                // wrap at spaces; only a long link breaks mid-word
+                overflowWrap: "anywhere",
                 background: flash ? `oklch(0.76 0.085 180 / ${0.18 * flash})` : undefined,
                 borderRadius: 6,
               }}

@@ -2,6 +2,7 @@ import { Composition } from "remotion";
 import { FPS, H, s, W } from "./brand";
 import { Ad, planAd } from "./films/Ad";
 import { Demo, planDemo } from "./films/Demo";
+import { MetaMask, planMetaMask } from "./films/MetaMask";
 import { Pitch, planPitch } from "./films/Pitch";
 import { loadFonts } from "./fonts";
 import { Agent } from "./scenes/Agent";
@@ -60,6 +61,19 @@ export const Root = () => (
       defaultProps={{ beats: [], music: null, cues: [] }}
       calculateMetadata={async () => {
         const { durationInFrames, ...props } = await planAd();
+        return { durationInFrames, props };
+      }}
+    />
+    <Composition
+      id="MetaMask"
+      component={MetaMask}
+      fps={FPS}
+      width={W}
+      height={H}
+      durationInFrames={s(75)}
+      defaultProps={{ beats: [], music: null, cues: [] }}
+      calculateMetadata={async () => {
+        const { durationInFrames, ...props } = await planMetaMask();
         return { durationInFrames, props };
       }}
     />
