@@ -10,6 +10,10 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# the jobs only read the repository: a pull request's code never gets a token that can write
+permissions:
+  contents: read
+
 jobs:
   contracts:
     name: Contracts (build, unit, fuzz, invariants, simulation)

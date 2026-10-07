@@ -19,7 +19,7 @@
     "@noble/curves": "1.9.1",
     "@types/node": "^24.0.0",
     "typescript": "^5.9.0",
-    "vitest": "^3.2.0",
+    "vitest": "^5.0.3",
     "@unison/relay": "workspace:*",
     "@unison/relayer": "workspace:*",
     "@unison/tape": "workspace:*"

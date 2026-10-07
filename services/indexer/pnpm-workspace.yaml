@@ -3,3 +3,9 @@
 packages: []
 onlyBuiltDependencies:
   - esbuild
+# envio 3.14.0 pins express 4.19.2; lift it and two transitive dependencies to their patched releases (Dependabot:
+# path-to-regexp ReDoS, body-parser and qs DoS, ws memory exhaustion, send/serve-static template injection)
+overrides:
+  express: ^4.22.3
+  qs: ^6.16.0
+  ws: ^8.22.0
