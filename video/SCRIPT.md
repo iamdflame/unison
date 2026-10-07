@@ -90,25 +90,33 @@ No seed phrase. No extension.
 ```
 
 ### demo-05.mp3: live, part two
-On screen: a sell of 9 WMON; the order's row turns "Sealed · waits for Chainlink".
+On screen: a sell of 9 WMON, confirmed; its row appears, "Sealed · waits for Chainlink", with the block it was sealed in.
 ```
-[crisp] Sell some MON.
-The order is sealed, right here in this block.
+[crisp] Sell nine MON, at a limit… and confirm.
+The order is sealed — right here, in this block.
 [lower, intrigued] Its price… doesn't exist yet.
 ```
-*Then six seconds without a voice: the chain's clock runs, and the music holds one suspended chord while the order waits.*
+*"Sealed" lands as the order's row appears. Then six seconds without a voice: the chain's clock runs, and the music holds one suspended chord while the order waits.*
 
 ### demo-06.mp3: the drop
-On screen: the fill lands on the beat; the certificate draws in; the receipt page and its three times.
+On screen: the fill lands on the beat, "Sold 9 WMON"; then its certificate draws in.
 ```
 [satisfied, quietly triumphant] There.
 Chainlink's next observation is in —
 and everyone in the auction got the SAME price.
-[warm] The certificate shows every step…
-in the order it happened.
+[warm] Every fill gets a certificate…
 ```
 
-### demo-07.mp3: don't trust us
+### demo-07.mp3: the receipt
+On screen: the sale's receipt page and its three times, from the chain; each time underlined as it's said.
+```
+[measured] The receipt proves which came first:
+the seal…
+then its price — observed forty-nine seconds later.
+```
+*Forty-nine seconds is this sale's own gap (src/data/chain.ts, FILM_SALE): if the sale is ever filmed again, this line changes with it.*
+
+### demo-08.mp3: don't trust us
 On screen: the verifier's six PASS lines type out, one rimshot each.
 ```
 [firm, close to the mic] Don't trust us.
@@ -121,7 +129,7 @@ the seal.
 Six passes.
 ```
 
-### demo-08.mp3: the photo finish
+### demo-09.mp3: the photo finish
 On screen: two lanes like a race broadcast, our sniper's 3 WMON sale on each rule, then the freeze frame.
 ```
 [controlled sports-broadcast energy] Here's our own sniper —
@@ -131,7 +139,7 @@ Unison priced it after the seal.
 [emphatic] Forty basis points apart.
 ```
 
-### demo-09.mp3: snipe us
+### demo-10.mp3: snipe us
 On screen: the live challenge page, both pots and every challenger; then a week of real prices.
 ```
 [dry confidence] So we put money on it.
@@ -141,7 +149,7 @@ our sniper wins on the old rule…
 and loses on Unison.
 ```
 
-### demo-10.mp3: agents, and a sentinel
+### demo-11.mp3: agents, and a sentinel
 On screen: MetaMask's Agent Wallet trading through mm-plugin-unison; the Chainlink CRE sentinel.
 ```
 [lighter, brisk] Agents can trade it too.
@@ -150,7 +158,7 @@ then checks its own receipt.
 [measured] And we built a Chainlink sentinel that checks the feed against two exchanges, every thirty seconds.
 ```
 
-### demo-11.mp3: close
+### demo-12.mp3: close
 On screen: the Unison mark, the live pot, a QR code to the challenge.
 ```
 [warm, resolved] Unison.
@@ -260,7 +268,7 @@ I find the drop and the held chord in your track and move the film's cuts onto t
 | `sfx-whoosh.mp3` | a fast, soft air whoosh transition, modern |
 | `sfx-shutter.mp3` | a camera shutter for a photo-finish freeze frame |
 
-That's 33 voice files (18 for the three films, 15 for the bounty videos), 2 music tracks and 6 effects. When they're in `video\audio\`, tell me.
+That's 34 voice files (19 for the three films, 15 for the bounty videos), 2 music tracks and 6 effects. When they're in `video\audio\`, tell me.
 
 ---
 

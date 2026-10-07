@@ -1,14 +1,24 @@
 {
   "01-arrive": {
     "file": "footage/01-arrive.mp4",
-    "seconds": 4.351,
-    "capturedAt": "2026-10-06T23:34:34.861Z",
+    "seconds": 4.352,
+    "capturedAt": "2026-10-07T03:26:33.444Z",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "dsf": 2,
     "clicks": []
   },
   "02-create": {
     "file": "footage/02-create.mp4",
     "seconds": 6.112,
     "capturedAt": "2026-10-06T23:43:31.135Z",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "dsf": 1,
     "clicks": [
       {
         "at": 0.332,
@@ -26,17 +36,22 @@
   },
   "02-signin": {
     "file": "footage/02-signin.mp4",
-    "seconds": 4.855,
-    "capturedAt": "2026-10-06T23:43:21.721Z",
+    "seconds": 8.606,
+    "capturedAt": "2026-10-07T03:26:20.274Z",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "dsf": 2,
     "clicks": [
       {
-        "at": 0.343,
+        "at": 0.742,
         "x": 1726,
         "y": 28,
         "label": "Sign in"
       },
       {
-        "at": 1.793,
+        "at": 4.92,
         "x": 960,
         "y": 607,
         "label": "I already have one"
@@ -45,35 +60,40 @@
   },
   "03-sell": {
     "file": "footage/03-sell.mp4",
-    "seconds": 39.072,
-    "capturedAt": "2026-10-06T23:34:44.139Z",
+    "seconds": 75.187,
+    "capturedAt": "2026-10-07T03:27:59.011Z",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "dsf": 2,
     "clicks": [
       {
-        "at": 1.145,
+        "at": 1.431,
         "x": 1669,
         "y": 129,
         "label": "Sell"
       },
       {
-        "at": 2.144,
-        "x": 1684,
+        "at": 2.54,
+        "x": 1687,
         "y": 259,
         "label": "the reference"
       },
       {
-        "at": 2.644,
+        "at": 3.263,
         "x": 1586,
         "y": 376,
         "label": "quantity"
       },
       {
-        "at": 3.728,
+        "at": 4.315,
         "x": 1586,
         "y": 815,
         "label": "Sell"
       },
       {
-        "at": 4.679,
+        "at": 5.279,
         "x": 1586,
         "y": 815,
         "label": "Confirm"
@@ -82,17 +102,22 @@
   },
   "04-certificate": {
     "file": "footage/04-certificate.mp4",
-    "seconds": 7.799,
-    "capturedAt": "2026-10-06T23:35:22.736Z",
+    "seconds": 8.145,
+    "capturedAt": "2026-10-07T03:29:14.161Z",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "dsf": 2,
     "clicks": [
       {
-        "at": 0.313,
+        "at": 0.327,
         "x": 285,
         "y": 853,
         "label": "Fills"
       },
       {
-        "at": 1.638,
+        "at": 1.96,
         "x": 760,
         "y": 892,
         "label": "Certificate"
@@ -101,14 +126,24 @@
   },
   "05-receipt": {
     "file": "footage/05-receipt.mp4",
-    "seconds": 4.461,
-    "capturedAt": "2026-10-06T23:35:34.611Z",
+    "seconds": 4.328,
+    "capturedAt": "2026-10-07T03:50:06.299Z",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "dsf": 2,
     "clicks": []
   },
   "06-challenge": {
     "file": "footage/06-challenge.mp4",
-    "seconds": 13.126,
-    "capturedAt": "2026-10-07T02:33:14.061Z",
+    "seconds": 4.58,
+    "capturedAt": "2026-10-07T04:02:33.082Z",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "dsf": 2,
     "clicks": []
   }
 }

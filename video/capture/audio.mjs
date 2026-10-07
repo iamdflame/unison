@@ -23,7 +23,7 @@ for (const f of files) {
   copied++;
 }
 const want = [
-  ...Array.from({ length: 11 }, (_, i) => `demo-${String(i + 1).padStart(2, "0")}.mp3`),
+  ...Array.from({ length: 12 }, (_, i) => `demo-${String(i + 1).padStart(2, "0")}.mp3`),
   ...Array.from({ length: 6 }, (_, i) => `pitch-0${i + 1}.mp3`),
   "ad-01.mp3",
   ...Array.from({ length: 6 }, (_, i) => `mm-0${i + 1}.mp3`),

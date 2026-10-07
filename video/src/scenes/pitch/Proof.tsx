@@ -25,12 +25,13 @@ export const Proof = () => {
       <Sequence durationInFrames={s(finish)} name="live">
         <Shot
           take="03-sell"
-          from={35.0}
+          from={71.2}
           hold={0.6}
           pointer={false}
           moves={[
-            { at: 35.0, x: 960, y: 200, zoom: 1.5 },
-            { at: 35.2, dur: 3.5, x: 960, y: 180, zoom: 1.7 },
+            // the toast as it turns "Sold" (72.4 s of the 4K take)
+            { at: 71.2, x: 960, y: 200, zoom: 1.5 },
+            { at: 71.4, dur: 3.5, x: 960, y: 180, zoom: 1.7 },
           ]}
         />
         <div style={{ position: "absolute", left: 80, bottom: 80, opacity: label, background: "oklch(0.1 0.006 265 / 0.8)", backdropFilter: "blur(12px)", border: `1px solid ${C.lineStrong}`, borderRadius: 16, padding: "18px 26px" }}>

@@ -26,10 +26,13 @@ const OUT = join(ROOT, "footage", "live");
 const SECRETS = join(ROOT, "..", ".secrets");
 const SITE = process.env.SITE ?? "https://www.unisonfi.com";
 const QTY = process.env.QTY ?? "9";
+/** DSF=2 captures at twice the pixel density (3840 × 2160 frames, the same 1920 × 1080 page): crisp when the film zooms */
+const DSF = Number(process.env.DSF ?? 1);
 const EXCHANGE = "0x1696170d40E703F1378989383c21Ec96ED1Adf75";
 const WMON = "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A";
 const chain = createPublicClient({ transport: http("https://rpc.monad.xyz") });
 const exchangeAbi = parseAbi(["function depositFor(address account, address token, uint256 amount)", "function balanceOf(address account, address token) view returns (uint256)"]);
+const wmonAbi = parseAbi(["function deposit() payable"]);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const SAVED = join(SECRETS, "film-passkey.json");
 const saved = existsSync(SAVED) ? JSON.parse(readFileSync(SAVED, "utf8")) : null;
@@ -46,8 +49,8 @@ const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 const MM = process.env.MM_ENTRY ?? join(dirname(process.execPath), "node_modules", "@metamask", "agent-wallet", "dist", "index.js");
 
 /** One transaction from the agent wallet, through MetaMask's own CLI. */
-function mm(to, data, intent) {
-  const payload = JSON.stringify({ to, data, value: "0x0" });
+function mm(to, data, intent, value = "0x0") {
+  const payload = JSON.stringify({ to, data, value });
   const out = execFileSync(process.execPath, [MM, "wallet", "send-transaction", "--chain-id", "143", "--payload", payload, "--wait", "--intent", intent, "--json"], { encoding: "utf8" });
   // mm prints notices, then its result as one pretty-printed object: parse from the last line that opens one
   const lines = out.trim().split("\n");
@@ -70,8 +73,9 @@ function mm(to, data, intent) {
 mkdirSync(OUT, { recursive: true });
 mkdirSync(SECRETS, { recursive: true });
 
-const browser = await chromium.launch();
-const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1, colorScheme: "dark" });
+// headless Chrome draws its screencast at the page's CSS size unless the device scale is forced at launch too
+const browser = await chromium.launch({ args: DSF > 1 ? [`--force-device-scale-factor=${DSF}`] : [] });
+const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: DSF, colorScheme: "dark" });
 await ctx.addInitScript((identity) => {
   localStorage.setItem("unison.theme", "dark");
   localStorage.setItem("unison.tour.v1", "done");
@@ -98,12 +102,14 @@ async function record(name) {
   events = [];
   rmSync(join(OUT, name), { recursive: true, force: true });
   mkdirSync(join(OUT, name), { recursive: true });
-  await cdp.send("Page.startScreencast", { format: "jpeg", quality: 92, maxWidth: 1920, maxHeight: 1080, everyNthFrame: 1 });
+  await cdp.send("Page.startScreencast", { format: "jpeg", quality: DSF > 1 ? 88 : 92, maxWidth: 1920 * DSF, maxHeight: 1080 * DSF, everyNthFrame: 1 });
   log(`recording ${name}`);
 }
 async function stop() {
   await cdp.send("Page.stopScreencast");
   writeFileSync(join(OUT, segment, "events.json"), JSON.stringify(events, null, 2));
+  // the page's own size (clicks are in its pixels) and the density the frames were drawn at
+  writeFileSync(join(OUT, segment, "meta.json"), JSON.stringify({ viewport: { width: 1920, height: 1080 }, dsf: DSF }));
   log(`stopped ${segment}`);
   segment = null;
 }
@@ -163,6 +169,9 @@ try {
     if (held < amount) {
       const need = amount - held;
       const AGENT = process.env.AGENT ?? "0x5e986ec96d2979f278814452ad08c33c3c0aea4b";
+      // the agent wallet holds MON: wrap exactly the WMON it lacks (WMON.deposit is payable)
+      const inWallet = await chain.readContract({ address: WMON, abi: erc20Abi, functionName: "balanceOf", args: [AGENT] });
+      if (inWallet < need) mm(WMON, encodeFunctionData({ abi: wmonAbi, functionName: "deposit" }), `Unison film: wrap the MON the film's account needs into WMON`, `0x${(need - inWallet).toString(16)}`);
       const allowance = await chain.readContract({ address: WMON, abi: erc20Abi, functionName: "allowance", args: [AGENT, EXCHANGE] });
       if (allowance < need) mm(WMON, encodeFunctionData({ abi: erc20Abi, functionName: "approve", args: [EXCHANGE, need] }), `Unison film: let the exchange take exactly the WMON the film's account needs`);
       mm(EXCHANGE, encodeFunctionData({ abi: exchangeAbi, functionName: "depositFor", args: [account, WMON, need] }), `Unison film: deposit WMON for the film's passkey account`);
@@ -240,8 +249,9 @@ try {
       await sleep(2500);
       await record("05-receipt");
       await sleep(3000);
-      await page.mouse.wheel(0, 500);
-      await sleep(3500);
+      // then down to "Check it yourself": the commands that rebuild this auction from the chain alone
+      await page.getByText("Check it yourself").first().evaluate((el) => el.scrollIntoView({ behavior: "smooth", block: "start" }));
+      await sleep(4500);
       await stop();
       writeFileSync(join(OUT, "05-receipt", "print.json"), JSON.stringify(print, null, 2));
       log(`receipt: ${SITE}/receipt/mainnet/1/${print.upTo} (tx ${print.tx})`);

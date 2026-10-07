@@ -81,15 +81,15 @@ export const EnvioBoard = () => {
       </AbsoluteFill>
     );
   }
-  const take = TAKES[BOARD];
+  // the table, after the page's scroll (cut, not shown): 06-challenge has reached it by 4.1 s
   return (
     <AbsoluteFill style={{ background: C.deep }}>
-      <Shot take={BOARD} pointer={false} moves={[{ at: 0, x: 960, y: 540, zoom: 1 }, { at: Math.min(2, take.seconds / 3), dur: 1.4, x: 960, y: 600, zoom: 1.2 }]} />
+      <Shot take={BOARD} from={4.1} pointer={false} moves={[{ at: 4.1, x: 960, y: 446, zoom: 1.5 }, { at: 4.2, dur: 6, x: 960, y: 406, zoom: 1.75 }]} />
       <div
         style={{
           position: "absolute",
           left: 80,
-          bottom: 80,
+          bottom: 160,
           padding: "18px 26px",
           borderRadius: 16,
           background: "oklch(0.1 0.006 265 / 0.8)",

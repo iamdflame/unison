@@ -4,7 +4,7 @@
  * Writes each segment's length, capture time and clicks (in seconds from its first frame) to src/data/footage.json,
  * for the film's cuts and its cursor.
  *
- *   node capture/encode.mjs            (from video/, after capture/live.mjs)
+ *   node capture/encode.mjs [take…]    (from video/, after capture/live.mjs; given takes, only those are redone)
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -19,8 +19,12 @@ const FFMPEG = join(ROOT, "node_modules", "@remotion", `compositor-${process.pla
 const HOLD = 0.5;
 
 mkdirSync(OUT, { recursive: true });
-const meta = {};
+const only = process.argv.slice(2);
+const FOOTAGE = join(ROOT, "src", "data", "footage.json");
+// redoing some takes keeps the others as they were encoded
+const meta = only.length && existsSync(FOOTAGE) ? JSON.parse(readFileSync(FOOTAGE, "utf8")) : {};
 for (const name of readdirSync(IN).sort()) {
+  if (only.length && !only.includes(name)) continue;
   const dir = join(IN, name);
   const frames = readdirSync(dir)
     .filter((f) => f.endsWith(".jpg"))
@@ -33,9 +37,11 @@ for (const name of readdirSync(IN).sort()) {
   frames.forEach((f, i) => list.push(`file '${f}'`, `duration ${((ts[i + 1] ?? ts[i] + HOLD) - ts[i]).toFixed(4)}`));
   list.push(`file '${frames.at(-1)}'`);
   writeFileSync(join(dir, "frames.ffconcat"), `${list.join("\n")}\n`);
+  // a take captured at twice the density stays 4K, a little more compressed
+  const shot = existsSync(join(dir, "meta.json")) ? JSON.parse(readFileSync(join(dir, "meta.json"), "utf8")) : { viewport: { width: 1920, height: 1080 }, dsf: 1 };
   execFileSync(
     FFMPEG,
-    ["-y", "-hide_banner", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", join(dir, "frames.ffconcat"), "-fps_mode", "cfr", "-r", "60", "-pix_fmt", "yuv420p", "-c:v", "libx264", "-preset", "slow", "-crf", "12", "-movflags", "+faststart", join(OUT, `${name}.mp4`)],
+    ["-y", "-hide_banner", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", join(dir, "frames.ffconcat"), "-fps_mode", "cfr", "-r", "60", "-pix_fmt", "yuv420p", "-c:v", "libx264", "-preset", "slow", "-crf", shot.dsf > 1 ? "16" : "12", "-movflags", "+faststart", join(OUT, `${name}.mp4`)],
     { stdio: "inherit" },
   );
   const events = existsSync(join(dir, "events.json")) ? JSON.parse(readFileSync(join(dir, "events.json"), "utf8")) : [];
@@ -43,8 +49,10 @@ for (const name of readdirSync(IN).sort()) {
     file: `footage/${name}.mp4`,
     seconds: Number((ts.at(-1) + HOLD - start).toFixed(3)),
     capturedAt: new Date(start * 1000).toISOString(),
+    viewport: shot.viewport,
+    dsf: shot.dsf,
     clicks: events.map((e) => ({ at: Number((e.t - start).toFixed(3)), x: Math.round(e.x), y: Math.round(e.y), label: e.label })),
   };
   console.log(`${name}: ${frames.length} frames, ${meta[name].seconds} s`);
 }
-writeFileSync(join(ROOT, "src", "data", "footage.json"), `${JSON.stringify(meta, null, 2)}\n`);
+writeFileSync(FOOTAGE, `${JSON.stringify(meta, null, 2)}\n`);

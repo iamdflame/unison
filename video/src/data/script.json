@@ -73,11 +73,11 @@
   ],
   "demo-05": [
     {
-      "text": "Sell some MON.",
+      "text": "Sell nine MON, at a limit… and confirm.",
       "pause": 0.45
     },
     {
-      "text": "The order is sealed, right here in this block.",
+      "text": "The order is sealed — right here, in this block.",
       "pause": 0.45
     },
     {
@@ -99,15 +99,25 @@
       "pause": 0.45
     },
     {
-      "text": "The certificate shows every step…",
-      "pause": 0.55
-    },
-    {
-      "text": "in the order it happened.",
+      "text": "Every fill gets a certificate…",
       "pause": 0
     }
   ],
   "demo-07": [
+    {
+      "text": "The receipt proves which came first:",
+      "pause": 0.3
+    },
+    {
+      "text": "the seal…",
+      "pause": 0.55
+    },
+    {
+      "text": "then its price — observed forty-nine seconds later.",
+      "pause": 0
+    }
+  ],
+  "demo-08": [
     {
       "text": "Don't trust us.",
       "pause": 0.45
@@ -141,7 +151,7 @@
       "pause": 0
     }
   ],
-  "demo-08": [
+  "demo-09": [
     {
       "text": "Here's our own sniper —",
       "pause": 0.3
@@ -163,7 +173,7 @@
       "pause": 0
     }
   ],
-  "demo-09": [
+  "demo-10": [
     {
       "text": "So we put money on it.",
       "pause": 0.45
@@ -185,7 +195,7 @@
       "pause": 0
     }
   ],
-  "demo-10": [
+  "demo-11": [
     {
       "text": "Agents can trade it too.",
       "pause": 0.45
@@ -203,7 +213,7 @@
       "pause": 0
     }
   ],
-  "demo-11": [
+  "demo-12": [
     {
       "text": "Unison.",
       "pause": 0.45

@@ -39,25 +39,26 @@ export const PHOTO_FINISH = {
   date: "6 October 2026",
 };
 
-/** The film's own sale, captured live on www.unisonfi.com by capture/live.mjs: a passkey account sells 9 WMON on
- * 6 October 2026. Every check of apps/web/scripts/verify-receipt.mjs passes (src/data/verify-film-sale.txt). */
+/** The film's own sale, captured live (and at 4K) on www.unisonfi.com by capture/live.mjs: a passkey account sells
+ * 9 WMON on 7 October 2026. Every check of apps/web/scripts/verify-receipt.mjs passes (src/data/verify-film-sale.txt). */
 export const FILM_SALE = {
   account: "0x686ec4AE35A0dDF9011eA6a864aEc6871d00F382",
   quantity: "9 WMON",
-  limit: "0.028293",
-  upTo: 111_170_181,
-  sealedAt: "23:34:49",
-  /** 13 s after the seal */
-  observedAt: "23:35:02",
-  landedAt: "23:35:14",
-  /** block 111,170,272 */
-  clearedAt: "23:35:16",
-  price: "0.028344",
-  reference: "0.028397",
-  received: "0.26 AUSD",
-  receiptHash: "0xdd21f25c29f3169a3858da05f42406a77d4ca3f02333388e3b898fd9b6d8ed76",
-  tx: "0x5fbb8b5f892ebe831d4f4b03d5a8b792d8977ee3998f0dc2a8edc48333c26e67",
-  receipt: "https://www.unisonfi.com/receipt/mainnet/1/111170181",
+  limit: "0.026820",
+  upTo: 111_216_533,
+  sealedAt: "03:28:05",
+  /** Chainlink's next observation: 49 s after the seal */
+  observedAt: "03:28:54",
+  /** its report on chain, 13 s after the observation */
+  landedAt: "03:29:07",
+  /** block 111,216,741 */
+  clearedAt: "03:29:08",
+  price: "0.026847",
+  reference: "0.026900",
+  received: "0.24 AUSD",
+  receiptHash: "0x45a711e4c27e49570e6e5e184f73050d45885bb8def1b17cca3496f7e7e64301",
+  tx: "0x569c7ea2cb5fb48f855fae81cda26ddd7666aaca18912a72e17c725bcc9225e5",
+  receipt: "https://www.unisonfi.com/receipt/mainnet/1/111216533",
 };
 
 /** The agent wallet's sale through MetaMask Agent Wallet: docs/evidence/agent-wallet.md. */
@@ -85,11 +86,11 @@ export const AGENT_SALE = {
   ],
 };
 
-/** The standing challenge: the pots, the house sniper's live score (the /challenge page, scored 7 October 02:25 UTC)
+/** The standing challenge: the pots, the house sniper's live score (the /challenge page and its Envio table, 7 October 04:02 UTC)
  * and its week-long replay (facts.challenge, docs/evidence/challenge.md). */
 export const CHALLENGE = {
   pots: { causal: "18 AUSD", old: "1 AUSD" },
-  live: { fills: 11, causalBps: -22.0, oldBps: 11.04 },
+  live: { fills: 14, causalBps: -24.24, oldBps: 10.26 },
   replay: { trades: 208_414, rounds: 15_992, oldBps: 17.8, causalBps: -23.0, oldWinsPct: 72 },
   terms: { minFills: 30, epsilonBps: 2, horizonSec: 60 },
 };
