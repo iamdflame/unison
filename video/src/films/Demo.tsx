@@ -21,7 +21,7 @@ export const DEMO: Beat[] = [
     // the narration is set in the scene's own type
     captions: false,
     voice: [{ id: "demo-01", at: 0.9 }],
-    sfx: [0, 0.3, 0.6, 0.9, 1.2, 1.5].map((at) => ({ file: "sfx-tick.mp3", at, volume: 0.32 })),
+    sfx: [0, 0.3, 0.6, 0.9, 1.2, 1.5].map((at) => ({ file: "sfx-tick.mp3", at, volume: 0.22 })),
   },
   { id: "thirteen", Scene: Thirteen, seconds: 14, voice: [{ id: "demo-02", at: 0.4 }] },
   {
@@ -31,8 +31,8 @@ export const DEMO: Beat[] = [
     captions: false,
     voice: [{ id: "demo-03", at: 0.3 }],
     sfx: [
-      { file: "sfx-seal.mp3", at: 2.4, volume: 0.7 },
-      { file: "sfx-chime.mp3", at: 9.25, volume: 0.45 },
+      { file: "sfx-seal.mp3", at: 2.52, volume: 0.55 },
+      { file: "sfx-chime.mp3", at: 9.25, volume: 0.38 },
     ],
   },
   {
@@ -48,8 +48,8 @@ export const DEMO: Beat[] = [
       { id: "demo-07", at: LIVE_CUES.receipt + 0.35 },
     ],
     sfx: [
-      { file: "sfx-seal.mp3", at: LIVE_CUES.sealed, volume: 0.6 },
-      { file: "sfx-chime.mp3", at: LIVE_CUES.drop, volume: 0.6 },
+      { file: "sfx-seal.mp3", at: LIVE_CUES.sealed, volume: 0.5 },
+      { file: "sfx-chime.mp3", at: LIVE_CUES.drop, volume: 0.42 },
     ],
   },
   {
@@ -57,7 +57,7 @@ export const DEMO: Beat[] = [
     Scene: Verify,
     seconds: 12,
     voice: [{ id: "demo-08", at: 0.2 }],
-    sfx: VERIFY_LINES.filter((l) => l.kind === "pass").map((l) => ({ file: "sfx-pass.mp3", at: l.at, volume: 0.5 })),
+    sfx: VERIFY_LINES.filter((l) => l.kind === "pass").map((l) => ({ file: "sfx-pass.mp3", at: l.at, volume: 0.32 })),
   },
   {
     id: "photo-finish",
@@ -65,8 +65,8 @@ export const DEMO: Beat[] = [
     seconds: 13,
     voice: [{ id: "demo-09", at: 0.3 }],
     sfx: [
-      { file: "sfx-whoosh.mp3", at: 0, volume: 0.4 },
-      { file: "sfx-shutter.mp3", at: 9.98, volume: 0.7 },
+      { file: "sfx-whoosh.mp3", at: 0, volume: 0.35 },
+      { file: "sfx-shutter.mp3", at: 9.98, volume: 0.6 },
     ],
   },
   { id: "challenge", Scene: SnipeUs, seconds: 12, voice: [{ id: "demo-10", at: 0.3 }] },

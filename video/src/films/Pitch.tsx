@@ -1,6 +1,6 @@
 import { type Beat, Film, plan, type PlanProps } from "../kit/Plan";
 import { MUSIC_DEMO } from "./Demo";
-import { Idea } from "../scenes/Idea";
+import { Idea, PITCH_IDEA } from "../scenes/Idea";
 import { Ask } from "../scenes/pitch/Ask";
 import { Founder } from "../scenes/pitch/Founder";
 import { Market } from "../scenes/pitch/Market";
@@ -16,12 +16,14 @@ export const PITCH: Beat[] = [
   { id: "problem", Scene: Thirteen, seconds: 14, voice: [{ id: "pitch-02", at: 0.4 }] },
   {
     id: "idea",
-    Scene: Idea,
+    // the idea in the pitch's own words, set in the scene's type
+    Scene: () => <Idea cues={PITCH_IDEA} />,
     seconds: 12,
+    captions: false,
     voice: [{ id: "pitch-03", at: 0.3 }],
     sfx: [
-      { file: "sfx-seal.mp3", at: 2.4, volume: 0.6 },
-      { file: "sfx-chime.mp3", at: 6.6, volume: 0.4 },
+      { file: "sfx-seal.mp3", at: 2.53, volume: 0.55 },
+      { file: "sfx-chime.mp3", at: 7.27, volume: 0.38 },
     ],
   },
   { id: "proof", Scene: Proof, seconds: PROOF_SECONDS, voice: [{ id: "pitch-04", at: 0.3 }] },

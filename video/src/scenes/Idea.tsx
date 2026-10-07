@@ -19,19 +19,39 @@ const LEFT = 560;
 const RIGHT = 1360;
 const MID = 470;
 
-export const Idea = () => {
+/**
+ * Which line of the narration each moment lands on: the flip, the seal, Chainlink's observation (a line, and how far
+ * into it), the one price, and the line set large at the end, if the voice has one. The demo and the pitch say the
+ * idea in different words.
+ */
+export interface IdeaCues {
+  voice: "demo-03" | "pitch-03";
+  flip: number;
+  sealed: number;
+  observed: [number, number];
+  beam: number;
+  coda: number | null;
+  /** fallbacks for a scene played on its own: when each line starts */
+  at: number[];
+}
+export const DEMO_IDEA: IdeaCues = { voice: "demo-03", flip: 0, sealed: 1, observed: [3, 0.75], beam: 4, coda: 5, at: [0.46, 2.32, 4.4, 6.38, 8.92, 11.72] };
+export const PITCH_IDEA: IdeaCues = { voice: "pitch-03", flip: 0, sealed: 1, observed: [2, 1.6], beam: 3, coda: null, at: [0.36, 2.33, 3.7, 6.92, 8.38] };
+
+export const Idea = ({ cues = DEMO_IDEA }: { cues?: IdeaCues }) => {
   const t = useT();
-  const L = [0.46, 2.32, 4.4, 6.38, 8.92, 11.72].map((d, i) => useLine("demo-03", i, d));
-  const flipAt = L[0]! + 0.75;
+  const L = [0, 1, 2, 3, 4, 5].map((i) => useLine(cues.voice, i, cues.at[i] ?? 99));
+  const lines = script[cues.voice];
+  const end = cues.coda !== null ? L[cues.coda]! : 99;
+  const flipAt = L[cues.flip]! + 0.75;
   const flip = settle(clamp01((t - flipAt) / 0.9));
   const arc = Math.sin(Math.PI * flip);
-  const open = settle(clamp01((t - L[1]! + 0.1) / 0.6));
-  const stamp = L[1]! + 0.2;
-  const observed = L[3]! + 0.75;
+  const open = settle(clamp01((t - L[cues.sealed]! + 0.1) / 0.6));
+  const stamp = L[cues.sealed]! + 0.2;
+  const observed = L[cues.observed[0]]! + cues.observed[1];
   const obs = settle(clamp01((t - observed) / 0.5));
-  const beam = L[4]! + 0.35;
+  const beam = L[cues.beam]! + 0.35;
   const sweep = clamp01((t - beam) / 0.7);
-  const coda = settle(clamp01((t - L[5]! + 0.15) / 0.7));
+  const coda = cues.coda !== null ? settle(clamp01((t - end + 0.15) / 0.7)) : 0;
   // the tiles: the price starts on the left (the old rule), your order on the right; then they change places
   const priceX = LEFT + (RIGHT - LEFT) * flip;
   const orderX = RIGHT - (RIGHT - LEFT) * flip;
@@ -76,7 +96,7 @@ export const Idea = () => {
             </Label>
           </div>
           <div style={{ position: "absolute", left: 44, bottom: 40, fontFamily: F.display, fontSize: 104, lineHeight: 1, whiteSpace: "nowrap", color: obs > 0.5 ? C.ink : flip > 0.5 ? C.ink3 : C.champagne, textShadow: obs > 0.5 ? glow(C.accent, 0.9) : undefined }}>
-            {obs > 0.5 ? <Sweep at={observed + 0.2}>observed</Sweep> : flip > 0.5 && t > L[1]! ? <i>not yet</i> : "the price"}
+            {obs > 0.5 ? <Sweep at={observed + 0.2}>observed</Sweep> : flip > 0.5 && t > L[cues.sealed]! ? <i>not yet</i> : "the price"}
           </div>
         </div>
         <Ring at={observed} x={RIGHT} y={MID} size={1000} color={C.accent} width={3} />
@@ -93,7 +113,7 @@ export const Idea = () => {
             <div style={{ position: "absolute", left: 44, bottom: 40, fontFamily: F.display, fontSize: 104, lineHeight: 1, whiteSpace: "nowrap", opacity: 1 - 2 * open }}>your order</div>
           ) : null}
           {ORDERS.map((o, i) => {
-            const inP = move(t, L[1]! + 0.05 + i * 0.12, 0.45);
+            const inP = move(t, L[cues.sealed]! + 0.05 + i * 0.12, 0.45);
             const lit = clamp01((sweep - i * 0.18) / 0.3);
             return (
               <div
@@ -135,12 +155,17 @@ export const Idea = () => {
 
         </AbsoluteFill>
         {/* the narration, then its last line, large */}
-        <Narration lines={script["demo-03"].slice(0, 5).map((l, i) => ({ text: l.text, at: L[i]!, until: i < 4 ? L[i + 1]! - 0.1 : L[5]! - 0.2 }))} accent={{ flips: C.accent, first: C.accent, after: C.accent, One: C.champagne, price: C.champagne }} bottom={70} size={58} />
-        {/* nothing to snipe */}
+        <Narration
+          lines={lines.slice(0, cues.coda ?? lines.length).map((l, i, shown) => ({ text: l.text, at: L[i]!, until: i < shown.length - 1 ? L[i + 1]! - 0.1 : cues.coda !== null ? end - 0.2 : 99 }))}
+          accent={{ flips: C.accent, first: C.accent, after: C.accent, One: C.champagne, one: C.champagne, price: C.champagne, receipt: C.buy }}
+          bottom={70}
+          size={58}
+        />
+        {/* nothing to snipe (the demo's last line) */}
         <div style={{ position: "absolute", left: 0, right: 0, top: 440, textAlign: "center", opacity: coda }}>
           <div style={{ fontFamily: F.display, fontSize: 150, lineHeight: 1, color: C.ink, textShadow: glow(C.champagne, 0.6) }}>
-            <Sweep at={L[5]! + 0.5} dur={1.2}>
-              <Words text="Nothing to snipe." at={L[5]! - 0.1} stagger={0.12} dur={0.6} />
+            <Sweep at={end + 0.5} dur={1.2}>
+              <Words text={cues.coda !== null ? lines[cues.coda]!.text : ""} at={end - 0.1} stagger={0.12} dur={0.6} />
             </Sweep>
           </div>
         </div>

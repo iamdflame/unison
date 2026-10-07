@@ -99,12 +99,12 @@ export const AD: Beat[] = [
     seconds: 21,
     voice: [{ id: "ad-01", line: 2, on: 9.9 }],
     sfx: [
-      { file: "sfx-tick.mp3", at: beat(0), volume: 0.5 },
-      { file: "sfx-seal.mp3", at: beat(2), volume: 0.75 },
-      { file: "sfx-chime.mp3", at: beat(4), volume: 0.5 },
-      { file: "sfx-pass.mp3", at: beat(6), volume: 0.6 },
-      { file: "sfx-whoosh.mp3", at: RACE - 0.25, volume: 0.45 },
-      { file: "sfx-shutter.mp3", at: 9.98, volume: 0.75 },
+      { file: "sfx-tick.mp3", at: beat(0), volume: 0.4 },
+      { file: "sfx-seal.mp3", at: beat(2), volume: 0.6 },
+      { file: "sfx-chime.mp3", at: beat(4), volume: 0.42 },
+      { file: "sfx-pass.mp3", at: beat(6), volume: 0.42 },
+      { file: "sfx-whoosh.mp3", at: RACE - 0.25, volume: 0.4 },
+      { file: "sfx-shutter.mp3", at: 9.98, volume: 0.65 },
     ],
   },
 ];
