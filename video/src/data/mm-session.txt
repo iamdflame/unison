@@ -1,0 +1,121 @@
+# mm-plugin-unison 0.1.1, read-only commands on Monad mainnet, 2026-10-07T00:29Z
+
+$ mm unison markets
+{
+  "ok": true,
+  "data": {
+    "markets": [
+      {
+        "id": 0,
+        "market": "aNVDA/AUSD",
+        "rule": "causal: priced at Chainlink's first observation after your order is sealed",
+        "state": "open",
+        "reference": "240.784133 AUSD",
+        "referenceAgeSec": 170,
+        "chainlinkRound": "18446744073709555878",
+        "lastAuctionPrice": "239.81 AUSD",
+        "auctions": "6",
+        "fee": "0.03%",
+        "priceStep": "0.01 AUSD"
+      },
+      {
+        "id": 1,
+        "market": "WMON/AUSD",
+        "rule": "causal: priced at Chainlink's first observation after your order is sealed",
+        "state": "open",
+        "reference": "0.028404 AUSD",
+        "referenceAgeSec": 13,
+        "chainlinkRound": "18446744073710160863",
+        "lastAuctionPrice": "0.028344 AUSD",
+        "auctions": "12",
+        "fee": "0.03%",
+        "priceStep": "0.000001 AUSD"
+      },
+      {
+        "id": 2,
+        "market": "WMON/AUSD (old rule)",
+        "rule": "old rule: priced when the auction clears (the challenge's control; not for trading)",
+        "state": "open",
+        "reference": null,
+        "referenceAgeSec": null,
+        "chainlinkRound": null,
+        "lastAuctionPrice": "0.028587 AUSD",
+        "auctions": "9",
+        "fee": "0.03%",
+        "priceStep": "0.000001 AUSD"
+      }
+    ]
+  },
+  "hint": "aNVDA/AUSD: 240.784133 AUSD (Chainlink, 170s ago), open\nWMON/AUSD: 0.028404 AUSD (Chainlink, 13s ago), open"
+}
+
+$ mm unison quote WMON sell 10
+{
+  "ok": true,
+  "data": {
+    "market": "WMON/AUSD",
+    "side": "sell",
+    "quantity": "10 WMON",
+    "chainlinkReference": "0.028404 AUSD",
+    "limit": "0.028262 AUSD",
+    "limitVsReferenceBps": -49.99,
+    "locks": "10 WMON",
+    "fee": "0.03% of the fill",
+    "howItPrices": "Sealed when sent; priced at Chainlink's first observation after the seal; filled at one price for everyone in that auction, never past the limit."
+  },
+  "hint": "sell 10 WMON at least 0.028262 AUSD (Chainlink now 0.028404 AUSD); locks 10 WMON until the auction runs"
+}
+
+$ mm unison challenge score --address 0xcEc80166Ab48cb3C4ebD98671524761b1fd81276
+{
+  "ok": true,
+  "data": {
+    "challenge": "0xDcD3E86518db6A40C4feBa576efff598cA3B90d1",
+    "rule": "causal",
+    "pot": "18 AUSD",
+    "paid": false,
+    "window": {
+      "start": "2026-10-06T13:48:37.000Z",
+      "end": "2026-10-27T23:59:59.000Z"
+    },
+    "minFills": 30,
+    "thresholdBps": 2,
+    "account": "0xB1964fD4521977d71FE058A8b96140faddB611b6",
+    "owner": "0xcEc80166Ab48cb3C4ebD98671524761b1fd81276",
+    "fills": 9,
+    "counted": 9,
+    "waitingForMarkout": 0,
+    "edge": "0.001447 AUSD lost",
+    "notional": "0.778155 AUSD",
+    "edgeBps": -18.59,
+    "qualifies": false
+  },
+  "hint": "9 of 30 counted fills, edge -18.59 bp (0.001447 AUSD lost); the pot pays above 2 bp. Not yet. Pot: 18 AUSD."
+}
+
+$ mm unison challenge score --rule old --address 0xcEc80166Ab48cb3C4ebD98671524761b1fd81276
+{
+  "ok": true,
+  "data": {
+    "challenge": "0x5Ce9D9f491E2d16c94F56eD09BEa23e7109976e9",
+    "rule": "old",
+    "pot": "1 AUSD",
+    "paid": false,
+    "window": {
+      "start": "2026-10-06T13:48:37.000Z",
+      "end": "2026-10-27T23:59:59.000Z"
+    },
+    "minFills": 30,
+    "thresholdBps": 2,
+    "account": "0xAc888Ed66Ba7599D89C59886E947A346D5a054f6",
+    "owner": "0xcEc80166Ab48cb3C4ebD98671524761b1fd81276",
+    "fills": 9,
+    "counted": 9,
+    "waitingForMarkout": 0,
+    "edge": "0.001103 AUSD",
+    "notional": "0.779247 AUSD",
+    "edgeBps": 14.15,
+    "qualifies": false
+  },
+  "hint": "9 of 30 counted fills, edge 14.15 bp (0.001103 AUSD); the pot pays above 2 bp. Not yet. Pot: 1 AUSD."
+}

@@ -79,3 +79,51 @@ The order's price did not exist when it was signed. It was sealed at 22:48:23, a
 | Withdraw 0.027307 AUSD | [0x996fea50…](https://monadvision.com/tx/0x996fea501e5157fd4dec9fbae17c455fb6daae0e5fd3e52becea48b4390e2ed0) |
 
 The two receipts: https://www.unisonfi.com/receipt/mainnet/1/111160954 and https://www.unisonfi.com/receipt/mainnet/1/111161153.
+
+## 7 October: five more sessions, one bug found and fixed
+
+The same agent wallet ran the plugin's whole loop five more times (deposit, quote, sealed sell of 10 WMON, receipt, withdraw), recorded by [`video/capture/mm-session.mjs`](../../video/capture/mm-session.mjs) for the plugin's video.
+
+| Run (UTC) | Plugin | What happened | Auction |
+|---|---|---|---|
+| 1 · 00:33 | 0.1.1 | Sold at 0.028351 AUSD, and the keeper claimed it 79 blocks later. The command then ended with `UNISON_NO_CLAIM_EVENT`: the RPC node it asked for the logs was still behind the claim's block. 0.1.2 retries with a fresh head ([`findClaim`](../../integrations/agent-wallet-plugin/src/lib/trading.ts)), with two tests that replay the lag. | [111,182,123](https://www.unisonfi.com/receipt/mainnet/1/111182123) |
+| 2 · 02:04 | 0.1.2 | **Not filled.** MON fell past the default limit, 50 bp under Chainlink, before the next observation, which came 29 s after the seal. The 10 WMON came back, and the receipt still checked 6 of 6. | [111,200,305](https://www.unisonfi.com/receipt/mainnet/1/111200305) |
+| 3 · 02:08 | 0.1.2 | With `--slippage 150`, sold at 0.027072 AUSD; receipt 6 of 6 | [111,200,949](https://www.unisonfi.com/receipt/mainnet/1/111200949) |
+| 4 · 02:11 | 0.1.2 | Sold at 0.027149 AUSD; receipt 6 of 6 | [111,201,695](https://www.unisonfi.com/receipt/mainnet/1/111201695) |
+| 5 · 02:15 | 0.1.2 | Sold at 0.027168 AUSD; receipt 6 of 6. The transcript below, which the video replays | [111,202,438](https://www.unisonfi.com/receipt/mainnet/1/111202438) |
+
+Run 2 is the rule doing its job. The agent's limit was set from the last price anyone could see. The price it would trade at didn't exist yet, and when it arrived it was past the limit, so the order didn't fill: nothing traded at a price the agent hadn't agreed to.
+
+Across the five runs the wallet sold 40 MON for 1.097 AUSD and paid 0.34 MON of gas. Its trades count with the team's at `GET /v1/stats` (`traders: 0`).
+
+**Run 5, as the terminal showed it** (each transaction signed by the Agent Wallet, after its intent line):
+
+```
+$ mm unison deposit 10 WMON
+Intent: Unison: wrap 10 MON into WMON for a deposit
+  ✓ Unison: wrap 10 MON into WMON for a deposit  https://monadvision.com/tx/0xce9327211e379c6d3d90c9f96f7cfe769cc8019dc0181f53a02a2911968ddcf9
+Intent: Unison: let the exchange take exactly 10 WMON for a deposit
+  ✓ Unison: let the exchange take exactly 10 WMON for a deposit  https://monadvision.com/tx/0x4919cd3480128537b20158d0127d81e7be8a4b2f0fa8439a56bb73d0483a66fa
+Intent: Unison: deposit 10 WMON to this wallet's Unison balance
+  ✓ Unison: deposit 10 WMON to this wallet's Unison balance  https://monadvision.com/tx/0x9b1be627de575fec70836c6dbf60cf2e4aa1c8c2411bce09d18bae12a6db666c
+Deposited 10 WMON; 10 WMON on Unison now.
+
+$ mm unison quote WMON sell 10 --slippage 150
+sell 10 WMON at least 0.026772 AUSD (Chainlink now 0.027179 AUSD); locks 10 WMON until the auction runs
+
+$ mm unison order WMON sell 10 --slippage 150
+Intent: Unison: sealed sell of 10 WMON at ≥ 0.026772 AUSD, priced at Chainlink's next observation
+  ✓ Unison: sealed sell of 10 WMON at ≥ 0.026772 AUSD, priced at Chainlink's next observation  https://monadvision.com/tx/0xe80eb4c3ae2accf24846a7418f94bf790e351f81deb51d035d56330593a3d254
+Sealed in block 111202438. Its price doesn't exist yet: the auction prices at Chainlink's first observation after this block.
+  waiting for Chainlink's next observation… 10 s
+Priced: 0.027168 AUSD, one price for everyone in the auction (Chainlink: 0.027221).
+Receipt: 6 of 6 checks pass against Chainlink's own history. https://www.unisonfi.com/receipt/mainnet/1/111202438
+Sold 10 WMON at 0.027168 AUSD, the auction's one price; receipt 6/6 verified
+
+$ mm unison withdraw all AUSD
+Intent: Unison: withdraw 0.271598 AUSD to this wallet
+  ✓ Unison: withdraw 0.271598 AUSD to this wallet  https://monadvision.com/tx/0xc8165db2f5ef97176d0d48edeb8859fa3b3b2981e5d291b84476f2fb69e669fc
+Withdrew 0.271598 AUSD to the wallet.
+```
+
+Sealed at 02:17:09; Chainlink observed at 02:17:23 and its report landed at 02:17:35; the auction cleared in block 111,202,529 ([0x1bd474fd…](https://monadvision.com/tx/0x1bd474fd2c75c314a88314610fa39147c7314350f95a96f088efe241cb0d2923)), and the keeper settled it ([0x3b2a70be…](https://monadvision.com/tx/0x3b2a70be1e8796d0fa75d7dbf881590b28ddab016eda39fab45ac03e29e93406)).

@@ -1,0 +1,69 @@
+{
+  "wallet": "MetaMask Agent Wallet (server wallet)",
+  "network": "Monad mainnet (143)",
+  "steps": [
+    {
+      "command": "mm unison balance",
+      "started": "2026-10-07T02:15:44.096Z",
+      "seconds": 3.095,
+      "progress": "",
+      "output": "{\n  \"ok\": true,\n  \"data\": {\n    \"account\": \"0x5E986eC96d2979f278814452ad08c33C3c0AEA4b\",\n    \"mon\": \"59.587109\",\n    \"tokens\": [\n      {\n        \"token\": \"AUSD\",\n        \"wallet\": \"0.852777\",\n        \"onUnison\": \"0\"\n      },\n      {\n        \"token\": \"WMON\",\n        \"wallet\": \"0\",\n        \"onUnison\": \"0\"\n      },\n      {\n        \"token\": \"aNVDA\",\n        \"wallet\": \"0\",\n        \"onUnison\": \"0\"\n      }\n    ],\n    \"openOrderSlots\": []\n  },\n  \"hint\": \"0x5E986eC96d2979f278814452ad08c33C3c0AEA4b: 59.587109 MON for gas\\n  AUSD: 0.852777 in the wallet, 0 on Unison\\n  WMON: 0 in the wallet, 0 on Unison\\n  aNVDA: 0 in the wallet, 0 on Unison\"\n}"
+    },
+    {
+      "command": "mm unison markets",
+      "started": "2026-10-07T02:15:47.193Z",
+      "seconds": 2.994,
+      "progress": "",
+      "output": "{\n  \"ok\": true,\n  \"data\": {\n    \"markets\": [\n      {\n        \"id\": 0,\n        \"market\": \"aNVDA/AUSD\",\n        \"rule\": \"causal: priced at Chainlink's first observation after your order is sealed\",\n        \"state\": \"open\",\n        \"reference\": \"240.677268 AUSD\",\n        \"referenceAgeSec\": 889,\n        \"chainlinkRound\": \"18446744073709555887\",\n        \"lastAuctionPrice\": \"239.81 AUSD\",\n        \"auctions\": \"6\",\n        \"fee\": \"0.03%\",\n        \"priceStep\": \"0.01 AUSD\"\n      },\n      {\n        \"id\": 1,\n        \"market\": \"WMON/AUSD\",\n        \"rule\": \"causal: priced at Chainlink's first observation after your order is sealed\",\n        \"state\": \"open\",\n        \"reference\": \"0.027249 AUSD\",\n        \"referenceAgeSec\": 24,\n        \"chainlinkRound\": \"18446744073710161035\",\n        \"lastAuctionPrice\": \"0.027149 AUSD\",\n        \"auctions\": \"17\",\n        \"fee\": \"0.03%\",\n        \"priceStep\": \"0.000001 AUSD\"\n      },\n      {\n        \"id\": 2,\n        \"market\": \"WMON/AUSD (old rule)\",\n        \"rule\": \"old rule: priced when the auction clears (the challenge's control; not for trading)\",\n        \"state\": \"open\",\n        \"reference\": null,\n        \"referenceAgeSec\": null,\n        \"chainlinkRound\": null,\n        \"lastAuctionPrice\": \"0.027709 AUSD\",\n        \"auctions\": \"11\",\n        \"fee\": \"0.03%\",\n        \"priceStep\": \"0.000001 AUSD\"\n      }\n    ]\n  },\n  \"hint\": \"aNVDA/AUSD: 240.677268 AUSD (Chainlink, 889s ago), open\\nWMON/AUSD: 0.027249 AUSD (Chainlink, 24s ago), open\"\n}"
+    },
+    {
+      "command": "mm unison deposit 10 WMON",
+      "started": "2026-10-07T02:15:50.188Z",
+      "seconds": 70.042,
+      "progress": "Intent: Unison: wrap 10 MON into WMON for a deposit\nTx submitted: https://monadvision.com/tx/0xce9327211e379c6d3d90c9f96f7cfe769cc8019dc0181f53a02a2911968ddcf9\n  ✓ Unison: wrap 10 MON into WMON for a deposit  https://monadvision.com/tx/0xce9327211e379c6d3d90c9f96f7cfe769cc8019dc0181f53a02a2911968ddcf9\nIntent: Unison: let the exchange take exactly 10 WMON for a deposit\nTx submitted: https://monadvision.com/tx/0x4919cd3480128537b20158d0127d81e7be8a4b2f0fa8439a56bb73d0483a66fa\n  ✓ Unison: let the exchange take exactly 10 WMON for a deposit  https://monadvision.com/tx/0x4919cd3480128537b20158d0127d81e7be8a4b2f0fa8439a56bb73d0483a66fa\nIntent: Unison: deposit 10 WMON to this wallet's Unison balance\nTx submitted: https://monadvision.com/tx/0x9b1be627de575fec70836c6dbf60cf2e4aa1c8c2411bce09d18bae12a6db666c\n  ✓ Unison: deposit 10 WMON to this wallet's Unison balance  https://monadvision.com/tx/0x9b1be627de575fec70836c6dbf60cf2e4aa1c8c2411bce09d18bae12a6db666c",
+      "output": "{\n  \"ok\": true,\n  \"data\": {\n    \"token\": \"WMON\",\n    \"amount\": \"10\",\n    \"onUnison\": \"10\",\n    \"transactions\": [\n      \"0xce9327211e379c6d3d90c9f96f7cfe769cc8019dc0181f53a02a2911968ddcf9\",\n      \"0x4919cd3480128537b20158d0127d81e7be8a4b2f0fa8439a56bb73d0483a66fa\",\n      \"0x9b1be627de575fec70836c6dbf60cf2e4aa1c8c2411bce09d18bae12a6db666c\"\n    ]\n  },\n  \"hint\": \"Deposited 10 WMON; 10 WMON on Unison now.\"\n}"
+    },
+    {
+      "command": "mm unison quote WMON sell 10 --slippage 150",
+      "started": "2026-10-07T02:17:00.232Z",
+      "seconds": 3.049,
+      "progress": "",
+      "output": "{\n  \"ok\": true,\n  \"data\": {\n    \"market\": \"WMON/AUSD\",\n    \"side\": \"sell\",\n    \"quantity\": \"10 WMON\",\n    \"chainlinkReference\": \"0.027179 AUSD\",\n    \"limit\": \"0.026772 AUSD\",\n    \"limitVsReferenceBps\": -149.74,\n    \"locks\": \"10 WMON\",\n    \"fee\": \"0.03% of the fill\",\n    \"howItPrices\": \"Sealed when sent; priced at Chainlink's first observation after the seal; filled at one price for everyone in that auction, never past the limit.\"\n  },\n  \"hint\": \"sell 10 WMON at least 0.026772 AUSD (Chainlink now 0.027179 AUSD); locks 10 WMON until the auction runs\"\n}"
+    },
+    {
+      "command": "mm unison order WMON sell 10 --slippage 150",
+      "started": "2026-10-07T02:17:03.282Z",
+      "seconds": 42.616,
+      "progress": "Intent: Unison: sealed sell of 10 WMON at ≥ 0.026772 AUSD, priced at Chainlink's next observation\nTx submitted: https://monadvision.com/tx/0xe80eb4c3ae2accf24846a7418f94bf790e351f81deb51d035d56330593a3d254\n  ✓ Unison: sealed sell of 10 WMON at ≥ 0.026772 AUSD, priced at Chainlink's next observation  https://monadvision.com/tx/0xe80eb4c3ae2accf24846a7418f94bf790e351f81deb51d035d56330593a3d254\nSealed in block 111202438. Its price doesn't exist yet: the auction prices at Chainlink's first observation after this block.\n  waiting for Chainlink's next observation… 10 s\nPriced: 0.027168 AUSD, one price for everyone in the auction (Chainlink: 0.027221).\nReceipt: 6 of 6 checks pass against Chainlink's own history. https://www.unisonfi.com/receipt/mainnet/1/111202438",
+      "output": "{\n  \"ok\": true,\n  \"data\": {\n    \"status\": \"filled\",\n    \"order\": {\n      \"market\": \"WMON/AUSD\",\n      \"side\": \"sell\",\n      \"quantity\": \"10 WMON\",\n      \"limit\": \"0.026772 AUSD\",\n      \"sealedInBlock\": \"111202438\",\n      \"transaction\": \"https://monadvision.com/tx/0xe80eb4c3ae2accf24846a7418f94bf790e351f81deb51d035d56330593a3d254\"\n    },\n    \"auction\": {\n      \"price\": \"0.027168 AUSD\",\n      \"chainlinkReference\": \"0.027221 AUSD\",\n      \"vsReferenceBps\": -19.47,\n      \"upToBlock\": \"111202438\",\n      \"clearedInBlock\": \"111202529\",\n      \"observedAfterSealSec\": 14,\n      \"transaction\": \"https://monadvision.com/tx/0x1bd474fd2c75c314a88314610fa39147c7314350f95a96f088efe241cb0d2923\"\n    },\n    \"fill\": {\n      \"sold\": \"10 WMON\",\n      \"received\": \"0.271598 AUSD\",\n      \"fee\": \"0.000082 AUSD\",\n      \"claimedBy\": \"keeper\",\n      \"transaction\": \"https://monadvision.com/tx/0x3b2a70be1e8796d0fa75d7dbf881590b28ddab016eda39fab45ac03e29e93406\"\n    },\n    \"receipt\": {\n      \"verified\": true,\n      \"market\": \"WMON/AUSD\",\n      \"auction\": {\n        \"upToBlock\": \"111202438\",\n        \"clearedInBlock\": \"111202529\",\n        \"price\": \"0.027168 AUSD\",\n        \"volume\": \"10 WMON\"\n      },\n      \"chainlink\": {\n        \"feed\": \"0xBcD78f76005B7515837af6b50c7C52BCf73822fb\",\n        \"round\": \"18446744073710161039\",\n        \"observedAt\": \"2026-10-07T02:17:23.000Z\",\n        \"landedOnChainAt\": \"2026-10-07T02:17:35.000Z\",\n        \"sealedAt\": \"2026-10-07T02:17:09.000Z\",\n        \"observedAfterSealSec\": 14\n      },\n      \"checks\": [\n        \"PASS  receipt hash recomputes: 0x993c8411626056af6a3208a520842ec4d2bbcc11fa5d1e679091070da1be3729\",\n        \"PASS  the receipt's reference time is Chainlink's observation time (1791339443)\",\n        \"PASS  observed strictly before the report landed on chain (a signed observation, not a block time)\",\n        \"PASS  the newest order was sealed in block 111202438, at 1791339429\",\n        \"PASS  observed 14 s after the seal (more than the 2 s skew)\",\n        \"PASS  the round before it was observed at 1791339413, not after the seal: no earlier observation qualified\"\n      ],\n      \"passed\": 6,\n      \"of\": 6,\n      \"receipt\": \"https://www.unisonfi.com/receipt/mainnet/1/111202438\",\n      \"transaction\": \"https://monadvision.com/tx/0x1bd474fd2c75c314a88314610fa39147c7314350f95a96f088efe241cb0d2923\"\n    }\n  },\n  \"hint\": \"Sold 10 WMON at 0.027168 AUSD, the auction's one price; receipt 6/6 verified: https://www.unisonfi.com/receipt/mainnet/1/111202438\"\n}"
+    },
+    {
+      "command": "mm unison receipt https://www.unisonfi.com/receipt/mainnet/1/111202438",
+      "started": "2026-10-07T02:17:45.900Z",
+      "seconds": 5.038,
+      "progress": "",
+      "output": "{\n  \"ok\": true,\n  \"data\": {\n    \"verified\": true,\n    \"market\": \"WMON/AUSD\",\n    \"auction\": {\n      \"upToBlock\": \"111202438\",\n      \"clearedInBlock\": \"111202529\",\n      \"price\": \"0.027168 AUSD\",\n      \"volume\": \"10 WMON\"\n    },\n    \"chainlink\": {\n      \"feed\": \"0xBcD78f76005B7515837af6b50c7C52BCf73822fb\",\n      \"round\": \"18446744073710161039\",\n      \"observedAt\": \"2026-10-07T02:17:23.000Z\",\n      \"landedOnChainAt\": \"2026-10-07T02:17:35.000Z\",\n      \"sealedAt\": \"2026-10-07T02:17:09.000Z\",\n      \"observedAfterSealSec\": 14\n    },\n    \"checks\": [\n      \"PASS  receipt hash recomputes: 0x993c8411626056af6a3208a520842ec4d2bbcc11fa5d1e679091070da1be3729\",\n      \"PASS  the receipt's reference time is Chainlink's observation time (1791339443)\",\n      \"PASS  observed strictly before the report landed on chain (a signed observation, not a block time)\",\n      \"PASS  the newest order was sealed in block 111202438, at 1791339429\",\n      \"PASS  observed 14 s after the seal (more than the 2 s skew)\",\n      \"PASS  the round before it was observed at 1791339413, not after the seal: no earlier observation qualified\"\n    ],\n    \"passed\": 6,\n    \"of\": 6,\n    \"receipt\": \"https://www.unisonfi.com/receipt/mainnet/1/111202438\",\n    \"transaction\": \"https://monadvision.com/tx/0x1bd474fd2c75c314a88314610fa39147c7314350f95a96f088efe241cb0d2923\"\n  },\n  \"hint\": \"PASS  receipt hash recomputes: 0x993c8411626056af6a3208a520842ec4d2bbcc11fa5d1e679091070da1be3729\\nPASS  the receipt's reference time is Chainlink's observation time (1791339443)\\nPASS  observed strictly before the report landed on chain (a signed observation, not a block time)\\nPASS  the newest order was sealed in block 111202438, at 1791339429\\nPASS  observed 14 s after the seal (more than the 2 s skew)\\nPASS  the round before it was observed at 1791339413, not after the seal: no earlier observation qualified\\n\\nVerified: 6 of 6 checks pass. https://www.unisonfi.com/receipt/mainnet/1/111202438\"\n}"
+    },
+    {
+      "command": "mm unison withdraw all AUSD",
+      "started": "2026-10-07T02:17:50.939Z",
+      "seconds": 29.623,
+      "progress": "Intent: Unison: withdraw 0.271598 AUSD to this wallet\nTx submitted: https://monadvision.com/tx/0xc8165db2f5ef97176d0d48edeb8859fa3b3b2981e5d291b84476f2fb69e669fc\n  ✓ Unison: withdraw 0.271598 AUSD to this wallet  https://monadvision.com/tx/0xc8165db2f5ef97176d0d48edeb8859fa3b3b2981e5d291b84476f2fb69e669fc",
+      "output": "{\n  \"ok\": true,\n  \"data\": {\n    \"token\": \"AUSD\",\n    \"amount\": \"0.271598\",\n    \"transaction\": \"https://monadvision.com/tx/0xc8165db2f5ef97176d0d48edeb8859fa3b3b2981e5d291b84476f2fb69e669fc\"\n  },\n  \"hint\": \"Withdrew 0.271598 AUSD to the wallet.\"\n}"
+    },
+    {
+      "command": "mm unison withdraw all WMON",
+      "started": "2026-10-07T02:18:20.563Z",
+      "seconds": 5.255,
+      "progress": "{\n  \"ok\": false,\n  \"error\": {\n    \"code\": \"UNISON_NOTHING_TO_WITHDRAW\",\n    \"message\": \"the Unison balance has no WMON\",\n    \"hint\": \"`mm unison balance` shows what's there.\"\n  }\n}",
+      "output": ""
+    },
+    {
+      "command": "mm unison balance",
+      "started": "2026-10-07T02:18:25.819Z",
+      "seconds": 3.09,
+      "progress": "",
+      "output": "{\n  \"ok\": true,\n  \"data\": {\n    \"account\": \"0x5E986eC96d2979f278814452ad08c33C3c0AEA4b\",\n    \"mon\": \"49.518749\",\n    \"tokens\": [\n      {\n        \"token\": \"AUSD\",\n        \"wallet\": \"1.124375\",\n        \"onUnison\": \"0\"\n      },\n      {\n        \"token\": \"WMON\",\n        \"wallet\": \"0\",\n        \"onUnison\": \"0\"\n      },\n      {\n        \"token\": \"aNVDA\",\n        \"wallet\": \"0\",\n        \"onUnison\": \"0\"\n      }\n    ],\n    \"openOrderSlots\": []\n  },\n  \"hint\": \"0x5E986eC96d2979f278814452ad08c33C3c0AEA4b: 49.518749 MON for gas\\n  AUSD: 1.124375 in the wallet, 0 on Unison\\n  WMON: 0 in the wallet, 0 on Unison\\n  aNVDA: 0 in the wallet, 0 on Unison\"\n}"
+    }
+  ]
+}

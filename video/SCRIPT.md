@@ -196,7 +196,7 @@ The plugin never holds a key. <break time="0.3s" /> Every transaction goes throu
 
 ### mm-03.mp3: a sealed sale, on mainnet
 ```
-Here's a real run on mainnet. <break time="0.3s" /> The agent reads the market, <break time="0.2s" /> gets a quote, <break time="0.2s" /> and sells ten wrapped MON in a sealed auction. <break time="0.4s" /> Its price doesn't exist yet. <break time="0.3s" /> Chainlink observes eight seconds later, <break time="0.2s" /> and everyone in the auction gets that one price.
+Here's a real run on mainnet. <break time="0.3s" /> The agent reads the market, <break time="0.2s" /> gets a quote, <break time="0.2s" /> and sells ten wrapped MON in a sealed auction. <break time="0.4s" /> Its price doesn't exist yet. <break time="0.3s" /> Chainlink observes fourteen seconds later, <break time="0.2s" /> and everyone in the auction gets that one price.
 ```
 
 ### mm-04.mp3: the agent checks
