@@ -18,17 +18,20 @@ export const Captions = ({ cues }: { cues: Cue[] }) => {
   const length = s(cue.to - cue.from);
   const opacity = interpolate(local, [0, s(0.2), length - s(0.2), length], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
-    <div style={{ position: "absolute", left: 0, right: 0, bottom: 64, display: "flex", justifyContent: "center", opacity }}>
+    <div style={{ position: "absolute", left: 0, right: 0, bottom: 40, display: "flex", justifyContent: "center", opacity }}>
       <div
         style={{
           maxWidth: 1240,
           textAlign: "center",
           fontFamily: F.text,
-          fontSize: 34,
+          fontSize: 32,
           lineHeight: 1.35,
           color: C.ink,
-          textShadow: "0 2px 12px rgba(0,0,0,0.8)",
-          padding: "8px 20px",
+          // a soft plate: legible over the live page as over the film's own black
+          background: "oklch(0.09 0.005 265 / 0.62)",
+          backdropFilter: "blur(10px)",
+          borderRadius: 14,
+          padding: "8px 22px 10px",
         }}
       >
         {cue.text}
