@@ -56,7 +56,7 @@ export const PhotoFinish = () => {
   const now = interpolate(t, [0.8, 9.8], [T0, T1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const flash = interpolate(t, [9.98, 10.0, 10.3], [0, 0.85, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const card = settle(interpolate(t, [10.3, 11.2], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }));
-  const lanes = 1 - 0.95 * card;
+  const lanes = 1 - card;
   const lane = (y: number, title: string, color: string) => (
     <>
       <div style={{ position: "absolute", left: LX0, top: y - 170, fontFamily: F.text, fontSize: 24, letterSpacing: "0.14em", color }}>{title}</div>

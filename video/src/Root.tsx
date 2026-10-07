@@ -1,6 +1,7 @@
 import { Composition } from "remotion";
 import { FPS, H, s, W } from "./brand";
 import { Demo, planDemo } from "./films/Demo";
+import { Pitch, planPitch } from "./films/Pitch";
 import { loadFonts } from "./fonts";
 import { Agent } from "./scenes/Agent";
 import { BrandTest } from "./scenes/BrandTest";
@@ -32,6 +33,19 @@ export const Root = () => (
       defaultProps={{ beats: [], music: null, cues: [] }}
       calculateMetadata={async () => {
         const { durationInFrames, ...props } = await planDemo();
+        return { durationInFrames, props };
+      }}
+    />
+    <Composition
+      id="Pitch"
+      component={Pitch}
+      fps={FPS}
+      width={W}
+      height={H}
+      durationInFrames={s(110)}
+      defaultProps={{ beats: [], music: null, cues: [] }}
+      calculateMetadata={async () => {
+        const { durationInFrames, ...props } = await planPitch();
         return { durationInFrames, props };
       }}
     />

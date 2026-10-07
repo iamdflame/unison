@@ -1,4 +1,4 @@
-import type { ComponentType } from "react";
+import { type ComponentType, createContext, useContext } from "react";
 import { AbsoluteFill, Audio, interpolate, Sequence, staticFile, useCurrentFrame } from "remotion";
 import { getAudioDurationInSeconds } from "@remotion/media-utils";
 import { FPS, s } from "../brand";
@@ -27,7 +27,8 @@ export interface Planned {
   /** frames */
   from: number;
   length: number;
-  voices: { id: VoiceId; from: number; seconds: number; real: boolean }[];
+  /** each voice file, and when each of its lines starts (seconds of the beat) */
+  voices: { id: VoiceId; from: number; seconds: number; real: boolean; lines: number[] }[];
   sfx: { file: string; from: number; volume: number }[];
 }
 export interface PlanProps {
@@ -49,25 +50,43 @@ const lengthOf = async (file: string) => {
 /** Without the file: words at 2.6 a second, plus the script's own pauses. */
 const estimate = (id: VoiceId) => script[id].reduce((sum, seg) => sum + seg.text.split(/\s+/).length / 2.6 + seg.pause, 0.3);
 
-/** Captions for one voice file: each line of the script, its share of the speaking time by length. */
-function captionsFor(id: VoiceId, start: number, seconds: number): Cue[] {
+/** Each line of a voice file, from the script: when it starts and ends, its share of the speaking time by length. */
+function linesOf(id: VoiceId, start: number, seconds: number) {
   const segs = script[id];
   const pauses = segs.reduce((p, x) => p + x.pause, 0);
   const speech = Math.max(0.5, seconds - pauses - 0.25);
   const weight = segs.reduce((w, x) => w + x.text.length, 0);
-  const cues: Cue[] = [];
   let t = start + 0.12;
-  for (const seg of segs) {
+  return segs.map((seg) => {
     const d = (speech * seg.text.length) / weight;
-    // a very short line joins the next on screen ("Six checks. Six passes.")
-    const prev = cues.at(-1);
-    if (prev && prev.text.length < 16 && prev.text.length + seg.text.length < 60 && prev.to >= t - 0.8) {
-      prev.text = `${prev.text} ${seg.text}`;
-      prev.to = t + d + Math.min(seg.pause, 0.4);
-    } else cues.push({ from: t, to: t + d + Math.min(seg.pause, 0.4), text: seg.text });
+    const line = { from: t, to: t + d, pause: seg.pause, text: seg.text };
     t += d + seg.pause;
+    return line;
+  });
+}
+
+/** Captions for one voice file, a line at a time; a very short line joins the next ("Six checks. Six passes."). */
+function captionsFor(id: VoiceId, start: number, seconds: number): Cue[] {
+  const cues: Cue[] = [];
+  for (const line of linesOf(id, start, seconds)) {
+    const to = line.to + Math.min(line.pause, 0.4);
+    const prev = cues.at(-1);
+    if (prev && prev.text.length < 16 && prev.text.length + line.text.length < 60 && prev.to >= line.from - 0.8) {
+      prev.text = `${prev.text} ${line.text}`;
+      prev.to = to;
+    } else cues.push({ from: line.from, to, text: line.text });
   }
   return cues;
+}
+
+const Lines = createContext<Partial<Record<VoiceId, number[]>>>({});
+
+/**
+ * When line `index` of a voice file starts, in seconds of the scene, so a scene can land a moment on the word that
+ * names it. `fallback` when the scene plays on its own.
+ */
+export function useLine(id: VoiceId, index: number, fallback: number) {
+  return useContext(Lines)[id]?.[index] ?? fallback;
 }
 
 export async function plan(beats: Beat[], music: string | null): Promise<PlanProps & { durationInFrames: number }> {
@@ -88,7 +107,12 @@ export async function plan(beats: Beat[], music: string | null): Promise<PlanPro
     for (const v of voices) cues.push(...captionsFor(v.id, from / FPS + v.at, v.seconds));
     const sfx = [];
     for (const e of beat.sfx ?? []) if ((await lengthOf(e.file)) !== null) sfx.push({ file: e.file, from: from + s(e.at), volume: e.volume ?? 0.6 });
-    out.push({ from, length, voices: voices.map((v) => ({ id: v.id, from: from + s(v.at), seconds: v.seconds, real: v.real })), sfx });
+    out.push({
+      from,
+      length,
+      voices: voices.map((v) => ({ id: v.id, from: from + s(v.at), seconds: v.seconds, real: v.real, lines: linesOf(v.id, v.at, v.seconds).map((l) => l.from) })),
+      sfx,
+    });
     from += length;
   }
   return { beats: out, music: music && (await lengthOf(music)) !== null ? music : null, cues, durationInFrames: Math.max(1, from) };
@@ -115,7 +139,9 @@ export function Film({ beats, plan: p, music }: { beats: Beat[]; plan: PlanProps
         if (!at) return null;
         return (
           <Sequence key={beat.id} from={at.from} durationInFrames={at.length} name={beat.id}>
-            <beat.Scene />
+            <Lines.Provider value={Object.fromEntries(at.voices.map((v) => [v.id, v.lines]))}>
+              <beat.Scene />
+            </Lines.Provider>
             {at.voices
               .filter((v) => v.real)
               .map((v) => (

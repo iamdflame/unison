@@ -7,3 +7,6 @@ node_modules/
 
 # encoded footage, from capture/encode.mjs
 public/footage/
+
+# the founder's photo, for the pitch: local only
+public/private/
