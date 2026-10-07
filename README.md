@@ -27,12 +27,14 @@ Unison is a venue for tokenized assets on Monad: US equities (Anchored aStocks),
 
 ## For judges
 
+**Watch first:** [the demo](https://youtu.be/9sgKJ1fDbDY) (2:32, the live product on mainnet: a real sealed trade and its receipt checked from the chain), [the pitch](https://youtu.be/cSYTdJGW_rw) (1:38) and [the ad](https://youtu.be/8zQgZbBkVyQ) (0:21). For the sponsor bounties: [the MetaMask Agent Wallet plugin](https://youtu.be/hFVbVkGmwoI) (1:16), [the Chainlink CRE sentinel](https://youtu.be/ZWlRxmRgO0A) (1:04) and [the Envio HyperIndex scoreboard](https://youtu.be/xIbjZLhRq2A) (0:48).
+
 Steps 1, 2, 4 and 5 need no account, wallet or download. Step 3 needs only a passkey (Face ID, Touch ID or Windows Hello) and the free testnet faucet. Step 6 needs MetaMask's `mm` CLI, and only its order needs a signed-in wallet.
 
 1. **A real mainnet auction, proven.** https://www.unisonfi.com/receipt/mainnet/1/111055816 shows the order sealed, then Chainlink's observation 6 s later, then the clear. From a clone, after `pnpm install`, `node apps/web/scripts/verify-receipt.mjs 0x128b8b18f4ae90cf0f79f439f5886f2f3ff548f2ebb3dcd7a847c2284351596e` checks it from the chain alone.
 2. **The live market, on mainnet.** https://www.unisonfi.com/trade/WMON?network=mainnet: the next auction waits for Chainlink's next price, typically 34 s.
 3. **Trade it yourself on the testnet.** On https://www.unisonfi.com/trade/aNVDA (the testnet is the default), press **Sign in**, then **Create a passkey**, then **Add test funds**. Tap the **Ask** price and buy 1 aNVDA. The order joins the next auction and fills against the vault within seconds; the fill opens a certificate whose receipt the tape recomputes. No real money is involved.
-4. **Snipe us.** https://www.unisonfi.com/challenge: two pots, the contract's definition of an edge, and our own sniper's live score on both rules.
+4. **Snipe us.** https://www.unisonfi.com/challenge: two pots, the contract's definition of an edge, and our own sniper's live score on both rules. Its "Every challenger" table is indexed by Envio HyperIndex ([GraphQL](https://indexer.dev.hyperindex.xyz/c37634b/v1/graphql), [the indexer](services/indexer)) and matches the contract's own score to the unit.
 5. **Everything at once.** https://www.unisonfi.com/status lists the services and markets. https://www.unisonfi.com/?demo=1 runs every market in your browser on the real clearing engine, with a paper account.
 6. **From an AI agent.** With MetaMask's Agent Wallet CLI and our plugin, [`mm-plugin-unison`](https://www.npmjs.com/package/mm-plugin-unison) on npm (`mm plugins install mm-plugin-unison`; [its source](integrations/agent-wallet-plugin)):
    - `mm unison receipt https://www.unisonfi.com/receipt/mainnet/1/111055816` runs the same six checks;
@@ -157,6 +159,11 @@ deploy/      network configs: monad-mainnet-beta.json (the live beta), monad-mai
              deploy, every address verified on-chain), fork rehearsals
 deployments/ what was deployed: monad-mainnet.json, monad-testnet.json, fork rehearsals
 docs/        SPEC, ARCHITECTURE, API, AGENTS, MONAD, MARKET, GO_LIVE, DEPLOY, THREAT_MODEL, TSV_COMPLIANCE, evidence/
+cre/         Chainlink CRE workflows (cre/unison): the feed sentinel, Nasdaq halts, ADV caps, reference audits
+video/       the demo, pitch, ad and bounty films (Remotion): scripts, scenes, capture and mastering tools;
+             footage, voice and music stay local (YOUTUBE.md lists the uploads)
+ops/         the services' Dockerfiles (Railway, Fly)
+scripts/     the local dev stack, and the Solidity/TypeScript differential runner
 ```
 
 ## Tech stack
@@ -170,7 +177,8 @@ docs/        SPEC, ARCHITECTURE, API, AGENTS, MONAD, MARKET, GO_LIVE, DEPLOY, TH
 | Agents | MCP server; MetaMask Agent Wallet plugin (`mm unison`), signing through the agent's own wallet |
 | Web | Next.js 16, React 19, Tailwind CSS, Base UI, Motion, three.js, NumberFlow |
 | Accounts | WebAuthn passkeys verified on Monad's P-256 precompile; EIP-712 orders relayed gaslessly |
-| Hosting | Vercel (web), Railway (keeper, tape, relayer, relay, adversary) |
+| Hosting | Vercel (web), Railway (keeper, tape, relayer, relay, adversary), Envio Cloud (the indexer) |
+| Video | Remotion (React); narration, music and effects generated with ElevenLabs |
 
 ## Quickstart
 
@@ -242,7 +250,7 @@ Quality gates, run from `apps/web`:
   - Every address, transaction and first print is in [docs/evidence/mainnet.md](docs/evidence/mainnet.md) ([runbook](docs/GO_LIVE.md)).
 - **Admin:** the deployer key still holds the admin roles. They move behind a public timelock (48 h, rising to 7 days) before judging, after which every change to prices, markets or roles waits in public.
 - **Live evidence:** the first weekend DISCOVERY cycle (aNVDA closed from Fri 9 October 20:00 ET, reopening on Chainlink's first observation after Sun 11 October 20:00 ET) will be published in `docs/evidence/`.
-- **Equity references:** on testnet the relay signs prices from market data (Alpaca IEX, or a labelled simulation). On mainnet they are Chainlink's tokenized-equity feeds. (Pyth's Hermes has required a paid key since 26 August 2026, so the Pyth adapter waits.)
+- **Equity references:** on testnet the relay signs prices from market data (Yahoo Finance's public quotes; Alpaca IEX with a key, or a labelled simulation). On mainnet they are Chainlink's tokenized-equity feeds. (Pyth's Hermes has required a paid key since 26 August 2026, so the Pyth adapter waits.)
 - **Other venues on Monad:** Monday Trade has offered permissionless 24/5 trading of Anchored aStocks since April 2026, continuously, spot and perpetuals. Unison's difference is the auction: one price per auction, at a Chainlink observation made after its orders were sealed, liquidity that isn't picked off, and price discovery through the weekend.
 - **Public testnet: live.** https://www.unisonfi.com, on Monad testnet (chain 10143), lists aNVDA, aSPY and aQQQ; the other markets run as a labelled browser simulation. Passkey accounts, a faucet, gasless orders and certificates work end to end. Addresses: `deployments/monad-testnet.json`.
 - **Hosting.** The web app runs on Vercel. The services run on Railway: relay, keeper, relayer and tape for the testnet, and keeper, relayer, tape and the house adversary for mainnet, which needs no relay ([DEPLOY](docs/DEPLOY.md)).
@@ -267,6 +275,7 @@ Quality gates, run from `apps/web`:
 This project was built with **Claude Code** (Anthropic) as the primary engineering agent, directed by the team.
 - **What Claude Code wrote:** the research, the specification, the contracts, the TypeScript services and SDK, the web app and its brand system, the tests and these docs.
 - **AI review:** design and claims were reviewed by fresh-context AI panels.
+- **The videos:** Claude Code wrote the scripts and built every film in Remotion, from captures of the live site and the programs' own output. The narration is generated with ElevenLabs (Eleven v4), as are the music and sound effects.
 - **What the team did:** directed the work, made the decisions, tested on real devices, funded and operated mainnet, and signed every mainnet transaction from its own keys.
 
 Every claim above links to code and tests that can be reproduced locally.

@@ -2,6 +2,8 @@
 
 **Unison for MetaMask Agent Wallet.** Your agent trades WMON and tokenized stocks on Monad mainnet in sealed batch auctions. Each order's price doesn't exist when it is sent: the auction prices it at Chainlink's first observation after the order's block, at one price for everyone in the auction. Then the agent checks its own receipt from the chain.
 
+**Watch it trade:** [1:16 on YouTube](https://youtu.be/hFVbVkGmwoI).
+
 An agent wallet made by MetaMask's `mm` 7.0.0 traded on Monad mainnet on 6 October 2026 ([the whole run](../../docs/evidence/agent-wallet.md)):
 
 ```

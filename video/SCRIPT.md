@@ -252,7 +252,7 @@ Live on Monad.
 `music-demo.mp3`, 3:00:
 > Minimal, precise electronic score for a premium fintech product film, 118 BPM, like the inside of a mechanical watch. Clean clockwork ticks on every beat, a deep sub-bass pulse, warm analog pads, sparse piano. 0:00–0:12 a lone ticking motif. 0:12–0:45 builds with light percussion. 0:58–1:12 everything drops away to one suspended, unresolved chord, like a held breath. At 1:12 a full, satisfying drop with drums. 1:12–1:55 confident groove. 1:55–2:30 percussive and energetic, like a sports broadcast. 2:30–2:46 lighter. 2:46–3:00 resolves to one clear bell strike and silence. No vocals.
 
-`music-pitch.mp3`, 2:00:
+`music-pitch.mp3`, 2:00 (not made in the end: every film uses `music-demo.mp3`, cut to its own moments):
 > Warm, minimal, optimistic piano and soft synth pads, 90 BPM, a gentle clock-tick percussion, building slowly to a confident, resolved ending at 1:50. Understated and premium. No vocals.
 
 I find the drop and the held chord in your track and move the film's cuts onto them, so the timings above are a guide, not a rule.
@@ -274,7 +274,7 @@ That's 34 voice files (19 for the three films, 15 for the bounty videos), 2 musi
 
 ## 6. The bounty videos, in the narrator's voice
 
-Each runs about two minutes and shows only real runs: the plugin's mainnet session, the CRE simulator against mainnet, and the indexer's tests and live leaderboard. They reuse `music-pitch.mp3` at a low level.
+Each runs about two minutes and shows only real runs: the plugin's mainnet session, the CRE simulator against mainnet, and the indexer's tests and live leaderboard. They use `music-demo.mp3`, cut so it holds its breath on each film's wait, drops on its verdict and rings its last bell on the closing line.
 
 ### The MetaMask Agent Wallet plugin
 

@@ -16,16 +16,19 @@ Unison has three layers:
 The services run on Railway and the web app on Vercel, at https://www.unisonfi.com, where the venue switch picks the network ([DEPLOY](DEPLOY.md)).
 
 ```
-                 ┌────────────────────────────── Monad (chain 143) ───────────────────────────────┐
-  traders ──────►│ UnisonExchange (UUPS proxy, 36.6 KB, one contract — Monad allows 128 KB)        │
-  agents  ──────►│  ├─ ExchangeBase       ledger (page-per-account), order slots, roles, events    │
-  passkeys ─┐    │  ├─ ExchangeClearing   resumable clear job: MERGE → AUCTION → APPLY → CLOSE_IOC   │
-            │    │  ├─ BookStore          levels: remaining · S (1e38) · A · pots · close-in-place   │
-            │    │  └─ Clearing           uniform-price FBA (pure)                                   │
+                 ┌────────────────────────────── Monad (chain 143) ─────────────────────────────────┐
+  traders ──────►│ UnisonExchange (UUPS proxy, 44 KB, one contract — Monad allows 128 KB)           │
+  agents  ──────►│  ├─ ExchangeBase       ledger (page-per-account), order slots, roles, events     │
+  passkeys ─┐    │  ├─ ExchangeClearing   resumable clear job: MERGE → AUCTION → APPLY → CLOSE_IOC  │
+            │    │  ├─ BookStore          levels: remaining · S (1e38) · A · pots · close-in-place  │
+            │    │  └─ Clearing           uniform-price FBA (pure)                                  │
             │    │                                                                                  │
             └───►│ OrderGateway ── EIP-712 orders / session keys (agents) / WebAuthn passkeys       │
-                 │ References: OperatorSignedReference · ChainlinkReference · PythReference         │
+                 │ References: ChainlinkCausalReference (mainnet) · ChainlinkReference ·            │
+                 │             OperatorSignedReference (testnet) · PythReference (built)            │
                  │ Liquidity:  LiquidityVault (ICurveSource) — merged into every auction            │
+                 │ Challenge:  LatencyChallenge → one ChallengeAccount per challenger               │
+                 │ Halts:      CREAuditReceiver (built; deployed when CRE grants access)            │
                  │ Compliance: EligibilityRouter → AttestationEligibility (KYC) ∧                   │
                  │             IssuerDenylistEligibility (mirrors e.g. Anchored's denylist)         │
                  └──────▲───────────────────▲───────────────────────▲───────────────────────────────┘
@@ -35,11 +38,12 @@ The services run on Railway and the web app on Vercel, at https://www.unisonfi.c
                   │ (prices,  │ report│ (per block│          │ (gasless) │
                   │ calendar) │       │ policy)   │          └───────────┘
                   └───────────┘       └───────────┘
-                        ▲ Alpaca IEX / licensed feed        CRE workflows audit references, mirror halts,
-                                                            write daily ADV caps (CAP_ROLE / HALT_ROLE)
+                        ▲ market data (testnet:            CRE workflows, simulated against mainnet: a feed
+                          Yahoo Finance quotes)             sentinel and Nasdaq halts (HALT_ROLE), ADV caps
+                                                            (CAP_ROLE), reference audits
 ```
 
-On mainnet there is no relay: every market's reference is a Chainlink feed that `ChainlinkReference` reads when the clear job opens. The CRE workflows run in simulation until deploy access is granted.
+On mainnet there is no relay. aNVDA/AUSD and WMON/AUSD use `ChainlinkCausalReference`: the keeper's payload names the first Chainlink observation made after the oldest waiting order was sealed, and the contract proves it is the first ([SPEC §7.4](SPEC.md), [evidence](evidence/causal.md)). The control market, WMON/AUSD (old rule), keeps `ChainlinkReference`, which reads the feed when the clear job opens. The CRE workflows run in Chainlink's simulator until deploy access is granted ([evidence](evidence/cre.md)).
 
 ## Contracts
 
@@ -52,11 +56,14 @@ On mainnet there is no relay: every market's reference is a Chainlink feed that 
 | `Clearing` | Uniform-price auction (pure) | Max volume, then min imbalance, then closest to the reference, then lowest tick; exact marginal fill; optional regulatory volume cap |
 | `OrderMath` | Locks, fees, exact cumulative apportionment | Buy locks provably cover quote and fee (+4 units of slack) |
 | `OperatorSignedReference` | Equity references | EIP-712 bound to venue, market and batch; k-of-n secp256k1 or P-256 quorum; freshness; monotonic; bonded signers with a 7-day unbond and `SLASHER_ROLE` |
-| `ChainlinkReference` | FX, metals, crypto, tokenized equities | base/USD ÷ quote/USD; OPEN only in-session and while fresh, otherwise CLOSED (DISCOVERY). On mainnet it prices aNVDA from Chainlink's wNVDAx-USD (24/5) and WMON from MON/USD. |
+| `ChainlinkCausalReference` | The mainnet rule: price at the first observation after the seal | Reads Chainlink's OCR2 rounds by the observation time the quorum signed (`startedAt`), proves a round is the first after a given time, and checks the AUSD/USD round in force (more than 50 bp off $1 halts) |
+| `ChainlinkReference` | FX, metals, crypto, tokenized equities | base/USD ÷ quote/USD; OPEN only in-session and while fresh, otherwise CLOSED (DISCOVERY). On mainnet it now prices only the old-rule control. |
 | `PythReference` | Pull oracle | Pays update fees; returns the publish time, so the after-close rule applies; confidence gate. Built, not deployed: Pyth's Hermes has required a paid key since 26 August 2026. |
 | `LiquidityVault` | Always-on liquidity | Curve around the reference (regime multiplier, inventory skew, per-auction cap); ERC-7540-style async flows at post-request references; swing fee; P&L attribution |
 | `OrderGateway` | Relayed signed actions | Account (ECDSA / ERC-1271), session keys (capped, no withdraw), WebAuthn passkeys; unordered nonces |
 | `AttestationEligibility` · `IssuerDenylistEligibility` · `EligibilityRouter` | Who may move restricted value | Stores the KYC outcome only; issuer denylists mirrored; AND of all sources |
+| `LatencyChallenge` · `ChallengeAccount` | The standing challenge | Opens one account per challenger, records every fill, marks each at the first Chainlink observation 60 s after its order, and pays the pot if the average edge after fees beats 2 bp over 30 fills. Terms are frozen at deployment. |
+| `CREAuditReceiver` | Chainlink CRE's way in | Accepts reports only from Chainlink's forwarder and our workflow owner; halts a market (`HALT_ROLE`) or sets daily caps (`CAP_ROLE`). Built and tested; deployed when CRE grants deploy access. |
 
 ## One block in the life of the venue
 
@@ -64,7 +71,7 @@ On mainnet there is no relay: every market's reference is a Chainlink feed that 
    - A buy locks its notional at the limit, plus the maximum fee, plus slack. A sell locks base.
    - Orders aggregate into the pending ring under `(batch b, side, shard, ioc, tick)`. Steady-state slot reuse means no state growth.
 2. **Block b+1.**
-   1. For an operator-referenced market, the keeper asks the relay for `Reference(venue, market, b, price, publishTimeMs, status)`, published after b closed. A Chainlink market needs no payload: the adapter reads the feed when the job opens, which is after b closed.
+   1. For an operator-referenced market (the testnet), the keeper asks the relay for `Reference(venue, market, b, price, publishTimeMs, status)`, published after b closed. A causal market (mainnet) waits for Chainlink's first observation after its oldest waiting order was sealed, and the payload names it. The control's `ChainlinkReference` needs no payload: it reads the feed when the job opens.
    2. It simulates `clearUpTo(market, b, payload)` with `eth_call`, and sends it only if the clear trades, stale pending orders need merging, or a vault queue needs a fresh reference.
 3. **Inside `clearUpTo`.**
    1. **Open.** Bind the reference: signature, freshness, published after the newest batch ≤ b. Apply the halt override and the DISCOVERY cadence.
@@ -83,11 +90,14 @@ On mainnet there is no relay: every market's reference is a Chainlink feed that 
 
 | Service | Does | Trust |
 |---|---|---|
-| `services/relay` | Signs batch-bound references from licensed data plus the NYSE calendar. Freezes the reference at the last open print while CLOSED. Monotonic. Refuses future or stale batches. Runs on the testnet; mainnet has no operator markets. | Bonded, quorum-able and audited by CRE. A bad report can move prices only within the band, and it is slashable. |
+| `services/relay` | Signs batch-bound references from market data (Yahoo Finance quotes on the testnet; Alpaca IEX with a key) plus the NYSE calendar. Freezes the reference at the last open print while CLOSED. Monotonic. Refuses future or stale batches. Runs on the testnet; mainnet has no operator markets. | Bonded, quorum-able and audited by CRE. A bad report can move prices only within the band, and it is slashable. |
 | `services/keeper` | Drives clear jobs per block (cost-aware), processes vault queues, auto-claims fills | Permissionless: anyone can clear. The keeper has no privileges. |
 | `services/relayer` | Accepts signed orders, validates them with `eth_call`, batches `placeBatch`. Registers passkeys. Runs the faucet on test networks only. | Cannot forge or alter orders. Can delay them, bounded by the deadline, and users can always submit directly. |
 | `services/tape` | Indexes every event into SQLite and serves the public trade report: prints, orders, fills, receipts, vault history, `/v1/stats`, live SSE ([API](API.md)) | Read-only; everything it serves is reconstructable from chain data |
 | `services/mcp` | Model Context Protocol tools for AI agents, trading through session keys ([AGENTS](AGENTS.md)) | Holds only a capped session key, which can never withdraw |
+| `services/adversary` | Our own sniper in the standing challenge: trades both rules on moves it sees on Coinbase first | A team account, counted apart from outside traders (`/v1/stats`) |
+| `services/indexer` | Envio HyperIndex on Monad mainnet: every challenger's score, marked to Chainlink as the contract marks it | Read-only; matches `LatencyChallenge`'s own scoring to the unit ([indexer](../services/indexer/README.md)) |
+| `integrations/agent-wallet-plugin` | `mm-plugin-unison`: MetaMask Agent Wallet commands for markets, orders, receipts and the challenge | Holds no key: every transaction goes through the agent wallet's own executor |
 | `packages/engine` | Bit-exact TypeScript clearing and book | Differentially fuzzed against the contracts |
 | `packages/sdk` | Typed client, signing (references, gateway, passkeys), calendar, ABIs | — |
 

@@ -56,7 +56,7 @@ Traders want stocks on chain, and mostly get them as derivatives: in June, stock
 ## Where it stands, honestly
 
 - **Live on Monad mainnet.** The causal cutover was 6 October 2026. The first causal print passes every check of `verify-receipt.mjs`, observed 6 s after the seal ([mainnet evidence](evidence/mainnet.md)).
-- **The standing challenge is funded and running.** The pots are 18 AUSD on Unison's market and 1 AUSD on an old-rule control. Our own open-source sniper trades both with the same signal. On 6 October it was −21.2 bp a trade on Unison and +12.29 bp on the old rule, over 8 fills each, scored by the contract's own definition. That is the claim, measured in public.
+- **The standing challenge is funded and running.** The pots are 18 AUSD on Unison's market and 1 AUSD on an old-rule control. Our own open-source sniper trades both with the same signal. On 7 October at 14:17 UTC it was −22.24 bp a trade on Unison and +14.49 bp on the old rule, over 23 fills each, scored by the contract's own definition; the public table Envio indexes agreed to the unit. That is the claim, measured in public.
 - **Outside traders: zero so far,** counted apart from the team at `GET /v1/stats`. The next section is about changing that.
 - **Built to be checked.** The repository includes:
   - 111 Foundry tests, plus fuzzing, invariants and a Solidity-versus-TypeScript differential;

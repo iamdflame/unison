@@ -1,6 +1,6 @@
 # Chainlink CRE: the second opinion
 
-Unison's mainnet auctions price at Chainlink's own observations ([causal.md](causal.md)). Two Chainlink Runtime Environment workflows in [`cre/unison/workflows`](../../cre/unison/workflows) watch the venue from outside:
+Unison's mainnet auctions price at Chainlink's own observations ([causal.md](causal.md)). Two Chainlink Runtime Environment workflows in [`cre/unison/workflows`](../../cre/unison/workflows) watch the venue from outside ([the video](https://youtu.be/ZWlRxmRgO0A), 1:04):
 
 - **`sentinel`** (every 30 s) compares the feed with the market.
   - It reads `ChainlinkCausalReference.latest` on Monad mainnet: the price, and the time Chainlink's quorum signed for it.

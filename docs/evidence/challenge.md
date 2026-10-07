@@ -1,6 +1,6 @@
 # What the sniper earns, on each rule
 
-Unison's standing challenge pays its pot to anyone whose fills, marked to Chainlink 60 seconds later, beat the venue by more than 2 bp of their notional over 30 fills or more ([the terms](../deploy/monad-mainnet-challenge.json), [the contract](../contracts/src/challenge/LatencyChallenge.sol)). Our own bot enters it on two markets at once: Unison's causal WMON market, and a WMON market kept on the old rule as a control.
+Unison's standing challenge pays its pot to anyone whose fills, marked to Chainlink 60 seconds later, beat the venue by more than 2 bp of their notional over 30 fills or more ([the terms](../../deploy/monad-mainnet-challenge.json), [the contract](../../contracts/src/challenge/LatencyChallenge.sol)). Our own bot enters it on two markets at once: Unison's causal WMON market, and a WMON market kept on the old rule as a control.
 
 Before putting money in either pot, we replayed that exact bot over the last week of real prices, on both rules.
 
@@ -8,7 +8,7 @@ Before putting money in either pot, we replayed that exact bot over the last wee
 
 ## The data
 
-Measured on 6 October 2026 by [`services/adversary/scripts/backtest.mjs`](../services/adversary/scripts/backtest.mjs). It is read-only and needs no keys:
+Measured on 6 October 2026 by [`services/adversary/scripts/backtest.mjs`](../../services/adversary/scripts/backtest.mjs). It is read-only and needs no keys:
 
 - **Coinbase MON-USD:** 208,414 trades, from Coinbase's public trades endpoint;
 - **Chainlink MON/USD on Monad mainnet:** 15,992 rounds (`0xBcD78f76005B7515837af6b50c7C52BCf73822fb`), each with its observation time (`startedAt`) and the time it landed on chain (`updatedAt`);
@@ -16,7 +16,7 @@ Measured on 6 October 2026 by [`services/adversary/scripts/backtest.mjs`](../ser
 
 ## The bot, replayed
 
-The rule is the one in [`src/bot.ts`](../services/adversary/src/bot.ts):
+The rule is the one in [`src/bot.ts`](../../services/adversary/src/bot.ts):
 
 - It fires on a Coinbase trade priced at least the threshold away from the latest Chainlink round on chain:
   - at most once per round;
@@ -85,7 +85,7 @@ The keeper held 167 MON after the cutover.
 
 ## The band, and what a clear costs
 
-On WMON's $0.000001 tick, a ±200 bp band is about 1,200 price levels a side for every clear to walk. The causal cutover narrows WMON and its control alike to ±50 bp ([`deploy/monad-mainnet-causal.json`](../deploy/monad-mainnet-causal.json)). That is still far wider than the vault's ±20 bp quotes.
+On WMON's $0.000001 tick, a ±200 bp band is about 1,200 price levels a side for every clear to walk. The causal cutover narrows WMON and its control alike to ±50 bp ([`deploy/monad-mainnet-causal.json`](../../deploy/monad-mainnet-causal.json)). That is still far wider than the vault's ±20 bp quotes.
 
 On a fork of Monad mainnet, with the same bot order and the same vault:
 

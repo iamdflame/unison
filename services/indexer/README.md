@@ -2,6 +2,8 @@
 
 Indexes the standing challenge on Monad mainnet (chain 143) with [Envio HyperIndex](https://docs.envio.dev), so every challenger, not just our own bot, has a public, live score.
 
+**Live:** https://indexer.dev.hyperindex.xyz/c37634b/v1/graphql, read by the "Every challenger" table on https://www.unisonfi.com/challenge. On 7 October 2026 at 14:17 UTC it gave the same edge as the contract's own scoring, to the unit, for both of the house sniper's accounts over 23 fills each ([the check](../../video/src/data/envio-vs-contract.txt)). **Video:** [0:48 on YouTube](https://youtu.be/xIbjZLhRq2A).
+
 - **Factory pattern.** Each `ChallengeAccount` is created by `LatencyChallenge.open()`. Its `Opened` event registers the new contract (`contractRegister`), and its `OrderSent` and `FillRecorded` events are indexed from then on.
 - **Chainlink, read by observation time.** The MON/USD and AUSD/USD aggregators' `NewTransmission` events carry `observationsTimestamp`: the time inside the report Chainlink's quorum signed, the clock Unison prices by.
 - **The contract's own arithmetic.** Each fill is marked at the first MON/USD observation at least 60 s after its order, over the AUSD/USD round in force then, exactly as `LatencyChallenge.edgeOf` marks it. [`src/score.ts`](src/score.ts) holds that arithmetic. [`test/score.test.ts`](test/score.test.ts) checks it against the contract's own `edgeOf` on the house adversary's real mainnet fills ([`test/vectors.json`](test/vectors.json), from `scripts/vectors.mjs`), and they agree to the unit.

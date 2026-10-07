@@ -1,6 +1,6 @@
 # An AI agent's wallet trading on Unison, live on Monad mainnet
 
-On 6 October 2026, from 22:46 UTC, an agent wallet made by MetaMask's `mm` CLI traded on Unison through [`mm-plugin-unison`](../../integrations/agent-wallet-plugin).
+On 6 October 2026, from 22:46 UTC, an agent wallet made by MetaMask's `mm` CLI traded on Unison through [`mm-plugin-unison`](../../integrations/agent-wallet-plugin). A later run, on 7 October, is the [video](https://youtu.be/hFVbVkGmwoI) (1:16).
 
 **The setup:**
 - `mm` 7.0.0, a MetaMask server wallet in Beast mode: `0x5E986eC96d2979f278814452ad08c33C3c0AEA4b`.
