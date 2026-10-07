@@ -29,6 +29,8 @@ export function TradeView({ ticker }: { ticker: string }) {
   // The last print against the reference it cleared on: the venue's own measure of where it traded.
   const devBps = last && last.refTick > 0 ? ((last.tick - last.refTick) / last.refTick) * 10_000 : null;
   const held = useVenueAccount((a) => (a.base[ticker] ?? 0) + (a.lockedBase[ticker] ?? 0));
+  // what it's worth at the reference, in cents while it's small: 9 WMON is $0.24, not "$0"
+  const worth = held * m.refTick * unit;
   // The batch now forming, cleared as it stands: the price it would print, and which side is heavier there.
   const indicative = useMemo(() => {
     const all = [...m.book, ...m.vault];
@@ -126,7 +128,7 @@ export function TradeView({ ticker }: { ticker: string }) {
                   {held > 0 && m.refTick > 0 ? (
                     <span className="whitespace-nowrap text-ink-3">
                       {" "}
-                      · ${(held * m.refTick * unit).toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                      · ${worth.toLocaleString("en-US", worth < 1000 ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : { maximumFractionDigits: 0 })}
                       <span className="sm:hidden"> at close</span>
                       <span className="hidden sm:inline"> at {refName(m).toLowerCase()}</span>
                     </span>
