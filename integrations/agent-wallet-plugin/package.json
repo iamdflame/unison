@@ -1,6 +1,6 @@
 {
   "name": "mm-plugin-unison",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Unison for MetaMask Agent Wallet: sealed batch auctions on Monad, priced at Chainlink's next observation, with a receipt your agent checks from the chain itself.",
   "license": "MIT",
   "type": "module",

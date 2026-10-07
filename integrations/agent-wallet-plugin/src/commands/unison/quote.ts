@@ -56,6 +56,7 @@ export default class UnisonQuote extends PluginCommand<Result> {
   }
 
   override successHint(d: Result): string {
-    return `${d.side} ${d.quantity} at most ${d.limit} (Chainlink now ${d.chainlinkReference}); locks ${d.locks} until the auction runs`;
+    // a buy's limit is the most it pays, a sell's the least it takes
+    return `${d.side} ${d.quantity} ${d.side === "buy" ? "at most" : "at least"} ${d.limit} (Chainlink now ${d.chainlinkReference}); locks ${d.locks} until the auction runs`;
   }
 }

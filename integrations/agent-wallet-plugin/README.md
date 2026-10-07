@@ -81,7 +81,7 @@ From this repository:
 
 ```
 pnpm install
-pnpm --filter mm-plugin-unison stage     # builds, writes oclif.manifest.json, and stages the package outside the repo
+pnpm --filter mm-plugin-unison run stage # builds, writes oclif.manifest.json, and stages the package outside the repo
 mm config set experimentalPlugins true
 mm config set experimentalAllowUnverifiedInstalls true
 npm_config_install_links=true mm plugins install "file:<the staged path it prints>" --accept-permissions
