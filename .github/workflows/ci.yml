@@ -76,10 +76,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+      # no pnpm cache: it would be the monorepo's (pnpm 12's store, keyed on the root lockfile), while this project
+      # installs alone with pnpm 10 into another store, so saving it fails whenever the root lockfile changes.
+      # The install takes two seconds.
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: pnpm
       - name: Install (its own pnpm 10 project, as Envio Cloud's builder installs it)
         working-directory: services/indexer
         run: pnpm install --frozen-lockfile
