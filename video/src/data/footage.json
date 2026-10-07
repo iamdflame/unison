@@ -36,8 +36,8 @@
   },
   "02-signin": {
     "file": "footage/02-signin.mp4",
-    "seconds": 8.606,
-    "capturedAt": "2026-10-07T03:26:20.274Z",
+    "seconds": 10.324,
+    "capturedAt": "2026-10-07T05:13:34.035Z",
     "viewport": {
       "width": 1920,
       "height": 1080
@@ -45,65 +45,23 @@
     "dsf": 2,
     "clicks": [
       {
-        "at": 0.742,
+        "at": 0.82,
         "x": 1726,
         "y": 28,
         "label": "Sign in"
       },
       {
-        "at": 4.92,
+        "at": 6.427,
         "x": 960,
         "y": 607,
         "label": "I already have one"
       }
     ]
   },
-  "03-sell": {
-    "file": "footage/03-sell.mp4",
-    "seconds": 75.187,
-    "capturedAt": "2026-10-07T03:27:59.011Z",
-    "viewport": {
-      "width": 1920,
-      "height": 1080
-    },
-    "dsf": 2,
-    "clicks": [
-      {
-        "at": 1.431,
-        "x": 1669,
-        "y": 129,
-        "label": "Sell"
-      },
-      {
-        "at": 2.54,
-        "x": 1687,
-        "y": 259,
-        "label": "the reference"
-      },
-      {
-        "at": 3.263,
-        "x": 1586,
-        "y": 376,
-        "label": "quantity"
-      },
-      {
-        "at": 4.315,
-        "x": 1586,
-        "y": 815,
-        "label": "Sell"
-      },
-      {
-        "at": 5.279,
-        "x": 1586,
-        "y": 815,
-        "label": "Confirm"
-      }
-    ]
-  },
   "04-certificate": {
     "file": "footage/04-certificate.mp4",
-    "seconds": 8.145,
-    "capturedAt": "2026-10-07T03:29:14.161Z",
+    "seconds": 8.554,
+    "capturedAt": "2026-10-07T05:14:46.885Z",
     "viewport": {
       "width": 1920,
       "height": 1080
@@ -111,13 +69,13 @@
     "dsf": 2,
     "clicks": [
       {
-        "at": 0.327,
+        "at": 0.433,
         "x": 285,
         "y": 853,
         "label": "Fills"
       },
       {
-        "at": 1.96,
+        "at": 2.166,
         "x": 760,
         "y": 892,
         "label": "Certificate"
@@ -126,8 +84,8 @@
   },
   "05-receipt": {
     "file": "footage/05-receipt.mp4",
-    "seconds": 4.328,
-    "capturedAt": "2026-10-07T03:50:06.299Z",
+    "seconds": 4.416,
+    "capturedAt": "2026-10-07T05:14:59.531Z",
     "viewport": {
       "width": 1920,
       "height": 1080
@@ -145,5 +103,35 @@
     },
     "dsf": 2,
     "clicks": []
+  },
+  "03-buy": {
+    "file": "footage/03-buy.mp4",
+    "seconds": 48.213,
+    "capturedAt": "2026-10-07T05:13:59.058Z",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "dsf": 2,
+    "clicks": [
+      {
+        "at": 2.113,
+        "x": 1690,
+        "y": 259,
+        "label": "the reference"
+      },
+      {
+        "at": 3.078,
+        "x": 1586,
+        "y": 376,
+        "label": "quantity"
+      },
+      {
+        "at": 4.21,
+        "x": 1586,
+        "y": 831,
+        "label": "Buy"
+      }
+    ]
   }
 }

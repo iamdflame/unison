@@ -13,6 +13,7 @@
  *   RESUME=1 node capture/live.mjs   reuse the saved passkey account; fund it only if its balance is short
  *   ONLY=create node capture/live.mjs   just the sign-up take, with a new passkey (an address derived from it, no tx)
  *   ONLY=signin node capture/live.mjs   just the sign-in take: the film's own passkey, "I already have one"
+ *   SIDE=buy RESUME=1 node capture/live.mjs   buy instead, with the account's own AUSD: nothing funded, no `mm`
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -26,6 +27,9 @@ const OUT = join(ROOT, "footage", "live");
 const SECRETS = join(ROOT, "..", ".secrets");
 const SITE = process.env.SITE ?? "https://www.unisonfi.com";
 const QTY = process.env.QTY ?? "9";
+/** sell (WMON funded from the agent wallet) or buy (with the AUSD the account already holds) */
+const SIDE = process.env.SIDE === "buy" ? "buy" : "sell";
+const Side = SIDE === "buy" ? "Buy" : "Sell";
 /** DSF=2 captures at twice the pixel density (3840 × 2160 frames, the same 1920 × 1080 page): crisp when the film zooms */
 const DSF = Number(process.env.DSF ?? 1);
 const EXCHANGE = "0x1696170d40E703F1378989383c21Ec96ED1Adf75";
@@ -165,7 +169,7 @@ try {
   if (ONLY) log(`${ONLY} take recorded as ${account}`);
   if (!ONLY) {
     const amount = parseEther(QTY);
-    const held = await chain.readContract({ address: EXCHANGE, abi: exchangeAbi, functionName: "balanceOf", args: [account, WMON] });
+    const held = SIDE === "sell" ? await chain.readContract({ address: EXCHANGE, abi: exchangeAbi, functionName: "balanceOf", args: [account, WMON] }) : amount;
     if (held < amount) {
       const need = amount - held;
       const AGENT = process.env.AGENT ?? "0x5e986ec96d2979f278814452ad08c33c3c0aea4b";
@@ -176,7 +180,7 @@ try {
       if (allowance < need) mm(WMON, encodeFunctionData({ abi: erc20Abi, functionName: "approve", args: [EXCHANGE, need] }), `Unison film: let the exchange take exactly the WMON the film's account needs`);
       mm(EXCHANGE, encodeFunctionData({ abi: exchangeAbi, functionName: "depositFor", args: [account, WMON, need] }), `Unison film: deposit WMON for the film's passkey account`);
     }
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 60 && SIDE === "sell"; i++) {
       const bal = await chain.readContract({ address: EXCHANGE, abi: exchangeAbi, functionName: "balanceOf", args: [account, WMON] });
       if (bal >= amount) break;
       await sleep(2000);
@@ -186,14 +190,15 @@ try {
     await page.getByRole("button", { name: /^(Cross|Last|Ref|Close) \$/ }).first().waitFor({ timeout: 45_000 });
     await sleep(2500);
 
-    // 3. sell, sealed: its price doesn't exist yet. The limit sits at the band's floor, half a percent under the
-    // reference, so it fills unless Chainlink's next price falls about 0.3%; if it doesn't, the WMON comes back and
-    // the take is redone.
+    // 3. the trade, sealed: its price doesn't exist yet. The limit sits at the band's edge, half a percent past the
+    // reference (under it to sell, over it to buy), so it fills unless Chainlink's next price moves about 0.3% the
+    // wrong way; if it doesn't, the order comes back and the take is redone.
     let sold = false;
     for (let attempt = 1; attempt <= 3 && !sold; attempt++) {
-      await record("03-sell");
+      await record(`03-${SIDE}`);
       await sleep(800);
-      await press(page.getByRole("radio", { name: /^sell$/i }).first(), "Sell");
+      // a buy is the ticket's own default
+      if (SIDE === "sell") await press(page.getByRole("radio", { name: /^sell$/i }).first(), "Sell");
       await sleep(600);
       // the reference chip is left out when it equals another chip's price
       const refChip = page.getByRole("button", { name: /^(Ref|Close) \$/ }).first();
@@ -201,13 +206,13 @@ try {
       await press(chip, "the reference");
       const ref = Number((await chip.innerText()).replace(/[^\d.]/g, ""));
       const limit = page.locator('input[name="limit"]:visible');
-      await limit.fill((Math.ceil(ref * 0.995 * 1e6) / 1e6).toFixed(6));
+      await limit.fill((SIDE === "sell" ? Math.ceil(ref * 0.995 * 1e6) / 1e6 : Math.floor(ref * 1.005 * 1e6) / 1e6).toFixed(6));
       await limit.press("Enter");
       const qty = page.locator('input[name="qty"]:visible');
       await press(qty, "quantity");
       await qty.fill(QTY);
       await sleep(700);
-      await press(page.getByRole("button", { name: new RegExp(`^Sell ${QTY} WMON at`) }), "Sell");
+      await press(page.getByRole("button", { name: new RegExp(`^${Side} ${QTY} WMON at`) }), Side);
       // all of a holding takes a second, explicit tap (the ticket's fat-finger guard)
       const confirm = page.getByRole("button", { name: /^Confirm: / });
       if (await confirm.waitFor({ timeout: 2000 }).then(() => true, () => false)) {
@@ -215,20 +220,20 @@ try {
         await press(confirm, "Confirm");
       }
       const sealedAt = Date.now();
-      const outcome = page.locator("[data-sonner-toast]").filter({ hasText: /Sold|Not filled|Resting at/ }).first();
+      const outcome = page.locator("[data-sonner-toast]").filter({ hasText: /Sold|Bought|Not filled|Resting at/ }).first();
       await outcome.waitFor({ timeout: 180_000 });
       const said = (await outcome.innerText()).replace(/\s+/g, " ");
       log(`attempt ${attempt}: outcome after ${((Date.now() - sealedAt) / 1000).toFixed(1)} s: ${said}`);
       await sleep(2500);
       await stop();
-      sold = /^Sold/.test(said);
+      sold = /^(Sold|Bought)/.test(said);
       if (!sold) {
         await page.reload({ waitUntil: "domcontentloaded" });
         await page.getByRole("button", { name: /^(Cross|Last|Ref|Close) \$/ }).first().waitFor({ timeout: 45_000 });
         await sleep(2500);
       }
     }
-    if (!sold) throw new Error("the sale didn't fill in 3 auctions");
+    if (!sold) throw new Error(`the ${SIDE} didn't fill in 3 auctions`);
 
     // 4. the certificate
     await record("04-certificate");
@@ -249,8 +254,12 @@ try {
       await sleep(2500);
       await record("05-receipt");
       await sleep(3000);
-      // then down to "Check it yourself": the commands that rebuild this auction from the chain alone
-      await page.getByText("Check it yourself").first().evaluate((el) => el.scrollIntoView({ behavior: "smooth", block: "start" }));
+      // then down to "Check it yourself": the commands that rebuild this auction from the chain alone (its heading
+      // clear of the sticky header)
+      await page
+        .getByText("Check it yourself")
+        .first()
+        .evaluate((el) => window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 150, behavior: "smooth" }));
       await sleep(4500);
       await stop();
       writeFileSync(join(OUT, "05-receipt", "print.json"), JSON.stringify(print, null, 2));

@@ -39,26 +39,28 @@ export const PHOTO_FINISH = {
   date: "6 October 2026",
 };
 
-/** The film's own sale, captured live (and at 4K) on www.unisonfi.com by capture/live.mjs: a passkey account sells
- * 9 WMON on 7 October 2026. Every check of apps/web/scripts/verify-receipt.mjs passes (src/data/verify-film-sale.txt). */
-export const FILM_SALE = {
+/** The film's own trade, captured live (and at 4K) on www.unisonfi.com by capture/live.mjs: a passkey account buys
+ * 9 WMON with its own AUSD on 7 October 2026. Every check of apps/web/scripts/verify-receipt.mjs passes
+ * (src/data/verify-film-trade.txt). */
+export const FILM_TRADE = {
   account: "0x686ec4AE35A0dDF9011eA6a864aEc6871d00F382",
+  side: "buy",
   quantity: "9 WMON",
-  limit: "0.026820",
-  upTo: 111_216_533,
-  sealedAt: "03:28:05",
-  /** Chainlink's next observation: 49 s after the seal */
-  observedAt: "03:28:54",
-  /** its report on chain, 13 s after the observation */
-  landedAt: "03:29:07",
-  /** block 111,216,741 */
-  clearedAt: "03:29:08",
-  price: "0.026847",
-  reference: "0.026900",
-  received: "0.24 AUSD",
-  receiptHash: "0x45a711e4c27e49570e6e5e184f73050d45885bb8def1b17cca3496f7e7e64301",
-  tx: "0x569c7ea2cb5fb48f855fae81cda26ddd7666aaca18912a72e17c725bcc9225e5",
-  receipt: "https://www.unisonfi.com/receipt/mainnet/1/111216533",
+  limit: "0.027010",
+  upTo: 111_237_596,
+  sealedAt: "05:14:03",
+  /** Chainlink's next observation: 24 s after the seal */
+  observedAt: "05:14:27",
+  /** its report on chain, 12 s after the observation */
+  landedAt: "05:14:39",
+  /** block 111,237,721 */
+  clearedAt: "05:14:41",
+  price: "0.026972",
+  reference: "0.026915",
+  paid: "0.24 AUSD",
+  receiptHash: "0x209dc46107cea84b88bb2b1436d7a365aca6b30b5dd5879d4e24064314b2c01b",
+  tx: "0x0e6ec0c81f3fed414507377584d7b279b90e1f44276a1af14a9a753e78aaaa3a",
+  receipt: "https://www.unisonfi.com/receipt/mainnet/1/111237596",
 };
 
 /** The agent wallet's sale through MetaMask Agent Wallet: docs/evidence/agent-wallet.md. */

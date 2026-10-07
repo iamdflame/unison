@@ -1,11 +1,11 @@
 import { AbsoluteFill, interpolate, Sequence, useCurrentFrame } from "remotion";
 import { C, F, FPS, s, settle } from "../brand";
-import { FILM_SALE as S } from "../data/chain";
+import { FILM_TRADE as S } from "../data/chain";
 import { useLine } from "../kit/Plan";
 import { type Move, Shot, shotFrames, TAKES, type TakeName } from "../kit/Screen";
 
 /**
- * The live product, on mainnet (demo 0:45–1:35): www.unisonfi.com, a passkey, a sealed sell of 9 WMON, the wait
+ * The live product, on mainnet (demo 0:45–1:35): www.unisonfi.com, a passkey, a sealed buy of 9 WMON, the wait
  * for Chainlink's next observation, the fill, its certificate and its receipt. Every frame of the page is the
  * capture's (capture/live.mjs and capture/pages.mjs, 7 October 2026, at 4K); the film adds a camera, the pointer,
  * and the chain's own times.
@@ -111,12 +111,12 @@ interface Cut {
   pointer?: boolean;
 }
 
-// Moments in the 4K takes of 7 October (src/data/footage.json; clicks are logged there). The sign-in take opens on
-// the market signed out, its vault's quote in by 0.15 s. The sell is confirmed at 5.28 s; nothing in the orders
-// changes until its row appears, "Sealed · waits for Chainlink", at 7.17 s. The page shows the new reference and the
-// trade from 69 s, and the toast turns "Sold" at 72.4 s. The receipt has scrolled to "Check it yourself" by 3.84 s.
-// Scrolls are cut, not shown: the 4K screencast paints them at about 16 frames a second.
-const AT = { arrive: 0.16, confirmed: 5.95, resume: 7.0, sealedRow: 7.17, waitFrom: 10.4, waitEnd: 69.0, sold: 72.4, checkIt: 3.84 };
+// Moments in the 4K takes of 7 October, 05:13 UTC (src/data/footage.json; clicks are logged there). The sign-in take
+// opens on the market signed out, its vault quoting from the first frame. The buy goes in at 4.21 s and its row
+// appears, "Sealed · waits for Chainlink", at 5.33 s; Chainlink's report lands at 39.9 s, and the toast turns "Bought"
+// at 45.36 s. The receipt has scrolled to "Check it yourself" by 3.93 s. Scrolls are cut, not shown: the 4K
+// screencast paints them at about 16 frames a second.
+const AT = { arrive: 0, placed: 4.21, sealedRow: 5.33, waitFrom: 8.6, slowFrom: 38.6, waitEnd: 41.9, sold: 45.36, checkIt: 3.93 };
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
 // The arrival is the sign-in take's own first frame, held while the camera settles; the take then carries on into
@@ -135,51 +135,50 @@ const ARRIVE: Cut = {
 const SIGN_IN: Cut = {
   take: "02-signin",
   from: AT.arrive + 0.02,
-  rate: 1.3,
-  hold: 0.5,
+  to: 9.6,
+  rate: 1.4,
+  hold: 0.3,
   moves: [
     { at: AT.arrive + 0.02, x: 960, y: 470, zoom: 1.06 },
-    { at: 1.0, dur: 0.9, x: 960, y: 545, zoom: 1.34 },
+    { at: 1.08, dur: 0.9, x: 960, y: 545, zoom: 1.34 },
   ],
 };
-const SELL: Cut = {
-  take: "03-sell",
+// One shot from the ticket to the order's row: the row arrives a second after the tap, and the camera stays on it
+// while the voice says "right here, in this block"
+const TRADE: Cut = {
+  take: "03-buy",
   from: 0.3,
-  to: AT.confirmed,
-  rate: 1.1,
+  to: AT.waitFrom,
   moves: [
     { at: 0.3, x: 960, y: 540, zoom: 1 },
-    { at: 0.32, dur: 0.75, x: 1586, y: 500, zoom: 1.3 },
-    // confirmed: down to the orders, where it is about to appear
-    { at: 5.33, dur: 0.6, x: 760, y: 860, zoom: 1.55 },
-  ],
-};
-// the signature and the relay change nothing in this frame, so the cut skips to just before the row arrives; the
-// camera stays on the row while the voice says "right here, in this block"
-const SEALED: Cut = {
-  take: "03-sell",
-  from: AT.resume,
-  to: AT.waitFrom,
-  pointer: false,
-  moves: [
-    { at: AT.resume, x: 760, y: 860, zoom: 1.55 },
-    { at: AT.resume + 0.1, dur: 3.3, x: 700, y: 870, zoom: 1.66 },
+    { at: 0.4, dur: 0.75, x: 1586, y: 500, zoom: 1.3 },
+    { at: AT.placed + 0.15, dur: 0.75, x: 760, y: 860, zoom: 1.55 },
+    { at: AT.sealedRow + 0.3, dur: 3.0, x: 700, y: 870, zoom: 1.66 },
   ],
 };
 const WAIT: Cut = {
-  take: "03-sell",
+  take: "03-buy",
   from: AT.waitFrom,
-  to: AT.waitEnd,
-  rate: 10,
+  to: AT.slowFrom,
+  rate: 7,
   pointer: false,
   moves: [
     { at: AT.waitFrom, x: 700, y: 870, zoom: 1.66 },
-    // twelve seconds of the take: 1.2 s on screen at ten times speed
-    { at: AT.waitFrom + 0.3, dur: 12, x: 960, y: 540, zoom: 1.0 },
+    // eight and a half seconds of the take: 1.2 s on screen at seven times speed
+    { at: AT.waitFrom + 0.3, dur: 8.5, x: 960, y: 540, zoom: 1.0 },
   ],
 };
+// then twice real time as Chainlink's report lands (39.9 s), so its moment can be read
+const LANDING: Cut = {
+  take: "03-buy",
+  from: AT.slowFrom,
+  to: AT.waitEnd,
+  rate: 2,
+  pointer: false,
+  moves: [{ at: AT.slowFrom, x: 960, y: 540, zoom: 1.0 }],
+};
 const FILL: Cut = {
-  take: "03-sell",
+  take: "03-buy",
   from: AT.waitEnd,
   hold: 1,
   pointer: false,
@@ -191,17 +190,17 @@ const FILL: Cut = {
 };
 const CERTIFICATE: Cut = {
   take: "04-certificate",
-  to: 6.4,
+  to: 6.8,
   hold: 0.3,
   moves: [
     { at: 0, x: 640, y: 800, zoom: 1.3 },
-    { at: 2.1, dur: 0.9, x: 960, y: 540, zoom: 1.36 },
+    { at: 2.3, dur: 0.9, x: 960, y: 540, zoom: 1.36 },
   ],
 };
 // the receipt's first frames held while the voice reads its times (the camera's second move follows the voice)
 const RECEIPT: Cut = {
   take: "05-receipt",
-  to: 2.95,
+  to: 3.0,
   hold: 4.0,
   pointer: false,
   moves: [
@@ -220,7 +219,7 @@ const CHECK_IT: Cut = {
     { at: AT.checkIt + 0.05, dur: 2.7, x: 960, y: 410, zoom: 1.66 },
   ],
 };
-const CUTS = [ARRIVE, SIGN_IN, SELL, SEALED, WAIT, FILL, CERTIFICATE, RECEIPT, CHECK_IT];
+const CUTS = [ARRIVE, SIGN_IN, TRADE, WAIT, LANDING, FILL, CERTIFICATE, RECEIPT, CHECK_IT];
 const starts = CUTS.reduce<number[]>((acc, _, i) => [...acc, i === 0 ? 0 : acc[i - 1]! + shotFrames(CUTS[i - 1]!)], []);
 export const LIVE_FRAMES = starts.at(-1)! + shotFrames(CUTS.at(-1)!);
 export const LIVE_SECONDS = LIVE_FRAMES / s(1);
@@ -228,8 +227,8 @@ const startOf = (cut: Cut) => starts[CUTS.indexOf(cut)]! / FPS;
 /** Seconds into the scene of what the sound lands on: the seal, the fill (the drop), the certificate, the receipt. */
 export const LIVE_CUES = {
   signIn: startOf(SIGN_IN),
-  sell: startOf(SELL),
-  sealed: startOf(SEALED) + (AT.sealedRow - AT.resume),
+  trade: startOf(TRADE),
+  sealed: startOf(TRADE) + (AT.sealedRow - (TRADE.from ?? 0)),
   wait: startOf(WAIT),
   drop: startOf(FILL) + (AT.sold - AT.waitEnd),
   certificate: startOf(CERTIFICATE),
@@ -245,7 +244,7 @@ export const Live = () => {
   const f = useCurrentFrame();
   const at = (cut: Cut) => starts[CUTS.indexOf(cut)]!;
   const local = (cut: Cut) => (f - at(cut)) / FPS;
-  // demo-07 on the receipt: "the seal…", then "then its price — observed forty-nine seconds later", each time
+  // demo-07 on the receipt: "the seal…", then "then its price — observed twenty-four seconds later", each time
   // underlined as it is said, and the camera on the three times before the first (seconds of the receipt's take)
   const r0 = startOf(RECEIPT);
   const seal = useLine("demo-07", 1, r0 + 2.6) - r0;
@@ -272,13 +271,14 @@ export const Live = () => {
                   </div>
                 );
               }
-              if (cut === SEALED) {
+              if (cut === TRADE) {
                 // as the order's row appears: the block it was sealed in, from the chain
                 const [x, y] = point(552, 892);
                 const show = ramp(t, AT.sealedRow + 0.08, AT.sealedRow + 0.55) * (1 - ramp(t, AT.waitFrom - 0.35, AT.waitFrom));
                 return <Callout x={x + 14} y={y} dx={56} text={`SEALED IN BLOCK ${S.upTo.toLocaleString("en-US")} · ${S.sealedAt} UTC`} show={show} />;
               }
-              if (cut === WAIT) return <SealTimeline now={clockOf("03-sell", t)} show={ramp(t, AT.waitFrom + 0.1, AT.waitFrom + 11.6)} />;
+              if (cut === WAIT) return <SealTimeline now={clockOf("03-buy", t)} show={ramp(t, AT.waitFrom + 0.1, AT.waitFrom + 8.1)} />;
+              if (cut === LANDING) return <SealTimeline now={clockOf("03-buy", t)} show={1} />;
               if (cut === FILL) {
                 // the chime: the toast's own outline rings outward as the page shows the fill
                 const ring = interpolate(t, [AT.sold, AT.sold + 0.84], [0, 1], clamp);
@@ -287,7 +287,7 @@ export const Live = () => {
                 const [x1, y1] = point(1138 + grow, 155 + grow);
                 return (
                   <>
-                    <SealTimeline now={clockOf("03-sell", t)} show={interpolate(local(cut), [0, 0.6], [1, 0], { extrapolateRight: "clamp" })} />
+                    <SealTimeline now={clockOf("03-buy", t)} show={interpolate(local(cut), [0, 0.6], [1, 0], { extrapolateRight: "clamp" })} />
                     {ring > 0 && ring < 1 ? (
                       <div
                         style={{
@@ -307,11 +307,11 @@ export const Live = () => {
                 );
               }
               if (cut === RECEIPT) {
-                // the seal's time (card 1) on "the seal…", then "49 s later" (card 2) on "forty-nine seconds later"
+                // the seal's time (card 1) on "the seal…", then "24 s later" (card 2) on "twenty-four seconds later"
                 return (
                   <>
-                    <Underline from={point(562, 497)} to={point(656, 497)} draw={ramp(t, seal + 0.05, seal + 0.6)} />
-                    <Underline from={point(1007, 497)} to={point(1072, 497)} draw={ramp(t, price + 1.0, price + 1.6)} />
+                    <Underline from={point(562, 497)} to={point(654, 497)} draw={ramp(t, seal + 0.05, seal + 0.6)} />
+                    <Underline from={point(1004, 497)} to={point(1066, 497)} draw={ramp(t, price + 1.0, price + 1.6)} />
                   </>
                 );
               }

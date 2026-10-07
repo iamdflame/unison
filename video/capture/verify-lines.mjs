@@ -1,6 +1,6 @@
 /**
- * Writes the film's verification scene (src/scenes/Verify.tsx) from the verifier's real run on the film's sale
- * (src/data/verify-film-sale.txt, from `node apps/web/scripts/verify-receipt.mjs <tx> | tee …`): the command, then
+ * Writes the film's verification scene (src/scenes/Verify.tsx) from the verifier's real run on the film's trade
+ * (src/data/verify-film-trade.txt, from `node apps/web/scripts/verify-receipt.mjs <tx> | tee …`): the command, then
  * each line exactly as it printed, each PASS on its beat.
  *
  *   node capture/verify-lines.mjs        (from video/, after a new capture)
@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { FILM_TX } from "./film-tx.mjs";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
-const run = readFileSync(join(ROOT, "src", "data", "verify-film-sale.txt"), "utf8").replace(/\r\n/g, "\n").split("\n");
+const run = readFileSync(join(ROOT, "src", "data", "verify-film-trade.txt"), "utf8").replace(/\r\n/g, "\n").split("\n");
 const pick = (re) => {
   const line = run.find((l) => re.test(l));
   if (!line) throw new Error(`the verifier's run has no line matching ${re}`);

@@ -90,16 +90,16 @@ No seed phrase. No extension.
 ```
 
 ### demo-05.mp3: live, part two
-On screen: a sell of 9 WMON, confirmed; its row appears, "Sealed · waits for Chainlink", with the block it was sealed in.
+On screen: a buy of 9 WMON, one tap; its row appears, "Sealed · waits for Chainlink", with the block it was sealed in.
 ```
-[crisp] Sell nine MON, at a limit… and confirm.
+[crisp] Buy nine MON, at a limit — one tap.
 The order is sealed — right here, in this block.
 [lower, intrigued] Its price… doesn't exist yet.
 ```
 *"Sealed" lands as the order's row appears. Then six seconds without a voice: the chain's clock runs, and the music holds one suspended chord while the order waits.*
 
 ### demo-06.mp3: the drop
-On screen: the fill lands on the beat, "Sold 9 WMON"; then its certificate draws in.
+On screen: the fill lands on the beat, "Bought 9 WMON"; then its certificate draws in.
 ```
 [satisfied, quietly triumphant] There.
 Chainlink's next observation is in —
@@ -108,13 +108,13 @@ and everyone in the auction got the SAME price.
 ```
 
 ### demo-07.mp3: the receipt
-On screen: the sale's receipt page and its three times, from the chain; each time underlined as it's said.
+On screen: the trade's receipt page and its three times, from the chain; each time underlined as it's said.
 ```
 [measured] The receipt proves which came first:
 the seal…
-then its price — observed forty-nine seconds later.
+then its price — observed twenty-four seconds later.
 ```
-*Forty-nine seconds is this sale's own gap (src/data/chain.ts, FILM_SALE): if the sale is ever filmed again, this line changes with it.*
+*Twenty-four seconds is this trade's own gap (src/data/chain.ts, FILM_TRADE): if the trade is ever filmed again, this line changes with it.*
 
 ### demo-08.mp3: don't trust us
 On screen: the verifier's six PASS lines type out, one rimshot each.

@@ -4,20 +4,20 @@ import { type TermLine, Terminal } from "../kit/Terminal";
 
 /**
  * "Don't trust us. Check." verify-receipt.mjs replayed line for line from its real run on the sale the
- * film just showed (src/data/verify-film-sale.txt), each PASS landing on a beat.
+ * film just showed (src/data/verify-film-trade.txt), each PASS landing on a beat.
  */
-const CMD = "node apps/web/scripts/verify-receipt.mjs 0x569c7ea2cb5fb48f855fae81cda26ddd7666aaca18912a72e17c725bcc9225e5";
+const CMD = "node apps/web/scripts/verify-receipt.mjs 0x0e6ec0c81f3fed414507377584d7b279b90e1f44276a1af14a9a753e78aaaa3a";
 export const VERIFY_LINES: TermLine[] = [
   { at: 0.3, kind: "cmd", text: CMD },
-  { at: 3.2, kind: "out", text: "auction: market 1, batches up to block 111216533, cleared in block 111216741" },
-  { at: 3.5, kind: "dim", text: "  price 26847, volume 9000000000000000000, reference 26900 at 1791343734000 ms, status 0" },
-  { at: 4.4, kind: "pass", text: "PASS  receipt hash recomputes: 0x45a711e4c27e49570e6e5e184f73050d45885bb8def1b17cca3496f7e7e64301" },
-  { at: 5.0, kind: "dim", text: "  Chainlink feed 0xBcD78f76005B7515837af6b50c7C52BCf73822fb, round 18446744073710161161: answer 2689500, observed 1791343734, landed 1791343747" },
-  { at: 5.6, kind: "pass", text: "PASS  the receipt's reference time is Chainlink's observation time (1791343734)" },
+  { at: 3.2, kind: "out", text: "auction: market 1, batches up to block 111237596, cleared in block 111237721" },
+  { at: 3.5, kind: "dim", text: "  price 26972, volume 9000000000000000000, reference 26915 at 1791350067000 ms, status 0" },
+  { at: 4.4, kind: "pass", text: "PASS  receipt hash recomputes: 0x209dc46107cea84b88bb2b1436d7a365aca6b30b5dd5879d4e24064314b2c01b" },
+  { at: 5.0, kind: "dim", text: "  Chainlink feed 0xBcD78f76005B7515837af6b50c7C52BCf73822fb, round 18446744073710161328: answer 2691013, observed 1791350067, landed 1791350079" },
+  { at: 5.6, kind: "pass", text: "PASS  the receipt's reference time is Chainlink's observation time (1791350067)" },
   { at: 6.6, kind: "pass", text: "PASS  observed strictly before the report landed on chain (a signed observation, not a block time)" },
-  { at: 7.6, kind: "pass", text: "PASS  the newest order was sealed in block 111216533, at 1791343685" },
-  { at: 8.6, kind: "pass", text: "PASS  observed 49 s after the seal (more than the 2 s skew)" },
-  { at: 9.6, kind: "pass", text: "PASS  the round before it was observed at 1791343674, not after the seal: no earlier observation qualified" },
+  { at: 7.6, kind: "pass", text: "PASS  the newest order was sealed in block 111237596, at 1791350043" },
+  { at: 8.6, kind: "pass", text: "PASS  observed 24 s after the seal (more than the 2 s skew)" },
+  { at: 9.6, kind: "pass", text: "PASS  the round before it was observed at 1791350037, not after the seal: no earlier observation qualified" },
   { at: 10.6, kind: "hint", text: "every check passed" },
 ];
 

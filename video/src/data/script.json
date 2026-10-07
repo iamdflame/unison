@@ -73,7 +73,7 @@
   ],
   "demo-05": [
     {
-      "text": "Sell nine MON, at a limit… and confirm.",
+      "text": "Buy nine MON, at a limit — one tap.",
       "pause": 0.45
     },
     {
@@ -113,7 +113,7 @@
       "pause": 0.55
     },
     {
-      "text": "then its price — observed forty-nine seconds later.",
+      "text": "then its price — observed twenty-four seconds later.",
       "pause": 0
     }
   ],
