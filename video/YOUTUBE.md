@@ -1,15 +1,17 @@
 # YouTube: the six uploads
 
+All six are live on the Uniq Minds Lab channel (7 October 2026), and the README links them under "For judges".
+
 Each film's file, thumbnail and subtitles are in `video/out/` after a render (`node capture/master.mjs …`, `node capture/thumbs.mjs`, `node capture/subtitles.mjs …`). Every number below is the films' own (src/data) and checked against the chain or the evidence in `docs/evidence/`. Chapter times are the films' beat starts.
 
-| Film | Upload | Thumbnail | Subtitles | Length |
-|---|---|---|---|---|
-| Demo | `out/Demo-master.mp4` | `out/thumbs/Demo.png` | `out/Demo.srt` | 2:32 |
-| Pitch | `out/Pitch-master.mp4` | `out/thumbs/Pitch.png` | `out/Pitch.srt` | 1:38 |
-| Ad | `out/Ad-master.mp4` | `out/thumbs/Ad.png` | `out/Ad.srt` | 0:21 |
-| MetaMask | `out/MetaMask-master.mp4` | `out/thumbs/MetaMask.png` | `out/MetaMask.srt` | 1:16 |
-| CRE | `out/Cre-master.mp4` | `out/thumbs/Cre.png` | `out/Cre.srt` | 1:04 |
-| Envio | `out/Envio-master.mp4` | `out/thumbs/Envio.png` | `out/Envio.srt` | 0:48 |
+| Film | Live | Upload | Thumbnail | Subtitles | Length |
+|---|---|---|---|---|---|
+| Demo | https://youtu.be/9sgKJ1fDbDY | `out/Demo-master.mp4` | `out/thumbs/Demo.png` | `out/Demo.srt` | 2:32 |
+| Pitch | https://youtu.be/cSYTdJGW_rw | `out/Pitch-master.mp4` | `out/thumbs/Pitch.png` | `out/Pitch.srt` | 1:38 |
+| Ad | https://youtu.be/8zQgZbBkVyQ | `out/Ad-master.mp4` | `out/thumbs/Ad.png` | `out/Ad.srt` | 0:21 |
+| MetaMask | https://youtu.be/hFVbVkGmwoI | `out/MetaMask-master.mp4` | `out/thumbs/MetaMask.png` | `out/MetaMask.srt` | 1:16 |
+| CRE | https://youtu.be/ZWlRxmRgO0A | `out/Cre-master.mp4` | `out/thumbs/Cre.png` | `out/Cre.srt` | 1:04 |
+| Envio | https://youtu.be/xIbjZLhRq2A | `out/Envio-master.mp4` | `out/thumbs/Envio.png` | `out/Envio.srt` | 0:48 |
 
 ## Settings for all six
 
