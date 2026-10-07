@@ -17,6 +17,7 @@ import { Live, LIVE_FRAMES } from "./scenes/Live";
 import { PhotoFinish } from "./scenes/PhotoFinish";
 import { Thirteen } from "./scenes/Thirteen";
 import { Verify } from "./scenes/Verify";
+import { XAvatar, XHeader, XHow, XWeek } from "./social/X";
 import { TH, ThumbAd, ThumbCre, ThumbDemo, ThumbEnvio, ThumbMetaMask, ThumbPitch, TW } from "./thumbs/Thumbs";
 
 loadFonts();
@@ -119,6 +120,11 @@ export const Root = () => (
     <Still id="ThumbMetaMask" component={ThumbMetaMask} width={TW} height={TH} />
     <Still id="ThumbCre" component={ThumbCre} width={TW} height={TH} />
     <Still id="ThumbEnvio" component={ThumbEnvio} width={TW} height={TH} />
+    {/* the X account (@unison_fi): node capture/social.mjs */}
+    <Still id="XAvatar" component={XAvatar} width={1000} height={1000} />
+    <Still id="XHeader" component={XHeader} width={1500} height={500} />
+    <Still id="XHow" component={XHow} width={1600} height={900} />
+    <Still id="XWeek" component={XWeek} width={1600} height={900} />
     {scene("Verify", Verify, 12)}
     {scene("PhotoFinish", PhotoFinish, 13)}
     {scene("Challenge", Challenge, 8)}

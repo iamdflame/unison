@@ -4,7 +4,7 @@
 
 Unison is a venue for tokenized assets on Monad: US equities (Anchored aStocks), FX (Mento GBPm), gold and MON, quoted in AUSD.
 
-**Live at https://www.unisonfi.com.**
+**Live at https://www.unisonfi.com** · on X: [@unison_fi](https://x.com/unison_fi).
 - **Monad mainnet:** a small beta with real assets (Anchored's aNVDA and wrapped MON against AUSD), priced by Chainlink at the first observation made after each auction's orders were sealed. Every contract is verified on Sourcify, and the fills are on-chain ([evidence](docs/evidence/mainnet.md)).
 - **Monad testnet:** for practice, with free test funds.
 - **The switch:** the venue pill picks the network.
