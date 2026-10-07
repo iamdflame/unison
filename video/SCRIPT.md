@@ -134,7 +134,7 @@ It's live on Monad mainnet. <break time="0.4s" /> On the same trade, the old rul
 
 ### pitch-05.mp3: the market (1:10–1:30)
 ```
-Tokenized stocks just hit a record three point eight billion dollars. <break time="0.4s" /> But Pantera found that tokenized securities are fifty-nine percent of the market's value, <break time="0.2s" /> and zero point two percent of its trading. <break time="0.5s" /> Issuance isn't the problem. <break time="0.3s" /> Liquidity is.
+Tokenized stocks just hit a record three point eight billion dollars. <break time="0.4s" /> And people want to trade stocks on chain: <break time="0.2s" /> in June, stock perpetuals traded sixteen times the volume of the tokens themselves. <break time="0.5s" /> Issuing the tokens is solved. <break time="0.3s" /> Liquid markets for them aren't.
 ```
 
 ### pitch-06.mp3: next, and the ask (1:30–1:55)

@@ -1,13 +1,14 @@
 # The market: who Unison is for, and how it earns
 
-Tokenized stocks are being issued faster than anyone trades them. The venues they trade on pay whoever sees the next price first, so market makers widen their quotes or leave, and the stocks sit. Unison is a venue where nobody can see the next price first. Every auction prices at the first Chainlink observation made after its orders are sealed. Liquidity providers can then quote tight around the clock, weekends included, without being picked off.
+Traders want stocks on chain, and mostly get them as derivatives: in June, stock perpetuals traded 16 times the spot volume of the tokenized stocks themselves. The spot venues pay whoever sees the next price first, so market makers widen their quotes or leave. Unison is a venue where nobody can see the next price first. Every auction prices at the first Chainlink observation made after its orders are sealed. Liquidity providers can then quote tight around the clock, weekends included, without being picked off.
 
 ## The problem, measured
 
-- **Issued, not traded.** Pantera's *State of Tokenization* (29 September 2026) counts $332B across 671 tokenized assets.
-  - Permissioned assets are 59% of that market cap but 0.2% of spot volume, and 46 of 48 allowlisted products turn over less than 1% a month.
-  - In Pantera's words: "Issuance is no longer the challenge, liquidity is the real bottleneck."
-- **Growing anyway.** Tokenized stocks reached a record $3.8B market cap on 6 October 2026, held by about 4.1 million addresses, up more than 60% in 30 days ([Crypto Briefing](https://cryptobriefing.com/tokenized-stocks-record-market-cap/), citing RWA.xyz, Token Terminal and Binance Research). BNB Chain, Ethereum and Solana hold most of it.
+- **Liquidity, not issuance.** Pantera's *State of Tokenization* (29 September 2026) counts $332B across 671 tokenized assets ([report](https://panteracapital.com/state-of-tokenization/); [a summary](https://www.techflowpost.com/en-US/article/34333)).
+  - Of the 110 non-stablecoin products worth $10M or more, the permissioned ones are 59% of the value but 0.2% of spot volume, and 46 of the 48 allowlisted products turn over less than 1% a month.
+  - The demand is there. Tokenized stocks were the most actively traded category in June (204.6% spot turnover), and stock perpetuals on Hyperliquid and Lighter traded $67.8B that month, 16 times tokenized stocks' spot volume.
+  - Pantera's conclusion: issuing tokens is no longer the hard part; compliant, liquid secondary markets are.
+- **Growing anyway.** Tokenized stocks reached a record $3.8B market cap on 6 October 2026. About 4.1 million addresses hold them, up more than 60% in 30 days ([Crypto Briefing](https://cryptobriefing.com/tokenized-stocks-record-market-cap/), citing RWA.xyz, Token Terminal and Binance Research). BNB Chain, Ethereum and Solana hold most of it.
 - **Why the venues leak.** A Chainlink observation lands on chain about 13 s after it is made, and anyone watching the market sees the move first. On MON/USD, 6.1% of observations moved more than the WMON vault's 23 bp of spread and fee: 5.3 chances an hour to trade against a price that was already old ([causal evidence](evidence/causal.md)).
   - In a market-hours benchmark, snipers took $473 to $6,171 a day from AMM, oracle-AMM and CLOB designs.
   - At the same ±2 bp quote, a CLOB maker kept $84 a day after snipers took $487. Unison's vault kept $646 and lost nothing ([fairness evidence](evidence/fairness.md)).
