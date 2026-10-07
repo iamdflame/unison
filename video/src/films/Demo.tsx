@@ -18,6 +18,8 @@ export const DEMO: Beat[] = [
     id: "cold-open",
     Scene: ColdOpen,
     seconds: 12,
+    // the narration is set in the scene's own type
+    captions: false,
     voice: [{ id: "demo-01", at: 0.9 }],
     sfx: [0, 0.3, 0.6, 0.9, 1.2, 1.5].map((at) => ({ file: "sfx-tick.mp3", at, volume: 0.32 })),
   },
@@ -26,10 +28,11 @@ export const DEMO: Beat[] = [
     id: "idea",
     Scene: Idea,
     seconds: 12,
+    captions: false,
     voice: [{ id: "demo-03", at: 0.3 }],
     sfx: [
       { file: "sfx-seal.mp3", at: 2.4, volume: 0.7 },
-      { file: "sfx-chime.mp3", at: 6.6, volume: 0.45 },
+      { file: "sfx-chime.mp3", at: 9.25, volume: 0.45 },
     ],
   },
   {

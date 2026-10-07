@@ -25,8 +25,9 @@ export const PITCH: Beat[] = [
     ],
   },
   { id: "proof", Scene: Proof, seconds: PROOF_SECONDS, voice: [{ id: "pitch-04", at: 0.3 }] },
-  { id: "market", Scene: Market, seconds: 17, voice: [{ id: "pitch-05", at: 0.3 }] },
-  { id: "ask", Scene: Ask, seconds: 20, voice: [{ id: "pitch-06", at: 0.3 }] },
+  // these two set the narration in their own type
+  { id: "market", Scene: Market, seconds: 17, captions: false, voice: [{ id: "pitch-05", at: 0.3 }] },
+  { id: "ask", Scene: Ask, seconds: 20, captions: false, voice: [{ id: "pitch-06", at: 0.3 }] },
 ];
 
 // The pitch borrows the demo's score, cut to its own moments, until it has one of its own (SCRIPT.md, music-pitch.mp3):

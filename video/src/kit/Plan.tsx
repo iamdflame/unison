@@ -1,10 +1,11 @@
-import { type ComponentType, createContext, useContext } from "react";
+import { type ComponentType, createContext, type ReactNode, useContext } from "react";
 import { AbsoluteFill, Audio, interpolate, Sequence, staticFile, useCurrentFrame } from "remotion";
 import { getAudioDurationInSeconds } from "@remotion/media-utils";
 import { FPS, s } from "../brand";
 import align from "../data/align.json";
 import script from "../data/script.json";
 import { type Cue, Captions } from "./Captions";
+import { Grain } from "./Grain";
 
 /**
  * A film as a list of beats. Each beat is a scene, with the voice files that play over it and where; a beat lasts
@@ -24,6 +25,8 @@ export interface Beat {
   voice?: ({ id: VoiceId; at: number } | { id: VoiceId; line: number; on: number })[];
   /** effects: a file in public/audio and the second of the beat it lands on */
   sfx?: { file: string; at: number; volume?: number }[];
+  /** false when the scene sets the narration in its own type: no captions under it */
+  captions?: boolean;
 }
 export interface Planned {
   /** frames */
@@ -103,11 +106,22 @@ function captionsFor(id: VoiceId, start: number, seconds: number): Cue[] {
   const cues: Cue[] = [];
   for (const line of linesOf(id, start, seconds)) {
     const to = line.to + Math.min(line.pause, 0.4);
+    // each word's turn within the line, by its length: a long word takes longer to say
+    const ws = line.text.split(" ");
+    const weight = ws.reduce((n, w) => n + w.length + 1, 0);
+    let at = line.from;
+    const words = ws.map((w) => {
+      const d = ((line.to - line.from) * (w.length + 1)) / Math.max(1, weight);
+      const word = { text: w, from: at, to: at + d };
+      at += d;
+      return word;
+    });
     const prev = cues.at(-1);
     if (prev && prev.text.length < 16 && prev.text.length + line.text.length < 60 && prev.to >= line.from - 0.8) {
       prev.text = `${prev.text} ${line.text}`;
       prev.to = to;
-    } else cues.push({ from: line.from, to, text: line.text });
+      prev.words = [...(prev.words ?? []), ...words];
+    } else cues.push({ from: line.from, to, text: line.text, words });
   }
   return cues;
 }
@@ -139,9 +153,11 @@ export async function plan(beats: Beat[], music: string | MusicSync | null): Pro
     const needs = Math.max(0, ...voices.map((v) => v.at + v.seconds + 0.7));
     if (beat.fixed && needs > beat.seconds) console.warn(`${beat.id}: its voice runs ${(needs - beat.seconds).toFixed(1)} s past the scene`);
     const length = s(beat.fixed ? beat.seconds : Math.max(beat.seconds, needs));
-    for (const v of voices) cues.push(...captionsFor(v.id, from / FPS + v.at, v.seconds));
+    if (beat.captions !== false) for (const v of voices) cues.push(...captionsFor(v.id, from / FPS + v.at, v.seconds));
     const sfx = [];
     for (const e of beat.sfx ?? []) if ((await lengthOf(e.file)) !== null) sfx.push({ file: e.file, from: from + s(e.at), volume: e.volume ?? 0.6 });
+    const ownWhoosh = (beat.sfx ?? []).some((e) => e.file === "sfx-whoosh.mp3" && e.at < 0.4);
+    if (from > 0 && !ownWhoosh && (await lengthOf("sfx-whoosh.mp3")) !== null) sfx.push({ file: "sfx-whoosh.mp3", from: Math.max(0, from - s(0.22)), volume: 0.2 });
     out.push({
       from,
       length,
@@ -178,6 +194,21 @@ function cutMusic(sync: MusicSync, beats: Beat[], planned: Planned[], total: num
   return cuts;
 }
 
+/** A cut the eye feels: the new scene arrives a touch close and settles back, as a camera finding its mark. */
+function Punch({ children }: { children: ReactNode }) {
+  const f = useCurrentFrame();
+  const p = Math.min(1, f / s(0.55));
+  const k = 1 + 0.045 * (1 - (1 - (1 - p) ** 3));
+  return <AbsoluteFill style={{ transform: `scale(${k})` }}>{children}</AbsoluteFill>;
+}
+
+/** And a breath of light across the cut. */
+function CutLight() {
+  const f = useCurrentFrame();
+  const o = interpolate(f, [0, 2, s(0.32)], [0, 0.16, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  return o > 0 ? <AbsoluteFill style={{ background: "radial-gradient(ellipse at 50% 45%, oklch(0.97 0.03 85), oklch(0.8 0.04 85 / 0.4) 60%, transparent)", opacity: o, pointerEvents: "none" }} /> : null;
+}
+
 /** The music sits under the voice: down while anyone speaks, back up in the gaps. */
 function ducking(beats: Planned[]) {
   const spans = beats.flatMap((b) => b.voices.filter((v) => v.real).map((v) => [v.from, v.from + s(v.seconds)] as const));
@@ -200,8 +231,15 @@ export function Film({ beats, plan: p, music }: { beats: Beat[]; plan: PlanProps
         return (
           <Sequence key={beat.id} from={at.from} durationInFrames={at.length} name={beat.id}>
             <Lines.Provider value={Object.fromEntries(at.voices.map((v) => [v.id, v.lines]))}>
-              <beat.Scene />
+              {i === 0 ? (
+                <beat.Scene />
+              ) : (
+                <Punch>
+                  <beat.Scene />
+                </Punch>
+              )}
             </Lines.Provider>
+            {i > 0 ? <CutLight /> : null}
             {at.voices
               .filter((v) => v.real)
               .map((v) => (
@@ -209,14 +247,25 @@ export function Film({ beats, plan: p, music }: { beats: Beat[]; plan: PlanProps
                   <Audio src={staticFile(`audio/${v.id}.mp3`)} />
                 </Sequence>
               ))}
-            {at.sfx.map((e) => (
-              <Sequence key={`${e.file}-${e.from}`} from={e.from - at.from} name={e.file}>
-                <Audio src={staticFile(`audio/${e.file}`)} volume={e.volume} />
-              </Sequence>
-            ))}
+            {at.sfx
+              .filter((e) => e.from >= at.from)
+              .map((e) => (
+                <Sequence key={`${e.file}-${e.from}`} from={e.from - at.from} name={e.file}>
+                  <Audio src={staticFile(`audio/${e.file}`)} volume={e.volume} />
+                </Sequence>
+              ))}
           </Sequence>
         );
       })}
+      {p.beats.flatMap((at) =>
+        at.sfx
+          .filter((e) => e.from < at.from)
+          .map((e) => (
+            <Sequence key={`lead-${e.file}-${e.from}`} from={e.from} name={`${e.file} into the cut`}>
+              <Audio src={staticFile(`audio/${e.file}`)} volume={e.volume} />
+            </Sequence>
+          )),
+      )}
       {music && p.music
         ? (p.musicCuts ?? [{ at: 0, until: total / FPS, from: 0, fadeIn: 0, fadeOut: 2, duck: 1 }]).map((c) => (
             <Sequence key={`music-${c.at}`} from={s(c.at)} durationInFrames={Math.max(1, s(c.until - c.at))} name={`music from ${c.from.toFixed(1)} s`}>
@@ -236,6 +285,7 @@ export function Film({ beats, plan: p, music }: { beats: Beat[]; plan: PlanProps
             </Sequence>
           ))
         : null}
+      <Grain opacity={0.045} />
       <Captions cues={p.cues} />
       {/* a one-frame guard: nothing below the captions should flash at the cut to black */}
       {f >= total ? <AbsoluteFill style={{ background: "black" }} /> : null}

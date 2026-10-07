@@ -93,7 +93,8 @@ export const AGENT_SALE = {
 export const CHALLENGE = {
   pots: { causal: "18 AUSD", old: "1 AUSD" },
   live: { fills: 14, causalBps: -24.24, oldBps: 10.26 },
-  replay: { trades: 208_414, rounds: 15_992, oldBps: 17.8, causalBps: -23.0, oldWinsPct: 72 },
+  /** the bold row of docs/evidence/challenge.md (40 bp, 30 min): edge per fill, and the share of fills that won */
+  replay: { trades: 208_414, rounds: 15_992, oldBps: 17.8, causalBps: -23.0, oldWinsPct: 72, causalWinsPct: 16 },
   terms: { minFills: 30, epsilonBps: 2, horizonSec: 60 },
 };
 

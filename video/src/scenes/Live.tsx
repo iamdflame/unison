@@ -62,13 +62,13 @@ function SealTimeline({ now, show }: { now: number; show: number }) {
   return (
     <AbsoluteFill style={{ opacity: show }}>
       <AbsoluteFill style={{ background: "oklch(0.09 0.005 265 / 0.8)", backdropFilter: "blur(5px)" }} />
-      <div style={{ position: "absolute", top: 228, width: "100%", textAlign: "center", fontFamily: F.text, fontSize: 26, letterSpacing: "0.16em", color: C.ink2 }}>SEALED · WAITING FOR CHAINLINK</div>
-      <div style={{ position: "absolute", top: 268, width: "100%", textAlign: "center", fontFamily: F.mono, fontSize: 132, color: C.ink, fontVariantNumeric: "tabular-nums" }}>
+      <div style={{ position: "absolute", top: 196, width: "100%", textAlign: "center", fontFamily: F.text, fontWeight: 600, fontSize: 32, letterSpacing: "0.22em", color: C.champagne }}>SEALED · WAITING FOR CHAINLINK</div>
+      <div style={{ position: "absolute", top: 244, width: "100%", textAlign: "center", fontFamily: F.mono, fontSize: 168, color: C.ink, fontVariantNumeric: "tabular-nums", textShadow: `0 0 40px color-mix(in oklch, ${C.champagne} 35%, transparent)` }}>
         {hms(now)}
         <span style={{ fontSize: 40, color: C.ink3 }}> UTC</span>
       </div>
-      <div style={{ position: "absolute", left: RX0, top: RAIL - 1, width: RX1 - RX0, height: 2, background: C.lineStrong }} />
-      <div style={{ position: "absolute", left: RX0, top: RAIL - 2, width: head - RX0, height: 4, background: C.accent, boxShadow: `0 0 18px ${C.glow}` }} />
+      <div style={{ position: "absolute", left: RX0, top: RAIL - 2, width: RX1 - RX0, height: 4, borderRadius: 2, background: C.lineStrong }} />
+      <div style={{ position: "absolute", left: RX0, top: RAIL - 4, width: head - RX0, height: 8, borderRadius: 4, background: C.accent, boxShadow: `0 0 24px ${C.glow}` }} />
       {[S.sealedAt, S.observedAt, S.landedAt, S.clearedAt].map((at, i) => {
         const on = lit(at);
         const r = i === 2 ? 6 : 10;
@@ -85,16 +85,16 @@ function SealTimeline({ now, show }: { now: number; show: number }) {
         const x = rx(stop.at);
         return (
           <div key={stop.label} style={{ position: "absolute", bottom: 1080 - RAIL + 30, ...(stop.right ? { right: 1920 - x - 12, textAlign: "right" as const } : { left: x - 12 }), opacity: 0.28 + 0.72 * on }}>
-            <div style={{ fontFamily: F.text, fontSize: 27, fontWeight: 600, color: on > 0.5 ? stop.color : C.ink3 }}>{stop.label}</div>
-            <div style={{ fontFamily: F.mono, fontSize: 22, color: C.ink2, marginTop: 6 }}>{stop.sub}</div>
-            <div style={{ fontFamily: F.mono, fontSize: 18, color: C.ink3, marginTop: 4 }}>{stop.at} UTC</div>
+            <div style={{ fontFamily: F.text, fontSize: 34, fontWeight: 600, color: on > 0.5 ? stop.color : C.ink3 }}>{stop.label}</div>
+            <div style={{ fontFamily: F.mono, fontSize: 28, color: C.ink2, marginTop: 6 }}>{stop.sub}</div>
+            <div style={{ fontFamily: F.mono, fontSize: 22, color: C.ink3, marginTop: 4 }}>{stop.at} UTC</div>
           </div>
         );
       })}
       {GAPS.map((gap) => (
         <div key={gap.text} style={{ position: "absolute", left: rx(gap.from), top: RAIL + 30, width: rx(gap.to) - rx(gap.from), opacity: lit(gap.to) }}>
           <div style={{ height: 12, borderLeft: `1.5px solid ${C.ink3}`, borderRight: `1.5px solid ${C.ink3}`, borderBottom: `1.5px solid ${C.ink3}` }} />
-          <div style={{ marginTop: 12, textAlign: "center", fontFamily: F.text, fontSize: 22, color: C.ink2, whiteSpace: "nowrap" }}>{gap.text}</div>
+          <div style={{ marginTop: 12, textAlign: "center", fontFamily: F.text, fontWeight: 600, fontSize: 28, color: C.ink2, whiteSpace: "nowrap" }}>{gap.text}</div>
         </div>
       ))}
     </AbsoluteFill>

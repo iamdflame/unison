@@ -100,30 +100,27 @@
     "diffs": []
   },
   "demo-05": {
-    "size": 187883,
-    "mtimeMs": 1791349742065.1704,
-    "seconds": 10.684,
+    "size": 174926,
+    "mtimeMs": 1791354700668.9956,
+    "seconds": 9.874,
     "lines": [
       {
-        "from": 0.1,
-        "to": 4.18
+        "from": 0.13,
+        "to": 3.57
       },
       {
-        "from": 4.79,
-        "to": 7.65
+        "from": 4.04,
+        "to": 6.79
       },
       {
-        "from": 8.2,
-        "to": 10.36
+        "from": 7.37,
+        "to": 9.52
       }
     ],
-    "heard": "Sell 9MON at a limit and confirm. The order is sealed right here in this block. Its price doesn't exist yet.",
+    "heard": "Buy 9MON at a limit, one tap. The order is sealed right here in this block. Its price doesn't exist yet.",
     "diffs": [
-      "\"buy\" is missing",
-      "\"nine\" was read \"sell\"",
-      "\"mon\" was read \"9mon\"",
-      "\"one\" was read \"and\"",
-      "\"tap\" was read \"confirm\""
+      "\"nine\" is missing",
+      "\"mon\" was read \"9mon\""
     ]
   },
   "demo-06": {
@@ -152,28 +149,25 @@
     "diffs": []
   },
   "demo-07": {
-    "size": 130204,
-    "mtimeMs": 1791349792599.7961,
-    "seconds": 7.079,
+    "size": 126443,
+    "mtimeMs": 1791355890231.1555,
+    "seconds": 6.844,
     "lines": [
       {
-        "from": 0.12,
-        "to": 2.18
+        "from": 0.13,
+        "to": 2.17
       },
       {
-        "from": 2.62,
-        "to": 3.29
+        "from": 2.59,
+        "to": 3.21
       },
       {
-        "from": 3.71,
-        "to": 6.83
+        "from": 3.6,
+        "to": 6.61
       }
     ],
-    "heard": "The receipt proves which came first, the seal, then its price, observed 49 seconds later.",
-    "diffs": [
-      "\"twenty\" was read \"forty\"",
-      "\"four\" was read \"nine\""
-    ]
+    "heard": "The receipt proves which came first, the seal, then its price, observed 24 seconds later.",
+    "diffs": []
   },
   "demo-08": {
     "size": 205855,

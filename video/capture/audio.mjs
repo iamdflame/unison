@@ -21,8 +21,19 @@ const canonical = (f) => {
   if (/^(ad|add)(-?0*1)?\.(mp3|wav|m4a)$/i.test(f)) return `ad-01.${f.split(".").pop().toLowerCase()}`;
   return f;
 };
-let copied = 0;
+// two takes of one file ("demo5.mp3", then "demo-5.mp3"): the newest is the take
+const newest = new Map();
 for (const f of files) {
+  const to = canonical(f);
+  const prev = newest.get(to);
+  if (!prev || statSync(join(FROM, f)).mtimeMs > statSync(join(FROM, prev)).mtimeMs) newest.set(to, f);
+}
+for (const [to, f] of newest) {
+  const older = files.filter((x) => x !== f && canonical(x) === to);
+  if (older.length) console.log(`${to}: using ${f}, the newest (not ${older.join(", ")})`);
+}
+let copied = 0;
+for (const f of newest.values()) {
   const to = canonical(f);
   const a = statSync(join(FROM, f));
   const b = existsSync(join(TO, to)) ? statSync(join(TO, to)) : null;

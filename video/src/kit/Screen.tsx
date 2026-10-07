@@ -164,7 +164,8 @@ export function Shot({
         }}
       >
         <Freeze frame={played - 1} active={f >= played}>
-          <OffthreadVideo src={staticFile(T.file)} trimBefore={Math.round(from * FPS)} playbackRate={rate} muted style={{ width: page.width, height: page.height }} />
+          {/* a gentle lift: the site's night theme reads murky on a film's black; the page is otherwise as captured */}
+          <OffthreadVideo src={staticFile(T.file)} trimBefore={Math.round(from * FPS)} playbackRate={rate} muted style={{ width: page.width, height: page.height, filter: "brightness(1.13) contrast(1.06) saturate(1.08)" }} />
         </Freeze>
         {pointer ? <Pointer clicks={T.clicks} t={t} /> : null}
       </div>

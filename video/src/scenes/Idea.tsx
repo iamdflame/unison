@@ -1,120 +1,150 @@
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
-import { C, F, s, settle } from "../brand";
+import { AbsoluteFill, interpolate } from "remotion";
+import { C, F, settle } from "../brand";
+import script from "../data/script.json";
+import { Backdrop, clamp01, Drift, glow, Label, move, Narration, pop, Ring, Sweep, useT, Words } from "../kit/Fx";
+import { useLine } from "../kit/Plan";
 
 /**
- * The flip. Orders arrive in a block and are sealed before any price exists. Then Chainlink's next observation
- * arrives, and one price strikes through every order at once. No amounts: this is the rule, not a trade.
+ * The flip. On the old rule the price comes first and your order after it, so anyone who sees the price first can
+ * trade against you. Unison swaps the two: the tiles change places, your order is sealed into a block, the price is
+ * set after by Chainlink's next observation, and one price fills every order at once. No amounts: this is the rule,
+ * not a trade.
  */
 const ORDERS = [
-  { side: "Buy", color: C.buy, y: 360 },
-  { side: "Sell", color: C.sell, y: 500 },
-  { side: "Buy", color: C.buy, y: 640 },
+  { side: "Buy", color: C.buy },
+  { side: "Sell", color: C.sell },
+  { side: "Buy", color: C.buy },
 ];
+const LEFT = 560;
+const RIGHT = 1360;
+const MID = 470;
 
 export const Idea = () => {
-  const f = useCurrentFrame();
-  const t = f / s(1);
-  const seal = settle(interpolate(t, [2.4, 3.0], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }));
-  const sealPress = interpolate(t, [2.4, 2.6, 2.8], [1.4, 0.94, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const obs = settle(interpolate(t, [5.2, 6.4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }));
-  const strike = settle(interpolate(t, [6.6, 7.4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }));
-  const fill = interpolate(t, [7.4, 7.9], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const coda = settle(interpolate(t, [9.2, 10.2], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }));
-
+  const t = useT();
+  const L = [0.46, 2.32, 4.4, 6.38, 8.92, 11.72].map((d, i) => useLine("demo-03", i, d));
+  const flipAt = L[0]! + 0.75;
+  const flip = settle(clamp01((t - flipAt) / 0.9));
+  const arc = Math.sin(Math.PI * flip);
+  const open = settle(clamp01((t - L[1]! + 0.1) / 0.6));
+  const stamp = L[1]! + 0.2;
+  const observed = L[3]! + 0.75;
+  const obs = settle(clamp01((t - observed) / 0.5));
+  const beam = L[4]! + 0.35;
+  const sweep = clamp01((t - beam) / 0.7);
+  const coda = settle(clamp01((t - L[5]! + 0.15) / 0.7));
+  // the tiles: the price starts on the left (the old rule), your order on the right; then they change places
+  const priceX = LEFT + (RIGHT - LEFT) * flip;
+  const orderX = RIGHT - (RIGHT - LEFT) * flip;
+  const orderH = 300 + 300 * open;
+  const tile = (x: number, y: number, w: number, h: number, color: string, lit: number) =>
+    ({
+      position: "absolute",
+      left: x - w / 2,
+      top: y - h / 2,
+      width: w,
+      height: h,
+      borderRadius: 34,
+      background: `linear-gradient(160deg, color-mix(in oklch, ${color} ${8 + 10 * lit}%, ${C.raised}), ${C.sunken})`,
+      border: `2px solid color-mix(in oklch, ${color} ${35 + 45 * lit}%, transparent)`,
+      boxShadow: `0 30px 80px oklch(0 0 0 / 0.45), 0 0 ${40 * lit}px color-mix(in oklch, ${color} ${30 * lit}%, transparent)`,
+    }) as const;
   return (
-    <AbsoluteFill style={{ background: C.bg, color: C.ink }}>
-      {/* the block */}
-      <div style={{ position: "absolute", left: 300, top: 280, width: 620, height: 520, borderRadius: 28, border: `2px solid ${C.lineStrong}` }} />
-      <div style={{ position: "absolute", left: 330, top: 236, fontFamily: F.mono, fontSize: 24, color: C.ink3 }}>one Monad block · 300 ms</div>
-      {ORDERS.map((o, i) => {
-        const inT = settle(interpolate(t, [0.3 + i * 0.45, 1.1 + i * 0.45], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }));
-        return (
-          <div
-            key={i}
-            style={{
-              position: "absolute",
-              left: 360,
-              top: o.y,
-              width: 500,
-              height: 96,
-              borderRadius: 18,
-              background: interpolate(fill, [0, 1], [0, 1]) > 0.5 ? `color-mix(in oklch, ${o.color} 22%, ${C.raised})` : C.raised,
-              boxShadow: `0 0 0 1px ${C.line}`,
-              opacity: inT,
-              transform: `translateX(${(1 - inT) * -120}px)`,
-              display: "flex",
-              alignItems: "center",
-              padding: "0 32px",
-              gap: 22,
-            }}
-          >
-            <div style={{ width: 14, height: 14, borderRadius: 7, background: o.color }} />
-            <div style={{ fontFamily: F.text, fontSize: 36, fontWeight: 600 }}>{o.side}</div>
-            <div style={{ marginLeft: "auto", fontFamily: F.mono, fontSize: 26, color: fill > 0.5 ? o.color : C.ink3 }}>
-              {fill > 0.5 ? "filled" : seal > 0.5 ? "sealed" : "…"}
-            </div>
+    <AbsoluteFill style={{ color: C.ink }}>
+      <Backdrop light={flip > 0.5 ? C.accent : C.sell} x={50} y={30} strength={0.11} />
+      <Drift to={1.035} over={13}>
+        <AbsoluteFill style={{ opacity: 1 - 0.88 * coda, filter: coda > 0 ? `blur(${6 * coda}px)` : undefined, transform: `scale(${1 - 0.06 * coda})` }}>
+        {/* which rule */}
+        <div style={{ position: "absolute", left: 0, right: 0, top: 70, textAlign: "center" }}>
+          <div style={{ opacity: 1 - flip, position: "absolute", left: 0, right: 0 }}>
+            <Label color={C.sell} size={34} style={{ letterSpacing: "0.24em" }}>
+              The old rule · the price comes first
+            </Label>
           </div>
-        );
-      })}
-
-      {/* the seal */}
-      <div
-        style={{
-          position: "absolute",
-          left: 820,
-          top: 230,
-          width: 150,
-          height: 150,
-          borderRadius: 75,
-          background: `radial-gradient(circle at 40% 35%, ${C.jewel}, oklch(0.4 0.12 20))`,
-          boxShadow: "0 12px 30px rgba(0,0,0,0.6)",
-          opacity: seal,
-          transform: `scale(${sealPress}) rotate(-8deg)`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: F.display,
-          fontSize: 34,
-          color: "oklch(0.92 0.03 30)",
-          letterSpacing: "0.1em",
-        }}
-      >
-        SEALED
-      </div>
-
-      {/* the price that doesn't exist yet */}
-      <div style={{ position: "absolute", left: 1090, top: 330, width: 560 }}>
-        <div style={{ fontFamily: F.text, fontSize: 26, color: C.ink3, letterSpacing: "0.12em" }}>THE PRICE</div>
-        <div style={{ fontFamily: F.display, fontSize: 96, marginTop: 10, color: obs > 0.5 ? C.ink : C.ink3 }}>{obs > 0.5 ? "observed" : "not yet"}</div>
-        <div style={{ fontFamily: F.text, fontSize: 30, color: C.ink2, marginTop: 14, opacity: seal, maxWidth: 520 }}>
-          It is set by Chainlink's next observation, made after the seal.
+          <div style={{ opacity: flip, position: "absolute", left: 0, right: 0 }}>
+            <Label color={C.accent} size={34} style={{ letterSpacing: "0.24em" }}>
+              Unison · your order comes first
+            </Label>
+          </div>
         </div>
-        {/* the observation arrives */}
-        <div style={{ marginTop: 50, display: "flex", alignItems: "center", gap: 18, opacity: obs }}>
-          <div style={{ width: 22, height: 22, borderRadius: 11, background: C.accent, boxShadow: `0 0 0 ${16 * obs}px ${C.glow}` }} />
-          <div style={{ fontFamily: F.text, fontSize: 32, color: C.accent, fontWeight: 600 }}>Chainlink observes</div>
+        <div style={{ position: "absolute", left: 930, top: MID - 60 - 150 * open * 0, fontFamily: F.display, fontSize: 110, color: C.ink3, opacity: 1 - 0.6 * open }}>→</div>
+
+        {/* the price */}
+        <div style={{ ...tile(priceX, MID - 140 * arc, 600, 300, flip > 0.5 ? C.accent : C.champagne, obs), transform: `rotate(${-6 * arc}deg)` }}>
+          <div style={{ position: "absolute", left: 44, top: 34 }}>
+            <Label color={obs > 0.5 ? C.accent : C.ink3} size={26}>
+              {obs > 0.5 ? "Chainlink's next observation" : "The price"}
+            </Label>
+          </div>
+          <div style={{ position: "absolute", left: 44, bottom: 40, fontFamily: F.display, fontSize: 104, lineHeight: 1, whiteSpace: "nowrap", color: obs > 0.5 ? C.ink : flip > 0.5 ? C.ink3 : C.champagne, textShadow: obs > 0.5 ? glow(C.accent, 0.9) : undefined }}>
+            {obs > 0.5 ? <Sweep at={observed + 0.2}>observed</Sweep> : flip > 0.5 && t > L[1]! ? <i>not yet</i> : "the price"}
+          </div>
         </div>
-      </div>
+        <Ring at={observed} x={RIGHT} y={MID} size={1000} color={C.accent} width={3} />
+        <Ring at={observed + 0.2} x={RIGHT} y={MID} size={700} color={C.accent} width={2} />
 
-      {/* one price, through every order */}
-      <div
-        style={{
-          position: "absolute",
-          left: 300,
-          top: 548,
-          height: 4,
-          width: 620 * strike,
-          background: C.accent,
-          boxShadow: `0 0 24px ${C.glow}`,
-        }}
-      />
-      <div style={{ position: "absolute", left: 300, width: 620, top: 826, textAlign: "center", fontFamily: F.text, fontSize: 32, fontWeight: 600, color: C.accent, opacity: strike }}>
-        one price, for every order in the auction
-      </div>
+        {/* your order, then the block it is sealed into */}
+        <div style={{ ...tile(orderX, MID + 140 * arc + 150 * open, 600, orderH, C.ink, open * 0.4), transform: `rotate(${6 * arc}deg)` }}>
+          <div style={{ position: "absolute", left: 44, top: 34 }}>
+            <Label color={C.ink3} size={26}>
+              {open > 0.5 ? "One Monad block · 300 ms" : "Your order"}
+            </Label>
+          </div>
+          {open < 0.5 ? (
+            <div style={{ position: "absolute", left: 44, bottom: 40, fontFamily: F.display, fontSize: 104, lineHeight: 1, whiteSpace: "nowrap", opacity: 1 - 2 * open }}>your order</div>
+          ) : null}
+          {ORDERS.map((o, i) => {
+            const inP = move(t, L[1]! + 0.05 + i * 0.12, 0.45);
+            const lit = clamp01((sweep - i * 0.18) / 0.3);
+            return (
+              <div
+                key={i}
+                style={{
+                  position: "absolute",
+                  left: 36,
+                  right: 36,
+                  top: 100 + i * 150,
+                  height: 124,
+                  borderRadius: 22,
+                  opacity: inP * open,
+                  transform: `translateX(${(1 - inP) * -60}px)`,
+                  background: lit > 0 ? `color-mix(in oklch, ${o.color} ${12 + 22 * lit}%, ${C.raised})` : C.raised,
+                  boxShadow: `0 0 0 1.5px ${lit > 0.5 ? o.color : C.line}, 0 0 ${30 * lit}px color-mix(in oklch, ${o.color} 40%, transparent)`,
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "0 36px",
+                  gap: 26,
+                }}
+              >
+                <div style={{ width: 20, height: 20, borderRadius: 10, background: o.color }} />
+                <div style={{ fontFamily: F.text, fontWeight: 600, fontSize: 52 }}>{o.side}</div>
+                <div style={{ marginLeft: "auto", fontFamily: F.mono, fontSize: 36, color: lit > 0.5 ? o.color : C.ink3 }}>{lit > 0.5 ? "filled" : t > stamp ? "sealed" : "…"}</div>
+              </div>
+            );
+          })}
+        </div>
 
-      <div style={{ position: "absolute", bottom: 130, width: "100%", textAlign: "center", fontFamily: F.display, fontSize: 84, opacity: coda }}>
-        Nothing to snipe.
-      </div>
+        {/* the seal, pressed */}
+        {t > stamp ? (
+          <div style={{ position: "absolute", left: LEFT + 190, top: MID + 150 - 330, width: 190, height: 190, borderRadius: 95, background: `radial-gradient(circle at 38% 34%, oklch(0.62 0.16 22), ${C.jewel} 62%, oklch(0.42 0.12 20))`, boxShadow: `0 10px 40px oklch(0 0 0 / 0.5), ${glow(C.jewel, 0.6)}`, transform: `scale(${pop(t, stamp, 0.45)}) rotate(-14deg)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ fontFamily: F.display, fontSize: 40, letterSpacing: "0.06em", color: "oklch(0.92 0.03 30)" }}>SEALED</div>
+          </div>
+        ) : null}
+
+        {/* one price, through every order */}
+        {sweep > 0 && sweep < 1 ? <div style={{ position: "absolute", left: RIGHT - (RIGHT - LEFT + 400) * settle(sweep), top: MID + 150 - 6, width: 420, height: 12, borderRadius: 6, background: `linear-gradient(90deg, transparent, ${C.accent}, ${C.ink})`, boxShadow: glow(C.accent, 1.2), opacity: 1 - sweep * 0.3 }} /> : null}
+
+        </AbsoluteFill>
+        {/* the narration, then its last line, large */}
+        <Narration lines={script["demo-03"].slice(0, 5).map((l, i) => ({ text: l.text, at: L[i]!, until: i < 4 ? L[i + 1]! - 0.1 : L[5]! - 0.2 }))} accent={{ flips: C.accent, first: C.accent, after: C.accent, One: C.champagne, price: C.champagne }} bottom={70} size={58} />
+        {/* nothing to snipe */}
+        <div style={{ position: "absolute", left: 0, right: 0, top: 440, textAlign: "center", opacity: coda }}>
+          <div style={{ fontFamily: F.display, fontSize: 150, lineHeight: 1, color: C.ink, textShadow: glow(C.champagne, 0.6) }}>
+            <Sweep at={L[5]! + 0.5} dur={1.2}>
+              <Words text="Nothing to snipe." at={L[5]! - 0.1} stagger={0.12} dur={0.6} />
+            </Sweep>
+          </div>
+        </div>
+      </Drift>
     </AbsoluteFill>
   );
 };

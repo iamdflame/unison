@@ -23,7 +23,8 @@ const spiral = (r0: number, r1: number, turns: number, steps = 360) => {
 
 // one engraving hand: a single 1 px stroke in the plate's colour (ink in focus, half ink beneath); finer detail is
 // the same stroke at lower opacity, never a different weight
-const LINE = { fill: "none", stroke: "currentColor", strokeWidth: 1, vectorEffect: "non-scaling-stroke" as const };
+// the film may engrave deeper (MovementPart's weight): the stroke reads its width from --weight, 1 px by default
+const LINE = { fill: "none", stroke: "currentColor", strokeWidth: 1, vectorEffect: "non-scaling-stroke" as const, style: { strokeWidth: "var(--weight, 1px)" } };
 const FINE = { ...LINE, opacity: 0.55 };
 
 /** Gateway: the top plate, jewelled where orders come in: flat rubies in hairline gold chatons, as in a real movement. */
@@ -152,10 +153,10 @@ function Compliance({ id }: { id: string }) {
   );
 }
 
-export function MovementPart({ name }: { name: string }) {
+export function MovementPart({ name, weight = 1 }: { name: string; weight?: number }) {
   const id = `mv-${name.toLowerCase()}`;
   return (
-    <svg viewBox="0 0 400 400" style={{ width: "100%", height: "100%", overflow: "visible" }} aria-hidden>
+    <svg viewBox="0 0 400 400" style={{ width: "100%", height: "100%", overflow: "visible", ["--weight" as string]: `${weight}px` }} aria-hidden>
       {/* the plate itself: opaque enough to hide what lies under it, like brass */}
       <circle cx={C} cy={C} r={R} fill="var(--bg)" opacity={0.94} />
       {name === "Gateway" ? <Gateway /> : name === "Book" ? <Book id={id} /> : name === "Clearing" ? <Clearing /> : name === "References" ? <References /> : name === "Vault" ? <Vault /> : <Compliance id={id} />}

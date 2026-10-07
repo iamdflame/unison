@@ -1,5 +1,6 @@
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
-import { C, F, s, settle } from "../brand";
+import { AbsoluteFill } from "remotion";
+import { C, F } from "../brand";
+import { Backdrop, clamp01, Drift, Flash, glow, Label, move, pop, Sweep, useT, Words } from "../kit/Fx";
 import { type TermLine, Terminal } from "../kit/Terminal";
 
 /**
@@ -21,22 +22,65 @@ export const VERIFY_LINES: TermLine[] = [
   { at: 10.6, kind: "hint", text: "every check passed" },
 ];
 
+/** Each check in the verifier's own words: its PASS line, up to where it explains itself. */
+const CHECKS = VERIFY_LINES.filter((l) => l.kind === "pass").map((l) => {
+  const said = l.text.replace(/^PASS\s+/, "");
+  // the last check's point is after its colon; the others' before their parenthesis or colon
+  const words = said.includes("no earlier observation qualified") ? "no earlier observation qualified" : said.split(/\s*[(:]/)[0]!;
+  return { at: l.at, words: words.replace(/block (\d+)/, (_, n: string) => `block ${Number(n).toLocaleString("en-US")}`) };
+});
+const ALL = VERIFY_LINES.find((l) => l.kind === "hint")!.at;
+
 export const Verify = () => {
-  const f = useCurrentFrame();
-  const t = f / s(1);
-  const passes = VERIFY_LINES.filter((l) => l.kind === "pass" && t >= l.at).length;
-  const title = settle(interpolate(t, [0, 0.6], [0, 1]));
+  const t = useT();
+  const passes = CHECKS.filter((c) => t >= c.at).length;
+  const done = clamp01((t - ALL) / 0.5);
   return (
-    <AbsoluteFill style={{ background: C.bg, alignItems: "center", justifyContent: "center" }}>
-      <div style={{ position: "absolute", top: 90, width: "100%", textAlign: "center", opacity: title }}>
-        <div style={{ fontFamily: F.display, fontSize: 88, color: C.ink }}>Don't trust us. Check.</div>
-      </div>
-      <div style={{ marginTop: 90 }}>
-        <Terminal title="anyone's machine · Monad mainnet RPC" lines={VERIFY_LINES} width={1680} fontSize={22} />
-      </div>
-      <div style={{ position: "absolute", right: 140, bottom: 70, fontFamily: F.display, fontSize: 64, color: passes === 6 ? C.buy : C.ink3 }}>
-        {passes} <span style={{ fontFamily: F.text, fontSize: 30 }}>of 6</span>
-      </div>
+    <AbsoluteFill style={{ color: C.ink }}>
+      <Backdrop light={C.buy} x={74} y={30} strength={0.08 + 0.1 * done} />
+      <Drift to={1.025} over={12.7}>
+        <div style={{ position: "absolute", left: 80, top: 92 }}>
+          <div style={{ fontFamily: F.display, fontSize: 112, lineHeight: 1 }}>
+            <Words text="Don't trust us." at={0.15} stagger={0.1} dur={0.6} />{" "}
+            <span style={{ color: C.champagne, textShadow: glow(C.champagne, 0.8) }}>
+              <Words text="Check." at={1.65} dur={0.5} />
+            </span>
+          </div>
+        </div>
+        {/* the proof: the verifier's real run, on anyone's machine */}
+        <div style={{ position: "absolute", left: 80, top: 268, opacity: move(t, 0.2, 0.6) }}>
+          <Terminal title="anyone's machine · Monad mainnet RPC" lines={VERIFY_LINES} width={980} fontSize={19} maxLines={24} />
+        </div>
+        {/* its six checks, in its own words */}
+        <div style={{ position: "absolute", left: 1120, top: 262, width: 720 }}>
+          {CHECKS.map((c, i) => {
+            const on = t >= c.at;
+            const k = pop(t, c.at, 0.45);
+            return (
+              <div key={c.at} style={{ display: "flex", alignItems: "center", gap: 26, height: 104, opacity: 0.35 + 0.65 * move(t, c.at - 0.1, 0.3) }}>
+                <div style={{ width: 64, height: 64, flex: "none", borderRadius: 32, border: `3px solid ${on ? C.buy : C.lineStrong}`, background: on ? C.buy : "transparent", boxShadow: on ? glow(C.buy, 0.8) : undefined, transform: `scale(${on ? Math.max(0.6, k) : 1})`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: F.text, fontWeight: 600, fontSize: 38, color: C.deep }}>
+                  {on ? "✓" : i + 1}
+                </div>
+                <div style={{ fontFamily: F.text, fontWeight: 600, fontSize: 31, lineHeight: 1.18, color: on ? C.ink : C.ink3 }}>{c.words}</div>
+              </div>
+            );
+          })}
+        </div>
+        {/* six of six */}
+        <div style={{ position: "absolute", right: 80, top: 80, textAlign: "right" }}>
+          <div style={{ fontFamily: F.display, fontSize: 150, lineHeight: 1, color: passes === CHECKS.length ? C.champagne : C.ink3, textShadow: passes === CHECKS.length ? glow(C.champagne, 1) : undefined, transform: `scale(${done > 0 ? Math.max(0.8, pop(t, ALL, 0.5)) : 1})`, transformOrigin: "100% 50%" }}>
+            <Sweep at={ALL + 0.3}>
+              {passes}/{CHECKS.length}
+            </Sweep>
+          </div>
+          <Label color={passes === CHECKS.length ? C.buy : C.ink3} size={26}>
+            checks pass
+          </Label>
+        </div>
+      </Drift>
+      {CHECKS.map((c) => (
+        <Flash key={c.at} at={c.at} peak={0.06} dur={0.25} color={C.buy} />
+      ))}
     </AbsoluteFill>
   );
 };

@@ -29,6 +29,8 @@ export const F = {
   /** Bodoni Moda at 24–40 pt: small display */
   displaySmall: "'Bodoni Small', serif",
   text: "'Mona Sans', sans-serif",
+  /** Mona Sans Wide: a word that lands on the beat */
+  wide: "'Mona Sans Wide', sans-serif",
   mono: "'Fragment Mono', monospace",
 } as const;
 

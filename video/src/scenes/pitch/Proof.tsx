@@ -19,6 +19,9 @@ export const Proof = () => {
   // cut on the words: "On the same trade…" to the photo finish, "Our own sniper…" to the challenge
   const finish = useLine("pitch-04", 1, 4.5) - 0.3;
   const board = useLine("pitch-04", 2, 11.5) - 0.3;
+  // "It wins on the old one…" / "and loses on ours."
+  const wins = useLine("pitch-04", 3, 13.0) - board;
+  const loses = useLine("pitch-04", 4, 14.6) - board;
   const label = settle(interpolate(t, [0.4, 1.1], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })) * interpolate(t, [finish - 0.5, finish - 0.1], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
     <AbsoluteFill style={{ background: C.bg }}>
@@ -46,7 +49,7 @@ export const Proof = () => {
         </Sequence>
       </Sequence>
       <Sequence from={s(board)} name="challenge">
-        <Challenge />
+        <Challenge oldAt={wins + 0.15} unisonAt={loses + 0.15} />
       </Sequence>
     </AbsoluteFill>
   );
