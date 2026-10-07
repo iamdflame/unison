@@ -97,7 +97,8 @@ export const AD: Beat[] = [
     id: "ad",
     Scene: AdScene,
     seconds: 21,
-    voice: [{ id: "ad-01", line: 2, on: 9.9 }],
+    // the close sets "Unison. Prices nobody saw first. Live on Monad." in its own type
+    voice: [{ id: "ad-01", line: 2, on: 9.9, captions: [0, 1, 2, 3] }],
     sfx: [
       { file: "sfx-tick.mp3", at: beat(0), volume: 0.4 },
       { file: "sfx-seal.mp3", at: beat(2), volume: 0.6 },

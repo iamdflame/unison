@@ -21,8 +21,9 @@ export interface Beat {
   seconds: number;
   /** the scene's timeline is fixed (footage): a voice must fit, the beat doesn't stretch */
   fixed?: boolean;
-  /** each file from second `at` of the beat; or placed so that its line `line` lands on second `on` */
-  voice?: ({ id: VoiceId; at: number } | { id: VoiceId; line: number; on: number })[];
+  /** each file from second `at` of the beat; or placed so that its line `line` lands on second `on`; `captions`: only
+   * these lines get captions (the rest are on screen in the scene's own type) */
+  voice?: (({ id: VoiceId; at: number } | { id: VoiceId; line: number; on: number }) & { captions?: number[] })[];
   /** effects: a file in public/audio and the second of the beat it lands on */
   sfx?: { file: string; at: number; volume?: number }[];
   /** false when the scene sets the narration in its own type: no captions under it */
@@ -102,9 +103,10 @@ function linesOf(id: VoiceId, start: number, seconds: number) {
 }
 
 /** Captions for one voice file, a line at a time; a very short line joins the next ("Six checks. Six passes."). */
-function captionsFor(id: VoiceId, start: number, seconds: number): Cue[] {
+function captionsFor(id: VoiceId, start: number, seconds: number, only?: number[]): Cue[] {
   const cues: Cue[] = [];
-  for (const line of linesOf(id, start, seconds)) {
+  for (const [i, line] of linesOf(id, start, seconds).entries()) {
+    if (only && !only.includes(i)) continue;
     const to = line.to + Math.min(line.pause, 0.4);
     // each word's turn within the line, by its length: a long word takes longer to say
     const ws = line.text.split(" ");
@@ -147,13 +149,13 @@ export async function plan(beats: Beat[], music: string | MusicSync | null): Pro
         const real = await lengthOf(file);
         const seconds = real ?? estimate(v.id);
         const at = "at" in v ? v.at : Math.max(0, v.on - (linesOf(v.id, 0, seconds)[v.line]?.from ?? 0));
-        return { id: v.id, at, seconds, real: real !== null };
+        return { id: v.id, at, seconds, real: real !== null, only: v.captions };
       }),
     );
     const needs = Math.max(0, ...voices.map((v) => v.at + v.seconds + 0.7));
     if (beat.fixed && needs > beat.seconds) console.warn(`${beat.id}: its voice runs ${(needs - beat.seconds).toFixed(1)} s past the scene`);
     const length = s(beat.fixed ? beat.seconds : Math.max(beat.seconds, needs));
-    if (beat.captions !== false) for (const v of voices) cues.push(...captionsFor(v.id, from / FPS + v.at, v.seconds));
+    if (beat.captions !== false) for (const v of voices) cues.push(...captionsFor(v.id, from / FPS + v.at, v.seconds, v.only));
     const sfx = [];
     for (const e of beat.sfx ?? []) if ((await lengthOf(e.file)) !== null) sfx.push({ file: e.file, from: from + s(e.at), volume: e.volume ?? 0.6 });
     const ownWhoosh = (beat.sfx ?? []).some((e) => e.file === "sfx-whoosh.mp3" && e.at < 0.4);

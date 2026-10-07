@@ -72,7 +72,7 @@ export const DEMO: Beat[] = [
   { id: "challenge", Scene: SnipeUs, seconds: 12, voice: [{ id: "demo-10", at: 0.3 }] },
   { id: "agent", Scene: Agent, seconds: 11, voice: [{ id: "demo-11", at: 0.3 }] },
   // the bell rings as the mark appears; "Unison." follows it
-  { id: "close", Scene: Close, seconds: 8, voice: [{ id: "demo-12", at: 0.9 }] },
+  { id: "close", Scene: Close, seconds: 8, captions: false, voice: [{ id: "demo-12", at: 0.9 }] },
 ];
 
 /** music-demo.mp3's own landmarks (capture/music.mjs): its drop hits at 73.25 s, its closing bell at 229.86 s after
