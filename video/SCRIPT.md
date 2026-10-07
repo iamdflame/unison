@@ -1,145 +1,223 @@
 # Unison: voiceover scripts and audio setup
 
-You generate the audio in ElevenLabs. I build the visuals and time every cut to your files. Each line below is one file. Short takes let me move a cut without asking you for a new recording.
+You generate the audio in ElevenLabs **Eleven v4**. I build the visuals and time every cut to your files. Each block below is one file. Short takes let me move a cut without asking you for a new recording.
 
-## 1. ElevenLabs settings
+## 1. How to record with Eleven v4
+
+Eleven v4 has no SSML and no Style or Speed sliders. You direct it with the words themselves:
+
+| Mark | What v4 does with it |
+|---|---|
+| `[bracketed direction]` | Sets the delivery of the words after it, e.g. `[measured]`, `[quiet certainty]` |
+| `…` | A held beat, with weight |
+| `—` | A quick break |
+| a new line | A breath between thoughts |
+| `CAPS` | Emphasis (used twice in the whole script, on purpose) |
+
+**Settings:**
 
 | Setting | Value |
 |---|---|
-| Model | **Eleven Multilingual v2**. It is the steadiest for narration and honours `<break time="…"/>`. |
-| Voice | Narration: **Brian**, or **Daniel** if you prefer a British voice. Pitch: **your own voice**, cloned (below). |
-| Stability | 50% |
-| Similarity | 75% |
-| Style exaggeration | 20% |
-| Speaker boost | On |
-| Speed | 1.0. If a take runs long, use 1.05 rather than cutting words. |
+| Model | **Eleven v4**, not v4 Turbo (Turbo is built for live agents) |
+| Narrator | **Brian** (or **Daniel** for a British voice). The same voice for every demo, ad and bounty file |
+| Pitch | **Your own voice**, an Instant Voice Clone (below) |
+| Stability | **55%**. If two files sound like different people, raise it to 65%. If a take sounds flat, lower it to 45% |
+| Similarity | **80%** |
 | Output | MP3, 44.1 kHz, 192 kbps |
+
+**How to work:**
+1. Paste each block exactly as written, brackets included. Don't type the file name.
+2. Generate two or three takes and keep the best. Listen for the beat after each line: that's where my cuts land.
+3. If v4 ever reads a direction out loud, or one sounds wrong, regenerate. If it keeps happening, delete that one direction and keep the words.
 
 **Your voice for the pitch:**
 1. In ElevenLabs, open Voices → Add a new voice → Instant Voice Clone.
-2. Upload one to two minutes of you reading anything, recorded on your iPhone in a quiet room.
-3. Use that voice for the pitch lines only. It's the founder's story, so it should sound like you.
+2. Upload one to two minutes of you reading anything, recorded on your phone in a quiet room. v4 copies the recording faithfully, room noise included, so a quiet room matters more than ever.
+3. Use that voice for the pitch only. It's the founder's story, so it should sound like you.
 
-If you'd rather not, use Brian for the pitch too. Either way, the README's AI disclosure will say the narration is generated.
+If you'd rather not, use Brian for the pitch too. Either way, the README's AI disclosure says the narration is generated.
 
-**Pronunciation**, if a take says it wrong:
+**Pronunciation**, only if a take says it wrong: v4 reads IPA between slashes.
 
-| Word | Should sound like | If it doesn't, type |
+| Word | Should sound like | If it doesn't, write |
 |---|---|---|
-| Monad | MOH-nad | `Moe-nad` |
+| Monad | MOH-nad | `/ˈmoʊnæd/` |
+| Unison | YOO-nih-sun | `/ˈjuːnɪsən/` |
 | Chainlink | CHAIN-link | (fine as is) |
-| Unison | YOO-nih-sun | `You-nih-sun` |
-| basis points | spelled out | (already spelled out below) |
 
-**Saving:** save every file into `C:\Users\Dflame\Music\metropolis\video\audio\`, named exactly as the headings below (for example `demo-01.mp3`). Generate each line on its own, and keep the take you like best.
+**Saving:** save every file into `C:\Users\Dflame\Music\metropolis\video\audio\`, named exactly as the headings below (for example `demo-01.mp3`).
 
 ---
 
-## 2. The demo (2:58): "The thirteen seconds"
+## 2. The demo: "The thirteen seconds"
 
-The idea runs through the whole film. A Chainlink price is observed about 13 seconds before it lands on chain, and in those seconds old-rule venues let someone trade against a price that is already old. Unison seals your order before its price exists. The look is a watch movement: Monad's blocks are the ticks, and each auction is the chime.
+A Chainlink price is observed about thirteen seconds before it lands on chain. In those seconds, old-rule venues let someone trade against a price that's already old. Unison seals your order before its price exists. The look is a watch movement: Monad's blocks are the ticks, and each auction is the chime.
 
-### demo-01.mp3: cold open (0:00–0:12)
-On screen: a watch movement in macro, cut to Unison's dial ticking with live Monad blocks.
+### demo-01.mp3: cold open
+On screen: a watch movement in macro, ticking once per Monad block.
 ```
-Every price on a blockchain is already old. <break time="0.5s" /> Chainlink observes the market… <break time="0.4s" /> and thirteen seconds later, that price lands on chain.
-```
-
-### demo-02.mp3: the thirteen seconds (0:12–0:30)
-On screen: a timeline from observation to landing, with a sniper trading in the gap. A counter climbs to 5.3 an hour.
-```
-In those thirteen seconds, anyone watching the market already knows the next price. <break time="0.4s" /> On most venues, they get to trade against the old one. <break time="0.4s" /> We measured it on MON: <break time="0.2s" /> five times an hour, the old price was worth sniping.
+[low, unhurried documentary narration] Every price on a blockchain… is already old.
+[measured] Chainlink sees the market move —
+and about thirteen seconds later, that price finally lands on chain.
 ```
 
-### demo-03.mp3: the idea (0:30–0:45)
-On screen: an order sealed into a block; the next observation lands; one price strikes through the batch.
+### demo-02.mp3: the thirteen seconds
+On screen: the observation, the move on the exchanges, a trade against the old price; a counter climbs to 5.3 an hour.
 ```
-Unison flips the order. <break time="0.4s" /> Your order is sealed first. <break time="0.3s" /> Its price is set after, <break time="0.2s" /> at Chainlink's very next observation. <break time="0.4s" /> One price for everyone in the auction. <break time="0.3s" /> Nothing to snipe.
-```
-
-### demo-04.mp3: live, part one (0:45–0:58)
-On screen: www.unisonfi.com on mainnet. Sign in with a passkey.
-```
-This is Unison, live on Monad mainnet. <break time="0.4s" /> You sign in with a passkey: <break time="0.3s" /> no seed phrase, no extension.
+[a touch of tension] In those thirteen seconds, anyone watching the exchanges already knows the next price.
+On most venues… they can still trade against the old one.
+[matter-of-fact] We measured it on MON.
+FIVE times an hour, the old price was worth sniping.
 ```
 
-### demo-05.mp3: live, part two (0:58–1:06)
-On screen: a WMON sell. The ticket reads "Sealed · waiting for Chainlink".
+### demo-03.mp3: the idea
+On screen: three orders sealed into a block; Chainlink observes; one price strikes through them all.
 ```
-Sell some MON. <break time="0.4s" /> The order is sealed in this block. <break time="0.5s" /> Its price doesn't exist yet.
-```
-*Then six seconds without a voice. The music holds one suspended chord while the order waits.*
-
-### demo-06.mp3: the drop (1:12–1:35)
-On screen: the observation lands on the beat, the order fills, and the certificate draws in.
-```
-There. <break time="0.5s" /> Chainlink's next observation is in, <break time="0.3s" /> and everyone in the auction got the same price. <break time="0.5s" /> The certificate shows every step, <break time="0.2s" /> in the order it happened.
+[confident, warm] Unison flips the order.
+Your order is sealed first.
+[deliberate] Its price is set after —
+at Chainlink's very next observation.
+One price… for everyone in the auction.
+[quiet certainty] Nothing to snipe.
 ```
 
-### demo-07.mp3: don't trust us (1:35–1:55)
-On screen: six PASS lines type out, one percussion hit each, then the transaction on the explorer.
+### demo-04.mp3: live, part one
+On screen: www.unisonfi.com on Monad mainnet; signing in with a passkey.
 ```
-Don't trust us. <break time="0.6s" /> Check. <break time="0.6s" /> One command rebuilds the auction from the chain alone: <break time="0.3s" /> the receipt, <break time="0.2s" /> Chainlink's observation time, <break time="0.2s" /> the seal. <break time="0.4s" /> Six checks. <break time="0.3s" /> Six passes.
-```
-
-### demo-08.mp3: the photo finish (1:55–2:12)
-On screen: split screen like a race broadcast. Our sniper's 3 WMON sale on each rule, block numbers and prices racing, then a freeze-frame finish line.
-```
-Here is our own sniper, <break time="0.2s" /> selling the same three MON under both rules. <break time="0.4s" /> The old rule filled it at a price that was already stale. <break time="0.3s" /> Unison priced it after the seal. <break time="0.5s" /> Forty basis points apart.
+[bright, assured] This is Unison — live on Monad mainnet.
+You sign in with a passkey.
+No seed phrase. No extension.
 ```
 
-### demo-09.mp3: snipe us (2:12–2:30)
-On screen: the challenge board, both pots live, the Envio leaderboard, then a week of trades flowing as a river of points.
+### demo-05.mp3: live, part two
+On screen: a sell of 9 WMON; the order's row turns "Sealed · waits for Chainlink".
 ```
-So we put money on it. <break time="0.3s" /> A standing challenge pays anyone who beats the rule. <break time="0.4s" /> Over a week of real prices, <break time="0.2s" /> our sniper wins on the old rule, <break time="0.3s" /> and loses on Unison.
+[crisp] Sell some MON.
+The order is sealed, right here in this block.
+[lower, intrigued] Its price… doesn't exist yet.
+```
+*Then six seconds without a voice: the chain's clock runs, and the music holds one suspended chord while the order waits.*
+
+### demo-06.mp3: the drop
+On screen: the fill lands on the beat; the certificate draws in; the receipt page and its three times.
+```
+[satisfied, quietly triumphant] There.
+Chainlink's next observation is in —
+and everyone in the auction got the SAME price.
+[warm] The certificate shows every step…
+in the order it happened.
 ```
 
-### demo-10.mp3: agents, and a sentinel (2:30–2:46)
-On screen: a terminal. `mm unison order WMON sell 10` through MetaMask's Agent Wallet, its receipt verified. Then the CRE sentinel's dial, labelled as running in Chainlink's simulator.
+### demo-07.mp3: don't trust us
+On screen: the verifier's six PASS lines type out, one rimshot each.
 ```
-Agents can trade it too. <break time="0.3s" /> Through MetaMask's Agent Wallet, an agent sells in a sealed auction, <break time="0.2s" /> then checks its own receipt. <break time="0.4s" /> And we built a Chainlink sentinel that checks the feed against two exchanges, every thirty seconds.
+[firm, close to the mic] Don't trust us.
+Check.
+[measured] One command rebuilds the auction from the chain alone:
+the receipt,
+Chainlink's observation time,
+the seal.
+[rising confidence] Six checks.
+Six passes.
 ```
 
-### demo-11.mp3: close (2:46–2:58)
-On screen: the Unison mark, the live pot, a QR code to /challenge.
+### demo-08.mp3: the photo finish
+On screen: two lanes like a race broadcast, our sniper's 3 WMON sale on each rule, then the freeze frame.
 ```
-Unison. <break time="0.5s" /> Prices nobody saw first. <break time="0.8s" /> Snipe us. <break time="0.4s" /> The pot is still full.
+[controlled sports-broadcast energy] Here's our own sniper —
+selling the same three MON, under both rules.
+The old rule filled it at a price that was already stale.
+Unison priced it after the seal.
+[emphatic] Forty basis points apart.
+```
+
+### demo-09.mp3: snipe us
+On screen: the live challenge page, both pots and every challenger; then a week of real prices.
+```
+[dry confidence] So we put money on it.
+A standing challenge pays anyone who beats the rule — and the board shows every challenger.
+Over a week of real prices,
+our sniper wins on the old rule…
+and loses on Unison.
+```
+
+### demo-10.mp3: agents, and a sentinel
+On screen: MetaMask's Agent Wallet trading through mm-plugin-unison; the Chainlink CRE sentinel.
+```
+[lighter, brisk] Agents can trade it too.
+Through MetaMask's Agent Wallet, an agent sells in a sealed auction…
+then checks its own receipt.
+[measured] And we built a Chainlink sentinel that checks the feed against two exchanges, every thirty seconds.
+```
+
+### demo-11.mp3: close
+On screen: the Unison mark, the live pot, a QR code to the challenge.
+```
+[warm, resolved] Unison.
+Prices nobody saw first.
+[a playful dare] Snipe us…
+the pot is still full.
 ```
 
 ---
 
-## 3. The pitch (1:55), in your voice
+## 3. The pitch, in your voice
 
-Your photo (`Downloads\Dflame.jpg`) opens and closes it. In between, the proof plays on screen.
+Your photo opens and closes it. In between, the proof plays on screen.
 
-### pitch-01.mp3: who (0:00–0:14)
+### pitch-01.mp3: who
 ```
-I'm Dflame. <break time="0.4s" /> I've traded crypto and stocks for a year, <break time="0.2s" /> and I build products. <break time="0.5s" /> Crypto never closes. <break time="0.3s" /> Stocks do.
-```
-
-### pitch-02.mp3: the problem (0:14–0:34)
-```
-When I trade a tokenized stock on chain, <break time="0.2s" /> the price I get is one somebody faster has already seen. <break time="0.4s" /> Every oracle price is thirteen seconds old when it lands, <break time="0.3s" /> and that gap gets paid to whoever is fastest.
-```
-
-### pitch-03.mp3: the idea (0:34–0:49)
-```
-So I built Unison. <break time="0.4s" /> Orders are sealed first, <break time="0.2s" /> then priced at Chainlink's very next observation: <break time="0.3s" /> one price for everyone, <break time="0.2s" /> with a receipt anyone can check.
+[warm, conversational] I'm Dflame.
+I've traded crypto and stocks for a year…
+and I build products.
+[a slight smile] Crypto never closes.
+Stocks do.
 ```
 
-### pitch-04.mp3: proof (0:49–1:10)
+### pitch-02.mp3: the problem
 ```
-It's live on Monad mainnet. <break time="0.4s" /> On the same trade, the old rule paid a sniper forty basis points more than Unison did. <break time="0.4s" /> Our own sniper runs a standing challenge on both rules. <break time="0.3s" /> It wins on the old one, <break time="0.2s" /> and loses on ours.
-```
-
-### pitch-05.mp3: the market (1:10–1:30)
-```
-Tokenized stocks just hit a record three point eight billion dollars. <break time="0.4s" /> And people want to trade stocks on chain: <break time="0.2s" /> in June, stock perpetuals traded sixteen times the volume of the tokens themselves. <break time="0.5s" /> Issuing the tokens is solved. <break time="0.3s" /> Liquid markets for them aren't.
+[earnest] When I trade a tokenized stock on chain,
+the price I get is one somebody faster has already seen.
+Every oracle price is about thirteen seconds old when it lands —
+and that gap gets paid to whoever is fastest.
 ```
 
-### pitch-06.mp3: next, and the ask (1:30–1:55)
+### pitch-03.mp3: the idea
 ```
-Next: an audit, more stocks as Chainlink's feeds arrive, <break time="0.2s" /> and market makers running vaults. <break time="0.4s" /> If you make markets, issue tokenized stocks, <break time="0.2s" /> or think you're fast enough, <break time="0.3s" /> come snipe us. <break time="0.6s" /> Unison. <break time="0.3s" /> Prices nobody saw first.
+[confident] So I built Unison.
+Orders are sealed first,
+then priced at Chainlink's very next observation:
+one price for everyone,
+with a receipt anyone can check.
+```
+
+### pitch-04.mp3: proof
+```
+[steady, proud] It's live on Monad mainnet.
+On the same trade, the old rule paid a sniper forty basis points more than Unison did.
+Our own sniper runs a standing challenge on both rules.
+It wins on the old one…
+and loses on ours.
+```
+
+### pitch-05.mp3: the market
+```
+[matter-of-fact] Tokenized stocks just hit a record three point eight billion dollars.
+And people want to trade stocks on chain:
+in June, stock perpetuals traded sixteen times the volume of the tokens themselves.
+[pointed] Issuing the tokens is solved.
+Liquid markets for them aren't.
+```
+
+### pitch-06.mp3: next, and the ask
+```
+[forward-looking] Next: an audit, more stocks as Chainlink's feeds arrive,
+and market makers running vaults.
+[direct, inviting] If you make markets, issue tokenized stocks,
+or think you're fast enough…
+come snipe us.
+[warm] Unison.
+Prices nobody saw first.
 ```
 
 ---
@@ -148,7 +226,13 @@ Next: an audit, more stocks as Chainlink's feeds arrive, <break time="0.2s" /> a
 
 ### ad-01.mp3
 ```
-Same trade. <break time="0.4s" /> Two rules. <break time="0.6s" /> One paid the sniper. <break time="0.5s" /> One priced the order after it was sealed. <break time="0.8s" /> Unison. <break time="0.4s" /> Prices nobody saw first. <break time="0.3s" /> Live on Monad.
+[hushed, intense] Same trade.
+Two rules.
+[cold] One paid the sniper.
+[warm] One priced the order after it was sealed.
+[resolved, confident] Unison.
+Prices nobody saw first.
+Live on Monad.
 ```
 
 ---
@@ -163,6 +247,8 @@ Same trade. <break time="0.4s" /> Two rules. <break time="0.6s" /> One paid the 
 `music-pitch.mp3`, 2:00:
 > Warm, minimal, optimistic piano and soft synth pads, 90 BPM, a gentle clock-tick percussion, building slowly to a confident, resolved ending at 1:50. Understated and premium. No vocals.
 
+I find the drop and the held chord in your track and move the film's cuts onto them, so the timings above are a guide, not a rule.
+
 **Sound effects.** Use ElevenLabs Sound Effects, one file each:
 
 | File | Prompt |
@@ -174,91 +260,143 @@ Same trade. <break time="0.4s" /> Two rules. <break time="0.6s" /> One paid the 
 | `sfx-whoosh.mp3` | a fast, soft air whoosh transition, modern |
 | `sfx-shutter.mp3` | a camera shutter for a photo-finish freeze frame |
 
-That's 18 voice files, 2 music tracks and 6 effects for the three films; the bounty videos below add 15 short voice files. When they're in `video\audio\`, tell me.
+That's 33 voice files (18 for the three films, 15 for the bounty videos), 2 music tracks and 6 effects. When they're in `video\audio\`, tell me.
 
 ---
 
-## 6. The bounty videos, in the narrator's voice (Brian)
+## 6. The bounty videos, in the narrator's voice
 
-Each runs about two minutes and shows only real runs: the plugin's mainnet transcript, the CRE simulator against mainnet, and the indexer's tests and leaderboard. They reuse `music-pitch.mp3` at a low level.
+Each runs about two minutes and shows only real runs: the plugin's mainnet session, the CRE simulator against mainnet, and the indexer's tests and live leaderboard. They reuse `music-pitch.mp3` at a low level.
 
-### The MetaMask Agent Wallet plugin (2:05)
+### The MetaMask Agent Wallet plugin
 
 ### mm-01.mp3: what it is
 ```
-This is mm-plugin-unison. <break time="0.3s" /> It lets an AI agent trade on Unison, <break time="0.2s" /> live on Monad mainnet, <break time="0.2s" /> through MetaMask's Agent Wallet.
+[clear, upbeat] This is mm-plugin-unison.
+It lets an AI agent trade on Unison,
+live on Monad mainnet,
+through MetaMask's Agent Wallet.
 ```
 
 ### mm-02.mp3: the keys stay with MetaMask
 ```
-The plugin never holds a key. <break time="0.3s" /> Every transaction goes through the Agent Wallet's own executor, <break time="0.2s" /> which shows a plain-language intent before it signs. <break time="0.4s" /> Reads go straight to Monad.
+[measured] The plugin never holds a key.
+Every transaction goes through the Agent Wallet's own executor —
+which shows a plain-language intent before it signs.
+Reads go straight to Monad.
 ```
 
 ### mm-03.mp3: a sealed sale, on mainnet
 ```
-Here's a real run on mainnet. <break time="0.3s" /> The agent reads the market, <break time="0.2s" /> gets a quote, <break time="0.2s" /> and sells ten wrapped MON in a sealed auction. <break time="0.4s" /> Its price doesn't exist yet. <break time="0.3s" /> Chainlink observes fourteen seconds later, <break time="0.2s" /> and everyone in the auction gets that one price.
+[engaged] Here's a real run on mainnet.
+The agent reads the market,
+gets a quote,
+and sells ten wrapped MON in a sealed auction.
+[lower] Its price doesn't exist yet.
+Chainlink observes fourteen seconds later —
+and everyone in the auction gets that one price.
 ```
 
 ### mm-04.mp3: the agent checks
 ```
-Then the agent checks its own receipt, <break time="0.2s" /> from the chain alone: <break time="0.3s" /> six checks against Chainlink's history. <break time="0.3s" /> Six passes. <break time="0.4s" /> It doesn't have to trust us either.
+[measured] Then the agent checks its own receipt,
+from the chain alone:
+six checks against Chainlink's history.
+Six passes.
+[dry] It doesn't have to trust us either.
 ```
 
 ### mm-05.mp3: the challenge
 ```
-Agents can also enter our standing challenge. <break time="0.3s" /> Open a challenge account, trade, <break time="0.2s" /> and a contract scores every fill against Chainlink's next price. <break time="0.4s" /> Our own sniper is in it: <break time="0.2s" /> it wins on the old rule, <break time="0.2s" /> and loses on Unison's.
+[inviting] Agents can also enter our standing challenge.
+Open a challenge account, trade —
+and a contract scores every fill against Chainlink's next price.
+Our own sniper is in it:
+it wins on the old rule…
+and loses on Unison's.
 ```
 
 ### mm-06.mp3: close
 ```
-Fifteen commands, <break time="0.2s" /> twenty-three unit tests, <break time="0.2s" /> and seven more against a mainnet fork. <break time="0.4s" /> Install it, <break time="0.2s" /> and let your agent try to snipe us.
+[confident] Fifteen commands,
+twenty-three unit tests,
+and seven more against a mainnet fork.
+Install it…
+and let your agent try to snipe us.
 ```
 
-### The Chainlink CRE sentinel (1:50)
+### The Chainlink CRE sentinel
 
 ### cre-01.mp3: why a second opinion
 ```
-Unison prices every auction at Chainlink's first observation after its orders are sealed. <break time="0.4s" /> The feed is the venue's heartbeat. <break time="0.3s" /> So we built it a second opinion, <break time="0.2s" /> on Chainlink's own Runtime Environment.
+[measured] Unison prices every auction at Chainlink's first observation after its orders are sealed.
+The feed is the venue's heartbeat.
+So we built it a second opinion —
+on Chainlink's own Runtime Environment.
 ```
 
 ### cre-02.mp3: what the workflow does
 ```
-Every thirty seconds, <break time="0.2s" /> each node in the network reads the feed's latest observation on Monad mainnet, <break time="0.3s" /> prices MON from Coinbase and Kraken, <break time="0.2s" /> and the nodes agree on a median.
+[clear] Every thirty seconds,
+each node in the network reads the feed's latest observation on Monad mainnet,
+prices MON from Coinbase and Kraken,
+and the nodes agree on a median.
 ```
 
 ### cre-03.mp3: the rule
 ```
-It halts only when the feed is far from the market <break time="0.2s" /> and has gone quiet. <break time="0.4s" /> A healthy feed trailing a fast move must keep trading, <break time="0.3s" /> so a gap alone is never enough.
+[deliberate] It halts only when the feed is far from the market…
+and has gone quiet.
+A healthy feed trailing a fast move must keep trading —
+so a gap alone is never enough.
 ```
 
 ### cre-04.mp3: against mainnet
 ```
-Here it is against mainnet, in Chainlink's simulator. <break time="0.3s" /> Fourteen basis points apart, <break time="0.2s" /> observed sixteen seconds ago: <break time="0.2s" /> keep trading. <break time="0.4s" /> With the thresholds forced to zero, <break time="0.2s" /> it builds the halt report for our receiver contract.
+[engaged] Here it is against mainnet, in Chainlink's simulator.
+Fourteen basis points apart,
+observed sixteen seconds ago:
+keep trading.
+With the thresholds forced to zero,
+it builds the halt report for our receiver contract.
 ```
 
 ### cre-05.mp3: close
 ```
-A halt moves no funds. <break time="0.3s" /> The next auction trades nothing and returns every order. <break time="0.4s" /> Lifting it stays with the guardian.
+[calm] A halt moves no funds.
+The next auction trades nothing and returns every order.
+Lifting it stays with the guardian.
 ```
 
-### The Envio indexer (1:25)
+### The Envio indexer
 
 ### envio-01.mp3: the scoreboard
 ```
-Unison's standing challenge pays anyone who can snipe it. <break time="0.3s" /> Envio's HyperIndex keeps the scoreboard: <break time="0.2s" /> every challenger, on Monad mainnet.
+[upbeat] Unison's standing challenge pays anyone who can snipe it.
+Envio's HyperIndex keeps the scoreboard:
+every challenger, on Monad mainnet.
 ```
 
 ### envio-02.mp3: how
 ```
-When anyone opens a challenge account, <break time="0.2s" /> the factory's event registers the new contract on the fly. <break time="0.3s" /> Every order and every fill is indexed, <break time="0.3s" /> and each fill is marked to Chainlink's price sixty seconds later, <break time="0.2s" /> straight from the feed's own events.
+[clear] When anyone opens a challenge account,
+the factory's event registers the new contract on the fly.
+Every order and every fill is indexed —
+and each fill is marked to Chainlink's price sixty seconds later,
+straight from the feed's own events.
 ```
 
 ### envio-03.mp3: the leaderboard
 ```
-The result is a public leaderboard on the challenge page, <break time="0.2s" /> our own sniper labelled as ours. <break time="0.4s" /> It mirrors the contract's own scoring, <break time="0.2s" /> so what you see is what the pot pays.
+[measured] The result is a public leaderboard on the challenge page,
+our own sniper labelled as ours.
+It matches the contract's own score, to the last unit —
+so what you see is what the pot pays.
 ```
 
 ### envio-04.mp3: close
 ```
-Its tests replay real mainnet blocks. <break time="0.4s" /> Snipe us, <break time="0.2s" /> and Envio will show everyone.
+[confident] Its tests replay real mainnet blocks.
+Snipe us…
+and Envio will show everyone.
 ```

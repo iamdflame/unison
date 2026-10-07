@@ -1,56 +1,56 @@
 {
   "demo-01": [
     {
-      "text": "Every price on a blockchain is already old.",
-      "pause": 0.5
+      "text": "Every price on a blockchain… is already old.",
+      "pause": 0.45
     },
     {
-      "text": "Chainlink observes the market…",
-      "pause": 0.4
+      "text": "Chainlink sees the market move —",
+      "pause": 0.3
     },
     {
-      "text": "and thirteen seconds later, that price lands on chain.",
+      "text": "and about thirteen seconds later, that price finally lands on chain.",
       "pause": 0
     }
   ],
   "demo-02": [
     {
-      "text": "In those thirteen seconds, anyone watching the market already knows the next price.",
-      "pause": 0.4
+      "text": "In those thirteen seconds, anyone watching the exchanges already knows the next price.",
+      "pause": 0.45
     },
     {
-      "text": "On most venues, they get to trade against the old one.",
-      "pause": 0.4
+      "text": "On most venues… they can still trade against the old one.",
+      "pause": 0.45
     },
     {
-      "text": "We measured it on MON:",
-      "pause": 0.2
+      "text": "We measured it on MON.",
+      "pause": 0.45
     },
     {
-      "text": "five times an hour, the old price was worth sniping.",
+      "text": "FIVE times an hour, the old price was worth sniping.",
       "pause": 0
     }
   ],
   "demo-03": [
     {
       "text": "Unison flips the order.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
       "text": "Your order is sealed first.",
-      "pause": 0.3
+      "pause": 0.45
     },
     {
-      "text": "Its price is set after,",
-      "pause": 0.2
+      "text": "Its price is set after —",
+      "pause": 0.3
     },
     {
       "text": "at Chainlink's very next observation.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
-      "text": "One price for everyone in the auction.",
-      "pause": 0.3
+      "text": "One price… for everyone in the auction.",
+      "pause": 0.45
     },
     {
       "text": "Nothing to snipe.",
@@ -59,48 +59,48 @@
   ],
   "demo-04": [
     {
-      "text": "This is Unison, live on Monad mainnet.",
-      "pause": 0.4
+      "text": "This is Unison — live on Monad mainnet.",
+      "pause": 0.45
     },
     {
-      "text": "You sign in with a passkey:",
-      "pause": 0.3
+      "text": "You sign in with a passkey.",
+      "pause": 0.45
     },
     {
-      "text": "no seed phrase, no extension.",
+      "text": "No seed phrase. No extension.",
       "pause": 0
     }
   ],
   "demo-05": [
     {
       "text": "Sell some MON.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
-      "text": "The order is sealed in this block.",
-      "pause": 0.5
+      "text": "The order is sealed, right here in this block.",
+      "pause": 0.45
     },
     {
-      "text": "Its price doesn't exist yet.",
+      "text": "Its price… doesn't exist yet.",
       "pause": 0
     }
   ],
   "demo-06": [
     {
       "text": "There.",
-      "pause": 0.5
+      "pause": 0.45
     },
     {
-      "text": "Chainlink's next observation is in,",
+      "text": "Chainlink's next observation is in —",
       "pause": 0.3
     },
     {
-      "text": "and everyone in the auction got the same price.",
-      "pause": 0.5
+      "text": "and everyone in the auction got the SAME price.",
+      "pause": 0.45
     },
     {
-      "text": "The certificate shows every step,",
-      "pause": 0.2
+      "text": "The certificate shows every step…",
+      "pause": 0.55
     },
     {
       "text": "in the order it happened.",
@@ -110,11 +110,11 @@
   "demo-07": [
     {
       "text": "Don't trust us.",
-      "pause": 0.6
+      "pause": 0.45
     },
     {
       "text": "Check.",
-      "pause": 0.6
+      "pause": 0.45
     },
     {
       "text": "One command rebuilds the auction from the chain alone:",
@@ -122,19 +122,19 @@
     },
     {
       "text": "the receipt,",
-      "pause": 0.2
+      "pause": 0.3
     },
     {
       "text": "Chainlink's observation time,",
-      "pause": 0.2
+      "pause": 0.3
     },
     {
       "text": "the seal.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
       "text": "Six checks.",
-      "pause": 0.3
+      "pause": 0.45
     },
     {
       "text": "Six passes.",
@@ -143,20 +143,20 @@
   ],
   "demo-08": [
     {
-      "text": "Here is our own sniper,",
-      "pause": 0.2
-    },
-    {
-      "text": "selling the same three MON under both rules.",
-      "pause": 0.4
-    },
-    {
-      "text": "The old rule filled it at a price that was already stale.",
+      "text": "Here's our own sniper —",
       "pause": 0.3
     },
     {
+      "text": "selling the same three MON, under both rules.",
+      "pause": 0.45
+    },
+    {
+      "text": "The old rule filled it at a price that was already stale.",
+      "pause": 0.45
+    },
+    {
       "text": "Unison priced it after the seal.",
-      "pause": 0.5
+      "pause": 0.45
     },
     {
       "text": "Forty basis points apart.",
@@ -166,19 +166,19 @@
   "demo-09": [
     {
       "text": "So we put money on it.",
-      "pause": 0.3
+      "pause": 0.45
     },
     {
-      "text": "A standing challenge pays anyone who beats the rule.",
-      "pause": 0.4
+      "text": "A standing challenge pays anyone who beats the rule — and the board shows every challenger.",
+      "pause": 0.45
     },
     {
       "text": "Over a week of real prices,",
-      "pause": 0.2
+      "pause": 0.3
     },
     {
-      "text": "our sniper wins on the old rule,",
-      "pause": 0.3
+      "text": "our sniper wins on the old rule…",
+      "pause": 0.55
     },
     {
       "text": "and loses on Unison.",
@@ -188,15 +188,15 @@
   "demo-10": [
     {
       "text": "Agents can trade it too.",
-      "pause": 0.3
+      "pause": 0.45
     },
     {
-      "text": "Through MetaMask's Agent Wallet, an agent sells in a sealed auction,",
-      "pause": 0.2
+      "text": "Through MetaMask's Agent Wallet, an agent sells in a sealed auction…",
+      "pause": 0.55
     },
     {
       "text": "then checks its own receipt.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
       "text": "And we built a Chainlink sentinel that checks the feed against two exchanges, every thirty seconds.",
@@ -206,37 +206,37 @@
   "demo-11": [
     {
       "text": "Unison.",
-      "pause": 0.5
+      "pause": 0.45
     },
     {
       "text": "Prices nobody saw first.",
-      "pause": 0.8
+      "pause": 0.45
     },
     {
-      "text": "Snipe us.",
-      "pause": 0.4
+      "text": "Snipe us…",
+      "pause": 0.55
     },
     {
-      "text": "The pot is still full.",
+      "text": "the pot is still full.",
       "pause": 0
     }
   ],
   "pitch-01": [
     {
       "text": "I'm Dflame.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
-      "text": "I've traded crypto and stocks for a year,",
-      "pause": 0.2
+      "text": "I've traded crypto and stocks for a year…",
+      "pause": 0.55
     },
     {
       "text": "and I build products.",
-      "pause": 0.5
+      "pause": 0.45
     },
     {
       "text": "Crypto never closes.",
-      "pause": 0.3
+      "pause": 0.45
     },
     {
       "text": "Stocks do.",
@@ -246,14 +246,14 @@
   "pitch-02": [
     {
       "text": "When I trade a tokenized stock on chain,",
-      "pause": 0.2
+      "pause": 0.3
     },
     {
       "text": "the price I get is one somebody faster has already seen.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
-      "text": "Every oracle price is thirteen seconds old when it lands,",
+      "text": "Every oracle price is about thirteen seconds old when it lands —",
       "pause": 0.3
     },
     {
@@ -264,11 +264,11 @@
   "pitch-03": [
     {
       "text": "So I built Unison.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
       "text": "Orders are sealed first,",
-      "pause": 0.2
+      "pause": 0.3
     },
     {
       "text": "then priced at Chainlink's very next observation:",
@@ -276,7 +276,7 @@
     },
     {
       "text": "one price for everyone,",
-      "pause": 0.2
+      "pause": 0.3
     },
     {
       "text": "with a receipt anyone can check.",
@@ -286,19 +286,19 @@
   "pitch-04": [
     {
       "text": "It's live on Monad mainnet.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
       "text": "On the same trade, the old rule paid a sniper forty basis points more than Unison did.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
       "text": "Our own sniper runs a standing challenge on both rules.",
-      "pause": 0.3
+      "pause": 0.45
     },
     {
-      "text": "It wins on the old one,",
-      "pause": 0.2
+      "text": "It wins on the old one…",
+      "pause": 0.55
     },
     {
       "text": "and loses on ours.",
@@ -308,19 +308,19 @@
   "pitch-05": [
     {
       "text": "Tokenized stocks just hit a record three point eight billion dollars.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
       "text": "And people want to trade stocks on chain:",
-      "pause": 0.2
+      "pause": 0.3
     },
     {
       "text": "in June, stock perpetuals traded sixteen times the volume of the tokens themselves.",
-      "pause": 0.5
+      "pause": 0.45
     },
     {
       "text": "Issuing the tokens is solved.",
-      "pause": 0.3
+      "pause": 0.45
     },
     {
       "text": "Liquid markets for them aren't.",
@@ -330,27 +330,27 @@
   "pitch-06": [
     {
       "text": "Next: an audit, more stocks as Chainlink's feeds arrive,",
-      "pause": 0.2
+      "pause": 0.3
     },
     {
       "text": "and market makers running vaults.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
       "text": "If you make markets, issue tokenized stocks,",
-      "pause": 0.2
+      "pause": 0.3
     },
     {
-      "text": "or think you're fast enough,",
-      "pause": 0.3
+      "text": "or think you're fast enough…",
+      "pause": 0.55
     },
     {
       "text": "come snipe us.",
-      "pause": 0.6
+      "pause": 0.45
     },
     {
       "text": "Unison.",
-      "pause": 0.3
+      "pause": 0.45
     },
     {
       "text": "Prices nobody saw first.",
@@ -360,27 +360,27 @@
   "ad-01": [
     {
       "text": "Same trade.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
       "text": "Two rules.",
-      "pause": 0.6
+      "pause": 0.45
     },
     {
       "text": "One paid the sniper.",
-      "pause": 0.5
+      "pause": 0.45
     },
     {
       "text": "One priced the order after it was sealed.",
-      "pause": 0.8
+      "pause": 0.45
     },
     {
       "text": "Unison.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
       "text": "Prices nobody saw first.",
-      "pause": 0.3
+      "pause": 0.45
     },
     {
       "text": "Live on Monad.",
@@ -390,15 +390,15 @@
   "mm-01": [
     {
       "text": "This is mm-plugin-unison.",
-      "pause": 0.3
+      "pause": 0.45
     },
     {
       "text": "It lets an AI agent trade on Unison,",
-      "pause": 0.2
+      "pause": 0.3
     },
     {
       "text": "live on Monad mainnet,",
-      "pause": 0.2
+      "pause": 0.3
     },
     {
       "text": "through MetaMask's Agent Wallet.",
@@ -408,15 +408,15 @@
   "mm-02": [
     {
       "text": "The plugin never holds a key.",
+      "pause": 0.45
+    },
+    {
+      "text": "Every transaction goes through the Agent Wallet's own executor —",
       "pause": 0.3
     },
     {
-      "text": "Every transaction goes through the Agent Wallet's own executor,",
-      "pause": 0.2
-    },
-    {
       "text": "which shows a plain-language intent before it signs.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
       "text": "Reads go straight to Monad.",
@@ -426,27 +426,27 @@
   "mm-03": [
     {
       "text": "Here's a real run on mainnet.",
-      "pause": 0.3
+      "pause": 0.45
     },
     {
       "text": "The agent reads the market,",
-      "pause": 0.2
-    },
-    {
-      "text": "gets a quote,",
-      "pause": 0.2
-    },
-    {
-      "text": "and sells ten wrapped MON in a sealed auction.",
-      "pause": 0.4
-    },
-    {
-      "text": "Its price doesn't exist yet.",
       "pause": 0.3
     },
     {
-      "text": "Chainlink observes fourteen seconds later,",
-      "pause": 0.2
+      "text": "gets a quote,",
+      "pause": 0.3
+    },
+    {
+      "text": "and sells ten wrapped MON in a sealed auction.",
+      "pause": 0.45
+    },
+    {
+      "text": "Its price doesn't exist yet.",
+      "pause": 0.45
+    },
+    {
+      "text": "Chainlink observes fourteen seconds later —",
+      "pause": 0.3
     },
     {
       "text": "and everyone in the auction gets that one price.",
@@ -456,7 +456,7 @@
   "mm-04": [
     {
       "text": "Then the agent checks its own receipt,",
-      "pause": 0.2
+      "pause": 0.3
     },
     {
       "text": "from the chain alone:",
@@ -464,11 +464,11 @@
     },
     {
       "text": "six checks against Chainlink's history.",
-      "pause": 0.3
+      "pause": 0.45
     },
     {
       "text": "Six passes.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
       "text": "It doesn't have to trust us either.",
@@ -478,23 +478,23 @@
   "mm-05": [
     {
       "text": "Agents can also enter our standing challenge.",
+      "pause": 0.45
+    },
+    {
+      "text": "Open a challenge account, trade —",
       "pause": 0.3
     },
     {
-      "text": "Open a challenge account, trade,",
-      "pause": 0.2
-    },
-    {
       "text": "and a contract scores every fill against Chainlink's next price.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
       "text": "Our own sniper is in it:",
-      "pause": 0.2
+      "pause": 0.3
     },
     {
-      "text": "it wins on the old rule,",
-      "pause": 0.2
+      "text": "it wins on the old rule…",
+      "pause": 0.55
     },
     {
       "text": "and loses on Unison's.",
@@ -504,19 +504,19 @@
   "mm-06": [
     {
       "text": "Fifteen commands,",
-      "pause": 0.2
+      "pause": 0.3
     },
     {
       "text": "twenty-three unit tests,",
-      "pause": 0.2
+      "pause": 0.3
     },
     {
       "text": "and seven more against a mainnet fork.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
-      "text": "Install it,",
-      "pause": 0.2
+      "text": "Install it…",
+      "pause": 0.55
     },
     {
       "text": "and let your agent try to snipe us.",
@@ -526,15 +526,15 @@
   "cre-01": [
     {
       "text": "Unison prices every auction at Chainlink's first observation after its orders are sealed.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
       "text": "The feed is the venue's heartbeat.",
-      "pause": 0.3
+      "pause": 0.45
     },
     {
-      "text": "So we built it a second opinion,",
-      "pause": 0.2
+      "text": "So we built it a second opinion —",
+      "pause": 0.3
     },
     {
       "text": "on Chainlink's own Runtime Environment.",
@@ -544,7 +544,7 @@
   "cre-02": [
     {
       "text": "Every thirty seconds,",
-      "pause": 0.2
+      "pause": 0.3
     },
     {
       "text": "each node in the network reads the feed's latest observation on Monad mainnet,",
@@ -552,7 +552,7 @@
     },
     {
       "text": "prices MON from Coinbase and Kraken,",
-      "pause": 0.2
+      "pause": 0.3
     },
     {
       "text": "and the nodes agree on a median.",
@@ -561,15 +561,15 @@
   ],
   "cre-03": [
     {
-      "text": "It halts only when the feed is far from the market",
-      "pause": 0.2
+      "text": "It halts only when the feed is far from the market…",
+      "pause": 0.55
     },
     {
       "text": "and has gone quiet.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
-      "text": "A healthy feed trailing a fast move must keep trading,",
+      "text": "A healthy feed trailing a fast move must keep trading —",
       "pause": 0.3
     },
     {
@@ -580,23 +580,23 @@
   "cre-04": [
     {
       "text": "Here it is against mainnet, in Chainlink's simulator.",
-      "pause": 0.3
+      "pause": 0.45
     },
     {
       "text": "Fourteen basis points apart,",
-      "pause": 0.2
+      "pause": 0.3
     },
     {
       "text": "observed sixteen seconds ago:",
-      "pause": 0.2
+      "pause": 0.3
     },
     {
       "text": "keep trading.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
       "text": "With the thresholds forced to zero,",
-      "pause": 0.2
+      "pause": 0.3
     },
     {
       "text": "it builds the halt report for our receiver contract.",
@@ -606,11 +606,11 @@
   "cre-05": [
     {
       "text": "A halt moves no funds.",
-      "pause": 0.3
+      "pause": 0.45
     },
     {
       "text": "The next auction trades nothing and returns every order.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
       "text": "Lifting it stays with the guardian.",
@@ -620,11 +620,11 @@
   "envio-01": [
     {
       "text": "Unison's standing challenge pays anyone who can snipe it.",
-      "pause": 0.3
+      "pause": 0.45
     },
     {
       "text": "Envio's HyperIndex keeps the scoreboard:",
-      "pause": 0.2
+      "pause": 0.3
     },
     {
       "text": "every challenger, on Monad mainnet.",
@@ -634,19 +634,19 @@
   "envio-02": [
     {
       "text": "When anyone opens a challenge account,",
-      "pause": 0.2
-    },
-    {
-      "text": "the factory's event registers the new contract on the fly.",
       "pause": 0.3
     },
     {
-      "text": "Every order and every fill is indexed,",
+      "text": "the factory's event registers the new contract on the fly.",
+      "pause": 0.45
+    },
+    {
+      "text": "Every order and every fill is indexed —",
       "pause": 0.3
     },
     {
       "text": "and each fill is marked to Chainlink's price sixty seconds later,",
-      "pause": 0.2
+      "pause": 0.3
     },
     {
       "text": "straight from the feed's own events.",
@@ -656,15 +656,15 @@
   "envio-03": [
     {
       "text": "The result is a public leaderboard on the challenge page,",
-      "pause": 0.2
+      "pause": 0.3
     },
     {
       "text": "our own sniper labelled as ours.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
-      "text": "It mirrors the contract's own scoring,",
-      "pause": 0.2
+      "text": "It matches the contract's own score, to the last unit —",
+      "pause": 0.3
     },
     {
       "text": "so what you see is what the pot pays.",
@@ -674,11 +674,11 @@
   "envio-04": [
     {
       "text": "Its tests replay real mainnet blocks.",
-      "pause": 0.4
+      "pause": 0.45
     },
     {
-      "text": "Snipe us,",
-      "pause": 0.2
+      "text": "Snipe us…",
+      "pause": 0.55
     },
     {
       "text": "and Envio will show everyone.",
