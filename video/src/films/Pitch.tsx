@@ -1,4 +1,5 @@
 import { type Beat, Film, plan, type PlanProps } from "../kit/Plan";
+import { MUSIC_DEMO } from "./Demo";
 import { Idea } from "../scenes/Idea";
 import { Ask } from "../scenes/pitch/Ask";
 import { Founder } from "../scenes/pitch/Founder";
@@ -28,6 +29,13 @@ export const PITCH: Beat[] = [
   { id: "ask", Scene: Ask, seconds: 20, voice: [{ id: "pitch-06", at: 0.3 }] },
 ];
 
-export const planPitch = () => plan(PITCH, "music-pitch.mp3");
+// The pitch borrows the demo's score, cut to its own moments, until it has one of its own (SCRIPT.md, music-pitch.mp3):
+// the score falls away under "Liquid markets for them aren't.", drops on "Next", and rings its bell on "Unison."
+export const planPitch = () =>
+  plan(PITCH, {
+    file: "music-demo.mp3",
+    drop: { track: MUSIC_DEMO.drop, beat: "ask", at: 0 },
+    end: { track: MUSIC_DEMO.bell, lead: MUSIC_DEMO.fall, beat: "ask", voice: "pitch-06", line: 5, at: -0.2 },
+  });
 
 export const Pitch = (props: PlanProps) => <Film beats={PITCH} plan={props} music />;
