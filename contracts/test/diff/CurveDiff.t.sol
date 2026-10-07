@@ -291,7 +291,9 @@ contract CurveDiffTest is Test {
             uint256 rr = _r(seed, 1000 + i);
             uint256 side = rr % 2;
             uint256 spread = 1 + (rr >> 8) % 300;
-            uint256 tick = (rr >> 24) % 2 == 0 ? ref + (rr >> 32) % spread : ref - (rr >> 32) % spread;
+            uint256 d = (rr >> 32) % spread;
+            // below the reference by at most ref - 1: a reference near the floor (ref ≥ 200) must not underflow
+            uint256 tick = (rr >> 24) % 2 == 0 ? ref + d : ref - d % ref;
             uint256 qty = 1 + (rr >> 64) % 30e18;
             vm.prank(traders[i % 4]);
             ex.placeOrder(a.mkt, side, tick, qty, (rr >> 160) % 5 == 0 ? 1 : 0);
