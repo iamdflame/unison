@@ -301,16 +301,28 @@ export class LiveMarket {
       // a causal market takes auction orders only, and a relayer may hold its signature for at most 60 s
       const causal = !!this.store.get().causal;
       if (causal) ioc = true;
+      const amount = BigInt(Math.round(qty * Number(this.baseUnit)));
       const { job, nonce } = await relayOrder(this.net, {
         marketId: this.marketId,
         side,
         tick,
-        qty: BigInt(Math.round(qty * Number(this.baseUnit))),
+        qty: amount,
         ioc,
         ...(causal ? { ttlSeconds: 60 } : {}),
       });
       const placed: MyOrder = { id: Number(nonce % 1_000_000_000n), side, tick, qty, filled: 0, quote: 0, fee: 0, ioc, status: "pending", placedBlock: this.store.get().block, batches: [], locked: 0 };
-      liveAccount.set((a) => ({ ...a, orders: { ...a.orders, [this.spec.ticker]: [placed, ...(a.orders[this.spec.ticker] ?? [])] } }));
+      // What the order holds leaves the free balance now, as it will on chain: until the account reloads, the ticket
+      // must not offer it again. A bid holds its notional at the limit plus the fee cap, an ask its base.
+      const ticker = this.spec.ticker;
+      const quoteDecimals = this.net.deployment.tokens?.AUSD?.decimals ?? 6;
+      const bid = side === "buy" && this.tickSize > 0n ? units(buyLock(amount, BigInt(tick) * this.tickSize, BigInt(this.spec.maxFeeBps), this.baseUnit), quoteDecimals) : 0;
+      liveAccount.set((a) => ({
+        ...a,
+        ...(side === "buy"
+          ? { quote: Math.max(0, a.quote - bid), lockedQuote: a.lockedQuote + bid }
+          : { base: { ...a.base, [ticker]: Math.max(0, (a.base[ticker] ?? 0) - qty) }, lockedBase: { ...a.lockedBase, [ticker]: (a.lockedBase[ticker] ?? 0) + qty } }),
+        orders: { ...a.orders, [ticker]: [placed, ...(a.orders[ticker] ?? [])] },
+      }));
       relayer
         .waitForJob(job)
         .then((j) => {
@@ -321,8 +333,10 @@ export class LiveMarket {
         .catch(async (e: unknown) => {
           liveAccount.set((a) => ({
             ...a,
-            orders: { ...a.orders, [this.spec.ticker]: (a.orders[this.spec.ticker] ?? []).map((o) => (o.id === placed.id ? { ...o, status: "expired" } : o)) },
+            orders: { ...a.orders, [ticker]: (a.orders[ticker] ?? []).map((o) => (o.id === placed.id ? { ...o, status: "expired" } : o)) },
           }));
+          // the chain's balances replace the hold taken above
+          void refreshAccount(this.net);
           console.warn(await describeError(e).catch(() => e));
         });
       return placed;
