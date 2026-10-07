@@ -1,11 +1,11 @@
 import { type Beat, Film, plan, type PlanProps } from "../kit/Plan";
 import { Agent } from "../scenes/Agent";
-import { Challenge } from "../scenes/Challenge";
 import { Close } from "../scenes/Close";
 import { ColdOpen } from "../scenes/ColdOpen";
 import { Idea } from "../scenes/Idea";
 import { Live, LIVE_CUES, LIVE_SECONDS } from "../scenes/Live";
 import { PhotoFinish } from "../scenes/PhotoFinish";
+import { SnipeUs } from "../scenes/SnipeUs";
 import { Thirteen } from "../scenes/Thirteen";
 import { Verify, VERIFY_LINES } from "../scenes/Verify";
 
@@ -64,7 +64,7 @@ export const DEMO: Beat[] = [
       { file: "sfx-shutter.mp3", at: 9.98, volume: 0.7 },
     ],
   },
-  { id: "challenge", Scene: Challenge, seconds: 8, voice: [{ id: "demo-09", at: 0.3 }] },
+  { id: "challenge", Scene: SnipeUs, seconds: 12, voice: [{ id: "demo-09", at: 0.3 }] },
   { id: "agent", Scene: Agent, seconds: 11, voice: [{ id: "demo-10", at: 0.3 }] },
   { id: "close", Scene: Close, seconds: 8, voice: [{ id: "demo-11", at: 0.4 }] },
 ];

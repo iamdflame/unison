@@ -22,7 +22,7 @@ function Bar({ x, bps, color, label, sub, at, t }: { x: number; bps: number; col
           {`${Math.abs(bps * g).toFixed(1)} bp`}
         </div>
       </div>
-      <div style={{ position: "absolute", left: x - 70, width: 320, top: 930, textAlign: "center", opacity: g }}>
+      <div style={{ position: "absolute", left: x - 70, width: 320, top: 876, textAlign: "center", opacity: g }}>
         <div style={{ fontFamily: F.text, fontSize: 26, color: C.ink, fontWeight: 600 }}>{label}</div>
         <div style={{ fontFamily: F.text, fontSize: 20, color: C.ink3, marginTop: 4 }}>{sub}</div>
       </div>
@@ -30,7 +30,11 @@ function Bar({ x, bps, color, label, sub, at, t }: { x: number; bps: number; col
   );
 }
 
-export const Challenge = () => {
+/**
+ * `week`: only the week's replay, its bars landing at `oldAt` and `unisonAt` (seconds): for a film that has just
+ * shown the live scores on the page itself.
+ */
+export const Challenge = ({ week = false, oldAt = 0.8, unisonAt = 1.6 }: { week?: boolean; oldAt?: number; unisonAt?: number }) => {
   const f = useCurrentFrame();
   const t = f / s(1);
   const head = settle(interpolate(t, [0, 0.8], [0, 1]));
@@ -55,10 +59,14 @@ export const Challenge = () => {
         the pot pays above +{K.terms.epsilonBps} bp
       </div>
 
-      <Bar x={360} bps={K.live.oldBps} color={C.sell} label="Old rule, live" sub={`${K.live.fills} fills on mainnet`} at={1.0} t={t} />
+      {week ? null : (
+        <>
+          <Bar x={360} bps={K.live.oldBps} color={C.sell} label="Old rule, live" sub={`${K.live.fills} fills on mainnet`} at={1.0} t={t} />
       <Bar x={640} bps={K.live.causalBps} color={C.accent} label="Unison, live" sub={`${K.live.fills} fills on mainnet`} at={1.5} t={t} />
-      <Bar x={1080} bps={K.replay.oldBps} color={C.sell} label="Old rule, a week" sub={`${K.replay.trades.toLocaleString("en-US")} trades replayed`} at={4.0} t={t} />
-      <Bar x={1360} bps={K.replay.causalBps} color={C.accent} label="Unison, a week" sub={`${K.replay.rounds.toLocaleString("en-US")} Chainlink rounds`} at={4.5} t={t} />
+        </>
+      )}
+      <Bar x={week ? 620 : 1080} bps={K.replay.oldBps} color={C.sell} label="Old rule, a week" sub={`${K.replay.trades.toLocaleString("en-US")} trades replayed`} at={week ? oldAt : 4.0} t={t} />
+      <Bar x={week ? 1120 : 1360} bps={K.replay.causalBps} color={C.accent} label="Unison, a week" sub={`${K.replay.rounds.toLocaleString("en-US")} Chainlink rounds`} at={week ? unisonAt : 4.5} t={t} />
     </AbsoluteFill>
   );
 };

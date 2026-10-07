@@ -85,11 +85,11 @@ export const AGENT_SALE = {
   ],
 };
 
-/** The standing challenge: the pots, the house sniper's live score (mm unison challenge score, 7 October 00:50 UTC)
+/** The standing challenge: the pots, the house sniper's live score (the /challenge page, scored 7 October 02:25 UTC)
  * and its week-long replay (facts.challenge, docs/evidence/challenge.md). */
 export const CHALLENGE = {
   pots: { causal: "18 AUSD", old: "1 AUSD" },
-  live: { fills: 9, causalBps: -18.59, oldBps: 14.15 },
+  live: { fills: 11, causalBps: -22.0, oldBps: 11.04 },
   replay: { trades: 208_414, rounds: 15_992, oldBps: 17.8, causalBps: -23.0, oldWinsPct: 72 },
   terms: { minFills: 30, epsilonBps: 2, horizonSec: 60 },
 };

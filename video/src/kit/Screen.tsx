@@ -145,8 +145,9 @@ export function Shot({
   const T = TAKES[take];
   const page = T.viewport ?? { width: W, height: H };
   const played = Math.max(1, Math.round((((to ?? T.seconds) - from) / rate) * FPS));
-  const shown = Math.min(f, played - 1);
-  const t = from + (shown / FPS) * rate;
+  // the picture stops at its last frame; the camera, the pointer and the overlays keep the take's clock running,
+  // so a push can carry on over a held frame
+  const t = from + (f / FPS) * rate;
   const cam = cameraAt(moves, t, page);
   const k = W / page.width;
   return (
