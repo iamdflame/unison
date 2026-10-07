@@ -6,7 +6,7 @@ import { explainRevert, UnisonError } from "../src/lib/chain.ts";
 import { selectedEvmAddress } from "../src/lib/host-state.ts";
 import type { MarketState } from "../src/lib/markets.ts";
 import { resolveClearTx } from "../src/lib/receipt.ts";
-import { planOrder } from "../src/lib/trading.ts";
+import { findClaim, planOrder } from "../src/lib/trading.ts";
 import { buyLock, fromUnits, tickAtOrAbove, tickAtOrBelow, toUnits } from "../src/lib/units.ts";
 import { marketByName, markets, tokenByName } from "../src/lib/venue.ts";
 
@@ -179,5 +179,28 @@ describe("finding an auction from what a person has", () => {
 
   it("refuses anything else", async () => {
     await expect(resolveClearTx(client, "yesterday's trade")).rejects.toThrow(/receipt link/);
+  });
+});
+
+describe("reading what a claim paid", () => {
+  // the keeper's claim of the agent's sale on 7 October: block 111,182,202, 79 blocks after the order
+  const AGENT = "0x5E986eC96d2979f278814452ad08c33C3c0AEA4b";
+  const claim = { transactionHash: "0x06bb", blockNumber: 111_182_202n, args: { slot: 0n, baseAmount: 0n, quoteAmount: 283_424n, fee: 85n } };
+  /** A public RPC that answers the first head from a node still behind the claim, as on 7 October. */
+  const lagging = () => {
+    const heads = [111_182_190n, 111_182_210n];
+    return {
+      getBlockNumber: async () => heads.shift() ?? 111_182_210n,
+      getContractEvents: async (q: { fromBlock: bigint; toBlock: bigint }) => (q.fromBlock <= claim.blockNumber && claim.blockNumber <= q.toBlock ? [claim] : []),
+    } as unknown as PublicClient;
+  };
+
+  it("finds the claim once the node it asks has the block, instead of giving up", async () => {
+    const c = await findClaim(lagging(), 1, AGENT, 0n, 111_182_123n, { waitMs: 0 });
+    expect(c).toEqual({ tx: "0x06bb", block: 111_182_202n, baseAmount: 0n, quoteAmount: 283_424n, fee: 85n });
+  });
+
+  it("ignores another order's claim, and says so when there is none", async () => {
+    expect(await findClaim(lagging(), 1, AGENT, 3n, 111_182_123n, { tries: 2, waitMs: 0 })).toBeNull();
   });
 });

@@ -184,20 +184,34 @@ export async function settleOrder(w: Writer, p: OrderPlan, placed: Placed, opts:
     });
     by = "agent";
   }
-  const head = await w.client.getBlockNumber();
-  for (let from = placed.block; from <= head; from += LOG_SPAN) {
-    const to = from + LOG_SPAN - 1n < head ? from + LOG_SPAN - 1n : head;
-    const logs = await w.client.getContractEvents({ address: exchange, abi: unisonExchangeAbi, eventName: "Claimed", args: { marketId: BigInt(p.market.id), account: w.account }, fromBlock: from, toBlock: to });
-    const c = logs.find((l) => l.args.slot === placed.slot && l.blockNumber >= placed.block);
-    if (c) {
-      const a = c.args;
-      // a buy is credited its base and refunded what its lock didn't spend; a sell is paid its quote and returned unfilled base
-      return p.side === 0
-        ? { claimTx: c.transactionHash, base: a.baseAmount!, quote: p.lock - a.quoteAmount!, fee: a.fee!, claimedBy: by }
-        : { claimTx: c.transactionHash, base: p.qty - a.baseAmount!, quote: a.quoteAmount!, fee: a.fee!, claimedBy: by };
+  const c = await findClaim(w.client, p.market.id, w.account, placed.slot, placed.block);
+  if (!c) throw new UnisonError("UNISON_NO_CLAIM_EVENT", `the order in slot ${placed.slot} settled, but its Claimed event wasn't found`, "`mm unison balance` shows the account's balances.");
+  // a buy is credited its base and refunded what its lock didn't spend; a sell is paid its quote and returned unfilled base
+  return p.side === 0
+    ? { claimTx: c.tx, base: c.baseAmount, quote: p.lock - c.quoteAmount, fee: c.fee, claimedBy: by }
+    : { claimTx: c.tx, base: p.qty - c.baseAmount, quote: c.quoteAmount, fee: c.fee, claimedBy: by };
+}
+
+/**
+ * The Claimed event of an order, from the block it was placed in. A public RPC is many nodes, a block or two apart:
+ * the one that just said the order is settled can be ahead of the one asked for the logs. So a miss is retried with
+ * a fresh head for a few seconds, each pass reading the last few blocks again in case a lagging node answered them
+ * empty.
+ */
+export async function findClaim(client: PublicClient, marketId: number, account: Address, slot: bigint, fromBlock: bigint, opts: { tries?: number; waitMs?: number } = {}) {
+  let from = fromBlock;
+  for (let attempt = 0; attempt < (opts.tries ?? 8); attempt++) {
+    if (attempt > 0) await sleep(opts.waitMs ?? 1_500);
+    const head = await client.getBlockNumber();
+    for (let lo = from; lo <= head; lo += LOG_SPAN) {
+      const hi = lo + LOG_SPAN - 1n < head ? lo + LOG_SPAN - 1n : head;
+      const logs = await client.getContractEvents({ address: exchange, abi: unisonExchangeAbi, eventName: "Claimed", args: { marketId: BigInt(marketId), account }, fromBlock: lo, toBlock: hi });
+      const c = logs.find((l) => l.args.slot === slot && l.blockNumber >= fromBlock);
+      if (c) return { tx: c.transactionHash, block: c.blockNumber, baseAmount: c.args.baseAmount!, quoteAmount: c.args.quoteAmount!, fee: c.args.fee! };
     }
+    if (head > from + 20n) from = head - 20n;
   }
-  throw new UnisonError("UNISON_NO_CLAIM_EVENT", `the order in slot ${placed.slot} settled, but its Claimed event wasn't found`, "`mm unison balance` shows the account's balances.");
+  return null;
 }
 
 /** Wallet and venue balances for every listed token, plus native MON for gas. */
