@@ -46,7 +46,7 @@ type Frame = { light: Rect; radius: number; card: { x: number; y: number } };
 /**
  * The light and the card, moved frame by frame. Each frame measures the lit element where it is now, so a glide that
  * starts while the page scrolls to it still lands on it; after the glide, scrolling, resizing and live figures that
- * change an element's size move the light with it, at once.
+ * change an element's size, or move it by changing what sits above it, move the light with it, at once.
  */
 class Spotlight {
   compact = false;
@@ -71,9 +71,12 @@ class Spotlight {
 
   /** Lights an element (or nothing: the card alone, centred), gliding from wherever the light is now. */
   aim(el: HTMLElement | null) {
-    if (this.el) this.sizes.unobserve(this.el);
+    this.sizes.disconnect();
+    if (this.card.current) this.sizes.observe(this.card.current);
     this.el = el;
-    if (el) this.sizes.observe(el);
+    // the element and everything it sits in: a live figure above it that grows moves it without resizing it, but it
+    // resizes its container
+    for (let n = el; n && n !== document.body; n = n.parentElement) this.sizes.observe(n);
     this.radius = el ? Math.min(32, Math.max(10, (parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0) + PAD)) : 12;
     this.from = this.cur;
     this.start = performance.now();
