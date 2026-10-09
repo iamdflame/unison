@@ -41,6 +41,9 @@ contract UnisonExchange is
     bytes32 public constant GATEWAY_ROLE = keccak256("GATEWAY_ROLE");
     /// @notice Writes daily TSV volume caps (percent of ADV), e.g. the CRE ADV workflow.
     bytes32 public constant CAP_ROLE = keccak256("CAP_ROLE");
+    /// @notice A role nobody holds or can ever be granted (it administers itself): GATEWAY_ROLE's admin after
+    ///         initializeV2, so a new gateway can only come with an upgrade, behind the timelock.
+    bytes32 public constant LOCKED_ROLE = keccak256("unison.locked");
 
     // ------------------------------------------------------------------ init / admin
 
@@ -59,8 +62,28 @@ contract UnisonExchange is
         _grantRole(CAP_ROLE, admin);
     }
 
+    /// @notice v2: no key may grant GATEWAY_ROLE (a gateway can move an account's funds), so a new gateway needs an
+    ///         upgrade. Called once, atomically with the upgrade that introduces it, or right after a fresh deployment
+    ///         has granted its gateway.
+    function initializeV2() external reinitializer(2) onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setRoleAdmin(LOCKED_ROLE, LOCKED_ROLE);
+        _setRoleAdmin(GATEWAY_ROLE, LOCKED_ROLE);
+    }
+
+    /// @notice The implementation's version: 2 adds return-only clears for stopped markets, the locked gateway role,
+    ///         sources that can't block a clear, and no curve quotes outside an open session.
+    function version() external pure returns (uint256) {
+        return 2;
+    }
+
     function _authorizeUpgrade(address) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
+    function _isPaused() internal view override returns (bool) {
+        return paused();
+    }
+
+    /// @notice Stops order entry. Clears keep running, in return-only mode: no oracle is read and every waiting order
+    ///         goes back to its owner, so a pause delays trading and never holds a sealed order.
     function pause() external onlyRole(GUARDIAN_ROLE) {
         _pause();
     }
@@ -279,6 +302,13 @@ contract UnisonExchange is
         emit CausalSet(marketId, adapter, on, skewSec);
     }
 
+    /// @notice Withdraws a gateway's power to act for accounts, at once: for a gateway found faulty. One-way: adding a
+    ///         gateway takes an upgrade. Accounts that act only through it wait for its replacement.
+    function revokeGateway(address gateway) external onlyRole(GUARDIAN_ROLE) {
+        if (!_revokeRole(GATEWAY_ROLE, gateway)) revert InvalidParams();
+        emit GatewayRevoked(gateway, msg.sender);
+    }
+
     function setKeeperReward(uint256 amount) external onlyRole(OPERATOR_ROLE) {
         _s().keeperReward = amount;
     }
@@ -463,7 +493,6 @@ contract UnisonExchange is
     /// @param payload reference-adapter payload (e.g. an operator-signed price), may be empty
     function clear(uint256 marketId, bytes calldata payload)
         external
-        whenNotPaused
         nonReentrant
         returns (uint256 tick, uint256 volume)
     {
@@ -475,7 +504,6 @@ contract UnisonExchange is
     ///         On a causal market the observation sets the batch, and `upTo` only bounds a DISCOVERY call auction.
     function clearUpTo(uint256 marketId, uint256 upTo, bytes calldata payload)
         external
-        whenNotPaused
         nonReentrant
         returns (uint256 tick, uint256 volume)
     {

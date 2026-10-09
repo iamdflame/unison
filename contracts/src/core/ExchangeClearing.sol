@@ -22,6 +22,14 @@ import {ICurveSource} from "../interfaces/ICurveSource.sol";
 ///         No call ever does unbounded work, so no amount of resting orders can make clearing impossible.
 ///         While a job runs, cancels that would change a level it may touch are refused (ClearInProgress).
 abstract contract ExchangeClearing is ExchangeBase {
+    /// @dev AuctionReturned reasons: why a market's auction returned its orders instead of pricing them.
+    uint8 internal constant RETURN_PAUSED = 1;
+    uint8 internal constant RETURN_HALTED = 2;
+    uint8 internal constant RETURN_INACTIVE = 3;
+
+    /// @dev Whether the exchange is paused (PausableUpgradeable lives in the concrete contract).
+    function _isPaused() internal view virtual returns (bool);
+
     /// @return tick clearing tick (0 if no trade)
     /// @return volume executed base volume
     /// @return done whether the job completed in this call
@@ -60,10 +68,17 @@ abstract contract ExchangeClearing is ExchangeBase {
     }
 
     /// @dev Opens a job: binds the reference (published after the newest covered batch closed, SPEC §7; on causal
-    ///      markets, the first oracle observation after the oldest waiting order, SPEC §7.4), applies the halt
-    ///      override and the DISCOVERY call-auction cadence.
+    ///      markets, the first oracle observation after the oldest waiting order, SPEC §7.4) and applies the DISCOVERY
+    ///      call-auction cadence. A stopped market (the exchange paused, the market halted or inactive) instead opens
+    ///      a return-only job: stopping a market can never trap an order that cannot be cancelled.
     function _openJob(uint256 marketId, Market storage m, Job memory j, uint256 upTo, bytes calldata payload) private {
-        if (!m.active) revert MarketInactive();
+        uint8 stop = _isPaused()
+            ? RETURN_PAUSED
+            : _s().regimes[marketId].halted ? RETURN_HALTED : !m.active ? RETURN_INACTIVE : 0;
+        if (stop != 0) {
+            _openReturnJob(marketId, m, j, upTo, stop);
+            return;
+        }
         if (upTo >= block.number) revert InvalidParams(); // the batch of the current block is still open
         uint256 px;
         uint256 pubMs;
@@ -78,7 +93,6 @@ abstract contract ExchangeClearing is ExchangeBase {
             if (newestTs != 0 && pubMs < (newestTs + (m.strictAfterClose ? 1 : 0)) * 1000) revert StaleReference();
         }
         Regime storage g = _s().regimes[marketId];
-        if (g.halted) st = IReferenceAdapter.Status.HALTED;
         if (
             st == IReferenceAdapter.Status.CLOSED && g.discCadence > 1 && g.lastDiscoveryBatch != 0
                 && upTo < uint256(g.lastDiscoveryBatch) + g.discCadence
@@ -88,6 +102,21 @@ abstract contract ExchangeClearing is ExchangeBase {
         j.refPrice = px;
         j.refTimeMs = uint64(pubMs);
         j.status = uint8(st);
+    }
+
+    /// @dev A stopped market's job. No reference is read, so none can be stale, missing or chosen; the status is
+    ///      HALTED, so no auction runs and CLOSE_IOC returns every waiting auction order (on a causal market, every order),
+    ///      while resting orders stay on their books, cancellable. The last reference carries forward unused: the receipt
+    ///      records it, and the vaults' queues keep their clock. A job already running finishes as it was bound.
+    function _openReturnJob(uint256 marketId, Market storage m, Job memory j, uint256 upTo, uint8 reason) private {
+        if (upTo >= block.number) revert InvalidParams();
+        if (upTo <= m.lastCleared) revert NothingToClear();
+        j.phase = PHASE_MERGE;
+        j.upTo = uint64(upTo);
+        j.refPrice = m.lastRefPrice;
+        j.refTimeMs = m.lastRefTimeMs;
+        j.status = uint8(IReferenceAdapter.Status.HALTED);
+        emit AuctionReturned(marketId, upTo, reason);
     }
 
     /// @dev Causal markets (SPEC §7.4). The auction for the oldest waiting order prices at the first oracle observation
@@ -305,12 +334,16 @@ abstract contract ExchangeClearing is ExchangeBase {
     }
 
     /// @dev Reads every curve source (gas-capped), clips it to the band, caps it by the source's ledger
-    ///      inventory (bids: worst-case cost at the top bid tick) and merges it into the clearing input.
+    ///      inventory (bids: worst-case cost at the top bid tick) and merges it into the clearing input. Sources quote
+    ///      only in an open session (OPEN, EXTENDED): while a market is closed its auctions are among traders alone.
     function _loadCurves(uint256 marketId, Market storage m, Job memory j, uint256 refTick, Clearing.Input memory x)
         private
         view
         returns (CurveSlot[] memory cs)
     {
+        if (j.status != uint8(IReferenceAdapter.Status.OPEN) && j.status != uint8(IReferenceAdapter.Status.EXTENDED)) {
+            return cs; // empty
+        }
         address[] storage srcs = _s().sources[marketId];
         cs = new CurveSlot[](srcs.length);
         uint256 lo = x.lo;
@@ -318,9 +351,9 @@ abstract contract ExchangeClearing is ExchangeBase {
         for (uint256 i = 0; i < srcs.length; ++i) {
             CurveSlot memory c = cs[i];
             c.src = srcs[i];
-            try ICurveSource(c.src).curve{gas: CURVE_GAS}(marketId, j.refPrice, j.status, refTick, lo, hi) returns (
-                ICurveSource.Curve memory cv
-            ) {
+            (bool ok, ICurveSource.Curve memory cv) =
+                _readCurve(c.src, abi.encodeCall(ICurveSource.curve, (marketId, j.refPrice, j.status, refTick, lo, hi)));
+            if (ok) {
                 if (cv.bidTop != 0 && cv.bidTicks != 0 && cv.bidPerTick != 0) {
                     uint256 top = cv.bidTop > hi ? hi : cv.bidTop;
                     uint256 bot = uint256(cv.bidTop) + 1 > cv.bidTicks ? uint256(cv.bidTop) + 1 - cv.bidTicks : 1;
@@ -355,8 +388,39 @@ abstract contract ExchangeClearing is ExchangeBase {
                         }
                     }
                 }
-            } catch {}
+            }
         }
+    }
+
+    /// @dev One source's curve, read so that no source can make the clear revert: a gas-capped staticcall that copies
+    ///      at most the struct's six words (a huge reply can't exhaust memory), used only if the call succeeded, the
+    ///      reply holds all six, and each fits its field. A reply that doesn't decode, a call to an address without
+    ///      code, a revert or a gas burn all read as "no quote". (`try`/`catch` catches only the revert.)
+    function _readCurve(address src, bytes memory data) private view returns (bool ok, ICurveSource.Curve memory cv) {
+        uint256 gasCap = CURVE_GAS;
+        uint256 w0;
+        uint256 w1;
+        uint256 w2;
+        uint256 w3;
+        uint256 w4;
+        uint256 w5;
+        assembly ("memory-safe") {
+            let out := mload(0x40) // scratch beyond the free pointer: read before anything else allocates
+            ok := staticcall(gasCap, src, add(data, 0x20), mload(data), out, 0xc0)
+            if lt(returndatasize(), 0xc0) { ok := 0 }
+            w0 := mload(out)
+            w1 := mload(add(out, 0x20))
+            w2 := mload(add(out, 0x40))
+            w3 := mload(add(out, 0x60))
+            w4 := mload(add(out, 0x80))
+            w5 := mload(add(out, 0xa0))
+        }
+        if (!ok) return (false, cv);
+        if (
+            w0 > type(uint32).max || w1 > type(uint32).max || w2 > type(uint128).max || w3 > type(uint32).max
+                || w4 > type(uint32).max || w5 > type(uint128).max
+        ) return (false, cv);
+        cv = ICurveSource.Curve(uint32(w0), uint32(w1), uint128(w2), uint32(w3), uint32(w4), uint128(w5));
     }
 
     /// @dev Settles every curve source atomically at the auction price. Ticks strictly better than the marginal
@@ -400,10 +464,13 @@ abstract contract ExchangeClearing is ExchangeBase {
             j.filledAsk += fa;
             j.work += 1;
             emit CurveFilled(marketId, c.src, j.upTo, fb, pay, fa, get);
-            try ICurveSource(c.src).onAuction{gas: CURVE_GAS}(
-                marketId, j.upTo, j.price, j.refPrice, fb, pay, fa, get
-            ) {}
-                catch {}
+            // a notice only: gas-capped, its reply never copied, its failure (or a source without code) ignored
+            bytes memory note = abi.encodeCall(ICurveSource.onAuction, (marketId, j.upTo, j.price, j.refPrice, fb, pay, fa, get));
+            address src = c.src;
+            uint256 gasCap = CURVE_GAS;
+            assembly ("memory-safe") {
+                pop(call(gasCap, src, 0, add(note, 0x20), mload(note), 0, 0))
+            }
         }
     }
 

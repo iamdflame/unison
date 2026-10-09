@@ -233,6 +233,11 @@ abstract contract ExchangeBase {
     event CausalReference(
         uint256 indexed marketId, uint256 indexed upToBlock, uint80 round, uint256 sealedAt, uint256 observedAt
     );
+    /// @notice A stopped market's auction ran in return-only mode: no oracle was read, nothing traded, and every order
+    ///         waiting up to `upToBlock` went back. `reason`: 1 the exchange was paused, 2 the market halted, 3 inactive.
+    event AuctionReturned(uint256 indexed marketId, uint256 indexed upToBlock, uint8 reason);
+    /// @notice The guardian withdrew a gateway's power to act for accounts (a gateway can only be added by an upgrade).
+    event GatewayRevoked(address indexed gateway, address by);
 
     // ------------------------------------------------------------------ errors
 

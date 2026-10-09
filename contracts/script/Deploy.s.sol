@@ -91,6 +91,8 @@ contract Deploy is Script {
         c.cl = new ChainlinkReference(c.deployer);
         c.gateway = new OrderGateway(IGatewayVenue(address(c.ex)));
         c.ex.grantRole(c.ex.GATEWAY_ROLE(), address(c.gateway));
+        // the gateway is granted: from now on only an upgrade can add one
+        c.ex.initializeV2();
         address pyth = _addrOr(".pyth", address(0));
         if (pyth != address(0)) c.py = new PythReference(c.deployer, IPyth(pyth), address(c.ex));
         uint256 reward = vm.parseJsonUint(json, ".keeperReward");
