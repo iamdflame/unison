@@ -29,7 +29,11 @@ export function TradeClient({ ticker }: { ticker: string }) {
   }, []);
   const v = useVenue();
   const spec = marketByTicker(ticker);
-  if (spec && !listedOn(v, spec)) return <NotOnMainnet ticker={ticker} listed={Object.keys(v.net?.deployment.markets ?? {}).map((s) => s.split("/")[0]!)} />;
+  if (spec && !listedOn(v, spec)) {
+    // the markets a person can trade: not the challenge's old-rule control, and each name once
+    const listed = [...new Set(Object.values(v.net?.deployment.markets ?? {}).filter((m) => !m.control).map((m) => m.symbol.split("/")[0]!))];
+    return <NotOnMainnet ticker={ticker} listed={listed} />;
+  }
   return <TradeView ticker={ticker} />;
 }
 
@@ -41,7 +45,8 @@ function NotOnMainnet({ ticker, listed }: { ticker: string; listed: string[] }) 
         {ticker} isn&apos;t on mainnet yet.
       </h1>
       <p className="mt-4 text-ink-2">
-        The mainnet beta lists {listed.join(" and ")}, with real assets. {ticker} trades on the testnet, with test funds.
+        The mainnet beta lists {listed.length > 1 ? `${listed.slice(0, -1).join(", ")} and ${listed.at(-1)}` : listed[0]}, with real assets. {ticker} trades on the
+        testnet, with test funds.
       </p>
       <div className="mt-8 flex flex-wrap justify-center gap-2">
         {listed[0] ? (

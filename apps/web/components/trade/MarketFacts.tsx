@@ -11,6 +11,17 @@ import { onMainnet, useVenue } from "@/lib/venue";
 const pct = (bps: number) => `±${(bps / 100).toFixed(2)}%`;
 
 /**
+ * The Chainlink feed a causal stock market reads, when it prices a different token than the one traded: mainnet's aNVDA
+ * reads wNVDAx-USD, Backed's xStock price (docs/THREAT_MODEL.md, "Known limitations").
+ */
+const FEED_NOTE: Record<string, { feed: string; note: string }> = {
+  aNVDA: {
+    feed: "wNVDAx-USD",
+    note: "It prices Backed's wrapped NVDAx token, its share multiplier included, not Anchored's aNVDA: both stand for one NVIDIA share, but the two tokens can trade apart, and the vault quotes around this price.",
+  },
+};
+
+/**
  * What a trader needs before size, on the terminal itself: what the instrument is, what this network is, and the
  * rules every auction keeps. Hairline rows, the venue's own parameters, nothing a reader has to look up elsewhere.
  */
@@ -23,7 +34,12 @@ export function MarketFacts({ m }: { m: MarketState }) {
   // SPEC §7.4: each auction prices at the first Chainlink observation after its orders were sealed
   const causal = reference === "chainlink-causal";
   const wait = causal ? causalWait(s.symbol) : null;
-  const feed = stock ? `Chainlink's tokenized-equity feed for ${s.underlying}` : `Chainlink's ${s.ticker === "WMON" ? "MON" : s.ticker}/USD feed`;
+  const named = causal ? FEED_NOTE[s.ticker] : undefined;
+  const feed = named
+    ? `Chainlink's ${named.feed} feed`
+    : stock
+      ? `Chainlink's tokenized-equity feed for ${s.underlying}`
+      : `Chainlink's ${s.ticker === "WMON" ? "MON" : s.ticker}/USD feed`;
   const what =
     stock
       ? `${s.name} ${s.kind === "equity" ? "stock" : "fund shares"}, tokenized by Anchored on Monad, quoted in AUSD.`
@@ -36,7 +52,7 @@ export function MarketFacts({ m }: { m: MarketState }) {
     [
       "Reference",
       causal
-        ? `${feed} on Monad, over its AUSD/USD feed. Each auction prices at the first price Chainlink observes after its orders are in: the observation time is inside the report Chainlink's oracles sign, and the contract checks it against the feed's own history. That price did not exist when you ordered, and no trader, keeper or Unison key can choose another.${stock ? " The feed runs 24/5 (Sunday 8 pm to Friday 8 pm New York time)." : ""}`
+        ? `${feed} on Monad, over its AUSD/USD feed.${named ? ` ${named.note}` : ""} Each auction prices at the first price Chainlink observes after its orders are in: the observation time is inside the report Chainlink's oracles sign, and the contract checks it against the feed's own history. That price did not exist when you ordered, and no trader, keeper or Unison key can choose another.${stock ? " The feed runs 24/5 (Sunday 8 pm to Friday 8 pm New York time)." : ""}`
         : reference === "chainlink" && stock
         ? `Chainlink's tokenized-equity feed for ${s.underlying} on Monad, over its AUSD/USD feed, read as each batch clears. No Unison key signs it. The feed runs 24/5 (Sunday 8 pm to Friday 8 pm New York time); outside those hours, or if it goes stale, the market finds its own price in call auctions around the last close.`
         : reference === "operator"

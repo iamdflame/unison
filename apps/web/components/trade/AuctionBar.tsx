@@ -10,6 +10,8 @@ import { useSecond } from "@/lib/time/useSecond";
 // a count and its noun never part at a line end
 const plural = (n: number, one: string) => `${n.toLocaleString("en-US")} ${n === 1 ? one : `${one}s`}`.replace(/ /g, " ");
 const qty = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: n !== 0 && Math.abs(n) < 1 ? 4 : 2 });
+// a size in a narrow cell: 2.97M, not 2,968,860.41
+const compact = (n: number) => (n >= 10_000 ? n.toLocaleString("en-US", { notation: "compact", maximumFractionDigits: 2 }) : qty(n));
 const nyTime = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 
 export interface Indicative {
@@ -57,6 +59,17 @@ export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick:
   // the vault's quote: its best bid and ask in the auction now forming, on the same strip as the cross
   const vaultBid = m.vault.reduce((b, o) => (o.side === "buy" && o.qty > 0 && (b === null || o.tick > b) ? o.tick : b), null as number | null);
   const vaultAsk = m.vault.reduce((a, o) => (o.side === "sell" && o.qty > 0 && (a === null || o.tick < a) ? o.tick : a), null as number | null);
+  // what the vault can fill in this auction, from what it holds on chain: its whole curve inside the band
+  const vaultOffered = m.vault.reduce((t, o) => (o.side === "sell" ? t + o.qty : t), 0);
+  const vaultBidFor = m.vault.reduce((t, o) => (o.side === "buy" ? t + o.qty : t), 0);
+  // nothing in the batch now forming is not the same as orders that don't meet
+  const empty = m.forming === 0 && !m.book.some((o) => o.owner !== "crowd" || o.placedBlock > 0);
+  const noCross = empty ? "Nothing waiting" : "No cross yet";
+  const noCrossWhy = empty
+    ? m.causal
+      ? "an order placed now waits for Chainlink's next price"
+      : "an order placed now joins the next auction"
+    : "buyers and sellers don't meet in the band";
   const closedWho = stock ? "Wall Street is closed" : m.spec.kind === "fx" ? "The currency market is closed" : "Its reference is closed";
 
   // the vault's quote and the last trade: cells on wide screens, behind "Details" on a phone
@@ -121,7 +134,7 @@ export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick:
           <span className="mt-1">{escapement}</span>
           {cell(discovery ? "Next auction in" : causal ? "Next auction at" : "Auctions", nextLabel, nextSub)}
         </div>
-        {cell("Clears now", indicative ? fmt(indicative.tick) : "No cross yet", indicative ? `${qty(indicative.volume)} ${unit} · ${imbalance}` : "buyers and sellers don't meet")}
+        {cell("Clears now", indicative ? fmt(indicative.tick) : noCross, indicative ? `${qty(indicative.volume)} ${unit} · ${imbalance}` : noCrossWhy)}
         {cell(
           "Vault",
           vaultBid !== null && vaultAsk !== null ? (
@@ -136,7 +149,13 @@ export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick:
             "Not quoting"
           ),
           // one side only: a vault that holds no stock can bid but has nothing to offer, and says so
-          vaultBid !== null && vaultAsk !== null ? "bid · ask" : vaultBid !== null ? `bid · no ask: it holds no ${unit}` : vaultAsk !== null ? "ask · no AUSD left to bid" : undefined,
+          vaultBid !== null && vaultAsk !== null
+            ? `offers ${compact(vaultOffered)} · bids ${compact(vaultBidFor)} ${unit}`
+            : vaultBid !== null
+              ? `bids ${compact(vaultBidFor)} · no ask: it holds no ${unit}`
+              : vaultAsk !== null
+                ? `offers ${compact(vaultOffered)} ${unit} · no AUSD left to bid`
+                : undefined,
         )}
         {cell("Last trade", last ? fmt(last.tick) : "None yet", last ? `${qty(last.volume)} ${unit} · ${ago}` : undefined)}
       </div>
@@ -169,7 +188,7 @@ export function AuctionBar({ m, fmt, indicative }: { m: MarketState; fmt: (tick:
               Clears now <span className="font-medium text-ink">{fmt(indicative.tick)}</span> · {qty(indicative.volume)} {unit}
             </>
           ) : (
-            "No cross yet: buyers and sellers don't meet inside the band"
+            `${noCross}: ${noCrossWhy}`
           )}
         </p>
       </div>

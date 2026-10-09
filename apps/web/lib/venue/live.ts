@@ -15,6 +15,7 @@ import { statusOfRegime } from "../unison/vaultCurve.ts";
 import type { SimOrder } from "../sim/batch.ts";
 import type { NetConfig } from "./config.ts";
 import { describeError, identity, loadSigner } from "./identity.ts";
+import { bandHalfTicks, refTickOf } from "./ticks.ts";
 
 /**
  * Live venue: the same MarketState / AccountState the simulation produces, filled from the tape (prints, heads,
@@ -142,7 +143,7 @@ export class LiveMarket {
   }
 
   private toPrint(p: TapePrint): Print {
-    const ref = this.tickSize > 0n ? Math.round(Number(BigInt(p.refPrice) / this.tickSize)) : p.tick;
+    const ref = this.tickSize > 0n ? refTickOf(BigInt(p.refPrice), this.tickSize) : p.tick;
     return { block: p.upTo, ts: p.ts, tick: p.tick, volume: units(p.volume, Math.log10(Number(this.baseUnit))), refTick: ref };
   }
 
@@ -152,11 +153,11 @@ export class LiveMarket {
     this.quoteDecimals = s.quoteDecimals;
     // the chain's own reading wins over the last print's (a halt still shows, which the adapter can't know)
     if (this.liveRef && !s.halted) return;
-    const refTick = s.ref ? Math.round(Number(BigInt(s.ref.price) / this.tickSize)) : this.store.get().refTick;
+    const refTick = s.ref ? refTickOf(BigInt(s.ref.price), this.tickSize) : this.store.get().refTick;
     const regime = regimeNow(this.spec, new Date());
     const name = s.halted ? "HALTED" : s.regime;
     const lp = s.lastPrint;
-    const lastRef = lp ? Math.round(Number(BigInt(lp.refPrice) / this.tickSize)) : 0;
+    const lastRef = lp ? refTickOf(BigInt(lp.refPrice), this.tickSize) : 0;
     const used = lp && lp.bandHi > 0 && lastRef > 0 ? Math.round(((lp.bandHi - lastRef) / lastRef) * 10_000) : null;
     if (lp && lp.regime !== "DISCOVERY") {
       const b = bandOfPrint(lp.bandHi, BigInt(lp.refPrice), this.tickSize);
@@ -172,7 +173,7 @@ export class LiveMarket {
     // Fixed regimes show their nominal band (a print's edges are tick-rounded); DISCOVERY's widens with √t, so
     // the last print's is the truth there.
     const bandBps = name === "DISCOVERY" ? (used ?? regime.bandBps) : (byName[name] ?? used ?? regime.bandBps);
-    const half = Math.max(1, Math.round((refTick * bandBps) / 10_000));
+    const half = bandHalfTicks(refTick, bandBps);
     this.store.set((m) => ({ ...m, refTick, regime: { ...regime, name, bandBps }, lo: refTick - half, hi: refTick + half }));
   }
 
@@ -233,7 +234,7 @@ export class LiveMarket {
         const r = await reader.reference(pushRef, BigInt(this.marketId)).catch(() => null);
         if (r && r.price > 0n && alive) {
           this.liveRef = true;
-          const refTick = Math.round(Number(r.price / this.tickSize));
+          const refTick = refTickOf(r.price, this.tickSize);
           const name = NAME[r.status] ?? this.store.get().regime.name;
           const bandBps =
             name === "LIVE"
@@ -243,7 +244,7 @@ export class LiveMarket {
                 : name === "HALTED"
                   ? 0
                   : this.store.get().regime.bandBps;
-          const half = Math.max(1, Math.round((refTick * bandBps) / 10_000));
+          const half = bandHalfTicks(refTick, bandBps);
           const refAt = causal ? Number(r.publishTimeMs) : undefined;
           this.store.set((s) => ({ ...s, refTick, regime: { ...s.regime, name, bandBps }, lo: refTick - half, hi: refTick + half, ...(refAt ? { refAt } : {}) }));
         }
@@ -438,7 +439,7 @@ async function loadAccount(net: NetConfig) {
         tick: f.tick,
         block: f.upTo,
         ts: f.ts,
-        refTick: Math.round(Number(BigInt(f.refPrice)) / Number(tickSize)),
+        refTick: refTickOf(BigInt(f.refPrice), BigInt(tickSize)),
         batchVolume: units(f.volume, d),
         participants: 0,
         limitTick: o.tick,

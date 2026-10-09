@@ -9,7 +9,7 @@ import type { Address, Hex } from "viem";
 import { preloadSignIn, SignInSheet } from "@/components/app/SignInSheet";
 import { Hallmark } from "@/components/ui/Hallmark";
 import { SessionKeyCard } from "./SessionKeyCard";
-import { MARKETS } from "@/lib/content/markets";
+import { MARKETS, marketName } from "@/lib/content/markets";
 import { useStore } from "@/lib/store/createStore";
 import { useVenue } from "@/lib/venue";
 import type { NetConfig } from "@/lib/venue/config";
@@ -36,7 +36,15 @@ interface KeyView {
   marketMask: bigint;
 }
 
-const tickersOf = (mask: bigint) => MARKETS.filter((m) => m.id < 256 && (mask >> BigInt(m.id)) & 1n).map((m) => m.ticker);
+/** The markets a key's mask allows, by the live network's own market ids (mainnet's are not the testnet's); the static list
+ *  in the simulation. */
+const tickersOf = (mask: bigint, markets?: Record<string, { id: number; symbol: string }>) =>
+  markets
+    ? Object.values(markets)
+        .filter((m) => (mask >> BigInt(m.id)) & 1n)
+        .sort((a, b) => a.id - b.id)
+        .map((m) => marketName(m.symbol))
+    : MARKETS.filter((m) => m.id < 256 && (mask >> BigInt(m.id)) & 1n).map((m) => m.ticker);
 const short = (a: string) => `${a.slice(0, 6).toLowerCase()}…${a.slice(-4).toLowerCase()}`;
 
 function until(expiry: number, now: number) {
@@ -154,7 +162,8 @@ function KeyCard({ k, label, browser, onRevoke, busy }: { k: KeyView; label?: st
   const [now] = useState(() => Math.floor(Date.now() / 1000));
   const left = k.expiry === 0 ? null : until(k.expiry, now);
   const status = k.expiry === 0 ? "Revoked" : left ? "Active" : "Expired";
-  const markets = tickersOf(k.marketMask);
+  const v = useVenue();
+  const markets = tickersOf(k.marketMask, v.mode === "live" ? v.net?.deployment.markets : undefined);
   const qty = Number(k.maxQty) / 1e18;
   const notional = Number(k.maxNotional) / 1e6;
   return (

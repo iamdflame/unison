@@ -17,7 +17,17 @@ import { priceFormat } from "@/lib/content/markets";
 import { causalWait } from "@/lib/content/facts";
 import { clearBatch } from "@/lib/sim/batch";
 
-const money = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+// a positive amount under a cent says so, never "$0.00"
+const money = (n: number) => (n > 0 && n < 0.005 ? "under $0.01" : `${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+
+/** A first order worth about $3 at `price`, on a 1-2-5 step: a hundredth of an aNVDA share, 100 WMON. */
+export function firstOrderQty(price: number): string {
+  if (!(price > 0)) return "1";
+  const raw = 3 / price;
+  const p = 10 ** Math.floor(Math.log10(raw));
+  const n = raw / p;
+  return String(Number(((n < 2 ? 1 : n < 5 ? 2 : 5) * p).toPrecision(1)));
+}
 
 /**
  * The order ticket. The limit is a price you set: it starts at the best price on the other side, so an order as it
@@ -94,8 +104,8 @@ export function OrderTicket({
     setSideState(s);
     if (!touched) setLimitTick(null);
   };
-  // the mainnet beta trades real shares from a small vault: a first order is a hundredth of one (about $2.40 of NVDA)
-  const [qtyText, setQtyText] = useState(live && v.net?.network === "mainnet" ? "0.01" : "1");
+  // the mainnet beta trades real assets from small vaults: a first order is worth a few dollars (0.01 aNVDA, 100 WMON)
+  const [qtyText, setQtyText] = useState(() => (live && v.net?.network === "mainnet" ? firstOrderQty(m.refTick * unit) : "1"));
   const [iocChoice, setIoc] = useState(false);
   // a causal market (SPEC §7.4) takes auction orders only: one auction, priced after the order is sealed
   const ioc = m.causal || iocChoice;

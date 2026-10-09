@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useSize } from "@/components/trade/useSize";
 import { MARKETS, marketByTicker, priceFormat, type MarketSpec } from "@/lib/content/markets";
 import { useVenue } from "@/lib/venue";
+import { chooseNetwork, networks } from "@/lib/venue/config";
 import { useFairnessFeed, type ChainLink, type FairStats } from "./useFairnessFeed";
 
 const WINDOWS: [FairnessWindow, string][] = [
@@ -23,6 +24,8 @@ export function FairnessLive() {
   const spec = marketByTicker(ticker) ?? listed[0]!;
   const { links, stats, live } = useFairnessFeed(spec, window);
   const network = v.net?.network === "mainnet" ? "Monad mainnet" : v.net?.network === "testnet" ? "Monad testnet" : "the local devnet";
+  // each network is its own venue: name this one, and offer the other
+  const other = live ? networks().find((n) => n !== v.net?.network) : undefined;
 
   return (
     <>
@@ -57,6 +60,15 @@ export function FairnessLive() {
           {live
             ? `Live from the tape on ${network}. Each link was recomputed from its print and the one before as it was indexed.`
             : "Simulation: the venue's chain rule, computed in your browser over simulated batches."}
+          {other ? (
+            <>
+              {" "}
+              <button type="button" onClick={() => chooseNetwork(other)} className="text-ink underline decoration-line-strong underline-offset-4 hover-fine:decoration-ink">
+                See {other === "mainnet" ? "Monad mainnet" : "the testnet"}
+              </button>
+              .
+            </>
+          ) : null}
         </p>
       </section>
 

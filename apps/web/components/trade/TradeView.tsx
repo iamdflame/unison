@@ -7,6 +7,7 @@ import { X } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { RegimeBadge } from "@/components/app/RegimeBadge";
 import { useMarket, useVenue, useVenueAccount } from "@/lib/venue";
+import { useSecond } from "@/lib/time/useSecond";
 import { priceFormat } from "@/lib/content/markets";
 import type { MyFill, MyOrder } from "@/lib/demo/engine";
 import { certificate, certificateFor } from "./certificateStore";
@@ -26,8 +27,15 @@ export function TradeView({ ticker }: { ticker: string }) {
   const { market, value: m, spec, live } = useMarket(ticker, (s) => s);
   const { unit, decimals, fmt } = priceFormat(spec);
   const last = m.last ?? null;
-  // The last print against the reference it cleared on: the venue's own measure of where it traded.
+  // The last print against the reference its own auction cleared on, which is not the reference now: on a causal
+  // market the two are different observations, minutes apart.
   const devBps = last && last.refTick > 0 ? ((last.tick - last.refTick) / last.refTick) * 10_000 : null;
+  // the reference now, named for what it is: Chainlink's latest observation on a causal market, with its age
+  const now = useSecond();
+  const observedS = m.causal && m.refAt && now !== null ? Math.max(0, Math.round((now - m.refAt) / 1000)) : null;
+  const observedAgo =
+    observedS === null ? null : observedS < 90 ? `${observedS} s ago` : observedS < 5400 ? `${Math.round(observedS / 60)} min ago` : `${Math.round(observedS / 3600)} h ago`;
+  const refLabel = m.causal && m.regime.name !== "DISCOVERY" ? "Chainlink now" : refName(m);
   const held = useVenueAccount((a) => (a.base[ticker] ?? 0) + (a.lockedBase[ticker] ?? 0));
   // what it's worth at the reference, in cents while it's small: 9 WMON is $0.24, not "$0"
   const worth = held * m.refTick * unit;
@@ -76,37 +84,45 @@ export function TradeView({ ticker }: { ticker: string }) {
               {/* the headline figure is named: it is the last auction's price, not a live quote */}
               <p className="mt-2 text-xs text-ink-3">Last trade</p>
               <div className="flex items-baseline gap-4">
-                <span className="numerals text-[clamp(2.25rem,4vw,3.25rem)] leading-none text-ink">
-                  <NumberFlow
-                    value={last ? last.tick * unit : Number(spec.seedPrice) / 1e6}
-                    locales="en-US"
-                    format={{
-                      style: "currency",
-                      currency: "USD",
-                      minimumFractionDigits: decimals,
-                      maximumFractionDigits: decimals,
-                    }}
-                    // settle inside one 300 ms beat, so the price is still between prints
-                    transformTiming={{ duration: 240, easing: "cubic-bezier(0.23, 1, 0.32, 1)" }}
-                    spinTiming={{ duration: 240, easing: "cubic-bezier(0.23, 1, 0.32, 1)" }}
-                    opacityTiming={{ duration: 160, easing: "ease-out" }}
-                  />
-                </span>
-                {devBps !== null ? (
+                {/* before the first print there is no price to show: not the listing's seed price, which nobody traded at */}
+                {last ? (
+                  <span className="numerals text-[clamp(2.25rem,4vw,3.25rem)] leading-none text-ink">
+                    <NumberFlow
+                      value={last.tick * unit}
+                      locales="en-US"
+                      format={{
+                        style: "currency",
+                        currency: "USD",
+                        minimumFractionDigits: decimals,
+                        maximumFractionDigits: decimals,
+                      }}
+                      // settle inside one 300 ms beat, so the price is still between prints
+                      transformTiming={{ duration: 240, easing: "cubic-bezier(0.23, 1, 0.32, 1)" }}
+                      spinTiming={{ duration: 240, easing: "cubic-bezier(0.23, 1, 0.32, 1)" }}
+                      opacityTiming={{ duration: 160, easing: "ease-out" }}
+                    />
+                  </span>
+                ) : (
+                  <span className="numerals text-[clamp(1.75rem,3vw,2.5rem)] leading-none text-ink-3">No trade yet</span>
+                )}
+                {last && devBps !== null ? (
                   <span
                     className="figures text-sm text-ink-2"
-                    title="The last trade against the price its band was centred on"
+                    title="The last trade against the reference its own auction cleared at, which is not the reference now"
                   >
                     {devBps >= 0 ? "+" : "−"}
-                    {(Math.abs(devBps) / 100).toFixed(2)}% vs {refName(m).toLowerCase()}
+                    {(Math.abs(devBps) / 100).toFixed(2)}% vs its reference, {fmt(last.refTick)}
                   </span>
                 ) : null}
               </div>
             </div>
             <dl className="grid grid-cols-2 items-start gap-x-6 gap-y-3 text-sm sm:flex sm:flex-wrap sm:items-center sm:gap-y-2">
               <div>
-                <dt className="text-xs text-ink-3">{refName(m)}</dt>
-                <dd className="tnum text-ink">{fmt(m.refTick)}</dd>
+                <dt className="text-xs text-ink-3">{refLabel}</dt>
+                <dd className="tnum text-ink">
+                  {fmt(m.refTick)}
+                  {observedAgo ? <span className="text-ink-3"> · observed {observedAgo}</span> : null}
+                </dd>
               </div>
               <div>
                 <dt className="text-xs text-ink-3">Band</dt>

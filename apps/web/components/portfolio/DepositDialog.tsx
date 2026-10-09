@@ -19,6 +19,7 @@ import { toast } from "@/lib/ui/toast";
 import { useStore } from "@/lib/store/createStore";
 import { useVenue } from "@/lib/venue";
 import { identity } from "@/lib/venue/identity";
+import { marketByTicker } from "@/lib/content/markets";
 import { refreshAccount } from "@/lib/venue/live";
 
 const venueAbi = parseAbi(["function depositFor(address account, address token, uint256 amount)"]);
@@ -216,8 +217,17 @@ export function DepositDialog({ open, onOpenChange }: { open: boolean; onOpenCha
               {busy === "approve" ? "Approve in your wallet…" : busy === "deposit" ? "Confirm the deposit in your wallet…" : `Deposit ${asset?.sym ?? ""}`}
             </button>
           ) : null}
+          {asset && ["equity", "etf", "gold"].includes(marketByTicker(asset.sym)?.kind ?? "") ? (
+            // the issuer's control over its own token, said before anyone deposits it
+            <p className="mt-4 text-xs leading-relaxed text-ink-2">
+              {asset.sym} is issued by Anchored, which can freeze it for addresses on its denylist. Unison checks that list
+              when you deposit and when you withdraw, so a listed address can&apos;t take {asset.sym} out.
+            </p>
+          ) : null}
           <p className="mt-4 text-xs leading-relaxed text-ink-3">
-            Beta: real assets, small vaults and daily caps. The contracts are not yet externally audited. Not available to US persons.
+            Beta: real assets, small vaults and daily caps. The contracts are not yet externally audited, and until a 7-day
+            timelock is in place one team key administers them. Not offered to US persons, which the beta does not check
+            on chain.
           </p>
         </Dialog.Popup>
       </Dialog.Portal>

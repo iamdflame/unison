@@ -211,7 +211,9 @@ export function Contracts() {
     ...(d.operatorReference ? ([["Signed reference", d.operatorReference]] as [string, string][]) : []),
     ...(d.causalReference ? ([["Causal reference (Chainlink, by observation time)", d.causalReference]] as [string, string][]) : []),
     ...(d.chainlinkReference ? ([[d.causalReference ? "Chainlink reference (old rule, the control)" : "Chainlink reference", d.chainlinkReference]] as [string, string][]) : []),
-    ...Object.values(d.markets).flatMap((m) => (m.vault ? ([[`${marketName(m.symbol)} vault`, m.vault]] as [string, string][]) : [])),
+    ...Object.values(d.markets).flatMap((m) =>
+      m.vault ? ([[m.control ? `${marketName(m.symbol)} vault (the challenge's control, not a market to trade)` : `${marketName(m.symbol)} vault`, m.vault]] as [string, string][]) : [],
+    ),
     ...(d.challenge
       ? ([
           ["Challenge on Unison", d.challenge.unison],

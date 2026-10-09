@@ -6,13 +6,13 @@ export const site = {
     "Tokenized stocks on Monad, open every night and weekend. Every order in a batch clears at one price, so speed can't front-run you.",
   /** What the venue is today, said wherever the site invites someone to trade. One sentence, one source. */
   stage: "Mainnet beta",
-  disclosure: "Live on Monad mainnet as a beta, with real assets, small vaults and daily caps, and on the testnet for practice. Not yet externally audited. Not available to US persons.",
+  disclosure: "Live on Monad mainnet as a beta, with real assets, small vaults and daily caps, and on the testnet for practice. Not yet externally audited; until a 7-day timelock is in place, one team key administers the contracts. Not offered to US persons, a policy the beta does not enforce on chain.",
   /** said on the testnet's own screens */
   testnetDisclosure: "Monad testnet with mock assets: nothing here has value. Not yet externally audited.",
   /** said in the browser simulation */
   simulationDisclosure: "The simulation: the real clearing engine running in your browser, with a paper account. Nothing here is on a chain.",
   /** said wherever the venue is on mainnet */
-  mainnetDisclosure: "Monad mainnet, with real assets. A beta: small vaults and daily caps. Not yet externally audited. Not available to US persons.",
+  mainnetDisclosure: "Monad mainnet, with real assets. A beta: small vaults and daily caps. Not yet externally audited; until a 7-day timelock is in place, one team key administers the contracts. Not offered to US persons (not enforced on chain).",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   repo: "https://github.com/iamdflame/unison",
 } as const;

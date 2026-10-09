@@ -8,7 +8,7 @@ import { causalWait } from "@/lib/content/facts";
 import { MARKETS, marketName, priceFormat, specOfSymbol, type MarketSpec } from "@/lib/content/markets";
 import { shallowEqual } from "@/lib/store/createStore";
 import { useMarket, useVenue } from "@/lib/venue";
-import type { NetConfig } from "@/lib/venue/config";
+import { chooseNetwork, networks, type NetConfig } from "@/lib/venue/config";
 import { liveClients } from "@/lib/venue/live";
 
 type Level = "ok" | "slow" | "down";
@@ -129,8 +129,13 @@ export function Status() {
     if (causalMarket(id)) return pricedBy[id] !== undefined && now - pricedBy[id] > CAUSAL_STALE_MS;
     return head !== undefined && head - oldest > STALE_BLOCKS;
   };
-  const issues = [tape, relayer, relay].filter((p) => p && p.level !== "ok").length + (markets ?? []).filter((m) => lagging(m.id)).length;
+  // the challenge's old-rule control is a scientific instrument, not a market: it lives on /challenge
+  const controls = new Set(Object.values(net.deployment.markets).filter((m) => m.control).map((m) => m.id));
+  const listed = (markets ?? []).filter((m) => !controls.has(m.id));
+  const issues = [tape, relayer, relay].filter((p) => p && p.level !== "ok").length + listed.filter((m) => lagging(m.id)).length;
   const network = net.network === "mainnet" ? "Monad mainnet" : net.network === "testnet" ? "Monad testnet" : "the local devnet";
+  // each network is its own venue: say which one this is, and offer the other
+  const other = networks().find((n) => n !== net.network);
 
   const rows: [string, string, Probe<unknown> | null, string][] = [
     ["Chain", `Blocks on ${network}`, tape, head ? `Block ${head.toLocaleString("en-US")}` : "—"],
@@ -143,7 +148,20 @@ export function Status() {
     <>
       <section className="mx-auto max-w-[1440px] px-5 pt-36 pb-10 sm:px-8 lg:px-12 lg:pt-44">
         <h1 className="text-display-xl max-w-4xl text-ink">{tape === null ? "Checking…" : issues === 0 ? "Everything is running." : "Something is degraded."}</h1>
-        <p className="text-lede mt-7 max-w-2xl text-ink-2">Live from {network}, checked every five seconds.</p>
+        <p className="text-lede mt-7 max-w-2xl text-ink-2">
+          Live from {network}
+          {net.network === "testnet" ? ", the practice network with test funds" : net.network === "mainnet" ? ", the beta with real assets" : ""}, checked
+          every five seconds.
+          {other ? (
+            <>
+              {" "}
+              <button type="button" onClick={() => chooseNetwork(other)} className="text-ink underline decoration-line-strong underline-offset-4 hover-fine:decoration-ink">
+                See {other === "mainnet" ? "Monad mainnet" : "the testnet"}
+              </button>
+              .
+            </>
+          ) : null}
+        </p>
       </section>
 
       <section aria-label="Services" className="mx-auto max-w-[1440px] px-5 pb-10 sm:px-8 lg:px-12">
@@ -183,7 +201,7 @@ export function Status() {
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {(markets ?? []).map((m) => {
+              {listed.map((m) => {
                 const spec = specOfSymbol(m.symbol);
                 const { fmt } = spec ? priceFormat(spec) : { fmt: (t: number) => String(t) };
                 const last = m.lastPrint;
@@ -223,6 +241,7 @@ export function Status() {
           </table>
         </div>
         <p className="mt-4 text-sm text-ink-3">
+          {controls.size ? "The challenge's old-rule control market is on the challenge page, not here. " : null}
           The keeper clears a market when orders are waiting and the auction would trade, so a quiet market prints less often than its cadence, and its last batch can be minutes old.
           {causalNames.length
             ? ` On ${causalNames.join(" and ")}, orders wait for Chainlink's next observation by design (typically ${causalWait("WMON/AUSD")?.p50 ?? "half a minute"} for MON); a market is flagged only once Chainlink has priced its waiting orders and 45 s pass without a clear.`
