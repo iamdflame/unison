@@ -8,58 +8,81 @@ import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {UnisonExchange} from "../src/core/UnisonExchange.sol";
 import {LiquidityVault} from "../src/liquidity/LiquidityVault.sol";
 
-/// @notice Puts every power over prices and balances behind a public delay. After this script:
-///   - a TimelockController holds the exchange's admin and operator roles (upgrades, markets, adapters, the causal
-///     switch), every vault's admin and risk roles, the unused operator reference's roles, and (48 h later) the
-///     reference adapters and the issuer-denylist mirror;
-///   - proposals come from TIMELOCK_PROPOSER (the owner's wallet), anyone may execute a ready one, and the guardian
-///     may cancel one;
-///   - the guardian keeps pause, halt and daily caps: none of them can move a balance or set a price;
-///   - the deployer key holds nothing.
-/// The delay starts at 48 h. One operation is scheduled here, executable by anyone once 48 h have passed: the timelock
-/// accepts the adapters' and the mirror's ownership (Ownable2Step) and raises its own delay to 7 days.
+interface ISafe {
+    function getThreshold() external view returns (uint256);
+    function getOwners() external view returns (address[] memory);
+}
+
+/// @notice Every power over prices, balances and code behind a public 7-day delay, in one run, with no window in which
+///         the deployer still holds any of it (docs/ROADMAP.md, A). After this script:
+///   - a TimelockController holds the exchange's admin and operator roles (upgrades, markets, sources, eligibility,
+///     the causal switch), every vault's admin and risk roles, the operator reference's roles, and the ownership of
+///     the price adapters and the eligibility mirror;
+///   - its delay is 7 days from the first block; proposals come from the admin Safe (outside signers), anyone may
+///     execute a ready one, and either Safe may cancel one;
+///   - the guardian Safe holds pause, halt and caps, which on exchange v2 stop a market and return its orders but can't
+///     move a balance or set a price; the old guardian key holds nothing;
+///   - the deployer holds nothing.
 ///
-///   DEPLOYER_PRIVATE_KEY=0x… DEPLOYMENT=../deployments/monad-mainnet.json TIMELOCK_PROPOSER=0x… \
+/// How the ownerships move at once: the timelock starts with no delay and the deployer as its only proposer, accepts
+/// every Ownable2Step transfer and raises its own delay to 7 days in one executed batch (updateDelay only answers the
+/// timelock itself), then the deployer hands proposing to the admin Safe and leaves. The deployer holds every power
+/// already while the delay is 0, so that moment adds none.
+///
+///   DEPLOYER_PRIVATE_KEY=0x… DEPLOYMENT=../deployments/monad-mainnet.json ADMIN_SAFE=0x… GUARDIAN_SAFE=0x… \
 ///   forge script script/HandoverTimelock.s.sol --rpc-url https://rpc.monad.xyz --broadcast --slow
 ///
-/// Output: ../deployments/<label>-timelock.json (or <TIMELOCK_OUT>.json): the timelock, the scheduled operation and when
-///         it becomes executable, with its calls, so anyone can execute it.
+/// It refuses an exchange before v2: the gateway role must be locked first (script/UpgradePhaseA.s.sol), or the
+/// timelock would inherit an admin that can make itself a gateway without an upgrade.
+/// Output: ../deployments/<label>-timelock.json (or <TIMELOCK_OUT>.json).
 contract HandoverTimelock is Script {
-    uint256 internal constant DELAY = 48 hours;
     uint256 internal constant FINAL_DELAY = 7 days;
-    bytes32 internal constant SALT = keccak256("unison.timelock.handover");
+    bytes32 internal constant SALT = keccak256("unison.timelock.handover.v2");
 
     string internal dep;
 
     function run() external {
         dep = vm.readFile(vm.envOr("DEPLOYMENT", string("../deployments/monad-mainnet.json")));
         uint256 pk = vm.envUint("DEPLOYER_PRIVATE_KEY");
-        address me = vm.addr(pk);
-        address proposer = vm.envAddress("TIMELOCK_PROPOSER");
-        address guardian = vm.parseJsonAddress(dep, ".guardian");
+        address me = vm.rememberKey(pk);
+        TimelockController tl = handover(me, vm.envAddress("ADMIN_SAFE"), vm.envAddress("GUARDIAN_SAFE"));
+        _record(tl, vm.envAddress("ADMIN_SAFE"), vm.envAddress("GUARDIAN_SAFE"));
+    }
+
+    /// @notice The whole handover, as `me` (the deployer). Public so a fork test can run it on mainnet state.
+    function handover(address me, address adminSafe, address guardianSafe) public returns (TimelockController tl) {
+        if (bytes(dep).length == 0) dep = vm.readFile(vm.envOr("DEPLOYMENT", string("../deployments/monad-mainnet.json")));
         UnisonExchange ex = UnisonExchange(vm.parseJsonAddress(dep, ".exchange"));
+        require(adminSafe.code.length > 0 && guardianSafe.code.length > 0, "both Safes must already be deployed");
+        require(adminSafe != guardianSafe, "two Safes: one proposes, one guards");
         require(ex.hasRole(ex.DEFAULT_ADMIN_ROLE(), me), "the deployer is not the exchange's admin");
-        require(proposer != me && proposer != address(0), "the proposer must be the owner's own wallet");
+        // an implementation before v2 has no version(): the gateway role must be locked before the keys leave
+        try ex.version() returns (uint256 v) {
+            require(v >= 2, "upgrade the exchange to v2 first (script/UpgradePhaseA.s.sol)");
+        } catch {
+            revert("upgrade the exchange to v2 first (script/UpgradePhaseA.s.sol)");
+        }
+        address oldGuardian = vm.parseJsonAddress(dep, ".guardian");
         address[] memory vaults = _vaults();
         address[] memory owned = _ownable();
 
-        vm.startBroadcast(pk);
-        address[] memory proposers = new address[](2);
-        proposers[0] = proposer;
-        proposers[1] = me; // for the one operation below; revoked before the end of this script
+        vm.startBroadcast(me);
+        address[] memory proposers = new address[](1);
+        proposers[0] = me; // for the one batch below; gone before the end of this run
         address[] memory executors = new address[](1); // address(0): anyone executes a ready operation
-        TimelockController tl = new TimelockController(DELAY, proposers, executors, me);
-        tl.grantRole(tl.CANCELLER_ROLE(), guardian);
+        tl = new TimelockController(0, proposers, executors, me);
 
-        // the exchange: upgrades and every market and adapter setting behind the delay; pause, halt, caps with the guardian
+        // the exchange: upgrades and every market, source and eligibility setting behind the delay
         ex.grantRole(ex.DEFAULT_ADMIN_ROLE(), address(tl));
         ex.grantRole(ex.OPERATOR_ROLE(), address(tl));
-        if (!ex.hasRole(ex.GUARDIAN_ROLE(), guardian)) ex.grantRole(ex.GUARDIAN_ROLE(), guardian);
-        if (!ex.hasRole(ex.HALT_ROLE(), guardian)) ex.grantRole(ex.HALT_ROLE(), guardian);
-        if (!ex.hasRole(ex.CAP_ROLE(), guardian)) ex.grantRole(ex.CAP_ROLE(), guardian);
-        _renounceAll(IAccessControl(address(ex)), me, _exchangeRoles(ex));
+        // stopping a market stays fast, with the guardian Safe; the old guardian key steps down
+        bytes32[3] memory guard = [ex.GUARDIAN_ROLE(), ex.HALT_ROLE(), ex.CAP_ROLE()];
+        for (uint256 i = 0; i < guard.length; ++i) {
+            if (!ex.hasRole(guard[i], guardianSafe)) ex.grantRole(guard[i], guardianSafe);
+            if (oldGuardian != guardianSafe && ex.hasRole(guard[i], oldGuardian)) ex.revokeRole(guard[i], oldGuardian);
+        }
 
-        // the vaults' parameters (spread, depth, pause) and the unused operator reference's signer set
+        // the vaults' parameters and the operator reference's signer set
         for (uint256 i = 0; i < vaults.length; ++i) {
             LiquidityVault v = LiquidityVault(vaults[i]);
             v.grantRole(v.DEFAULT_ADMIN_ROLE(), address(tl));
@@ -69,8 +92,8 @@ contract HandoverTimelock is Script {
             r[1] = v.DEFAULT_ADMIN_ROLE();
             _renounceAll(IAccessControl(address(v)), me, r);
         }
-        address osr = vm.parseJsonAddress(dep, ".operatorReference");
-        {
+        if (vm.keyExistsJson(dep, ".operatorReference")) {
+            address osr = vm.parseJsonAddress(dep, ".operatorReference");
             bytes32 signerAdmin = keccak256("SIGNER_ADMIN_ROLE");
             IAccessControl(osr).grantRole(bytes32(0), address(tl));
             IAccessControl(osr).grantRole(signerAdmin, address(tl));
@@ -80,7 +103,8 @@ contract HandoverTimelock is Script {
             _renounceAll(IAccessControl(osr), me, r);
         }
 
-        // Ownable2Step: hand over now, accepted by the timelock in its first operation, with the 7-day delay
+        // the adapters and the eligibility mirror: offered now, accepted by the timelock in the same run, with the delay
+        // raised to 7 days in that one batch
         address[] memory targets = new address[](owned.length + 1);
         uint256[] memory values = new uint256[](owned.length + 1);
         bytes[] memory payloads = new bytes[](owned.length + 1);
@@ -91,26 +115,74 @@ contract HandoverTimelock is Script {
         }
         targets[owned.length] = address(tl);
         payloads[owned.length] = abi.encodeCall(TimelockController.updateDelay, (FINAL_DELAY));
-        tl.scheduleBatch(targets, values, payloads, bytes32(0), SALT, DELAY);
+        tl.scheduleBatch(targets, values, payloads, bytes32(0), SALT, 0);
+        tl.executeBatch(targets, values, payloads, bytes32(0), SALT);
 
-        // the deployer leaves the timelock too
+        // proposing to the admin Safe, cancelling to both Safes; the deployer leaves the timelock and the exchange
+        tl.grantRole(tl.PROPOSER_ROLE(), adminSafe);
+        tl.grantRole(tl.CANCELLER_ROLE(), adminSafe);
+        tl.grantRole(tl.CANCELLER_ROLE(), guardianSafe);
         tl.revokeRole(tl.PROPOSER_ROLE(), me);
         tl.revokeRole(tl.CANCELLER_ROLE(), me);
+        _renounceAll(IAccessControl(address(ex)), me, _exchangeRoles(ex));
         tl.renounceRole(tl.DEFAULT_ADMIN_ROLE(), me);
         vm.stopBroadcast();
 
-        bytes32 op = tl.hashOperationBatch(targets, values, payloads, bytes32(0), SALT);
+        _check(tl, ex, me, adminSafe, guardianSafe, oldGuardian, vaults, owned);
+    }
+
+    /// @dev Every promise above, read back: the run reverts rather than leave a key behind.
+    function _check(
+        TimelockController tl,
+        UnisonExchange ex,
+        address me,
+        address adminSafe,
+        address guardianSafe,
+        address oldGuardian,
+        address[] memory vaults,
+        address[] memory owned
+    ) internal view {
+        require(tl.getMinDelay() == FINAL_DELAY, "the delay is not 7 days");
+        require(tl.hasRole(tl.PROPOSER_ROLE(), adminSafe), "the admin Safe can't propose");
+        require(tl.hasRole(tl.CANCELLER_ROLE(), adminSafe) && tl.hasRole(tl.CANCELLER_ROLE(), guardianSafe), "cancellers");
+        require(tl.hasRole(tl.EXECUTOR_ROLE(), address(0)), "execution is not open to anyone");
+        require(
+            !tl.hasRole(tl.PROPOSER_ROLE(), me) && !tl.hasRole(tl.CANCELLER_ROLE(), me)
+                && !tl.hasRole(tl.DEFAULT_ADMIN_ROLE(), me),
+            "the deployer kept a timelock role"
+        );
+        bytes32[] memory roles = _exchangeRoles(ex);
+        for (uint256 i = 0; i < roles.length; ++i) {
+            require(!ex.hasRole(roles[i], me), "the deployer kept an exchange role");
+            if (oldGuardian != guardianSafe) require(!ex.hasRole(roles[i], oldGuardian), "the old guardian kept a role");
+        }
+        require(ex.hasRole(ex.DEFAULT_ADMIN_ROLE(), address(tl)) && ex.hasRole(ex.OPERATOR_ROLE(), address(tl)), "exchange");
+        require(
+            ex.hasRole(ex.GUARDIAN_ROLE(), guardianSafe) && ex.hasRole(ex.HALT_ROLE(), guardianSafe)
+                && ex.hasRole(ex.CAP_ROLE(), guardianSafe),
+            "the guardian Safe can't stop a market"
+        );
+        for (uint256 i = 0; i < vaults.length; ++i) {
+            LiquidityVault v = LiquidityVault(vaults[i]);
+            require(!v.hasRole(v.DEFAULT_ADMIN_ROLE(), me) && !v.hasRole(v.RISK_ROLE(), me), "the deployer kept a vault role");
+            require(v.hasRole(v.DEFAULT_ADMIN_ROLE(), address(tl)), "a vault has no admin");
+        }
+        for (uint256 i = 0; i < owned.length; ++i) {
+            require(Ownable2Step(owned[i]).owner() == address(tl), "an ownership did not move");
+            require(Ownable2Step(owned[i]).pendingOwner() == address(0), "an ownership is still pending");
+        }
+    }
+
+    function _record(TimelockController tl, address adminSafe, address guardianSafe) internal {
         string memory o = "timelock";
         vm.serializeAddress(o, "timelock", address(tl));
-        vm.serializeAddress(o, "proposer", proposer);
-        vm.serializeAddress(o, "canceller", guardian);
-        vm.serializeUint(o, "delaySec", DELAY);
-        vm.serializeUint(o, "finalDelaySec", FINAL_DELAY);
-        vm.serializeBytes32(o, "operation", op);
-        vm.serializeBytes32(o, "salt", SALT);
-        vm.serializeUint(o, "executableAfter", block.timestamp + DELAY);
-        vm.serializeAddress(o, "targets", targets);
-        string memory out = vm.serializeBytes(o, "payloads", payloads);
+        vm.serializeUint(o, "delaySec", FINAL_DELAY);
+        vm.serializeAddress(o, "adminSafe", adminSafe);
+        vm.serializeUint(o, "adminSafeThreshold", ISafe(adminSafe).getThreshold());
+        vm.serializeAddress(o, "adminSafeOwners", ISafe(adminSafe).getOwners());
+        vm.serializeAddress(o, "guardianSafe", guardianSafe);
+        vm.serializeUint(o, "guardianSafeThreshold", ISafe(guardianSafe).getThreshold());
+        string memory out = vm.serializeAddress(o, "guardianSafeOwners", ISafe(guardianSafe).getOwners());
         string memory path = string.concat(
             "../deployments/",
             vm.envOr("TIMELOCK_OUT", string.concat(vm.parseJsonString(dep, ".label"), "-timelock")),
@@ -118,8 +190,6 @@ contract HandoverTimelock is Script {
         );
         vm.writeJson(out, path);
         console.log("timelock", address(tl));
-        console.log("operation (accept ownerships, delay to 7 days)", vm.toString(op));
-        console.log("executable after", block.timestamp + DELAY);
         console.log("written", path);
     }
 
@@ -153,7 +223,7 @@ contract HandoverTimelock is Script {
         }
     }
 
-    /// @dev The Ownable2Step contracts: the reference adapters and the issuer-denylist mirror.
+    /// @dev The Ownable2Step contracts: the reference adapters and the eligibility mirror.
     function _ownable() internal view returns (address[] memory out) {
         string[3] memory keys = [".causalReference", ".chainlinkReference", ".eligibility"];
         address[] memory tmp = new address[](3);

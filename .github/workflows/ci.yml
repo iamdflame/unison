@@ -206,3 +206,25 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: BLOCKS=200000 pnpm --filter @unison/sniper-bench bench >> "$GITHUB_STEP_SUMMARY"
+
+  static-analysis:
+    name: Static analysis (Slither; reports, does not block until its findings are triaged)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Slither
+        working-directory: contracts
+        run: |
+          pip install "slither-analyzer>=0.11,<0.12"
+          forge build --build-info --skip test script
+          slither . --ignore-compile --config-file slither.config.json --checklist > slither.md || true
+          { echo "## Slither"; cat slither.md; } >> "$GITHUB_STEP_SUMMARY"

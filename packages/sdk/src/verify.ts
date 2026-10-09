@@ -161,11 +161,13 @@ export async function verifyReceipt(client: PublicClient, tx: Hex, opts: { prev?
     | { marketId: bigint; upToBlock: bigint; tick: bigint; price: bigint; volume: bigint; refPrice: bigint; refTimeMs: bigint; status: number; bandLo: bigint; bandHi: bigint; receiptHash: Hex; exchange: Address }
     | undefined;
   let bound: { round: bigint; sealedAt: bigint; observedAt: bigint } | undefined;
+  let returned: number | undefined; // exchange v2: a stopped market's auction, and why it stopped
   for (const log of receipt.logs) {
     try {
       const ev = decodeEventLog({ abi: unisonExchangeAbi, data: log.data, topics: log.topics });
       if (ev.eventName === "BatchCleared") print = { ...(ev.args as unknown as Omit<NonNullable<typeof print>, "exchange">), exchange: log.address };
       if (ev.eventName === "CausalReference") bound = ev.args as unknown as typeof bound;
+      if (ev.eventName === "AuctionReturned") returned = Number((ev.args as unknown as { reason: number | bigint }).reason);
     } catch {
       /* another contract's event */
     }
@@ -225,7 +227,8 @@ export async function verifyReceipt(client: PublicClient, tx: Hex, opts: { prev?
   } else if (!bound) {
     if (print.status === Status.HALTED) {
       rule = "halted";
-      steps.push({ kind: "note", what: "no oracle was read: trading was stopped, and every order that waited for this auction was returned" });
+      const why = returned === 1 ? "the exchange was paused" : returned === 2 ? "the market was halted" : returned === 3 ? "the market was made inactive" : "trading was stopped";
+      steps.push({ kind: "note", what: `no oracle was read: ${why}, and every order that waited for this auction was returned` });
     } else {
       steps.push({ kind: "skip", what: `no CausalReference for this auction within ${LOOKBACK_WINDOWS * 100n} blocks of its clear` });
     }
