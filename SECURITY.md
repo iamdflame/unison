@@ -14,10 +14,16 @@ Say what you found, how to reproduce it, and the impact you expect. A Foundry te
 - The services that operate them (keeper, relayer, tape, the house adversary) and the web app at https://www.unisonfi.com.
 - [`mm-plugin-unison`](integrations/agent-wallet-plugin) and the SDK.
 
+## What's at risk today
+
+- The contracts are not yet externally audited.
+- The vaults hold about $65 in all, the challenge pots 19 AUSD, and daily caps bound each market (1 aNVDA, 20,000 WMON a day).
+- One deployer key holds the admin roles. What it can do is listed in the [threat model](docs/THREAT_MODEL.md#what-the-admin-can-do).
+
 ## What happens next
 
-- The guardian key can pause the exchange or halt a market at once while a fix is prepared. A halt moves no funds: the next auction trades nothing and returns every waiting order.
-- Contract fixes ship as an upgrade. Until the admin roles move behind the public timelock (48 h, rising to 7 days), the team can ship one directly; after that, every upgrade waits in public first.
+- The guardian key can pause the exchange or halt a market at once while a fix is prepared. Neither moves funds. A halt returns every waiting order at the next auction, but that auction still waits for Chainlink's next observation (or a closed market); a pause holds sealed orders until it ends. The next upgrade makes both return waiting orders at once, with no oracle read.
+- Contract fixes ship as an upgrade. Until the admin roles move behind the timelock (7 days, proposed by a Safe with outside signers), the team can ship one directly; after that, every upgrade waits in public for a week first.
 
 ## Not a vulnerability
 

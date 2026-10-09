@@ -10,8 +10,7 @@ Traders want stocks on chain, and mostly get them as derivatives: in June, stock
   - Pantera's conclusion: issuing tokens is no longer the hard part; compliant, liquid secondary markets are.
 - **Growing anyway.** Tokenized stocks reached a record $3.8B market cap on 6 October 2026. About 4.1 million addresses hold them, up more than 60% in 30 days ([Crypto Briefing](https://cryptobriefing.com/tokenized-stocks-record-market-cap/), citing RWA.xyz, Token Terminal and Binance Research). BNB Chain, Ethereum and Solana hold most of it.
 - **Why the venues leak.** A Chainlink observation lands on chain about 13 s after it is made, and anyone watching the market sees the move first. On MON/USD, 6.1% of observations moved more than the WMON vault's 23 bp of spread and fee: 5.3 chances an hour to trade against a price that was already old ([causal evidence](evidence/causal.md)).
-  - In a market-hours benchmark, snipers took $473 to $6,171 a day from AMM, oracle-AMM and CLOB designs.
-  - At the same ±2 bp quote, a CLOB maker kept $84 a day after snipers took $487. Unison's vault kept $646 and lost nothing ([fairness evidence](evidence/fairness.md)).
+  - Our own sniper, replayed over a week of real MON prices with the same signal on both rules, earns +17.8 bp a trade on the old rule and loses 23.0 bp a trade on Unison's causal rule ([challenge evidence](evidence/challenge.md)). A simulation of other venue designs is in the [appendix](#appendix-a-simulation-of-other-designs).
 - **Weekends are where it's worst.** Nasdaq trades 32.5 of the week's 168 hours. Over five years, NVDA opened more than 2% away from Friday's close on 24% of weekends, and MSTR on 53% ([weekend-gap study](evidence/weekend-gaps.md)). A venue that is open while its reference is shut must discover the price, not copy it.
 
 ## Why now
@@ -57,11 +56,13 @@ Traders want stocks on chain, and mostly get them as derivatives: in June, stock
 
 - **Live on Monad mainnet.** The causal cutover was 6 October 2026. The first causal print passes every check of `verify-receipt.mjs`, observed 6 s after the seal ([mainnet evidence](evidence/mainnet.md)).
 - **The standing challenge is funded and running.** The pots are 18 AUSD on Unison's market and 1 AUSD on an old-rule control. Our own open-source sniper trades both with the same signal. On 7 October at 14:17 UTC it was −22.24 bp a trade on Unison and +14.49 bp on the old rule, over 23 fills each, scored by the contract's own definition; the public table Envio indexes agreed to the unit. That is the claim, measured in public.
-- **Outside traders: zero so far,** counted apart from the team at `GET /v1/stats`. The next section is about changing that.
+- **Outside traders: zero so far,** counted apart from the team at `GET /v1/stats`, which also says how much of each market the house's vaults traded. The inventory is the team's: about $65 across the vaults. The next section is about changing that.
+- **aNVDA hasn't printed since the cutover.** Every causal print so far is WMON. aNVDA's first weekend of DISCOVERY call auctions starts on Friday 9 October at 20:00 New York time.
+- **The keys are still the team's.** One deployer key holds the admin roles, with powers listed plainly in the [threat model](THREAT_MODEL.md#what-the-admin-can-do). The next steps are an upgrade that makes pausing return every order and locks the gateway role, then a 7-day timelock proposed by a Safe with outside signers ([roadmap](ROADMAP.md)).
 - **Built to be checked.** The repository includes:
   - 111 Foundry tests, plus fuzzing, invariants and a Solidity-versus-TypeScript differential;
   - mainnet-fork rehearsals;
-  - a Chainlink CRE sentinel run in simulation against mainnet;
+  - a Chainlink CRE sentinel, run as a dry run in Chainlink's simulator against mainnet reads (it holds no role and halts nothing yet);
   - an Envio indexer that scores every challenger exactly as the contract does.
 
 ## The next 90 days (targets, not results)
@@ -86,11 +87,15 @@ The partners we'll approach first:
 
 | Risk | What handles it |
 |---|---|
-| Contract risk | Per-market daily caps and small vaults. Admin roles move behind a public timelock (48 h, rising to 7 days) before judging. An audit comes before caps rise, and the full deploy was rehearsed on mainnet forks |
+| Contract risk | Per-market daily caps and small vaults. The admin roles are still the deployer's; they move behind a 7-day timelock from the first day, proposed by a Safe with outside signers, after one upgrade that makes pausing return every order. An audit comes before caps rise, and the full deploy was rehearsed on mainnet forks |
 | The oracle | Prices are Chainlink's signed observations, proven first from the feed's history. An AUSD/USD move of more than 50 bp off $1 halts. The CRE sentinel halts a market whose feed is both 75 bp off Coinbase and Kraken and silent for 2 minutes |
 | Cold start | The vault quotes from the first block. The challenge brings would-be snipers in the open, where their losses are the proof |
-| Regulation | The SEC's TSV conditions are mapped to code. Operating a TSV in the US needs a registered entity or an ATS partner, which is a partnership to make, not code to write |
+| Regulation | Not offered to US persons, a policy the beta does not enforce on chain. The SEC's TSV conditions are mapped to code as engineering, not as a licence; operating in the US would need a registered entity or an ATS partner, which is a partnership to make, not code to write |
 
 ## Why this team
 
 Unison is built by a founder who has traded both crypto and stocks for a year, and who builds products. Crypto never closes, stocks do, and on-chain the gap is paid to whoever is fastest. This is the venue the founder wanted to trade on.
+
+## Appendix: a simulation of other designs
+
+A market-hours benchmark from 3 October, three days before the causal cutover ([fairness simulation](evidence/fairness.md)). Snipers took $473 to $6,171 a day from AMM, oracle-AMM and CLOB designs. At the same ±2 bp quote, a CLOB maker kept $84 a day after snipers took $487, and Unison's vault kept $646. Two limits: its Unison rows assume a reference with zero lag at the batch close, which mainnet does not have, and at that quote the taker paid 3.3 bp on Unison against 2.0 bp on the CLOB. The gain it shows is the liquidity provider's.

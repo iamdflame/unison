@@ -105,7 +105,7 @@ Clearing every block had hidden it. Waits measured in tens of seconds would have
 
 The fix:
 - a slot is never reused while its batch waits;
-- the ring now spans 65,536 blocks (about 7 hours).
+- the ring now spans 65,536 blocks (about 5.5 hours at Monad mainnet's ~0.3 s blocks).
 
 [`PendingRing.t.sol`](../../contracts/test/unit/PendingRing.t.sol) fails on the old code and passes on the new.
 
@@ -117,7 +117,8 @@ The fix:
   - `refTimeMs`, Chainlink's observation time;
   - `ts`, when it cleared;
   - `round`, the Chainlink round;
-  - `causal`, the tape's own check that the observation came after the seal.
+  - `rule`, which path bound the price: `causal`, or `discovery` for a call auction while the market was closed (it prices at the last observation, made before its orders);
+  - `causal`, the tape's quick check that the observation came more than the skew after the seal. The whole rule is `verify-receipt.mjs`'s, and the receipt page runs it in the reader's browser.
 - **The round itself:** `getRoundData(round)` on the feed returns `startedAt`, and that must equal `refTimeMs / 1000`.
 
 ## What is still open

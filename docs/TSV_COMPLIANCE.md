@@ -4,7 +4,7 @@ SEC Release 34-106402 (September 17, 2026, the "innovation exemption") lets **To
 
 Unison treats each condition as an engineering requirement. Each one is enforced on-chain where possible and recorded on-chain where enforcement belongs off-chain.
 
-> This is an engineering map of how the venue *implements* the conditions as we read them. It is not legal advice. Operating a TSV requires the registered entity (or broker-dealer/ATS partner) and its counsel.
+> **An engineering map, not a licence.** This is how the venue *could* implement the conditions as we read them. It is not legal advice, and nothing here makes Unison a TSV: operating one requires the registered entity (or a broker-dealer/ATS partner) and its counsel. The release, as summarised here, concerns permissioned AMM pools; Unison is a batch auction, and whether any exemption fits it is a question for counsel. **What the mainnet beta enforces today is only the issuer's denylist:** no market is permissioned, there is no KYC at order entry, and "not offered to US persons" is a policy, not an on-chain check.
 
 | Condition (as summarised from the release) | Unison implementation | Where | Test |
 |---|---|---|---|
@@ -26,13 +26,14 @@ These belong to the operator:
 | KYC/AML for participants | Cleanverse A-Pass → attester service → `attest()` |
 | Licensed market data for references | The mainnet beta reads Chainlink's tokenized-equity feeds; at scale, Pyth Pro or Chainlink Data Streams |
 | Computing ADV daily | CRE workflow → `setDailyCap` |
-| Monitoring primary-market halts | CRE workflow → `setHalt` |
+| Monitoring primary-market halts | CRE workflow → `setHalt` (a dry run in Chainlink's simulator today; it holds no role) |
 | Filing and record retention | — |
 
 The contracts make each step **checkable**: every action leaves an event or a hash on-chain.
 
 **In the mainnet beta today:**
 - aNVDA is a restricted token; the venue mirrors Anchored's denylist at every deposit and withdrawal (`IssuerDenylistEligibility`), without KYC.
+- No market is permissioned (`permissioned: false` on all three): anyone not on Anchored's denylist can trade.
 - Each market has a daily cap.
 - Prints, receipts and the receipt chain are public on the tape.
 - KYC attestations, tiers and an operator of record come before the venue grows.

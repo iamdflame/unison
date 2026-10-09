@@ -1,4 +1,6 @@
-# Fairness evidence: who pays the latency sniper? (2026-10-03)
+# Fairness simulation: who pays the latency sniper? (2026-10-03, before the causal cutover)
+
+> **Read this first.** This is a simulation, run on 3 October, three days before mainnet's causal cutover. Its Unison rows model a price published by a relay with zero lag at the batch close, with stylized actors. It is not a measurement of the deployment, which waits for Chainlink's next observation instead: typically 34 s on MON/USD and 1.5 min on wNVDAx-USD in US market hours ([measured](causal.md)). What the deployment does to a real sniper is measured in the standing challenge: our own bot, on a week of real MON prices, earns +17.8 bp a trade on the old rule and loses 23.0 bp a trade on Unison ([challenge evidence](challenge.md)). Read the table for what the venue designs do to each other, not as a promise about live fills.
 
 **Benchmark:** `research/sniper-bench` (`pnpm --filter @unison/sniper-bench bench`).
 
@@ -35,7 +37,7 @@ The Unison rows run the **actual clearing engine** (`@unison/engine`, bit-exact 
    - CLOB makers keep $84/day after snipers take $487/day;
    - Unison's vault keeps $646/day and loses nothing to snipers.
 
-   Liquidity providers can quote tighter, and uninformed traders benefit.
+   Liquidity providers can quote tighter. Takers gain against the AMM designs and the stale-reference venue, not against the tight CLOB: at ±2 bp with a 1 bp fee they pay 3.3 bp on Unison against 2.0 bp on the CLOB, in this simulation. The win at that quote is the liquidity provider's.
 3. **The rule is the mechanism.** Break "reference published after the batch closes" (last row) and the sniper's edge comes back immediately. That's why the venue enforces it on-chain:
    - `OperatorSignedReference` binds each signature to the batch and checks the publish time;
    - the exchange rejects any reference published before the newest batch closed.
@@ -47,7 +49,7 @@ The Unison rows run the **actual clearing engine** (`@unison/engine`, bit-exact 
   - one sniper with a perfect mid-block feed;
   - CLOB makers refresh with one block of latency, and races are coin flips;
   - push-oracle depth replenishes on each oracle update;
-  - Unison's relay has zero measurement lag at the batch close.
+  - Unison's relay has zero measurement lag at the batch close. That is the testnet's operator-relay design; mainnet runs no relay and prices at Chainlink's next observation, minutes slower at times, which this table does not model.
 - **Relay lag.** A relay lagging the true price by δ gives back an edge of order σ·√δ. Over tens of milliseconds that is far below a 2 bp spread, except during news. DISCOVERY bands and LULD bands cap the damage there.
 - **Synthetic flow.** No inventory risk aversion or strategic market makers are modelled. Uninformed flow is i.i.d.
-- **Live data supersedes this.** The live-mainnet print and fill data (indexer tape) will replace the simulation numbers as they accumulate.
+- **Live data supersedes this.** The standing challenge measures the deployment itself ([challenge evidence](challenge.md), the live board on [/challenge](https://www.unisonfi.com/challenge)). So far only the team's own sniper has entered it.

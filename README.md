@@ -56,7 +56,7 @@ Trading mainnet itself needs AUSD on Monad and a browser wallet to deposit it. E
 | Continuous venues pay whoever is fastest: snipers drain LPs and widen spreads. Oracle-priced pools leak the same way: a push feed is seconds old when it lands. | Every auction prices after its orders are sealed. On a week of real MON prices, a sniper earns **+17.8 bp a trade on the old rule and loses 23.0 bp on Unison** ([evidence](docs/evidence/challenge.md)). In a market-hours benchmark it earned **$0 in 0 fills**, against $473–$6,171/day on the alternatives ([evidence](docs/evidence/fairness.md)). |
 | SEC Release 34-106402 (Sep 2026) lets tokenized-securities venues run permissioned AMM pools, under conditions. | The conditions are code: daily ADV caps inside the auction, LULD tier limits, eligibility routing, halt mirroring, and a hash-chained tape. |
 
-Who trades it first, how it earns, where it stands and the next 90 days: [docs/MARKET.md](docs/MARKET.md).
+Who trades it first, how it earns, where it stands and the next 90 days: [docs/MARKET.md](docs/MARKET.md). What an outside review found wrong, what it missed, and the order we are fixing things in: [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## How it works
 
@@ -83,7 +83,7 @@ Who trades it first, how it earns, where it stands and the next 90 days: [docs/M
    - **Mainnet:** `ChainlinkCausalReference` reads Chainlink's rounds by the observation time their quorum signed (`startedAt`), not the time they landed. It proves a round is the first after a given time, and checks the AUSD/USD round in force at it (more than 50 bp off $1 halts). The feeds are the tokenized-equity feed wNVDAx-USD (24/5) for aNVDA and MON/USD for WMON. One WMON market is kept on the old rule as the challenge's control.
    - **Testnet:** relays sign `Reference(venue, market, batch, price, publishTimeMs, status)`, bound to one batch, with a k-of-n quorum over secp256k1 or P-256 keys and slashable bonds.
    - **Pyth:** an adapter for pull updates is built, but waits: Pyth's Hermes has required a paid key since 26 August 2026.
-   - **CRE:** a Chainlink CRE sentinel watches the mainnet feed against Coinbase and Kraken, and halts a market whose feed is both more than 75 bp off and silent for 2 minutes. A second workflow mirrors Nasdaq halts. Both run against Monad mainnet in Chainlink's simulator ([logs](docs/evidence/cre.md)). Deploying to a DON waits for CRE access.
+   - **CRE:** a Chainlink CRE sentinel watches the mainnet feed against Coinbase and Kraken, and halts a market whose feed is both more than 75 bp off and silent for 2 minutes. A second workflow mirrors Nasdaq halts. Both run against Monad mainnet in Chainlink's simulator, as a dry run: they hold no role and halt nothing yet ([logs](docs/evidence/cre.md)). Deploying to a DON waits for CRE access.
 3. **Regimes.**
 
    | Regime | Behaviour |
@@ -158,7 +158,7 @@ research/    sniper-bench/ (fairness benchmark)
 deploy/      network configs: monad-mainnet-beta.json (the live beta), monad-mainnet.json (the full 10-market
              deploy, every address verified on-chain), fork rehearsals
 deployments/ what was deployed: monad-mainnet.json, monad-testnet.json, fork rehearsals
-docs/        SPEC, ARCHITECTURE, API, AGENTS, MONAD, MARKET, GO_LIVE, DEPLOY, THREAT_MODEL, TSV_COMPLIANCE, evidence/
+docs/        SPEC, ARCHITECTURE, API, AGENTS, MONAD, MARKET, ROADMAP, GO_LIVE, DEPLOY, THREAT_MODEL, TSV_COMPLIANCE, evidence/
 cre/         Chainlink CRE workflows (cre/unison): the feed sentinel, Nasdaq halts, ADV caps, reference audits
 video/       the demo, pitch, ad and bounty films (Remotion): scripts, scenes, capture and mastering tools;
              footage, voice and music stay local (YOUTUBE.md lists the uploads)
@@ -248,9 +248,9 @@ Quality gates, run from `apps/web`:
   - No Unison key signs a mainnet price.
   - The vaults are small, each market has a daily cap, and Anchored's denylist is mirrored.
   - Every address, transaction and first print is in [docs/evidence/mainnet.md](docs/evidence/mainnet.md) ([runbook](docs/GO_LIVE.md)).
-- **Admin:** the deployer key still holds the admin roles. They move behind a public timelock (48 h, rising to 7 days) before judging, after which every change to prices, markets or roles waits in public.
+- **Admin:** the deployer key still holds the admin roles, and today they can do more than an upgrade: the [threat model](docs/THREAT_MODEL.md#what-the-admin-can-do) lists every power plainly. Next: one upgrade that makes pausing, halting or deactivating a market return every waiting order and locks the gateway role, then a 7-day timelock from the first day, proposed by a Safe with outside signers. The timelock was promised "before judging"; it waits on the signers, and this line will say when it's done ([roadmap](docs/ROADMAP.md)).
 - **Live evidence:** the first weekend DISCOVERY cycle (aNVDA closed from Fri 9 October 20:00 ET, reopening on Chainlink's first observation after Sun 11 October 20:00 ET) will be published in `docs/evidence/`.
-- **Equity references:** on testnet the relay signs prices from market data (Yahoo Finance's public quotes; Alpaca IEX with a key, or a labelled simulation). On mainnet they are Chainlink's tokenized-equity feeds. (Pyth's Hermes has required a paid key since 26 August 2026, so the Pyth adapter waits.)
+- **Equity references:** on testnet the relay signs prices from market data (Yahoo Finance's public quotes; Alpaca IEX with a key, or a labelled simulation). On mainnet they are Chainlink's tokenized-equity feeds. (Pyth's Hermes has required an API key since 26 August 2026: a free trial, then paid plans. The Pyth adapter waits for the causal pull adapter in the [roadmap](docs/ROADMAP.md).)
 - **Other venues on Monad:** Monday Trade has offered permissionless 24/5 trading of Anchored aStocks since April 2026, continuously, spot and perpetuals. Unison's difference is the auction: one price per auction, at a Chainlink observation made after its orders were sealed, liquidity that isn't picked off, and price discovery through the weekend.
 - **Public testnet: live.** https://www.unisonfi.com, on Monad testnet (chain 10143), lists aNVDA, aSPY and aQQQ; the other markets run as a labelled browser simulation. Passkey accounts, a faucet, gasless orders and certificates work end to end. Addresses: `deployments/monad-testnet.json`.
 - **Hosting.** The web app runs on Vercel. The services run on Railway: relay, keeper, relayer and tape for the testnet, and keeper, relayer, tape and the house adversary for mainnet, which needs no relay ([DEPLOY](docs/DEPLOY.md)).

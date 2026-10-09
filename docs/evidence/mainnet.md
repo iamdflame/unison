@@ -129,4 +129,4 @@ The adversary's matching sale on the old-rule control filled four seconds earlie
 
 - **Outside traders.** The proof that matters is fills by accounts that aren't ours. Their certificates and transactions will be added here as they happen, with `GET /v1/stats` as the running count.
 - **The first live weekend (Fri Oct 9 → Sun Oct 11).** aNVDA trades in DISCOVERY call auctions while its feed is closed, then reopens on the first Chainlink update. It will be written up in `weekend-2026-10-09.md`.
-- **Admin handover.** Every admin role moves behind a public timelock (48 h, rising to 7 days), with the owner's wallet as the only proposer.
+- **Admin handover.** Not done yet. The plan, reworked on 9 October: first one exchange upgrade (pausing, halting or deactivating a market returns every waiting order without an oracle; the gateway role is locked), then a 7-day timelock from the first day, proposed by a Safe with outside signers and cancellable by a guardian Safe, taking every role and every adapter's ownership in one run ([roadmap](../ROADMAP.md), [threat model](../THREAT_MODEL.md#what-the-admin-can-do)).
