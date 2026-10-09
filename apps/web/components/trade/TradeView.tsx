@@ -36,6 +36,7 @@ export function TradeView({ ticker }: { ticker: string }) {
   const observedAgo =
     observedS === null ? null : observedS < 90 ? `${observedS} s ago` : observedS < 5400 ? `${Math.round(observedS / 60)} min ago` : `${Math.round(observedS / 3600)} h ago`;
   const refLabel = m.causal && m.regime.name !== "DISCOVERY" ? "Chainlink now" : refName(m);
+  const headline = last ? last.tick * unit : live ? null : Number(spec.seedPrice) / 1e6;
   const held = useVenueAccount((a) => (a.base[ticker] ?? 0) + (a.lockedBase[ticker] ?? 0));
   // what it's worth at the reference, in cents while it's small: 9 WMON is $0.24, not "$0"
   const worth = held * m.refTick * unit;
@@ -84,11 +85,12 @@ export function TradeView({ ticker }: { ticker: string }) {
               {/* the headline figure is named: it is the last auction's price, not a live quote */}
               <p className="mt-2 text-xs text-ink-3">Last trade</p>
               <div className="flex items-baseline gap-4">
-                {/* before the first print there is no price to show: not the listing's seed price, which nobody traded at */}
-                {last ? (
+                {/* a live market before its first print has no price to show, not the listing's seed price that nobody traded
+                    at; the simulation starts from its listing's price, so its headline never jumps under the guided tour */}
+                {headline !== null ? (
                   <span className="numerals text-[clamp(2.25rem,4vw,3.25rem)] leading-none text-ink">
                     <NumberFlow
-                      value={last.tick * unit}
+                      value={headline}
                       locales="en-US"
                       format={{
                         style: "currency",
