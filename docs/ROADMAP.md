@@ -5,6 +5,7 @@ On 8 October 2026 an outside review listed 39 problems with Unison as it runs to
 ## Where Unison stands (9 October 2026)
 
 - **The rule works on mainnet.** Since 6 October each auction prices at Chainlink's first observation after its orders are sealed, and the contract proves it is the first ([causal evidence](evidence/causal.md)). Every receipt can be checked from the chain alone, and the receipt page now does it in your browser.
+- **The challenge paid out, on the old rule.** On 8 October the contract paid our own sniper the old-rule control's pot: 30 fills at +14.35 bp, judged against Chainlink's history. On Unison's causal market the same sniper is at −21.1 bp over 53 fills, and its pot stands ([challenge evidence](evidence/challenge.md)).
 - **Nobody else trades yet.** `GET /v1/stats` counts zero outside traders. The vaults hold about $65 of the team's inventory, and daily caps keep it small.
 - **One key holds the admin roles,** and today it can do more than upgrade: grant itself the gateway role and move any account's funds, re-point a price feed, or trap sealed orders by deactivating a market. The [threat model](THREAT_MODEL.md#what-the-admin-can-do) lists every power.
 - **Not audited.** The tests are extensive (Foundry unit, fuzz and invariant suites, a Solidity-versus-TypeScript differential, mainnet-fork rehearsals), but nobody outside has reviewed the contracts.

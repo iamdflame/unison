@@ -10,6 +10,7 @@ import { shallowEqual } from "@/lib/store/createStore";
 import { useMarket, useVenue } from "@/lib/venue";
 import { chooseNetwork, networks, type NetConfig } from "@/lib/venue/config";
 import { liveClients } from "@/lib/venue/live";
+import { Keys } from "./Keys";
 
 type Level = "ok" | "slow" | "down";
 const LEVEL: Record<Level, { word: string; dot: string }> = {
@@ -248,6 +249,7 @@ export function Status() {
             : null}
         </p>
       </section>
+      <Keys net={net} />
     </>
   );
 }

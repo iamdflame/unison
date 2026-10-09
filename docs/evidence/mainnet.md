@@ -59,6 +59,25 @@ wNVDAx-USD is Chainlink's "Calculated" tokenized-equity feed: NVDA times the xSt
 
 The tape counts these accounts, and the vaults, apart from outside traders: `GET /v1/stats` on https://unison-tape-mainnet-production.up.railway.app.
 
+## Who holds which key (read from the chain, 9 October 2026)
+
+AccessControl doesn't list its members, so this is every `RoleGranted`, `RoleRevoked`, `RoleAdminChanged` and ownership event from the deployment's first block (110,849,209) to block 111,910,724: 19 events, nothing revoked, no role given a custom admin, no ownership transfer pending. Reproduce it with `node --conditions=development packages/sdk/scripts/scan-roles.mjs`.
+
+| Contract | Role or ownership | Held by |
+|---|---|---|
+| Exchange `0x1696…Adf75` | `DEFAULT_ADMIN_ROLE` (upgrades; administers every role, the gateway's included) | deployer |
+| | `OPERATOR_ROLE` (markets, sources, eligibility, keeper reward) | deployer |
+| | `GUARDIAN_ROLE` (pause), `HALT_ROLE` | deployer, guardian |
+| | `CAP_ROLE` | deployer |
+| | `GATEWAY_ROLE` (acts for accounts, `withdrawFor` included) | the `OrderGateway` `0xfB24…033A` only: no other gateway has ever existed |
+| aNVDA, WMON and control vaults | `DEFAULT_ADMIN_ROLE`, `RISK_ROLE` | deployer |
+| Operator reference `0x2673…2e59e746` (unused on mainnet) | `DEFAULT_ADMIN_ROLE`, `SIGNER_ADMIN_ROLE` | deployer |
+| `ChainlinkCausalReference` `0xB161…891d` | owner (`setFeed`) | deployer |
+| `ChainlinkReference` `0xF5B4…0578` (the control's) | owner | deployer |
+| Eligibility mirror `0xB519…87b8` | owner | deployer |
+
+What each of these can do is in the [threat model](../THREAT_MODEL.md#what-the-admin-can-do). The handover takes every row: `contracts/script/HandoverTimelock.s.sol` moves them to a 7-day timelock and a guardian Safe in one run and reverts if any of them is left behind.
+
 ## Launch, in order
 
 | Step | Transaction |
@@ -96,6 +115,7 @@ Run through `apps/web/scripts/ops/mainnet-launch.mjs`, step by step as rehearsed
 | Keeper: the first causal clear (vault queue only), then `process()` | `0x3cf53b752a41660cb00e7ce6b60506bf99d76be4d16d1a41e73eedfc97d739a5`, `0xb9a03cbc341c324f289def625034c711f78eec9bd0c3c89bfbd2cf5b3e1edd93` |
 | Challenge contracts (2 transactions, 0.60 MON) | `0x7d4dfef90f6f5c5ad7e34cc1bfc4834b9b99e181195a3da38dc6d0451993ac52`, `0x5effd53feca7d3982f9d01b3e5b137e0bf75573803a991bc6ae9708083f96767` |
 | Pots: 18 AUSD on Unison, 1 AUSD on the control | `0xf8fdf511070cbe142a9703983139f2c1d3a92f9f51ede41e253cc6dfd5aad3ce`, `0x4f88bf1493fe35e4eb2efc20214786685ace56ed73f2d99f61df2a2365d1cd45` |
+| The control's pot claimed by our own sniper (30 fills, +14.35 bp), 8 October 02:52 UTC | `0x042dae768917a9730eaa2cf3a06106f308af6868255fca1f816bb9becded3e02` |
 | Inventory: 250 WMON to the WMON vault, 60 WMON to the control's | `0x686bf889a5ba858c22f1b19da2a3e922a22ba24e08794edc8678d5473aa474dc`, `0x17c3075cee30490d6244d75816e795f0754a100247edd6207bf2b11beaefe12d` |
 | The house adversary: funded, its two challenge accounts opened (45 WMON and 1.25 AUSD each) | `0x54fad385f934df566271c5b811840dd265c10e1a2f5a4df8b96af92513317f33`, `0xa78ed6c333c906b1485122fdfab0eea6c36839c58f02966fd3bde0bd5abae7ab`, `0xc67b40c7cd49d5e471ccf8b736faa8e24bb06385cde0aeee08a4b285e1836c01` |
 | Team: sell 3 WMON into the WMON vault's bid, one auction | `0x4e083bd1b8d0a814dff52e36f54f33c87f680fa67763068bdd114d2784e7abbf` |
