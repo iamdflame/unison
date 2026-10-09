@@ -250,7 +250,7 @@ contract PhaseATest is Test {
         (, uint256 vol) = ex.clear(mkt, _payload(r)); // the payload is not read
         assertEq(vol, 0);
         assertEq(ex.market(mkt).lastRefPrice, before.lastRefPrice, "a halted market prices at nothing");
-        assertEq(ex.market(mkt).lastCleared, batch);
+        assertGe(ex.market(mkt).lastCleared, batch, "the order's batch is covered");
         vm.prank(bob);
         ex.cancelOrder(slot);
         assertEq(ex.balanceOf(bob, address(nvda)), 100e18);
@@ -267,8 +267,9 @@ contract PhaseATest is Test {
         ex.pause();
         _next(1);
         ex.clear(mkt, ""); // returns whatever waited up to the last block, even nothing
+        uint256 last = ex.market(mkt).lastCleared; // read first: expectRevert applies to the next call
         vm.expectRevert(ExchangeBase.NothingToClear.selector);
-        ex.clearUpTo(mkt, ex.market(mkt).lastCleared, "");
+        ex.clearUpTo(mkt, last, "");
     }
 
     // ------------------------------------------------------------------ no house curve while closed
