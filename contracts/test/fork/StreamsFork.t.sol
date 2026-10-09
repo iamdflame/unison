@@ -24,8 +24,8 @@ contract StreamsForkTest is Test {
     function setUp() public {
         if (block.chainid != 143) vm.skip(true);
         sref = new StreamsCausalReference(address(this), VERIFIER);
-        sref.setStream(1, ETH_USD, AggregatorV3Interface(address(0)), 6, 0, 0, 30, 0);
-        sref.setStream(2, RWA_V8, AggregatorV3Interface(address(0)), 6, 0, 0, 30, 0);
+        sref.setStream(1, ETH_USD, AggregatorV3Interface(address(0)), 6, 0x04, 0, 0, 30, 0);
+        sref.setStream(2, RWA_V8, AggregatorV3Interface(address(0)), 6, 0x04, 0, 0, 30, 0);
     }
 
     function _fixture(string memory name) internal view returns (bytes memory) {

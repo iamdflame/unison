@@ -47,6 +47,8 @@ contract StreamsCausalReferenceTest is Test {
     uint32 internal constant POST = 3;
     uint32 internal constant OVERNIGHT = 4;
     uint32 internal constant CLOSED = 5;
+    uint8 internal constant ALL_WEEKDAY = 0x1e; // pre-market, regular, post-market and overnight are live
+    uint8 internal constant REGULAR_ONLY = 0x04;
 
     MockVerifierProxy internal verifier;
     StreamsCausalReference internal sref;
@@ -94,7 +96,7 @@ contract StreamsCausalReferenceTest is Test {
                 strictAfterClose: true
             })
         );
-        sref.setStream(mkt, NVDA, AggregatorV3Interface(address(ausdUsd)), 6, 90_000, 60, 30, 50);
+        sref.setStream(mkt, NVDA, AggregatorV3Interface(address(ausdUsd)), 6, ALL_WEEKDAY, 90_000, 60, 30, 50);
         ex.setCausal(mkt, address(sref), true, SKEW);
         _fund(bob, 100e18, 0);
         _fund(alice, 0, 100_000e6);
@@ -214,7 +216,7 @@ contract StreamsCausalReferenceTest is Test {
         assertEq(r.price, 180e18);
         assertEq(r.validFrom, T0 + 1);
         assertEq(r.midAt, T0 + 2);
-        assertEq(r.status, uint8(IReferenceAdapter.Status.OPEN));
+        assertEq(r.session, sref.REGULAR());
         assertEq(sref.newestObservation(NVDA), T0 + 3);
     }
 
@@ -251,10 +253,10 @@ contract StreamsCausalReferenceTest is Test {
 
     function test_setStream_onlyKnownSchemas_onlyOwner() public {
         vm.expectRevert(abi.encodeWithSelector(StreamsCausalReference.UnsupportedSchema.selector, uint16(9)));
-        sref.setStream(7, bytes32(uint256(9) << 240), AggregatorV3Interface(address(0)), 6, 0, 0, 30, 0);
+        sref.setStream(7, bytes32(uint256(9) << 240), AggregatorV3Interface(address(0)), 6, REGULAR_ONLY, 0, 0, 30, 0);
         vm.prank(keeper);
         vm.expectRevert();
-        sref.setStream(7, ETH, AggregatorV3Interface(address(0)), 6, 0, 0, 30, 0);
+        sref.setStream(7, ETH, AggregatorV3Interface(address(0)), 6, REGULAR_ONLY, 0, 0, 30, 0);
     }
 
     // ------------------------------------------------------------------ the rule
@@ -321,9 +323,40 @@ contract StreamsCausalReferenceTest is Test {
         }
     }
 
+    function test_status_aRegularHoursStream_isClosedOutsideThem() public {
+        // Chainlink publishes NVDA as three streams (regular, extended, overnight); a market reading only the
+        // regular-hours stream treats every other session as closed: call auctions, never an extended price
+        sref.setStream(mkt, NVDA, AggregatorV3Interface(address(ausdUsd)), 6, REGULAR_ONLY, 90_000, 60, 30, 50);
+        uint32[5] memory codes = [PRE, REGULAR, POST, OVERNIGHT, CLOSED];
+        IReferenceAdapter.Status[5] memory want = [
+            IReferenceAdapter.Status.CLOSED,
+            IReferenceAdapter.Status.OPEN,
+            IReferenceAdapter.Status.CLOSED,
+            IReferenceAdapter.Status.CLOSED,
+            IReferenceAdapter.Status.CLOSED
+        ];
+        for (uint256 i = 0; i < codes.length; ++i) {
+            uint256 obs = T0 + 10 * (i + 1);
+            // outside regular hours the regular-hours mid is hours old, which is expected there: CLOSED, not HALTED
+            uint256 midAt = codes[i] == REGULAR ? obs : obs - 3600;
+            sref.submit(_v11(obs, obs, 180e18, midAt, codes[i]));
+            (,, IReferenceAdapter.Status st,) = sref.readAfter(mkt, obs - 1, abi.encode(uint32(obs), q0));
+            assertEq(uint8(st), uint8(want[i]));
+        }
+    }
+
+    function test_setStream_liveSessionsMustIncludeRegularHoursOnly() public {
+        vm.expectRevert(StreamsCausalReference.BadReport.selector);
+        sref.setStream(7, ETH, AggregatorV3Interface(address(0)), 6, 0x02, 0, 0, 30, 0); // pre-market without regular
+        vm.expectRevert(StreamsCausalReference.BadReport.selector);
+        sref.setStream(7, ETH, AggregatorV3Interface(address(0)), 6, 0x24, 0, 0, 30, 0); // "closed" is not a session
+        vm.expectRevert(StreamsCausalReference.BadReport.selector);
+        sref.setStream(7, ETH, AggregatorV3Interface(address(0)), 6, 0x05, 0, 0, 30, 0); // nor is "unknown"
+    }
+
     function test_status_cryptoIsAlwaysOpen_rwaStandardMapsItsCodes() public {
-        sref.setStream(7, ETH, AggregatorV3Interface(address(0)), 6, 0, 0, 30, 0);
-        sref.setStream(8, RWA8, AggregatorV3Interface(address(0)), 6, 0, 0, 30, 0);
+        sref.setStream(7, ETH, AggregatorV3Interface(address(0)), 6, REGULAR_ONLY, 0, 0, 30, 0);
+        sref.setStream(8, RWA8, AggregatorV3Interface(address(0)), 6, REGULAR_ONLY, 0, 0, 30, 0);
         sref.submit(_v3(T0, T0, 2400e18));
         (uint256 px,, IReferenceAdapter.Status st,) = sref.readAfter(7, T0 - 1, abi.encode(uint32(T0), uint80(0)));
         assertEq(px, 2400e6, "no quote feed: the quote token is USD");

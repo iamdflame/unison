@@ -20,9 +20,12 @@ import {IVerifierProxy} from "../interfaces/external/IVerifierProxy.sol";
 ///         the seal, round r-1 not") with the predecessor read from the window, so whoever submits it chooses nothing.
 ///
 ///         The session comes from the report itself (`marketStatus`), not from a calendar: Chainlink marks regular
-///         hours, the extended sessions of 24/5 US equities, closures and holidays. A report whose market status is
-///         unknown, whose mid price is older than `maxMidAgeSec` while the market is open, or whose quote asset is off
-///         its peg reads HALTED, and the exchange returns orders rather than trade on it.
+///         hours, the extended sessions of 24/5 US equities, closures and holidays. Chainlink publishes US equities as
+///         one stream per session (regular, extended, overnight), so each market lists the sessions its stream is live
+///         in (`liveSessions`): regular hours read OPEN, a live extended or overnight session EXTENDED, and every other
+///         session CLOSED, priced by call auctions. A report whose market status is unknown, whose mid price is older
+///         than `maxMidAgeSec` in a live session, or whose quote asset is off its peg reads HALTED, and the exchange
+///         returns orders rather than trade on it.
 ///
 ///         There is no empty-payload path. A pull oracle cannot prove that no report exists, so a market whose reports
 ///         stop simply waits (the guardian can halt it, which returns every order). Reports keep coming while a market
@@ -35,13 +38,22 @@ import {IVerifierProxy} from "../interfaces/external/IVerifierProxy.sol";
 ///         payload (readAfter): abi.encode(uint32 observationsTimestamp, uint80 quoteRound), naming the stored report
 ///         and the quote-feed round in force at its observation.
 contract StreamsCausalReference is ICausalReference, Ownable2Step {
+    // A report's session, normalised across schemas (schema 11's marketStatus codes)
+    uint8 public constant UNKNOWN = 0;
+    uint8 public constant PRE_MARKET = 1;
+    uint8 public constant REGULAR = 2;
+    uint8 public constant POST_MARKET = 3;
+    uint8 public constant OVERNIGHT = 4;
+    uint8 public constant CLOSED_SESSION = 5;
+
     struct Stream {
         bytes32 feedId; // Data Streams feed ID; its first two bytes are the report schema (3, 8 or 11)
         AggregatorV3Interface quote; // quote/USD push feed (zero = the quote token is USD)
         uint8 quoteFeedDecimals;
         uint8 quoteTokenDecimals;
+        uint8 liveSessions; // bit k set: session k is live (OPEN for REGULAR, EXTENDED otherwise); others read CLOSED
         uint32 quoteMaxAgeSec; // the quote observation in force may be at most this much older than the report
-        uint32 maxMidAgeSec; // open market, mid last updated longer ago than this before the report: HALTED (0 = off)
+        uint32 maxMidAgeSec; // live session, mid last updated longer ago than this before the report: HALTED (0 = off)
         uint32 maxLatestAgeSec; // `latest` serves only a report observed this recently
         uint16 depegBps; // quote asset more than this off $1 = HALTED (0 = no check)
         bool set;
@@ -51,7 +63,7 @@ contract StreamsCausalReference is ICausalReference, Ownable2Step {
         uint128 price; // USD per whole base token, 18 decimals (Data Streams' convention)
         uint32 validFrom; // first second of the report's window
         uint32 midAt; // when the mid was last updated, seconds (0 = the schema does not say)
-        uint8 status; // IReferenceAdapter.Status
+        uint8 session; // UNKNOWN .. CLOSED_SESSION
         bool set;
     }
 
@@ -72,13 +84,14 @@ contract StreamsCausalReference is ICausalReference, Ownable2Step {
         bytes32 indexed feedId,
         address quote,
         uint8 quoteTokenDecimals,
+        uint8 liveSessions,
         uint32 quoteMaxAgeSec,
         uint32 maxMidAgeSec,
         uint32 maxLatestAgeSec,
         uint16 depegBps
     );
     event ReportStored(
-        bytes32 indexed feedId, uint32 indexed observedAt, uint32 validFrom, uint256 price, uint8 status, address by
+        bytes32 indexed feedId, uint32 indexed observedAt, uint32 validFrom, uint256 price, uint8 session, address by
     );
 
     error UnknownFeed();
@@ -95,11 +108,14 @@ contract StreamsCausalReference is ICausalReference, Ownable2Step {
         verifier = verifier_;
     }
 
+    /// @param liveSessions bitmask over PRE_MARKET..OVERNIGHT: (1 << REGULAR) for a regular-hours stream, 0x1e for one
+    ///        stream live around the clock on weekdays; the REGULAR bit is required
     function setStream(
         uint256 marketId,
         bytes32 feedId,
         AggregatorV3Interface quote,
         uint8 quoteTokenDecimals,
+        uint8 liveSessions,
         uint32 quoteMaxAgeSec,
         uint32 maxMidAgeSec,
         uint32 maxLatestAgeSec,
@@ -107,12 +123,15 @@ contract StreamsCausalReference is ICausalReference, Ownable2Step {
     ) external onlyOwner {
         uint16 schema = _schema(feedId);
         if (schema != 3 && schema != 8 && schema != 11) revert UnsupportedSchema(schema);
-        if (maxLatestAgeSec == 0) revert BadReport();
+        if (maxLatestAgeSec == 0 || (liveSessions & (1 << REGULAR)) == 0 || (liveSessions & ~uint8(0x1e)) != 0) {
+            revert BadReport();
+        }
         Stream storage s = streams[marketId];
         s.feedId = feedId;
         s.quote = quote;
         s.quoteFeedDecimals = address(quote) == address(0) ? 0 : quote.decimals();
         s.quoteTokenDecimals = quoteTokenDecimals;
+        s.liveSessions = liveSessions;
         s.quoteMaxAgeSec = quoteMaxAgeSec;
         s.maxMidAgeSec = maxMidAgeSec;
         s.maxLatestAgeSec = maxLatestAgeSec;
@@ -120,7 +139,15 @@ contract StreamsCausalReference is ICausalReference, Ownable2Step {
         s.set = true;
         known[feedId] = true;
         emit StreamSet(
-            marketId, feedId, address(quote), quoteTokenDecimals, quoteMaxAgeSec, maxMidAgeSec, maxLatestAgeSec, depegBps
+            marketId,
+            feedId,
+            address(quote),
+            quoteTokenDecimals,
+            liveSessions,
+            quoteMaxAgeSec,
+            maxMidAgeSec,
+            maxLatestAgeSec,
+            depegBps
         );
     }
 
@@ -147,43 +174,40 @@ contract StreamsCausalReference is ICausalReference, Ownable2Step {
         uint256 obs = _word(report, 2);
         if (validFrom == 0 || validFrom > obs || obs > type(uint32).max) revert BadReport();
         observedAt = uint32(obs);
-        (int256 px, Status st, uint256 midAtNs) = _decode(_schema(feedId), report);
+        (int256 px, uint8 session, uint256 midAtNs) = _decode(_schema(feedId), report);
         if (px <= 0 || uint256(px) > type(uint128).max) revert BadReport();
         Report storage r = _reports[feedId][observedAt];
         if (r.set) return (feedId, observedAt);
         r.price = uint128(uint256(px));
         r.validFrom = uint32(validFrom);
         r.midAt = uint32(Math.min(midAtNs / 1e9, type(uint32).max));
-        r.status = uint8(st);
+        r.session = session;
         r.set = true;
         if (observedAt > newestObservation[feedId]) newestObservation[feedId] = observedAt;
-        emit ReportStored(feedId, observedAt, uint32(validFrom), uint256(px), uint8(st), msg.sender);
+        emit ReportStored(feedId, observedAt, uint32(validFrom), uint256(px), session, msg.sender);
     }
 
-    /// @dev Price, status and the mid's last update (ns) by schema. Words are read by position, so fields this adapter
-    ///      does not use cannot make a report undecodable.
-    function _decode(uint16 schema, bytes memory r) private pure returns (int256 px, Status st, uint256 midAtNs) {
+    /// @dev Price, session and the mid's last update (ns) by schema. Words are read by position, so fields this
+    ///      adapter does not use cannot make a report undecodable.
+    function _decode(uint16 schema, bytes memory r) private pure returns (int256 px, uint8 session, uint256 midAtNs) {
         if (schema == 3) {
             // Crypto Advanced: ..., price, bid, ask. Crypto trades around the clock.
             px = int256(_word(r, 6));
-            st = Status.OPEN;
+            session = REGULAR;
         } else if (schema == 8) {
             // RWA Standard: ..., lastUpdateTimestamp (ns), midPrice, marketStatus (0 unknown, 1 closed, 2 open)
             midAtNs = _word(r, 6);
             px = int256(_word(r, 7));
             uint256 ms = _word(r, 8);
-            st = ms == 2 ? Status.OPEN : ms == 1 ? Status.CLOSED : Status.HALTED;
+            session = ms == 2 ? REGULAR : ms == 1 ? CLOSED_SESSION : UNKNOWN;
         } else if (schema == 11) {
             // RWA Advanced: ..., mid, lastSeenTimestampNs, bid, bidVolume, ask, askVolume, lastTradedPrice, marketStatus.
-            // 24/5 US equities: 1 pre-market, 2 regular, 3 post-market, 4 overnight, 5 closed; standard-hours feeds
-            // use 2 and 5; 0 is unknown.
+            // US equities: 1 pre-market, 2 regular, 3 post-market, 4 overnight, 5 closed; 0 unknown.
             if (r.length < 14 * 32) revert BadReport();
             px = int256(_word(r, 6));
             midAtNs = _word(r, 7);
             uint256 ms = _word(r, 13);
-            st = ms == 2
-                ? Status.OPEN
-                : (ms == 1 || ms == 3 || ms == 4) ? Status.EXTENDED : ms == 5 ? Status.CLOSED : Status.HALTED;
+            session = ms <= CLOSED_SESSION ? uint8(ms) : UNKNOWN;
         } else {
             revert UnsupportedSchema(schema);
         }
@@ -241,7 +265,7 @@ contract StreamsCausalReference is ICausalReference, Ownable2Step {
     }
 
     /// @notice A stored report: price (18 decimals, USD), the first second of its window, when its mid was last
-    ///         updated, and its status.
+    ///         updated, and its session (UNKNOWN .. CLOSED_SESSION).
     function report(bytes32 feedId, uint32 observedAt) external view returns (Report memory) {
         return _reports[feedId][observedAt];
     }
@@ -253,18 +277,24 @@ contract StreamsCausalReference is ICausalReference, Ownable2Step {
         if (!s.set) revert UnknownFeed();
     }
 
-    /// @dev quote units per whole base token = USD price ÷ quote/USD; HALTED when the quote is stale or off its peg,
-    ///      or when an open market's mid had stopped updating.
+    /// @dev The market's status for a report: unknown is HALTED; regular hours OPEN and another live session EXTENDED
+    ///      (HALTED if the mid had stopped updating); every other session CLOSED.
+    function _status(Stream memory s, Report memory r, uint256 observedAt) private pure returns (Status) {
+        if (r.session == UNKNOWN) return Status.HALTED;
+        if (r.session == CLOSED_SESSION || (s.liveSessions & (1 << r.session)) == 0) return Status.CLOSED;
+        if (s.maxMidAgeSec != 0 && r.midAt != 0 && observedAt > uint256(r.midAt) + s.maxMidAgeSec) {
+            return Status.HALTED;
+        }
+        return r.session == REGULAR ? Status.OPEN : Status.EXTENDED;
+    }
+
+    /// @dev quote units per whole base token = USD price ÷ quote/USD; HALTED when the quote is stale or off its peg.
     function _price(Stream memory s, Report memory r, uint256 observedAt, Quote memory q)
         private
         pure
         returns (uint256 price, Status status)
     {
-        status = Status(r.status);
-        if (
-            (status == Status.OPEN || status == Status.EXTENDED) && s.maxMidAgeSec != 0 && r.midAt != 0
-                && observedAt > uint256(r.midAt) + s.maxMidAgeSec
-        ) status = Status.HALTED;
+        status = _status(s, r, observedAt);
         if (address(s.quote) == address(0)) {
             price = Math.mulDiv(r.price, 10 ** s.quoteTokenDecimals, 1e18);
         } else {
