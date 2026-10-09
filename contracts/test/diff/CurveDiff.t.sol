@@ -340,7 +340,10 @@ contract CurveDiffTest is Test {
         vm.recordLogs();
         (uint256 tick, uint256 volume) = ex.clear(a.mkt, "");
         _checkAuction(a, out, tick, volume, vm.getRecordedLogs());
-        if (a.status != uint256(IReferenceAdapter.Status.HALTED) && !vaultReverted) _assertCurve(out, 9, vc);
+        // v2 asks curve sources only in an open session: a closed or halted auction reports none. (The vault's own curve
+        // is checked against the engine for every status by testFuzz_vaultCurveMatchesEngine.)
+        bool open = a.status == uint256(IReferenceAdapter.Status.OPEN) || a.status == uint256(IReferenceAdapter.Status.EXTENDED);
+        if (open && !vaultReverted) _assertCurve(out, 9, vc);
     }
 
     function _checkAuction(Auction memory a, uint256[] memory out, uint256 tick, uint256 volume, Vm.Log[] memory logs)
