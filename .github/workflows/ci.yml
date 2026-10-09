@@ -233,6 +233,7 @@ jobs:
     name: Symbolic proofs (Halmos on Clearing; reports, does not block yet)
     runs-on: ubuntu-latest
     continue-on-error: true
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
         with:
@@ -245,7 +246,28 @@ jobs:
           python-version: "3.12"
       - name: Halmos
         working-directory: contracts
+        # one property at a time, ten minutes each: a hard one reports "timed out" instead of holding the job for hours
         run: |
           pip install "halmos>=0.3,<0.4"
-          halmos --match-contract ClearingHalmos --loop 4 2>&1 | tee halmos.txt
-          { echo "## Halmos"; echo "<pre>"; tail -40 halmos.txt; echo "</pre>"; } >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "## Halmos: properties of Clearing.compute"
+            echo ""
+            echo "| Property | Result | Seconds |"
+            echo "|---|---|---:|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for t in $(grep -o "function check_[A-Za-z0-9_]*" test/halmos/ClearingHalmos.t.sol | cut -d" " -f2); do
+            start=$(date +%s)
+            set +e
+            timeout 600 halmos --match-contract ClearingHalmos --match-test "^$t\$" --loop 4 > "halmos-$t.txt" 2>&1
+            code=$?
+            set -e
+            case $code in
+              0) result="proven" ;;
+              124) result="timed out after 10 min" ;;
+              *) result="**not proven** (exit $code)" ;;
+            esac
+            echo "| \`$t\` | $result | $(( $(date +%s) - start )) |" >> "$GITHUB_STEP_SUMMARY"
+            echo "::group::$t: $result"
+            tail -30 "halmos-$t.txt"
+            echo "::endgroup::"
+          done
