@@ -59,6 +59,7 @@ The review's order is right: safety before speed, speed before listings, listing
   - No house curve outside open sessions.
   - The gateway role's admin becomes a role nobody holds.
   - Curve sources are read with a bounds-checked low-level call.
+  - A closed market's call auction that the first observation after its orders already bounded clears at once. Under the old code, the call-auction cadence could hold such orders forever when a feed published while the market was closed. Found while designing the pull adapter, whose feeds publish all weekend.
   - Rehearsed by upgrading the live exchange on a mainnet fork first.
 - [ ] **A 7-day timelock from the first day,** proposed by a Safe with outside signers, executable by anyone, cancellable by a guardian Safe. Every role and every adapter's ownership moves in one run, with no window in which the deployer still owns an adapter. The signer set will be published here.
 - [ ] **Security within our means.**

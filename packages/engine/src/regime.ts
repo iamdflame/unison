@@ -154,9 +154,11 @@ export function regimeBand(a: {
 /**
  * `_openJob`'s call-auction cadence: true if a clear covering the batches <= `upTo` would revert `TooEarly`
  * (reference CLOSED after the halt override, cadence > 1, and fewer than `discCadence` blocks since the last
- * DISCOVERY auction).
+ * DISCOVERY auction). `bound`: on a causal market, the first observation after the orders fixed `upTo`; waiting
+ * can never move such a boundary, so the cadence does not apply.
  */
-export function discoveryTooEarly(a: { regime: RegimeConfig; status: Int; upTo: Int }): boolean {
+export function discoveryTooEarly(a: { regime: RegimeConfig; status: Int; upTo: Int; bound?: boolean }): boolean {
+  if (a.bound) return false;
   const st = a.regime.halted ? RefStatus.HALTED : statusOf(a.status);
   if (st !== RefStatus.CLOSED) return false;
   const cadence = BigInt(a.regime.discCadence);

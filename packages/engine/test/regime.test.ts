@@ -202,6 +202,11 @@ describe("DISCOVERY cadence and state transitions", () => {
     expect(nextDiscoveryBatch({ regime: g, lastCleared: 2_000n })).toBe(2_001n);
   });
 
+  it("a causal auction whose boundary the observation fixed is never too early", () => {
+    expect(discoveryTooEarly({ regime: g, status: RefStatus.CLOSED, upTo: 1_003n, bound: true })).toBe(false);
+    expect(discoveryTooEarly({ regime: g, status: RefStatus.CLOSED, upTo: 1_003n, bound: false })).toBe(true);
+  });
+
   it("a completed clear starts, keeps or ends the closed period", () => {
     const open = { ...nvda };
     // first CLOSED clear: the clock starts at the reference publish time

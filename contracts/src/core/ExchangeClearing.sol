@@ -83,8 +83,9 @@ abstract contract ExchangeClearing is ExchangeBase {
         uint256 px;
         uint256 pubMs;
         IReferenceAdapter.Status st;
+        bool bound; // the first observation after the orders fixed the batch boundary: nobody chose `upTo`
         if (_s().causal[marketId].on) {
-            (upTo, px, pubMs, st) = _causalReference(marketId, m, upTo, payload);
+            (upTo, px, pubMs, st, bound) = _causalReference(marketId, m, upTo, payload);
         } else {
             if (upTo <= m.lastCleared) revert NothingToClear();
             (px, pubMs, st) = IReferenceAdapter(m.refAdapter).read(marketId, upTo, payload);
@@ -93,8 +94,10 @@ abstract contract ExchangeClearing is ExchangeBase {
             if (newestTs != 0 && pubMs < (newestTs + (m.strictAfterClose ? 1 : 0)) * 1000) revert StaleReference();
         }
         Regime storage g = _s().regimes[marketId];
+        // DISCOVERY call auctions gather orders for `discCadence` blocks. A boundary the observation fixed is exempt:
+        // waiting can never move it, so the cadence would hold its orders forever.
         if (
-            st == IReferenceAdapter.Status.CLOSED && g.discCadence > 1 && g.lastDiscoveryBatch != 0
+            st == IReferenceAdapter.Status.CLOSED && !bound && g.discCadence > 1 && g.lastDiscoveryBatch != 0
                 && upTo < uint256(g.lastDiscoveryBatch) + g.discCadence
         ) revert TooEarly();
         j.phase = PHASE_MERGE;
@@ -125,9 +128,10 @@ abstract contract ExchangeClearing is ExchangeBase {
     ///      first, and the batch boundary follows from it, so the keeper chooses nothing. With nothing waiting, the job
     ///      runs at the latest observation (vault queues). With no observation after the orders yet, only a closed
     ///      market may clear: a DISCOVERY call auction at its last observation, recorded with that observation's time.
+    ///      `bound` is true when the observation fixed the boundary (the first case).
     function _causalReference(uint256 marketId, Market storage m, uint256 upTo, bytes calldata payload)
         private
-        returns (uint256, uint256 px, uint256 pubMs, IReferenceAdapter.Status st)
+        returns (uint256, uint256 px, uint256 pubMs, IReferenceAdapter.Status st, bool bound)
     {
         ICausalReference a = ICausalReference(m.refAdapter);
         uint256 head = m.pendingHead;
@@ -143,6 +147,7 @@ abstract contract ExchangeClearing is ExchangeBase {
             (px, observedAt, st, round) = a.readAfter(marketId, oldest + skew, payload);
             if (observedAt > oldest + skew) {
                 (upTo, sealedAt) = _sealedBefore(marketId, head, tail, observedAt - skew);
+                bound = true;
             } else {
                 // the adapter vouched the market is closed: a call auction over the batches the caller chose
                 if (st != IReferenceAdapter.Status.CLOSED && st != IReferenceAdapter.Status.HALTED) {
@@ -156,7 +161,7 @@ abstract contract ExchangeClearing is ExchangeBase {
         pubMs = observedAt * 1000;
         if (pubMs < m.lastRefTimeMs) revert StaleReference(); // oracle time never runs backwards
         emit CausalReference(marketId, upTo, round, sealedAt, observedAt);
-        return (upTo, px, pubMs, st);
+        return (upTo, px, pubMs, st, bound);
     }
 
     /// @dev The newest waiting batch registered strictly before `cutoff` (unix seconds), and its time. Registration

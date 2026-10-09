@@ -169,7 +169,7 @@ The reference status selects the regime. The band half-width in bps is `_regimeB
 |---|---|---|---|
 | LIVE | status OPEN | `bandBps` | Every batch |
 | EXTENDED | status EXTENDED (pre/post market) | `extBandBps` | Every batch |
-| DISCOVERY | status CLOSED (calendar or stale feed) | Around the last close: `max(discFloorBps, discCapBps·√(min(t, H)/H))`, where `t` is the time since the CLOSED period began (`closedSince`, set from the first CLOSED reference) | Call auctions: a job may open only if `upTo ≥ lastDiscoveryBatch + discCadence` (`TooEarly` otherwise). Orders accumulate between auctions. |
+| DISCOVERY | status CLOSED (calendar or stale feed) | Around the last close: `max(discFloorBps, discCapBps·√(min(t, H)/H))`, where `t` is the time since the CLOSED period began (`closedSince`, set from the first CLOSED reference) | Call auctions: a job may open only if `upTo ≥ lastDiscoveryBatch + discCadence` (`TooEarly` otherwise). Orders accumulate between auctions. On a causal market whose feed publishes while closed, the first observation after the orders fixes `upTo`; waiting could never move that boundary, so such a job opens at once. |
 | REOPENING | First OPEN/EXTENDED auction after CLOSED or HALTED | `reopenBandBps` (the opening cross) | Once, then LIVE |
 | HALTED | Status HALTED, or the `HALT_ROLE` override (guardian / CRE) | — | No auction. IOC orders are refunded; GTC orders rest. |
 

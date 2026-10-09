@@ -442,6 +442,42 @@ contract CausalReferenceTest is Test {
         assertEq(b, 0, "the vault does not quote a silent feed's price");
     }
 
+    function test_closedObservation_boundAuctionIgnoresTheCadence() public {
+        // A weekday market whose feed keeps publishing at the weekend, so its observations land CLOSED. The cadence
+        // lets call auctions gather orders, but once the first observation after an order fixes the auction's
+        // boundary, waiting can never move it: the cadence would hold those orders forever.
+        uint256 m2 = _weekdayMarket();
+        vm.warp(T0 + 3 days); // Saturday noon
+        vm.roll(vm.getBlockNumber() + 1);
+        vm.prank(bob);
+        ex.placeOrder(m2, 1, 18_000, 1e18, 0);
+        vm.prank(alice);
+        ex.placeOrder(m2, 0, 18_100, 1e18, 0);
+        _next(1);
+        ex.clear(m2, ""); // the feed is quiet and the session closed: a DISCOVERY call auction
+        uint256 last = ex.regimeOf(m2).lastDiscoveryBatch;
+        assertEq(last, vm.getBlockNumber() - 1);
+
+        // the next block's orders, then a weekend observation lands after them
+        uint256 batch = vm.getBlockNumber();
+        vm.prank(bob);
+        ex.placeOrder(m2, 1, 18_000, 1e18, 0);
+        vm.prank(alice);
+        ex.placeOrder(m2, 0, 18_100, 1e18, 0);
+        uint80 r = _observe(181e8, vm.getBlockTimestamp() + SKEW + 1);
+        assertLt(batch, last + ex.regimeOf(m2).discCadence, "inside the cadence");
+
+        vm.expectRevert(abi.encodeWithSelector(ChainlinkCausalReference.ObservationExists.selector, r));
+        ex.clear(m2, ""); // an observation exists after the orders: only it may price them
+
+        (, uint256 vol) = ex.clear(m2, _payload(r));
+        assertEq(vol, 1e18, "the call auction the observation bound clears now");
+        UnisonExchange.Market memory m = ex.market(m2);
+        assertEq(m.lastStatus, uint8(IReferenceAdapter.Status.CLOSED));
+        assertEq(m.lastCleared, batch, "exactly the orders sealed before the observation");
+        assertEq(ex.regimeOf(m2).lastDiscoveryBatch, batch);
+    }
+
     function _weekdayMarket() internal returns (uint256 m2) {
         m2 = ex.createMarket(
             UnisonExchange.MarketParams({
