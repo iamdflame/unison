@@ -272,6 +272,26 @@ contract PhaseATest is Test {
         ex.clearUpTo(mkt, last, "");
     }
 
+    /// The gap review's worry (P22): an order waiting through a silent feed, across a session close. A silent feed closes
+    /// the market after its 3,900 s maximum age, about 13,000 blocks at Monad's 0.3 s, and the DISCOVERY call auction
+    /// that follows takes the waiting batch out of the pending ring, which spans 65,536 blocks.
+    function test_silentFeed_clearsTheRingLongBeforeItCouldFill() public {
+        _seedVault();
+        _next(5);
+        uint256 batch = vm.getBlockNumber();
+        uint256 slot = _sell(bob, 17_900, 1e18); // sealed, waiting for an observation that never comes
+        vm.roll(vm.getBlockNumber() + 13_000);
+        vm.warp(vm.getBlockTimestamp() + 3_901);
+        (, uint256 vol) = ex.clear(mkt, "");
+        UnisonExchange.Market memory m = ex.market(mkt);
+        assertEq(m.lastStatus, uint8(IReferenceAdapter.Status.CLOSED), "a DISCOVERY call auction");
+        assertGe(m.lastCleared, batch, "the waiting batch left the ring");
+        assertEq(vol, 0, "nobody else was in it, and the house doesn't quote a closed market");
+        vm.prank(bob);
+        ex.cancelOrder(slot); // its auction ran: it settles
+        assertEq(ex.balanceOf(bob, address(nvda)), 100e18, "every unit back");
+    }
+
     // ------------------------------------------------------------------ no house curve while closed
 
     function test_closedMarket_vaultDoesNotQuote_evenWhenItWould() public {

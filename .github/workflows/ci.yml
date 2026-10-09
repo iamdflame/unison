@@ -228,3 +228,24 @@ jobs:
           forge build --build-info --skip test script
           slither . --ignore-compile --config-file slither.config.json --checklist > slither.md || true
           { echo "## Slither"; cat slither.md; } >> "$GITHUB_STEP_SUMMARY"
+
+  halmos:
+    name: Symbolic proofs (Halmos on Clearing; reports, does not block yet)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Halmos
+        working-directory: contracts
+        run: |
+          pip install "halmos>=0.3,<0.4"
+          halmos --match-contract ClearingHalmos --loop 4 2>&1 | tee halmos.txt
+          { echo "## Halmos"; echo "<pre>"; tail -40 halmos.txt; echo "</pre>"; } >> "$GITHUB_STEP_SUMMARY"
