@@ -32,6 +32,33 @@ jobs:
         working-directory: contracts
         run: forge test -vv
 
+  fork:
+    name: Mainnet rehearsals (fork tests on live Monad state; reports, does not block)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+      - name: Fork tests
+        working-directory: contracts
+        # the upgrade, the timelock handover, the causal rule and the Data Streams verifier, each against the chain as
+        # it is now; the block they ran at goes in the summary
+        run: |
+          block=$(cast block-number --rpc-url https://rpc.monad.xyz)
+          echo "## Fork tests at Monad mainnet block $block" >> "$GITHUB_STEP_SUMMARY"
+          set +e
+          forge test --fork-url https://rpc.monad.xyz --fork-block-number "$block" --match-path "test/fork/*" -vv > fork.txt 2>&1
+          code=$?
+          set -e
+          cat fork.txt
+          { echo "<pre>"; grep -E "^\[(PASS|FAIL|SKIP)|Suite result|tests passed" fork.txt; echo "</pre>"; } >> "$GITHUB_STEP_SUMMARY"
+          exit $code
+
   typescript:
     name: TypeScript (typecheck + tests)
     runs-on: ubuntu-latest
