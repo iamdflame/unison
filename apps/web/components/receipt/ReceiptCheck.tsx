@@ -2,8 +2,8 @@
 
 import { Check, Minus, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { createPublicClient, http, type Hex } from "viem";
-import { type ReceiptVerification, verifyReceipt } from "@unison/sdk/verify";
+import type { Hex } from "viem";
+import type { ReceiptVerification } from "@unison/sdk/verify";
 
 /** What the page printed from the tape, so the chain can contradict it. */
 export interface TapeSays {
@@ -55,8 +55,11 @@ export function ReceiptCheck({ rpcUrl, tx, tape }: { rpcUrl: string; tx: Hex; ta
 
   useEffect(() => {
     let live = true;
-    const client = createPublicClient({ transport: http(rpcUrl, { retryCount: 2, timeout: 20_000 }) });
-    verifyReceipt(client as never, tx)
+    // the checker and viem load only now, after the page has drawn: the receipt itself stays a light page
+    Promise.all([import("viem"), import("@unison/sdk/verify")])
+      .then(([{ createPublicClient, http }, { verifyReceipt }]) =>
+        verifyReceipt(createPublicClient({ transport: http(rpcUrl, { retryCount: 2, timeout: 20_000 }) }) as never, tx),
+      )
       .then((v) => live && setState({ phase: "done", v }))
       .catch((e: { name?: string; shortMessage?: string; message?: string }) => {
         if (!live) return;
