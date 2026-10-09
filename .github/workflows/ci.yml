@@ -255,19 +255,23 @@ jobs:
             echo "| Property | Result | Seconds |"
             echo "|---|---|---:|"
           } >> "$GITHUB_STEP_SUMMARY"
+          failed=0
+          # halmos matches a test against its signature, name(args): anchor the name at the parenthesis
           for t in $(grep -o "function check_[A-Za-z0-9_]*" test/halmos/ClearingHalmos.t.sol | cut -d" " -f2); do
             start=$(date +%s)
             set +e
-            timeout 600 halmos --match-contract ClearingHalmos --match-test "^$t\$" --loop 4 > "halmos-$t.txt" 2>&1
+            timeout 600 halmos --match-contract ClearingHalmos --match-test "^$t\(" --loop 4 > "halmos-$t.txt" 2>&1
             code=$?
             set -e
             case $code in
               0) result="proven" ;;
               124) result="timed out after 10 min" ;;
-              *) result="**not proven** (exit $code)" ;;
+              *) result="**not proven** (exit $code)"; failed=1 ;;
             esac
             echo "| \`$t\` | $result | $(( $(date +%s) - start )) |" >> "$GITHUB_STEP_SUMMARY"
             echo "::group::$t: $result"
             tail -30 "halmos-$t.txt"
             echo "::endgroup::"
           done
+          # a counterexample or an error turns the job red; continue-on-error keeps it from blocking the run
+          exit $failed
