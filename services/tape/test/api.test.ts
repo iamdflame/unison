@@ -30,6 +30,20 @@ async function collect(r: Response, until: (msgs: SseMessage[]) => boolean, ms =
   return msgs;
 }
 
+describe("who trades here (GET /v1/stats)", () => {
+  it("counts the team apart, and says how much of each market the house's vaults traded", async () => {
+    const { app, store } = loaded({ team: [ADDR.alice] });
+    // the market day's auction at block 11 traded 2 base units each side; the vault sold half of it
+    store.insert({
+      table: "curve_fills",
+      row: { block: 12, logIndex: 9, tx: "0x0c", ts: 12_000, marketId: 0, source: ADDR.vault, upTo: 11, boughtBase: "0", paidQuote: "0", soldBase: E18.toString(), receivedQuote: "180000000" },
+    });
+    const s = await json(await app.request("/v1/stats"));
+    expect(s).toMatchObject({ traders: 1, teamTraders: 1, fills: { team: 1, outside: 1 } });
+    expect(s.volume).toEqual({ 0: { auctions: (2n * E18).toString(), house: E18.toString(), houseShareBps: 2500 } });
+  });
+});
+
 describe("tape REST", () => {
   it("serves health and market summaries", async () => {
     const { app } = loaded();

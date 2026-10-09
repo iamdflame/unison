@@ -75,18 +75,19 @@ interface Print {
   receiptHash: string; prevReceiptHash: string;
   chainOk: boolean;                                      // receipt hash chain verified by the tape
   deviationBps: number | null;                           // (price − ref) / ref in bp, null when no trade
-  sealedAt: number | null;                               // unix s: block `upTo`'s time, when the newest order was sealed
+  sealedAt: number | null;                               // unix s: when the newest order in the auction was sealed, as the contract bound it
   round: string | null;                                  // causal markets: the Chainlink round that priced the auction
-  rule: "causal" | "clear-time";                         // which rule priced it (SPEC §7.4)
-  causal: boolean;                                       // the tape's own check: a round priced it, observed after sealedAt
+  rule: "causal" | "discovery" | "clear-time";           // which rule priced it (SPEC §7.4)
+  causal: boolean;                                       // the tape's quick check: observed more than the skew after sealedAt
 }
 ```
 
 `rule` says how the reference was taken:
 - `"causal"`: at the first Chainlink observation made after the auction's orders were sealed. `refTimeMs` is the oracle's own observation time (`startedAt`, inside the report its quorum signed), and `round` names it.
+- `"discovery"`: a call auction on a causal market while it was closed (its session over, or its feed silent past the maximum age), with no observation after its orders yet. It prices at the last observation, made before its orders, inside a band that widens with √time since the close. `refTimeMs` is that observation's time and `round` names it.
 - `"clear-time"`: the older rule, and the old-rule control market. `refTimeMs` is the clear's own time, so it proves nothing about the price's age.
 
-`causal` is the tape's verdict, recomputed from the event and the seal, not copied from the contract. `apps/web/scripts/verify-receipt.mjs <tx>` checks the same from the chain alone, against Chainlink's history.
+The tape tells the first two apart from the auction's own `CausalReference`: only the causal path puts the observation more than the market's skew after the newest seal. `causal` is the tape's quick check of that, not the whole rule. `apps/web/scripts/verify-receipt.mjs <tx>` checks the whole rule from the chain alone, against Chainlink's history (the round before was not after the oldest order's seal, and no order sealed in time was left out; for a DISCOVERY auction, the newest round, a closed market and the regime's band), and the receipt page runs the same checks in the reader's browser.
 
 #### `GET /v1/markets/:id/prints.csv?from=&to=`
 
@@ -111,7 +112,7 @@ Returns `{ candles: { t: number; o: string; h: string; l: string; c: string; v: 
 
 The batch close is the timestamp of block `upTo`. The histogram always has 101 buckets, from −50 to +50; deviations beyond them count in the edge buckets.
 
-`causal` covers the window's causal prints:
+`causal` covers the window's causal prints (DISCOVERY call auctions price before their orders by design, and are not counted):
 - `allAfterSeal` is true when every one was observed after its auction sealed;
 - `meanLagMs` and `p95LagMs` say how long after.
 
@@ -127,16 +128,21 @@ Returns orders placed after the last clear and not yet cancelled:
 
 #### `GET /v1/stats`
 
-Who trades on the venue: accounts with at least one fill. The venue's own vaults are left out, and its team is counted apart (`TEAM_ACCOUNTS`, plus the deployment's operator accounts).
+Who trades on the venue, and how much of it is the house: accounts with at least one fill, the venue's own vaults left out and its team counted apart, and each market's volume with the vaults' share of it.
 
 ```ts
 { traders: number;                 // accounts with fills, other than the vaults and the team
   teamTraders: number;
   byMarket: Record<number, number>; // traders per market id
-  firstOutsideFillBlock: number | null }
+  firstOutsideFillBlock: number | null;
+  fills: { team: number; outside: number };    // order fills, the team's and everyone else's
+  volume: Record<number, {                     // per market id
+    auctions: string;                          //   base volume its auctions traded (one side, base units)
+    house: string;                             //   what the venue's own vaults bought and sold in them
+    houseShareBps: number }> }                 //   house / (2 × auctions): the vaults' share of both sides, in bp
 ```
 
-A fill is a claim that carried the other asset: base to a buyer, quote to a seller.
+A fill is a claim that carried the other asset: base to a buyer, quote to a seller. The team is the deployment's `accounts` and `adversary` (`deployments/<network>.json`), plus `TEAM_ACCOUNTS` if set, so the count doesn't depend on one environment variable.
 
 ### Accounts
 

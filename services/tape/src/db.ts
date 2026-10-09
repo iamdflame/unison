@@ -263,6 +263,8 @@ export interface TapeStore {
   claims(account: string, limit?: number): ClaimRow[];
   /** Every account that has received a fill, per market: how many of its claims carried one, and the first block. */
   traders(): { account: string; marketId: number; fills: number; firstBlock: number }[];
+  /** per market: the base volume its auctions traded (one side), and what the venue's curve sources bought and sold */
+  volumes(): { marketId: number; auctions: bigint; house: bigint }[];
   transfers(account: string): TransferRow[];
   sessions(account: string): SessionRow[];
   passkey(account: string): PasskeyRow | undefined;
@@ -773,6 +775,17 @@ export class SqliteTapeStore implements TapeStore {
       // a fill moved the other asset to the account: base to a buyer, AUSD to a seller (refunds move the same asset back)
       "SELECT account, market_id, COUNT(*) AS n, MIN(block) AS first FROM claims WHERE (side = 0 AND base_amount != '0') OR (side = 1 AND quote_amount != '0') GROUP BY account, market_id",
     ).map((r) => ({ account: String(r.account), marketId: Number(r.market_id), fills: Number(r.n), firstBlock: Number(r.first) }));
+  }
+
+  volumes(): { marketId: number; auctions: bigint; house: bigint }[] {
+    // amounts are integer strings past 64 bits (18-decimal base units), so they add up as bigints here, not in SQL
+    const by = new Map<number, { marketId: number; auctions: bigint; house: bigint }>();
+    const at = (id: number) => by.get(id) ?? by.set(id, { marketId: id, auctions: 0n, house: 0n }).get(id)!;
+    for (const r of this.all("SELECT market_id, volume FROM prints WHERE volume != '0'")) at(Number(r.market_id)).auctions += BigInt(String(r.volume));
+    for (const r of this.all("SELECT market_id, bought_base, sold_base FROM curve_fills")) {
+      at(Number(r.market_id)).house += BigInt(String(r.bought_base)) + BigInt(String(r.sold_base));
+    }
+    return [...by.values()].sort((a, b) => a.marketId - b.marketId);
   }
 
   transfers(account: string): TransferRow[] {

@@ -85,7 +85,7 @@ export const T0 = 1_760_000_000;
 export const tsMap = (logs: readonly RawLog[], extra: number[] = []) =>
   new Map([...logs.map((l) => l.blockNumber), ...extra].map((b) => [b, T0 + b]));
 
-export function memoryTape(opts: { now?: () => number; rateBurst?: number; keepaliveMs?: number; corsOrigins?: string[] } = {}) {
+export function memoryTape(opts: { now?: () => number; rateBurst?: number; keepaliveMs?: number; corsOrigins?: string[]; team?: string[] } = {}) {
   const store = new SqliteTapeStore(":memory:");
   const hub = new StreamHub(opts.now ? { now: opts.now } : {});
   const indexer = new Indexer({
@@ -104,6 +104,7 @@ export function memoryTape(opts: { now?: () => number; rateBurst?: number; keepa
     ...(opts.rateBurst ? { rateBurst: opts.rateBurst, ratePerSec: 0.001 } : {}),
     ...(opts.keepaliveMs ? { keepaliveMs: opts.keepaliveMs } : {}),
     ...(opts.corsOrigins ? { corsOrigins: opts.corsOrigins } : {}),
+    ...(opts.team ? { team: opts.team } : {}),
   });
   return { store, hub, indexer, app };
 }

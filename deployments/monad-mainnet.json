@@ -1,5 +1,13 @@
 {
   "admin": "0x55DF8EA97d41b7F487c6Dcc077dFd0B487E3557D",
+  "accounts": {
+    "agentWallet": "0x5E986eC96d2979f278814452ad08c33C3c0AEA4b",
+    "deployer": "0x55DF8EA97d41b7F487c6Dcc077dFd0B487E3557D",
+    "guardian": "0x0562b2b0914b3Bb082A623657729452fc9bf26E4",
+    "keeper": "0xCA2B2DFF387Aa614eAB645B0Ba7863cCFA5a274e",
+    "ownerPasskey": "0x13250c2de5ce381432f4f1c77249af6789d62da7",
+    "relayer": "0xf46f4f9Da2Ba1c627632d5D465377cfCDFa3A241"
+  },
   "adversary": {
     "accounts": [
       "0xB1964fD4521977d71FE058A8b96140faddB611b6",

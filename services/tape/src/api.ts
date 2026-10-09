@@ -140,20 +140,34 @@ export function createTapeApp(opts: TapeApiOptions): Hono {
     const byMarket: Record<number, number> = {};
     let teamTraders = 0;
     const seenTeam = new Set<string>();
+    const fills = { team: 0, outside: 0 };
     for (const r of rows) {
       if (team.has(r.account)) {
         if (!seenTeam.has(r.account)) teamTraders++;
         seenTeam.add(r.account);
+        fills.team += r.fills;
         continue;
       }
       outside.set(r.account, Math.min(outside.get(r.account) ?? r.firstBlock, r.firstBlock));
       byMarket[r.marketId] = (byMarket[r.marketId] ?? 0) + 1;
+      fills.outside += r.fills;
+    }
+    // the house's share of each market: what its vaults bought and sold, against both sides of every auction's volume
+    const volume: Record<number, { auctions: string; house: string; houseShareBps: number }> = {};
+    for (const v of store.volumes()) {
+      volume[v.marketId] = {
+        auctions: v.auctions.toString(),
+        house: v.house.toString(),
+        houseShareBps: v.auctions > 0n ? Number((v.house * 10_000n) / (2n * v.auctions)) : 0,
+      };
     }
     return c.json({
       traders: outside.size,
       teamTraders,
       byMarket,
       firstOutsideFillBlock: outside.size ? Math.min(...outside.values()) : null,
+      fills,
+      volume,
     });
   });
 

@@ -17,6 +17,13 @@ export interface TapeStats {
   /** outside traders per market id */
   byMarket: Record<number, number>;
   firstOutsideFillBlock: number | null;
+  /** order fills (claims that moved the other asset), the team's and everyone else's */
+  fills?: { team: number; outside: number };
+  /**
+   * per market id: the base volume its auctions traded (one side, base units), what the venue's own curve sources
+   * (vaults) bought and sold in them, and that as a share of both sides of the volume, in bp
+   */
+  volume?: Record<number, { auctions: string; house: string; houseShareBps: number }>;
 }
 
 export interface Print {
