@@ -2,6 +2,16 @@
 
 Unison's standing challenge pays its pot to anyone whose fills, marked to Chainlink 60 seconds later, beat the venue by more than 2 bp of their notional over 30 fills or more ([the terms](../../deploy/monad-mainnet-challenge.json), [the contract](../../contracts/src/challenge/LatencyChallenge.sol)). Our own bot enters it on two markets at once: Unison's causal WMON market, and a WMON market kept on the old rule as a control.
 
+## The live result
+
+**On 8 October 2026 at 02:52 UTC our own sniper claimed the old-rule control's pot.** The contract scored its 30 fills against Chainlink's history at +14.35 bp of their notional (an edge of 0.003520 AUSD on 2.452306 AUSD), over the +2 bp the terms require, and paid the pot, 1 AUSD, in transaction [`0x042dae76…ed3e02`](https://monadvision.com/tx/0x042dae768917a9730eaa2cf3a06106f308af6868255fca1f816bb9becded3e02) (block 111,492,259). It came 37 hours after the account opened; the replay below predicted about 33.
+
+The same sniper, with the same signal, on Unison's causal market: −21.1 bp a trade over 53 fills (9 October, 14:15 UTC). Its pot, 18 AUSD, stands. Having been paid, the sniper no longer trades the control.
+
+Both legs are live on the house adversary's scoreboard (`GET https://unison-adversary-mainnet-production.up.railway.app/v1/score`) and on [/challenge](https://www.unisonfi.com/challenge); the claim can be checked from the chain alone: `cast call 0x5Ce9D9f491E2d16c94F56eD09BEa23e7109976e9 "paid()(bool)" --rpc-url https://rpc.monad.xyz`.
+
+## The replay, before any money went in
+
 Before putting money in either pot, we replayed that exact bot over the last week of real prices, on both rules.
 
 **Result: on the old rule it earns +17.8 bp a trade and would claim the control's pot in about 33 hours. On the causal rule it loses 23.0 bp a trade. Over any stretch of 30 fills or more, its best was −15.8 bp, nowhere near the +2 bp the pot needs.** Every setting we tried gives the same verdict.
