@@ -39,6 +39,9 @@ export interface PrintRow extends LogRef {
   closeTs: number | null;
   /** causal markets (SPEC §7.4): the Chainlink round that priced the auction, joined from causal_refs when read */
   round?: string | null;
+  /** causal markets: the newest order's seal as the contract bound it (CausalReference.sealedAt), joined when read.
+   *  On a DISCOVERY call auction it is earlier than block upTo's own time, which the keeper chooses. */
+  boundSealedAt?: number | null;
 }
 
 /** How an auction on a causal market was bound (CausalReference): the Chainlink round that priced it, when the newest
@@ -513,7 +516,11 @@ export class SqliteTapeStore implements TapeStore {
   private rowOf<T extends TapeTable>(table: T, r: Raw): RowOf<T> {
     const out: Raw = {};
     for (const [c, f, t] of [...LOG_COLUMNS, ...TABLES[table]]) out[f] = fromSql(r[c], t);
-    if (table === "prints") out.round = this.causalRef(Number(out.marketId), Number(out.upTo))?.round ?? null;
+    if (table === "prints") {
+      const ref = this.causalRef(Number(out.marketId), Number(out.upTo));
+      out.round = ref?.round ?? null;
+      out.boundSealedAt = ref?.sealedAt ?? null;
+    }
     return out as unknown as RowOf<T>;
   }
 

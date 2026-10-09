@@ -1,0 +1,166 @@
+{
+  "forkBlock": "111899233n",
+  "note": "anvil fork of Monad mainnet, Sat 10 Oct 2026: aNVDA halted with orders waiting",
+  "tx": "0x28d91252bad29b61a69df9e34ddfd49764d0dd9671001344078f8877bf18a81d",
+  "rule": "discovery",
+  "calls": [
+    {
+      "key": "[\"getTransactionReceipt\",{\"hash\":\"0x28d91252bad29b61a69df9e34ddfd49764d0dd9671001344078f8877bf18a81d\"}]",
+      "result": {
+        "blockNumber": "111899249n",
+        "logs": [
+          {
+            "address": "0x1696170d40e703f1378989383c21ec96ed1adf75",
+            "data": "0x00000000000000000000000000000000000000000000000100000000000013c9000000000000000000000000000000000000000000000000000000006ac98eaf000000000000000000000000000000000000000000000000000000006ac8dfe2",
+            "topics": [
+              "0x769bc50490588272fcb8466d0c6b6dde72b76ac9bc096528edd72ef90d32462a",
+              "0x0000000000000000000000000000000000000000000000000000000000000000",
+              "0x0000000000000000000000000000000000000000000000000000000006ab726f"
+            ]
+          },
+          {
+            "address": "0x1696170d40e703f1378989383c21ec96ed1adf75",
+            "data": "0x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000df94ceb000000000000000000000000000000000000000000000000000001a120aa8ad0000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000897a96fabf796ff42259f9e18d1e969364a4f563e9aab1f384fa654a10d9cbc4",
+            "topics": [
+              "0x5b25e1f91a40abbafb36f86c152cfe0de3dfaf0ada56e5692ab216d4d07df887",
+              "0x0000000000000000000000000000000000000000000000000000000000000000",
+              "0x0000000000000000000000000000000000000000000000000000000006ab726f"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "key": "[\"getBlock\",{\"blockNumber\":\"111899249n\"}]",
+      "result": {
+        "number": "111899249n",
+        "timestamp": "1791594204n"
+      }
+    },
+    {
+      "key": "[\"readContract\",{\"address\":\"0x1696170d40e703f1378989383c21ec96ed1adf75\",\"functionName\":\"market\",\"args\":[\"0n\"],\"blockNumber\":\"111899248n\"}]",
+      "result": {
+        "base": "0x701193374879131f923532987c7Ef363a91a80eB",
+        "quote": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+        "refAdapter": "0xB161400dDfC592fD66b57dDaE46966ED74Ce891d",
+        "baseIdx": 1,
+        "quoteIdx": 0,
+        "shards": 4,
+        "active": true,
+        "permissioned": false,
+        "strictAfterClose": false,
+        "bandBps": 100,
+        "feeBps": 3,
+        "maxFeeBps": 10,
+        "minTick": 1,
+        "maxTick": 2097151,
+        "maxBandTicks": 4001,
+        "baseUnit": "1000000000000000000n",
+        "tickSize": "10000n",
+        "lastCleared": "111899242n",
+        "pendingHead": "4n",
+        "pendingTail": "6n",
+        "auctions": "7n",
+        "lastPrintTick": "23444n",
+        "lastRefTimeMs": "1791549410000n",
+        "lastStatus": 2,
+        "lastRefPrice": "234441963n",
+        "receiptHash": "0xe3a29aeeb95ba8eae469555dc7c1ab6a217c6dd6dedf8761dc91177587a0152a"
+      }
+    },
+    {
+      "key": "[\"readContract\",{\"address\":\"0x1696170d40e703f1378989383c21ec96ed1adf75\",\"functionName\":\"causalOf\",\"args\":[\"0n\"],\"blockNumber\":\"111899249n\"}]",
+      "result": {
+        "on": true,
+        "skewSec": 2
+      }
+    },
+    {
+      "key": "[\"readContract\",{\"address\":\"0x1696170d40e703f1378989383c21ec96ed1adf75\",\"functionName\":\"market\",\"args\":[\"0n\"],\"blockNumber\":\"111899249n\"}]",
+      "result": {
+        "base": "0x701193374879131f923532987c7Ef363a91a80eB",
+        "quote": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+        "refAdapter": "0xB161400dDfC592fD66b57dDaE46966ED74Ce891d",
+        "baseIdx": 1,
+        "quoteIdx": 0,
+        "shards": 4,
+        "active": true,
+        "permissioned": false,
+        "strictAfterClose": false,
+        "bandBps": 100,
+        "feeBps": 3,
+        "maxFeeBps": 10,
+        "minTick": 1,
+        "maxTick": 2097151,
+        "maxBandTicks": 4001,
+        "baseUnit": "1000000000000000000n",
+        "tickSize": "10000n",
+        "lastCleared": "111899247n",
+        "pendingHead": "6n",
+        "pendingTail": "6n",
+        "auctions": "7n",
+        "lastPrintTick": "23444n",
+        "lastRefTimeMs": "1791549410000n",
+        "lastStatus": 3,
+        "lastRefPrice": "234441963n",
+        "receiptHash": "0x897a96fabf796ff42259f9e18d1e969364a4f563e9aab1f384fa654a10d9cbc4"
+      }
+    },
+    {
+      "key": "[\"readContract\",{\"address\":\"0xB161400dDfC592fD66b57dDaE46966ED74Ce891d\",\"functionName\":\"feeds\",\"args\":[\"0n\"],\"blockNumber\":\"111899249n\"}]",
+      "result": [
+        "0x03ffa4673c060339E6a8E5Ba1a12B3301c966bf0",
+        "0xE20751C7B5867bCBef815ffc1b284c3f412a9e13",
+        8,
+        8,
+        6,
+        3900,
+        3900,
+        0,
+        432000,
+        50,
+        true
+      ]
+    },
+    {
+      "key": "[\"readContract\",{\"address\":\"0x03ffa4673c060339E6a8E5Ba1a12B3301c966bf0\",\"functionName\":\"getRoundData\",\"args\":[\"18446744073709556681n\"]}]",
+      "result": [
+        "18446744073709556681n",
+        "23439507494n",
+        "1791549410n",
+        "1791549423n",
+        "18446744073709556681n"
+      ]
+    },
+    {
+      "key": "[\"readContract\",{\"address\":\"0x1696170d40e703f1378989383c21ec96ed1adf75\",\"functionName\":\"pendingTimes\",\"args\":[\"0n\",\"64n\"],\"blockNumber\":\"111899248n\"}]",
+      "result": [
+        [
+          "111899246n",
+          "111899247n"
+        ],
+        [
+          "1791594154n",
+          "1791594159n"
+        ]
+      ]
+    },
+    {
+      "key": "[\"getBlock\",{\"blockNumber\":\"111899247n\"}]",
+      "result": {
+        "number": "111899247n",
+        "timestamp": "1791594159n"
+      }
+    },
+    {
+      "key": "[\"readContract\",{\"address\":\"0x03ffa4673c060339E6a8E5Ba1a12B3301c966bf0\",\"functionName\":\"getRoundData\",\"args\":[\"18446744073709556682n\"]}]",
+      "result": [
+        "18446744073709551616n",
+        "0n",
+        "0n",
+        "0n",
+        "18446744073709551616n"
+      ]
+    }
+  ]
+}

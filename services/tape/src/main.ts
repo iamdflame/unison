@@ -10,6 +10,7 @@ import { createPublicClient, http } from "viem";
 import { chainById } from "@unison/sdk";
 import { loadDeploymentFile } from "@unison/sdk/node";
 import { createTapeApp } from "./api.ts";
+import { setCausalSkew } from "./derive.ts";
 import { SqliteTapeStore } from "./db.ts";
 import { Indexer } from "./ingest.ts";
 import { StreamHub } from "./stream.ts";
@@ -29,6 +30,7 @@ export const corsOrigins = (raw: string | undefined) =>
 
 export async function startTape() {
   const deployment = await loadDeploymentFile(env("DEPLOYMENT", "../../deployments/31337.json"));
+  if (deployment.skewSec !== undefined) setCausalSkew(deployment.skewSec);
   const chain = chainById(deployment.chainId);
   const client = createPublicClient({ chain, transport: http(env("RPC_URL", chain.rpcUrls.default.http[0])) });
   const store = new SqliteTapeStore(env("DB_PATH", "./data/tape.db"));

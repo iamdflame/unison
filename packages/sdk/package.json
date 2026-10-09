@@ -47,6 +47,11 @@
       "development": "./src/types.ts",
       "types": "./dist/types.d.ts",
       "import": "./dist/types.js"
+    },
+    "./verify": {
+      "development": "./src/verify.ts",
+      "types": "./dist/verify.d.ts",
+      "import": "./dist/verify.js"
     }
   },
   "files": [

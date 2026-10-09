@@ -42,14 +42,18 @@ export interface Print {
   chainOk: boolean;
   /** (price − ref) / ref in bp; null when nothing traded */
   deviationBps: number | null;
-  /** unix seconds the newest order in the auction was sealed (its block's time); null when unknown */
+  /** unix seconds the newest order in the auction was sealed (its block's time, as the contract bound it); null when
+   *  unknown */
   sealedAt?: number | null;
   /** causal markets: the Chainlink round that priced the auction */
   round?: string | null;
   /** "causal": priced at the first Chainlink observation after its orders (SPEC §7.4), refTimeMs is the oracle's
-   *  signed observation time. "clear-time": the older rule, refTimeMs is the clear's own time. */
-  rule?: "causal" | "clear-time";
-  /** the tape's own check: a causal print whose observation (refTimeMs) came after its seal (sealedAt) */
+   *  signed observation time. "discovery": a call auction while the market was closed (session over, or feed silent),
+   *  priced at the last observation, made before its orders, inside a band that widens with √time since the close.
+   *  "clear-time": the older rule, refTimeMs is the clear's own time. */
+  rule?: "causal" | "discovery" | "clear-time";
+  /** the tape's quick check: a causal print observed more than the skew after its newest order was sealed. The whole
+   *  rule (the round before it, nobody left out) is verifyReceipt's. */
   causal?: boolean;
 }
 

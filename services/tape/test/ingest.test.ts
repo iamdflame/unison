@@ -204,18 +204,26 @@ describe("causal markets (SPEC §7.4)", () => {
     const { fairness, toPrint } = await import("../src/derive.ts");
     const { store, indexer } = memoryTape();
     const round = 18_446_744_073_710_158_838n;
+    // observed 6 s after the newest order was sealed: more than the 2 s skew
     const causal = logOf(unisonExchangeAbi as Abi, ADDR.exchange, "CausalReference", {
-      marketId: 0n, upToBlock: 11n, round, sealedAt: BigInt(T0 + 11), observedAt: BigInt(T0 + 11),
-    }, { block: 12, logIndex: 0 });
-    const { log, receipt } = printLog(ZERO_HASH, { upTo: 11, tick: 17_990, volume: E18, refPrice: 180_000_000n }, { block: 12, logIndex: 1 });
+      marketId: 0n, upToBlock: 11n, round, sealedAt: BigInt(T0 + 11), observedAt: BigInt(T0 + 17),
+    }, { block: 18, logIndex: 0 });
+    const { log, receipt } = printLog(ZERO_HASH, { upTo: 11, tick: 17_990, volume: E18, refPrice: 180_000_000n, refTimeMs: (T0 + 17) * 1000 }, { block: 18, logIndex: 1 });
     // an older print with no CausalReference: the clear-time rule
-    const { log: later } = printLog(receipt, { upTo: 14, tick: 17_995, volume: 0n, refPrice: 180_000_000n }, { block: 15, logIndex: 0 });
-    const logs = [causal, log, later];
-    indexer.commit(logs, tsMap(logs, [11, 14]));
-    const [p11, p14] = store.prints(0, { asc: true });
+    const { log: later, receipt: r2 } = printLog(receipt, { upTo: 19, tick: 17_995, volume: 0n, refPrice: 180_000_000n }, { block: 20, logIndex: 0 });
+    // a DISCOVERY call auction: the newest order sealed at block 21, the keeper chose upTo 40, and the price is the
+    // last observation, made before the orders
+    const disc = logOf(unisonExchangeAbi as Abi, ADDR.exchange, "CausalReference", {
+      marketId: 0n, upToBlock: 40n, round, sealedAt: BigInt(T0 + 21), observedAt: BigInt(T0 + 17),
+    }, { block: 41, logIndex: 0 });
+    const { log: weekend } = printLog(r2, { upTo: 40, tick: 17_990, volume: 0n, refPrice: 180_000_000n, status: 2, refTimeMs: (T0 + 17) * 1000 }, { block: 41, logIndex: 1 });
+    const logs = [causal, log, later, disc, weekend];
+    indexer.commit(logs, tsMap(logs, [11, 19, 40]));
+    const [p11, p19, p40] = store.prints(0, { asc: true });
     expect(p11!.round).toBe(round.toString());
     expect(toPrint(p11!)).toMatchObject({ rule: "causal", causal: true, sealedAt: T0 + 11, round: round.toString() });
-    expect(toPrint(p14!)).toMatchObject({ rule: "clear-time", causal: false, round: null });
-    expect(fairness(store.prints(0, { asc: true })).causal).toMatchObject({ prints: 1, allAfterSeal: true });
+    expect(toPrint(p19!)).toMatchObject({ rule: "clear-time", causal: false, round: null });
+    expect(toPrint(p40!)).toMatchObject({ rule: "discovery", causal: false, sealedAt: T0 + 21, regime: "DISCOVERY" });
+    expect(fairness(store.prints(0, { asc: true })).causal).toMatchObject({ prints: 1, allAfterSeal: true, meanLagMs: 6_000 });
   });
 });

@@ -15,6 +15,8 @@ import {
   receiptHash,
   recomputeFill,
   regimeOf,
+  ruleOf,
+  toPrint,
   vaultFlows,
   vaultPoints,
   ZERO_HASH,
@@ -159,6 +161,34 @@ describe("receipt hash chain", () => {
     expect(derivePrint(base, { receiptHash: `0x${"01".repeat(32)}`, status: 0 }).chainOk).toBe(false);
     expect(derivePrint({ ...base, volume: "2" }, undefined).chainOk).toBe(false);
     expect(derivePrint(base, undefined).deviationBps).toBe(0);
+  });
+});
+
+describe("the rule that bound a print (SPEC §7.4)", () => {
+  // the causal path puts the observation more than the skew (2 s) after the newest seal; a DISCOVERY call auction
+  // prices at the last observation, made before its orders
+  it("reads a causal print, a DISCOVERY call auction and the older rule from the contract's own CausalReference", () => {
+    const causal = pr(100, { round: "18446744073709556681", closeTs: 90, boundSealedAt: 90, refTimeMs: 96_000 });
+    expect(ruleOf(causal)).toBe("causal");
+    expect(toPrint(causal)).toMatchObject({ rule: "causal", causal: true, sealedAt: 90 });
+    // the keeper chose upTo an hour after the orders; the contract bound the newest seal, at 100
+    const discovery = pr(4_000, { status: 2, round: "18446744073709556681", closeTs: 3_990, boundSealedAt: 100, refTimeMs: 50_000 });
+    expect(toPrint(discovery)).toMatchObject({ rule: "discovery", causal: false, sealedAt: 100 });
+    expect(ruleOf(pr(10))).toBe("clear-time");
+  });
+
+  it("needs more than the skew: an observation 2 s after the seal is not after it", () => {
+    expect(ruleOf(pr(100, { round: "1", boundSealedAt: 90, refTimeMs: 92_000 }))).toBe("discovery");
+    expect(ruleOf(pr(100, { round: "1", boundSealedAt: 90, refTimeMs: 92_001 }))).toBe("causal");
+    expect(ruleOf(pr(100, { round: "1", boundSealedAt: 90, refTimeMs: 92_001 }), 5)).toBe("discovery");
+  });
+
+  it("keeps DISCOVERY call auctions out of the causal statistics", () => {
+    const f = fairness([
+      pr(100, { round: "1", closeTs: 90, boundSealedAt: 90, refTimeMs: 96_000 }),
+      pr(4_000, { status: 2, round: "1", closeTs: 3_990, boundSealedAt: 100, refTimeMs: 50_000 }),
+    ]);
+    expect(f.causal).toEqual({ prints: 1, allAfterSeal: true, meanLagMs: 6_000, p95LagMs: 6_000 });
   });
 });
 

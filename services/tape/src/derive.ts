@@ -94,6 +94,25 @@ export function derivePrint(
   };
 }
 
+/** The causal markets' clock margin (deployment.skewSec): an observation must come more than this after a seal. */
+let causalSkewSec = 2;
+export function setCausalSkew(sec: number) {
+  causalSkewSec = sec;
+}
+
+/**
+ * How a print's price was bound. "causal": an observation made more than the skew after the newest order in it
+ * (the first such, which the contract proved). "discovery": a call auction while the market was closed, at the last
+ * observation, made before the orders. "clear-time": the older rule. The contract chose the path; the CausalReference
+ * it emitted says which: only the causal path puts the observation after the newest seal plus the skew.
+ */
+export function ruleOf(r: Pick<PrintRow, "round" | "refTimeMs" | "closeTs" | "boundSealedAt">, skewSec = causalSkewSec): "causal" | "discovery" | "clear-time" {
+  if (!r.round) return "clear-time";
+  const sealed = r.boundSealedAt ?? r.closeTs;
+  if (sealed === null || sealed === undefined) return "causal";
+  return r.refTimeMs > (sealed + skewSec) * 1000 ? "causal" : "discovery";
+}
+
 export const toPrint = (r: PrintRow): Print => ({
   marketId: r.marketId,
   upTo: r.upTo,
@@ -114,11 +133,12 @@ export const toPrint = (r: PrintRow): Print => ({
   prevReceiptHash: r.prevReceiptHash,
   chainOk: r.chainOk,
   deviationBps: r.deviationBps,
-  sealedAt: r.closeTs,
+  sealedAt: r.boundSealedAt ?? r.closeTs,
   round: r.round ?? null,
-  rule: r.round ? "causal" : "clear-time",
-  // the tape's own verdict, not the adapter's: a Chainlink round priced it, observed after the newest order sealed
-  causal: !!r.round && r.closeTs !== null && r.refTimeMs > r.closeTs * 1000,
+  rule: ruleOf(r),
+  // the tape's quick check, not the whole rule (the receipt page runs that in the reader's browser): a causal print
+  // observed more than the skew after its newest order was sealed
+  causal: ruleOf(r) === "causal",
 });
 
 const CSV_COLUMNS = [
@@ -204,13 +224,15 @@ export function percentile(sorted: readonly number[], p: number): number {
   return sorted[Math.min(sorted.length, Math.max(1, rank)) - 1]!;
 }
 
-/** Causal prints (SPEC §7.4): how many, whether every one was observed after its auction sealed, and how long after. */
+/** Causal prints (SPEC §7.4): how many, whether every one was observed after its auction sealed, and how long after.
+ *  DISCOVERY call auctions price at an observation made before their orders by design, so they are not counted. */
 function causalStats(prints: readonly PrintRow[]): Fairness["causal"] {
-  const c = prints.filter((p) => p.round && p.closeTs !== null);
-  const lags = c.map((p) => p.refTimeMs - p.closeTs! * 1000).sort((a, b) => a - b);
+  const c = prints.filter((p) => p.round && p.closeTs !== null && ruleOf(p) !== "discovery");
+  const sealOf = (p: PrintRow) => (p.boundSealedAt ?? p.closeTs!) * 1000;
+  const lags = c.map((p) => p.refTimeMs - sealOf(p)).sort((a, b) => a - b);
   return {
     prints: c.length,
-    allAfterSeal: c.every((p) => p.refTimeMs > p.closeTs! * 1000),
+    allAfterSeal: c.every((p) => p.refTimeMs > sealOf(p)),
     meanLagMs: lags.length ? Math.round(lags.reduce((a, b) => a + b, 0) / lags.length) : 0,
     p95LagMs: lags.length ? Math.round(percentile(lags, 95)) : 0,
   };

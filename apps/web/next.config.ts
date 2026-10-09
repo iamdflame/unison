@@ -42,6 +42,8 @@ const config: NextConfig = {
       "@unison/sdk/relayer": "./../../packages/sdk/src/relayer.ts",
       "@unison/sdk/light": "./../../packages/sdk/src/light.ts",
       "@unison/sdk/errors": "./../../packages/sdk/src/errors.ts",
+      // the receipt checker, for the receipt page to re-check an auction from the chain in the reader's browser
+      "@unison/sdk/verify": "./../../packages/sdk/src/verify.ts",
       "@unison/engine": "./../../packages/engine/src/index.ts",
     },
   },

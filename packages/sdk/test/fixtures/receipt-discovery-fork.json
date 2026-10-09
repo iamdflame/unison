@@ -1,0 +1,180 @@
+{
+  "forkBlock": "111899233n",
+  "note": "anvil fork of Monad mainnet, Sat 10 Oct 2026: aNVDA after its session closed",
+  "tx": "0xb893c8ce41596de57c0038fd4d358e1b44d2b1089c387d5d42b939a607079793",
+  "rule": "discovery",
+  "calls": [
+    {
+      "key": "[\"getTransactionReceipt\",{\"hash\":\"0xb893c8ce41596de57c0038fd4d358e1b44d2b1089c387d5d42b939a607079793\"}]",
+      "result": {
+        "blockNumber": "111899244n",
+        "logs": [
+          {
+            "address": "0x1696170d40e703f1378989383c21ec96ed1adf75",
+            "data": "0x00000000000000000000000000000000000000000000000100000000000013c9000000000000000000000000000000000000000000000000000000006ac98e1b000000000000000000000000000000000000000000000000000000006ac8dfe2",
+            "topics": [
+              "0x769bc50490588272fcb8466d0c6b6dde72b76ac9bc096528edd72ef90d32462a",
+              "0x0000000000000000000000000000000000000000000000000000000000000000",
+              "0x0000000000000000000000000000000000000000000000000000000006ab726a"
+            ]
+          },
+          {
+            "address": "0x1696170d40e703f1378989383c21ec96ed1adf75",
+            "data": "0x0000000000000000000000000000000000000000000000000000000000005b94000000000000000000000000000000000000000000000000000000000df9454000000000000000000000000000000000000000000000000000038d7ea4c68000000000000000000000000000000000000000000000000000000000000df94ceb000000000000000000000000000000000000000000000000000001a120aa8ad000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000005aaa0000000000000000000000000000000000000000000000000000000000005c7ee3a29aeeb95ba8eae469555dc7c1ab6a217c6dd6dedf8761dc91177587a0152a",
+            "topics": [
+              "0x5b25e1f91a40abbafb36f86c152cfe0de3dfaf0ada56e5692ab216d4d07df887",
+              "0x0000000000000000000000000000000000000000000000000000000000000000",
+              "0x0000000000000000000000000000000000000000000000000000000006ab726a"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "key": "[\"getBlock\",{\"blockNumber\":\"111899244n\"}]",
+      "result": {
+        "number": "111899244n",
+        "timestamp": "1791594151n"
+      }
+    },
+    {
+      "key": "[\"readContract\",{\"address\":\"0x1696170d40e703f1378989383c21ec96ed1adf75\",\"functionName\":\"market\",\"args\":[\"0n\"],\"blockNumber\":\"111899243n\"}]",
+      "result": {
+        "base": "0x701193374879131f923532987c7Ef363a91a80eB",
+        "quote": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+        "refAdapter": "0xB161400dDfC592fD66b57dDaE46966ED74Ce891d",
+        "baseIdx": 1,
+        "quoteIdx": 0,
+        "shards": 4,
+        "active": true,
+        "permissioned": false,
+        "strictAfterClose": false,
+        "bandBps": 100,
+        "feeBps": 3,
+        "maxFeeBps": 10,
+        "minTick": 1,
+        "maxTick": 2097151,
+        "maxBandTicks": 4001,
+        "baseUnit": "1000000000000000000n",
+        "tickSize": "10000n",
+        "lastCleared": "110865854n",
+        "pendingHead": "2n",
+        "pendingTail": "4n",
+        "auctions": "6n",
+        "lastPrintTick": "23981n",
+        "lastRefTimeMs": "1791237623000n",
+        "lastStatus": 0,
+        "lastRefPrice": "239937756n",
+        "receiptHash": "0x1f8107aeb732fc1ef1e5b5e5cd54772d4ed95fe5d2b6cb7f0f9585601bac711e"
+      }
+    },
+    {
+      "key": "[\"readContract\",{\"address\":\"0x1696170d40e703f1378989383c21ec96ed1adf75\",\"functionName\":\"causalOf\",\"args\":[\"0n\"],\"blockNumber\":\"111899244n\"}]",
+      "result": {
+        "on": true,
+        "skewSec": 2
+      }
+    },
+    {
+      "key": "[\"readContract\",{\"address\":\"0x1696170d40e703f1378989383c21ec96ed1adf75\",\"functionName\":\"market\",\"args\":[\"0n\"],\"blockNumber\":\"111899244n\"}]",
+      "result": {
+        "base": "0x701193374879131f923532987c7Ef363a91a80eB",
+        "quote": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+        "refAdapter": "0xB161400dDfC592fD66b57dDaE46966ED74Ce891d",
+        "baseIdx": 1,
+        "quoteIdx": 0,
+        "shards": 4,
+        "active": true,
+        "permissioned": false,
+        "strictAfterClose": false,
+        "bandBps": 100,
+        "feeBps": 3,
+        "maxFeeBps": 10,
+        "minTick": 1,
+        "maxTick": 2097151,
+        "maxBandTicks": 4001,
+        "baseUnit": "1000000000000000000n",
+        "tickSize": "10000n",
+        "lastCleared": "111899242n",
+        "pendingHead": "4n",
+        "pendingTail": "4n",
+        "auctions": "7n",
+        "lastPrintTick": "23444n",
+        "lastRefTimeMs": "1791549410000n",
+        "lastStatus": 2,
+        "lastRefPrice": "234441963n",
+        "receiptHash": "0xe3a29aeeb95ba8eae469555dc7c1ab6a217c6dd6dedf8761dc91177587a0152a"
+      }
+    },
+    {
+      "key": "[\"readContract\",{\"address\":\"0xB161400dDfC592fD66b57dDaE46966ED74Ce891d\",\"functionName\":\"feeds\",\"args\":[\"0n\"],\"blockNumber\":\"111899244n\"}]",
+      "result": [
+        "0x03ffa4673c060339E6a8E5Ba1a12B3301c966bf0",
+        "0xE20751C7B5867bCBef815ffc1b284c3f412a9e13",
+        8,
+        8,
+        6,
+        3900,
+        3900,
+        0,
+        432000,
+        50,
+        true
+      ]
+    },
+    {
+      "key": "[\"readContract\",{\"address\":\"0x03ffa4673c060339E6a8E5Ba1a12B3301c966bf0\",\"functionName\":\"getRoundData\",\"args\":[\"18446744073709556681n\"]}]",
+      "result": [
+        "18446744073709556681n",
+        "23439507494n",
+        "1791549410n",
+        "1791549423n",
+        "18446744073709556681n"
+      ]
+    },
+    {
+      "key": "[\"readContract\",{\"address\":\"0x1696170d40e703f1378989383c21ec96ed1adf75\",\"functionName\":\"pendingTimes\",\"args\":[\"0n\",\"64n\"],\"blockNumber\":\"111899243n\"}]",
+      "result": [
+        [
+          "111899241n",
+          "111899242n"
+        ],
+        [
+          "1791594006n",
+          "1791594011n"
+        ]
+      ]
+    },
+    {
+      "key": "[\"getBlock\",{\"blockNumber\":\"111899242n\"}]",
+      "result": {
+        "number": "111899242n",
+        "timestamp": "1791594011n"
+      }
+    },
+    {
+      "key": "[\"readContract\",{\"address\":\"0x03ffa4673c060339E6a8E5Ba1a12B3301c966bf0\",\"functionName\":\"getRoundData\",\"args\":[\"18446744073709556682n\"]}]",
+      "result": [
+        "18446744073709551616n",
+        "0n",
+        "0n",
+        "0n",
+        "18446744073709551616n"
+      ]
+    },
+    {
+      "key": "[\"readContract\",{\"address\":\"0x1696170d40e703f1378989383c21ec96ed1adf75\",\"functionName\":\"regimeOf\",\"args\":[\"0n\"],\"blockNumber\":\"111899243n\"}]",
+      "result": {
+        "extBandBps": 200,
+        "reopenBandBps": 726,
+        "discFloorBps": 100,
+        "discCapBps": 726,
+        "discHorizonSec": 172800,
+        "discCadence": 10,
+        "halted": false,
+        "closedSince": "0n",
+        "lastDiscoveryBatch": "0n"
+      }
+    }
+  ]
+}

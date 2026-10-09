@@ -35,6 +35,9 @@ export async function checkReceipt(client: PublicClient, tx: Hex) {
   const price = (p: bigint) => (market ? `${fromUnits(p, market.quote.decimals)} ${market.quote.symbol}` : p.toString());
   return {
     verified: v.ok,
+    // "causal": Chainlink's first observation after the orders; "discovery": a call auction while the market was
+    // closed, at its last observation (made before the orders, so observedAfterSealSec is negative); "halted"; "clear-time"
+    rule: v.rule,
     market: market?.symbol ?? v.marketId.toString(),
     auction: { upToBlock: v.upToBlock.toString(), clearedInBlock: v.clearedInBlock.toString(), price: price(v.price), volume: market ? `${fromUnits(v.volume, market.base.decimals)} ${market.base.symbol}` : v.volume.toString() },
     chainlink: v.causal

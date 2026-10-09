@@ -1,5 +1,6 @@
 {
   "tx": "0x128b8b18f4ae90cf0f79f439f5886f2f3ff548f2ebb3dcd7a847c2284351596e",
+  "rule": "causal",
   "calls": [
     {
       "key": "[\"getTransactionReceipt\",{\"hash\":\"0x128b8b18f4ae90cf0f79f439f5886f2f3ff548f2ebb3dcd7a847c2284351596e\"}]",
@@ -84,6 +85,13 @@
       }
     },
     {
+      "key": "[\"readContract\",{\"address\":\"0x1696170d40e703f1378989383c21ec96ed1adf75\",\"functionName\":\"causalOf\",\"args\":[\"1n\"],\"blockNumber\":\"111055885n\"}]",
+      "result": {
+        "on": true,
+        "skewSec": 2
+      }
+    },
+    {
       "key": "[\"readContract\",{\"address\":\"0x1696170d40e703f1378989383c21ec96ed1adf75\",\"functionName\":\"market\",\"args\":[\"1n\"],\"blockNumber\":\"111055885n\"}]",
       "result": {
         "base": "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A",
@@ -115,13 +123,6 @@
       }
     },
     {
-      "key": "[\"readContract\",{\"address\":\"0x1696170d40e703f1378989383c21ec96ed1adf75\",\"functionName\":\"causalOf\",\"args\":[\"1n\"],\"blockNumber\":\"111055885n\"}]",
-      "result": {
-        "on": true,
-        "skewSec": 2
-      }
-    },
-    {
       "key": "[\"readContract\",{\"address\":\"0xB161400dDfC592fD66b57dDaE46966ED74Ce891d\",\"functionName\":\"feeds\",\"args\":[\"1n\"],\"blockNumber\":\"111055885n\"}]",
       "result": [
         "0xBcD78f76005B7515837af6b50c7C52BCf73822fb",
@@ -145,6 +146,19 @@
         "1791295082n",
         "1791295095n",
         "18446744073710159930n"
+      ]
+    },
+    {
+      "key": "[\"readContract\",{\"address\":\"0x1696170d40e703f1378989383c21ec96ed1adf75\",\"functionName\":\"pendingTimes\",\"args\":[\"1n\",\"64n\"],\"blockNumber\":\"111055884n\"}]",
+      "result": [
+        [
+          "111055781n",
+          "111055816n"
+        ],
+        [
+          "1791295065n",
+          "1791295076n"
+        ]
       ]
     },
     {

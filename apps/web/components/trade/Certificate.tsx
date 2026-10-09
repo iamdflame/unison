@@ -273,9 +273,9 @@ export function CertificateDialog() {
                             {data.receipt.slice(0, 10)}…{data.receipt.slice(-8)}
                           </span>
                           {data.check === "recomputed"
-                            ? ". Linked in the venue's receipt chain; your fill recomputes from the batch price."
+                            ? ". The tape links it in the receipt chain, and your fill recomputes from the batch price."
                             : data.check === "linked"
-                              ? ". Linked in the venue's receipt chain."
+                              ? ". The tape links it in the receipt chain."
                               : data.check === "unverified"
                                 ? ". On-chain; the tape could not verify it."
                                 : data.live
@@ -285,7 +285,7 @@ export function CertificateDialog() {
                             <>
                               {" "}
                               <Link href={data.live.page} className="text-ink underline decoration-line-strong underline-offset-2 hover-fine:decoration-ink">
-                                {data.causal ? "See the three times" : "Open the receipt"}
+                                {data.causal ? "Check it from the chain" : "Open the receipt"}
                               </Link>
                             </>
                           ) : null}

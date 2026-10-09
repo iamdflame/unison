@@ -123,12 +123,12 @@ export const SESSION_KEY = "0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc";
 /** BatchCleared with a correctly chained receipt hash (block timestamps from `tsMap`). */
 export function printLog(
   prev: Hex,
-  p: { marketId?: number; upTo: number; tick: number; volume: bigint; refPrice: bigint; status?: number; bandLo?: number; bandHi?: number },
+  p: { marketId?: number; upTo: number; tick: number; volume: bigint; refPrice: bigint; status?: number; bandLo?: number; bandHi?: number; refTimeMs?: number },
   at: { block: number; logIndex: number; tx?: Hex },
 ): { log: RawLog; receipt: Hex } {
   const marketId = p.marketId ?? 0;
   const status = p.status ?? 0;
-  const refTimeMs = (T0 + p.upTo) * 1000 + 400;
+  const refTimeMs = p.refTimeMs ?? (T0 + p.upTo) * 1000 + 400;
   const receipt = receiptHash(
     prev,
     { marketId, upTo: p.upTo, tick: p.tick, volume: p.volume.toString(), refPrice: p.refPrice.toString(), refTimeMs, status },
