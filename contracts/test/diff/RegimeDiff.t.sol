@@ -27,6 +27,11 @@ contract StubReference is IReferenceAdapter {
 /// @dev The exchange's clearing module over raw storage: market 0 and its regime are written directly, so any regime
 ///      state (closed periods, cadences, halts, last statuses) can be set up without replaying history.
 contract RegimeHarness is ExchangeClearing {
+    // the harness has no pause: it exercises the regime rules alone
+    function _isPaused() internal pure override returns (bool) {
+        return false;
+    }
+
     function setMarket(Market memory m) external {
         MainStorage storage $ = _s();
         if ($.markets.length == 0) $.markets.push();

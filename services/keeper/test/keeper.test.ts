@@ -22,6 +22,12 @@ interface FakeState {
   status: number;
   discCadence: number;
   lastDiscoveryBatch: bigint;
+  /** the exchange paused / the market halted / inactive */
+  paused?: boolean;
+  halted?: boolean;
+  inactive?: boolean;
+  /** an exchange before v2: a stopped market can't clear without a reference */
+  preV2?: boolean;
 }
 
 const REQUEST_S = 1_000n;
@@ -41,7 +47,9 @@ function fakeClient(s: FakeState) {
       },
     },
     jobPhase: vi.fn(async () => s.phase),
+    paused: vi.fn(async () => !!s.paused),
     market: vi.fn(async () => ({
+      active: !s.inactive,
       lastCleared: s.lastCleared,
       pendingHead: 0n,
       pendingTail: s.pending ? 1n : 0n,
@@ -49,10 +57,11 @@ function fakeClient(s: FakeState) {
       lastStatus: s.lastStatus ?? Status.OPEN,
       lastRefTimeMs: s.lastRefTimeMs ?? 0n,
     })),
-    regime: vi.fn(async () => ({ discCadence: s.discCadence, lastDiscoveryBatch: s.lastDiscoveryBatch })),
+    regime: vi.fn(async () => ({ discCadence: s.discCadence, lastDiscoveryBatch: s.lastDiscoveryBatch, halted: !!s.halted })),
     vault: vi.fn(async () => ({ pendingRequests: s.vaultPending })),
     simulateClearUpTo: vi.fn(async (_m: bigint, _u: bigint, payload: string) => {
       payloads.push(payload);
+      if (payload === "0x" && s.preV2 && (s.paused || s.halted || s.inactive)) throw new Error("execution reverted: EnforcedPause()");
       return { tick: 18_000n, volume: s.simVolume };
     }),
     clearUpTo: vi.fn(async (_m: bigint, upTo: bigint, _p: string, g?: bigint) => {
@@ -121,6 +130,31 @@ const base: FakeState = {
   discCadence: 10,
   lastDiscoveryBatch: 0n,
 };
+
+describe("a stopped market (exchange v2)", () => {
+  it("returns the waiting orders at once, reading no reference", async () => {
+    for (const stop of [{ paused: true }, { halted: true }, { inactive: true }]) {
+      const { client, sent, payloads } = fakeClient({ ...base, ...stop, pending: true, simVolume: 0n, lastCleared: 196n });
+      await keeper(client).tick(200n);
+      expect(sent, JSON.stringify(stop)).toEqual(["open:199"]);
+      expect(payloads).toEqual(["0x"]);
+    }
+  });
+
+  it("does nothing when nothing waits", async () => {
+    const { client, sent } = fakeClient({ ...base, paused: true, pending: false, lastCleared: 196n });
+    await keeper(client).tick(200n);
+    expect(sent).toEqual([]);
+  });
+
+  it("before v2, serves the market as it always did", async () => {
+    // the return-only clear is refused, so the keeper falls back to the reference and the cost policy
+    const { client, sent, payloads } = fakeClient({ ...base, halted: true, preV2: true, pending: true, simVolume: 5n, lastCleared: 196n });
+    await keeper(client).tick(200n);
+    expect(payloads).toEqual(["0x", "0xabcd"]);
+    expect(sent).toEqual(["open:199"]);
+  });
+});
 
 describe("keeper cost policy (Monad charges the gas limit)", () => {
   it("continues a running job without a reference", async () => {

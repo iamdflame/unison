@@ -269,10 +269,13 @@ export class Keeper {
     let sent = 0;
     try {
       const phase = await c.jobPhase(marketId);
+      const returned = phase === JobPhase.IDLE && (await this.stopped(marketId)) ? await this.returnOrders(marketId, head) : null;
       if (phase !== JobPhase.IDLE) {
         const gas = await this.clearGasFor("clear", [marketId, "0x"], marketId);
         await this.sendClear(marketId, c.clear(marketId, "0x", gas), { marketId, action: "clear.continue" });
         sent++;
+      } else if (returned !== null) {
+        sent += returned;
       } else if ((await this.causalMode(marketId)).on) {
         sent += await this.serveCausal(marketId, head);
       } else {
@@ -317,6 +320,33 @@ export class Keeper {
       this.log({ level: "warn", marketId: marketId.toString(), ...why(e) });
     }
     return sent;
+  }
+
+  /** The exchange is paused, or the market halted or made inactive. */
+  private async stopped(marketId: bigint): Promise<boolean> {
+    const c = this.cfg.client;
+    const [paused, m, g] = await Promise.all([c.paused(), c.market(marketId), c.regime(marketId)]);
+    return paused || !m.active || g.halted;
+  }
+
+  /**
+   * A stopped market clears in return-only mode (exchange v2): no reference is read, nothing trades, and every waiting
+   * order goes back. Its owners shouldn't wait for an observation that no longer prices anything, so the keeper clears
+   * at once. Null when the exchange can't (an implementation before v2): the market is then served as before.
+   */
+  private async returnOrders(marketId: bigint, head: bigint): Promise<number | null> {
+    const c = this.cfg.client;
+    const m = await c.market(marketId);
+    const upTo = head - 1n;
+    if (m.pendingTail <= m.pendingHead || upTo <= m.lastCleared) return 0;
+    try {
+      await c.simulateClearUpTo(marketId, upTo, "0x");
+    } catch {
+      return null;
+    }
+    const gas = await this.clearGasFor("clearUpTo", [marketId, upTo, "0x"], marketId);
+    await this.sendClear(marketId, c.clearUpTo(marketId, upTo, "0x", gas), { marketId, action: "clear.return", upTo });
+    return 1;
   }
 
   /**

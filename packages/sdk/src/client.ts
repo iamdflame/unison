@@ -153,6 +153,11 @@ export class UnisonClient {
     return batches.map((batch, i) => ({ batch, time: times[i]! }));
   }
 
+  /** Whether the guardian has paused the exchange: order entry stops, and (v2) clears return every waiting order. */
+  paused(): Promise<boolean> {
+    return this.read("paused");
+  }
+
   jobPhase(marketId: bigint): Promise<number> {
     return this.read("jobPhase", [marketId]);
   }

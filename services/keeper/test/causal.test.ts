@@ -27,7 +27,9 @@ function causalClient(s: S) {
     deployment: { markets: { "WMON/AUSD": { id: 1, vault: VAULT, reference: "chainlink-causal" } } },
     causal: vi.fn(async () => ({ on: true, skewSec: 2 })),
     jobPhase: vi.fn(async () => 0),
+    paused: vi.fn(async () => false),
     market: vi.fn(async () => ({
+      active: true,
       pendingHead: 0n,
       pendingTail: s.pending ? 1n : 0n,
       refAdapter: ADAPTER,
@@ -36,7 +38,7 @@ function causalClient(s: S) {
       lastStatus: 0,
     })),
     pendingTimes: vi.fn(async () => (s.pending ? [{ batch: 150n, time: s.oldest ?? NOW - 40n }] : [])),
-    regime: vi.fn(async () => ({ discCadence: 10, lastDiscoveryBatch: s.lastDiscoveryBatch ?? 0n })),
+    regime: vi.fn(async () => ({ discCadence: 10, lastDiscoveryBatch: s.lastDiscoveryBatch ?? 0n, halted: false })),
     simulateClear: vi.fn(async () => {
       if (s.simFails) throw new Error("execution reverted: NotYet()");
       return { tick: 30_400n, volume: 0n };
