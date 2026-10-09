@@ -40,6 +40,7 @@ Almost all of it: no outside users or size; the team as liquidity provider, oper
 - **A malformed curve source can block clearing.** `try/catch` doesn't catch a reply that fails to decode. Only the operator can add sources, but this has to be fixed before anyone else can.
 - **Our own receipt checker failed every weekend auction.** It required the observation to come after the seal, which a DISCOVERY call auction never does by design. Fixed on 9 October, before the first one.
 - **The checker was weaker than the contract,** judging the first observation from the newest order instead of the oldest, and never checking that nobody sealed in time was left out. Fixed.
+- **A vault's queue can be stopped by one frozen recipient** (from our own Slither triage, after the review): a redemption the token refuses reverts the whole queue. Only the team is an LP today; the fix comes before any outside LP.
 - **Smaller honesty bugs:** a seed price shown when nothing had traded, rounding a tick off the contract's, "$0.00" for a small order, session keys labelled with the wrong markets on mainnet, the team list depending on one environment variable. All fixed.
 
 ## The plan
@@ -77,6 +78,7 @@ The review's order is right: safety before speed, speed before listings, listing
 ### C. List the asset the oracle is about, and open the book
 
 - [ ] **wNVDAx under the existing causal adapter.** Chainlink's wNVDAx-USD already prices it. This needs its Monad token confirmed and inventory from a partner, not from the team.
+- [ ] **A vault whose queue no frozen address can stop.** Redemptions credited on the exchange's ledger instead of transferred out, so a recipient the token refuses can't stop everyone behind it ([static analysis](evidence/static-analysis.md)). Before any outside LP.
 - [ ] **Permissionless curve sources with a bond,** a cap on quoted width and an inventory ceiling. The house is labelled and capped.
 - [ ] **Partners, in this order, once A and B are done:** xStocks/Backed; one market maker running a vault; Anchored, for an aNVDA feed or an explicit basis market; Agora, for a second quote asset.
 
