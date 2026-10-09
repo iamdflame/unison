@@ -71,6 +71,11 @@ contract CausalForkTest is Test {
     function test_fork_upgradeLiveExchange_thenClearCausally() public {
         if (EXCHANGE.code.length == 0) vm.skip(true); // a fork from before the deployment
         UnisonExchange ex = UnisonExchange(EXCHANGE);
+        // a fork from after the cutover (6 Oct 2026): what this rehearsed has run on mainnet, and
+        // UpgradePhaseAForkTest rehearses the next upgrade
+        try ex.causalOf(0) returns (ExchangeBase.Causal memory c) {
+            if (c.on) vm.skip(true);
+        } catch {}
         UnisonExchange.Market memory m0 = ex.market(0);
         UnisonExchange.Market memory m1 = ex.market(1);
         uint256 vq = ex.balanceOf(VAULT_NVDA, AUSD);
