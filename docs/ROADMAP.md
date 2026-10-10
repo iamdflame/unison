@@ -83,7 +83,10 @@ The review's order is right: safety before speed, speed before listings, listing
 
 ### C. List the asset the oracle is about, and open the book
 
-- [ ] **wNVDAx under the existing causal adapter.** Chainlink's wNVDAx-USD already prices it. This needs its Monad token confirmed and inventory from a partner, not from the team.
+- [ ] **wNVDAx under the existing causal adapter.** Chainlink's wNVDAx-USD already prices it. The token is confirmed on Monad (10 Oct):
+  - wNVDAx is [`0xa8ddb5cd96b5222afe198316e9a57caa642850d5`](https://monadscan.com/address/0xa8ddb5cd96b5222afe198316e9a57caa642850d5), Backed's ERC-4626 wrapper over NVDAx (`0xc845b2894dBddd03858fd2D643B4eF725fE0849d`). 1 wNVDAx = 1.0017 NVDAx.
+  - About 12,996 NVDAx exist on Monad, but no wNVDAx has been wrapped there yet.
+  - Inventory has to come from a partner wrapping NVDAx, not from the team.
 - [ ] **A vault whose queue no frozen address can stop.** Built (10 Oct) as `LiquidityVault` v2: a redemption the token refuses is held for its owner and claimed later through the exchange, so it can't stop everyone behind it ([static analysis](evidence/static-analysis.md)). Deployed as new vaults before any outside LP.
 - [ ] **Permissionless curve sources with a bond,** a cap on quoted width and an inventory ceiling. The house is labelled and capped.
 - [ ] **Partners, in this order, once A and B are done:** xStocks/Backed; one market maker running a vault; Anchored, for an aNVDA feed or an explicit basis market; Agora, for a second quote asset.
