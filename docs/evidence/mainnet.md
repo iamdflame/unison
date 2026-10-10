@@ -29,7 +29,8 @@ Sourcify reports a `match`: the deployed bytecode is the one the sources compile
 | aNVDA/AUSD vault (market 0) | `0x76d9FeAb2d1DD7e689eA253503b848633792f8Db` |
 | WMON/AUSD vault (market 1) | `0x92f15839efcD72E6C9236ca63F1de4ee159CeeF3` |
 | OperatorSignedReference | `0x2673fBF6Fd9E66ab564AD1B31689DD712E59e746`. Deployed, but **no signer is registered** and no market uses it. |
-| UnisonExchange v2 implementation (causal) | `0xBcE55ebB12E017a2A1a484375Fa006E32Fb656eF` |
+| UnisonExchange v2 implementation (causal, 6 to 10 October) | `0xBcE55ebB12E017a2A1a484375Fa006E32Fb656eF` |
+| UnisonExchange v3 implementation (Phase A, live since 10 October) | `0x95d5c78724d47fBE1371ec7B9D8057AF16656B39`, verified on Sourcify (full match) |
 | ChainlinkCausalReference (markets 0 and 1) | `0xB161400dDfC592fD66b57dDaE46966ED74Ce891d` |
 | WMON/AUSD (old rule) vault (market 2, the control) | `0x15F7d52593ac7F6840E7d9d74e718e772E194dCb` |
 | LatencyChallenge on Unison (market 1) | `0xDcD3E86518db6A40C4feBa576efff598cA3B90d1` |
@@ -65,11 +66,11 @@ AccessControl doesn't list its members, so this is every `RoleGranted`, `RoleRev
 
 | Contract | Role or ownership | Held by |
 |---|---|---|
-| Exchange `0x1696…Adf75` | `DEFAULT_ADMIN_ROLE` (upgrades; administers every role, the gateway's included) | deployer |
+| Exchange `0x1696…Adf75` | `DEFAULT_ADMIN_ROLE` (upgrades; administers every role except the gateway's, which v3 locked on 10 October) | deployer |
 | | `OPERATOR_ROLE` (markets, sources, eligibility, keeper reward) | deployer |
 | | `GUARDIAN_ROLE` (pause), `HALT_ROLE` | deployer, guardian |
 | | `CAP_ROLE` | deployer |
-| | `GATEWAY_ROLE` (acts for accounts, `withdrawFor` included) | the `OrderGateway` `0xfB24…033A` only: no other gateway has ever existed |
+| | `GATEWAY_ROLE` (acts for accounts, `withdrawFor` included) | the `OrderGateway` `0xfB24…033A` only: no other gateway has ever existed. Since v3 the role is administered by a role nobody holds, so no key can grant it |
 | aNVDA, WMON and control vaults | `DEFAULT_ADMIN_ROLE`, `RISK_ROLE` | deployer |
 | Operator reference `0x2673…2e59e746` (unused on mainnet) | `DEFAULT_ADMIN_ROLE`, `SIGNER_ADMIN_ROLE` | deployer |
 | `ChainlinkCausalReference` `0xB161…891d` | owner (`setFeed`) | deployer |
@@ -120,6 +121,35 @@ Run through `apps/web/scripts/ops/mainnet-launch.mjs`, step by step as rehearsed
 | The house adversary: funded, its two challenge accounts opened (45 WMON and 1.25 AUSD each) | `0x54fad385f934df566271c5b811840dd265c10e1a2f5a4df8b96af92513317f33`, `0xa78ed6c333c906b1485122fdfab0eea6c36839c58f02966fd3bde0bd5abae7ab`, `0xc67b40c7cd49d5e471ccf8b736faa8e24bb06385cde0aeee08a4b285e1836c01` |
 | Team: sell 3 WMON into the WMON vault's bid, one auction | `0x4e083bd1b8d0a814dff52e36f54f33c87f680fa67763068bdd114d2784e7abbf` |
 
+## Phase A: exchange v3 (10 October 2026)
+
+The safety upgrade from the [roadmap](../ROADMAP.md) (A), run with the deployer key through `mainnet-launch.mjs upgrade-phase-a` ([runbook](../GO_LIVE.md#phase-a-exchange-v3-then-the-timelock-roadmap-a)). Nothing had to be drained: v3 moves no market state.
+
+**What changed for users:**
+- A pause, a halt or a deactivated market now returns every waiting order at once, with no oracle read. Stopping a market can't trap an order.
+- The gateway role is locked: no key can make a new address act for accounts, so a new gateway needs an upgrade.
+- No curve source quotes a closed market, and a malformed source is skipped instead of blocking the clear.
+- A weekend auction already bounded by its observation no longer waits for the call-auction cadence.
+
+**Rehearsed three ways first:**
+- **CI.** The "Mainnet rehearsals" job forks Monad mainnet at the current block on every run.
+- **Locally,** at block 112,252,932: `forge test --match-path "test/fork/*"` passed 15 tests, with 0 failures and 1 retired test skipped.
+- **A dress rehearsal** of the exact command, deployer key included, on an anvil fork at block 112,254,613. Its record is `deployments/monad-fork-phase-a.json`.
+
+| Step | Transaction |
+|---|---|
+| Deploy the v3 implementation `0x95d5…6B39` (block 112,255,122) | `0x3111a89b4dab6c238900a18068995f8eb0c5775a7f699303f6aec3b040a1bf21` |
+| `upgradeToAndCall(implementation, initializeV3())` (block 112,255,125) | `0xc121fe89dbb41299f8690cc016a0edb91fa13b508afc6650f23e4e45e69482a6` |
+
+- **Cost:** 2 transactions, 1.32 MON. Monad charges the gas limit: 12.79M on the deploy, 0.19M on the upgrade.
+- **Checks:** the script reverted unless all four held, and each was read again from mainnet afterwards:
+  - `version()` = 3;
+  - `getRoleAdmin(GATEWAY_ROLE)` = `keccak256("unison.locked")`;
+  - the lock administers itself;
+  - the `OrderGateway` kept its role.
+- **Unchanged:** both causal markets kept their settings, `(true, 2)`.
+- **Source:** the implementation is [verified on Sourcify](https://sourcify.dev/server/v2/contract/143/0x95d5c78724d47fBE1371ec7B9D8057AF16656B39) (creation and runtime match).
+
 ## The first causal print (WMON/AUSD)
 
 The team's 3 WMON and the adversary's first trade, 3 WMON sold on a move it saw on Coinbase, met in one auction and filled against the vault's bid.
@@ -149,4 +179,6 @@ The adversary's matching sale on the old-rule control filled four seconds earlie
 
 - **Outside traders.** The proof that matters is fills by accounts that aren't ours. Their certificates and transactions will be added here as they happen, with `GET /v1/stats` as the running count.
 - **The first live weekend (Fri Oct 9 → Sun Oct 11).** aNVDA trades in DISCOVERY call auctions while its feed is closed, then reopens on the first Chainlink update. It will be written up in `weekend-2026-10-09.md`.
-- **Admin handover.** Not done yet. The plan, reworked on 9 October: first one exchange upgrade (pausing, halting or deactivating a market returns every waiting order without an oracle; the gateway role is locked), then a 7-day timelock from the first day, proposed by a Safe with outside signers and cancellable by a guardian Safe, taking every role and every adapter's ownership in one run ([roadmap](../ROADMAP.md), [threat model](../THREAT_MODEL.md#what-the-admin-can-do)).
+- **Admin handover.** Half done. The exchange upgrade is [live](#phase-a-exchange-v3-10-october-2026) (10 October).
+  - Next is a 7-day timelock from the first day: proposed by a Safe with outside signers, cancellable by a guardian Safe, and taking every role and every adapter's ownership in one run ([roadmap](../ROADMAP.md), [threat model](../THREAT_MODEL.md#what-the-admin-can-do)).
+  - It waits for the two Safes.

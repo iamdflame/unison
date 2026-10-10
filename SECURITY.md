@@ -31,7 +31,7 @@ None of this replaces an outside audit, which hasn't happened yet.
 
 ## What happens next
 
-- The guardian key can pause the exchange or halt a market at once while a fix is prepared. Neither moves funds. A halt returns every waiting order at the next auction, but that auction still waits for Chainlink's next observation (or a closed market); a pause holds sealed orders until it ends. The next upgrade makes both return waiting orders at once, with no oracle read.
+- The guardian key can pause the exchange or halt a market at once while a fix is prepared. Neither moves funds. Since exchange v3 (10 October 2026), both return every waiting order at once, with no oracle read.
 - Contract fixes ship as an upgrade. Until the admin roles move behind the timelock (7 days, proposed by a Safe with outside signers), the team can ship one directly; after that, every upgrade waits in public for a week first.
 
 ## Not a vulnerability

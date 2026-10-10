@@ -54,7 +54,7 @@ The review's order is right: safety before speed, speed before listings, listing
 - [x] **Disclosures where they matter.** aNVDA's price source on the ticket; Anchored's denylist when you deposit; who holds the keys; "not offered to US persons" called a policy, not an on-chain check. (9 Oct)
 - [x] **The house's share in public.** `/v1/stats` says how much of each market the vaults traded, and the team list lives in the deployment file. (9 Oct)
 - [x] **The documents say what is true.** The threat model lists every admin power; the 3 October simulation is labelled as one; the compliance map says it is not a licence. (9 Oct)
-- [ ] **One exchange upgrade.**
+- [x] **One exchange upgrade.** Live since 10 October as exchange v3 ([record](evidence/mainnet.md#phase-a-exchange-v3-10-october-2026)).
   - Pausing, halting or deactivating a market clears it in a return-only mode that reads no oracle and returns every waiting order.
   - No house curve outside open sessions.
   - The gateway role's admin becomes a role nobody holds.
