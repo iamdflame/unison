@@ -20,6 +20,15 @@ Say what you found, how to reproduce it, and the impact you expect. A Foundry te
 - The vaults hold about $65 in all, the challenge pots 19 AUSD, and daily caps bound each market (1 aNVDA, 20,000 WMON a day).
 - One deployer key holds the admin roles. What it can do is listed in the [threat model](docs/THREAT_MODEL.md#what-the-admin-can-do).
 
+## How the code is checked
+
+- **Tests:** unit, fuzz and invariant tests, plus a differential fuzz of the clearing against its TypeScript twin.
+- **Mainnet rehearsals:** every upgrade and handover runs first in CI, against live Monad state at the current block (`contracts/test/fork`).
+- **Static analysis:** Slither and Aderyn run on every change, and each finding has a written verdict ([static analysis](docs/evidence/static-analysis.md)).
+- **Symbolic proofs:** Halmos proves the clearing's price and fill properties for every input of two shapes ([proofs](docs/evidence/proofs.md)).
+
+None of this replaces an outside audit, which hasn't happened yet.
+
 ## What happens next
 
 - The guardian key can pause the exchange or halt a market at once while a fix is prepared. Neither moves funds. A halt returns every waiting order at the next auction, but that auction still waits for Chainlink's next observation (or a closed market); a pause holds sealed orders until it ends. The next upgrade makes both return waiting orders at once, with no oracle read.
