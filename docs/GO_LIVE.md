@@ -64,11 +64,44 @@ The cutover moves mainnet's markets to [SPEC §7.4](SPEC.md). After it, each auc
 | 9. Site | Push the record and merge the `causal-cutover` branch (the site's words for the new rule) | `/receipt/mainnet/1/<upTo>` shows sealed → observed → cleared |
 | 10. First prints | A labelled team trade on each causal market | `node apps/web/scripts/verify-receipt.mjs <tx>`: every check passes |
 | 11. Evidence | Transactions and first receipts in [evidence/mainnet.md](evidence/mainnet.md) | — |
-| 12. Timelock | `timelock <owner wallet>`, after the last change the team still needs to make directly | after it, the deployer holds no role, and the scheduled batch is executable by anyone 48 h later |
+| 12. Timelock | Replaced by Phase A's one-run handover, below | — |
 
-**After the timelock,** every change to prices, markets or roles waits in public: 48 h at first, then 7 days. Plan around that:
-- **Daylight saving.** aNVDA's session window `[0, 432000]` must become `[3600, 435600]` when US daylight time ends on 1 November. Under a 7-day delay, schedule `setFeed` by 25 October.
-- **What the guardian keeps.** It can still pause, halt and set daily caps, at once. None of these can move a balance or set a price.
+## Phase A: exchange v3, then the timelock ([roadmap](ROADMAP.md), A)
+
+Two runs with the deployer key, in this order, each with the owner's go-ahead. The v3 upgrade goes first, while the deployer can still sign it alone. After the handover, every upgrade waits 7 days.
+
+**Rehearsed on live state.** CI's "Mainnet rehearsals" job forks Monad mainnet at the current block on every run. On 10 October (block 112,028,817 onwards), [`UpgradePhaseAForkTest`](../contracts/test/fork/UpgradePhaseAFork.t.sol) and [`HandoverTimelockForkTest`](../contracts/test/fork/HandoverTimelockFork.t.sol) passed:
+- the live exchange upgraded in place with every market and balance intact;
+- the gateway role was locked;
+- a pause and a halt returned sealed orders;
+- the handover ran in one transaction sequence with a 7-day delay from the first block, and refused an exchange before v3.
+
+**Before it can run:**
+- `forge` must run on the machine that sends the transactions. Windows Application Control blocks `forge.exe` here until it is allowed.
+- No order needs to be drained: v3 moves no market state. `UpgradePhaseA.s.sol` checks that no clear job is running.
+- For step 4, both Safes must exist on Monad ([app.safe.global](https://app.safe.global)):
+  - the admin Safe, with outside signers (3-of-5 recommended, 2-of-3 at least);
+  - the guardian Safe, with threshold 1.
+
+| Step | Command (`node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs …`) | Check |
+|---|---|---|
+| 1. Code | Merge `phase-a-upgrade` into `main` | CI green on `main` |
+| 2. Upgrade | `upgrade-phase-a`: the v3 implementation, `upgradeToAndCall(initializeV3)`, verified on Sourcify, recorded as `exchangeVersion: 3` | `version()` = 3; `getRoleAdmin(GATEWAY_ROLE)` = `keccak256("unison.locked")`; /status reads "Exchange version 3" |
+| 3. Services | Redeploy `keeper-mainnet` (it returns orders from a stopped market without waiting for an observation), `tape-mainnet` (it names those auctions "halted"), and the site | keeper log `clear.return` on a test pause; tape `rule: "halted"` |
+| 4. Handover | `timelock <adminSafe> <guardianSafe>` (refuses before v3, and refuses a Safe with no code) | `getMinDelay()` = 604,800; the deployer holds no role anywhere; every adapter's owner is the timelock; the record names both Safes, their owners and thresholds |
+| 5. Evidence | The transactions, the Safes' signers and thresholds, in [evidence/mainnet.md](evidence/mainnet.md) | /status lists the timelock and both Safes |
+
+**After the handover,** every change to prices, markets or roles is proposed by the admin Safe and waits 7 days in public. Anyone may execute it once ready, and either Safe may cancel it. Plan around that:
+- **Daylight saving.** aNVDA's session window `[0, 432000]` must become `[3600, 435600]` when US daylight time ends on 1 November.
+  - The admin Safe should propose `setFeed` between **24 October 00:00 and 26 October 01:00 UTC**.
+  - It then becomes executable between Friday's close (31 October 00:00 UTC) and Monday's open (2 November 01:00 UTC).
+  - Proposed earlier, anyone could execute it while the old window still applies.
+- **New sources** (the v2 vaults) need `addSource`, which waits the same 7 days. Add them before the handover if they are ready.
+- **What the guardian Safe keeps,** at once:
+  - pause, halt, daily caps, revoking a gateway, and cancelling a proposal;
+  - after v3, a pause or a halt returns every waiting order.
+
+  None of these can move a balance or set a price.
 
 ## The full deploy (`deploy/monad-mainnet.json`)
 
