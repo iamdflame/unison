@@ -57,8 +57,9 @@ export interface Print {
   /** "causal": priced at the first Chainlink observation after its orders (SPEC §7.4), refTimeMs is the oracle's
    *  signed observation time. "discovery": a call auction while the market was closed (session over, or feed silent),
    *  priced at the last observation, made before its orders, inside a band that widens with √time since the close.
+   *  "halted": trading was stopped and no oracle was read; every waiting order went back (exchange v3).
    *  "clear-time": the older rule, refTimeMs is the clear's own time. */
-  rule?: "causal" | "discovery" | "clear-time";
+  rule?: "causal" | "discovery" | "halted" | "clear-time";
   /** the tape's quick check: a causal print observed more than the skew after its newest order was sealed. The whole
    *  rule (the round before it, nobody left out) is verifyReceipt's. */
   causal?: boolean;
