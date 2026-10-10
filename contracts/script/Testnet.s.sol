@@ -110,7 +110,7 @@ contract Testnet is Script {
         c.gateway = new OrderGateway(IGatewayVenue(address(c.ex)));
         c.ex.grantRole(c.ex.GATEWAY_ROLE(), address(c.gateway));
         // the gateway is granted: from now on only an upgrade can add one
-        c.ex.initializeV2();
+        c.ex.initializeV3();
         c.ex.listToken(address(c.ausd), false);
         _recordToken(c.ausd);
     }

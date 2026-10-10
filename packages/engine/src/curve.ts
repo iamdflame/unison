@@ -5,7 +5,7 @@
  *                   depth as a share of NAV, per-auction cap)
  *   `clipCurve`     `_loadCurves` for one source: clipped to the band, capped by the source's ledger inventory
  *   `loadCurves`    every source in order; a source whose `curve()` reverts adds nothing, and outside an open
- *                   session (OPEN, EXTENDED) no source is asked at all (exchange v2)
+ *                   session (OPEN, EXTENDED) no source is asked at all (exchange v3)
  *   `mergeCurves`   the clipped curves added to the clearing input
  *   `settleCurves`  `_settleCurves`: each source's fills at the auction price (better ticks in full, the marginal
  *                   tick by exact cumulative apportionment ahead of the books)

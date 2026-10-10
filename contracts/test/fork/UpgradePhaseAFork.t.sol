@@ -7,7 +7,7 @@ import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol"
 import {UnisonExchange} from "../../src/core/UnisonExchange.sol";
 import {ExchangeBase} from "../../src/core/ExchangeBase.sol";
 
-/// @notice Phase A rehearsed on Monad mainnet state (chain 143): the LIVE exchange upgraded in place to v2, exactly as
+/// @notice Phase A rehearsed on Monad mainnet state (chain 143): the LIVE exchange upgraded in place to v3, exactly as
 ///         script/UpgradePhaseA.s.sol does it, then stopped with a real sealed order waiting:
 ///           forge test --fork-url https://rpc.monad.xyz --match-contract UpgradePhaseAForkTest -vv
 ///         Pin --fork-block-number for a reproducible run.
@@ -29,7 +29,7 @@ contract UpgradePhaseAForkTest is Test {
     function _upgrade() internal {
         UnisonExchange impl = new UnisonExchange();
         vm.prank(ADMIN);
-        ex.upgradeToAndCall(address(impl), abi.encodeCall(UnisonExchange.initializeV2, ()));
+        ex.upgradeToAndCall(address(impl), abi.encodeCall(UnisonExchange.initializeV3, ()));
     }
 
     /// @dev Alice seals a sell of 5 WMON (funded from the exchange's custody, on the fork only): on a causal market it
@@ -52,7 +52,7 @@ contract UpgradePhaseAForkTest is Test {
     function test_fork_upgradeCarriesStateOverAndLocksTheGateway() public {
         UnisonExchange.Market memory before = ex.market(WMON_MARKET);
         _upgrade();
-        assertEq(ex.version(), 2);
+        assertEq(ex.version(), 3);
         UnisonExchange.Market memory m = ex.market(WMON_MARKET);
         assertEq(m.receiptHash, before.receiptHash, "the receipt chain carries over");
         assertEq(m.lastCleared, before.lastCleared);

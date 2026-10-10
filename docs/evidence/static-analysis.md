@@ -13,7 +13,7 @@
 | `reentrancy-events` | 11 | No risk: the calls are to the exchange, a trusted contract (from the gateway, the challenge accounts and the CRE receiver), or to curve sources inside `clear`, which holds the transient reentrancy guard every state-changing entry point shares. |
 | `incorrect-equality` | 6 | Intended exact comparisons: a pending slot's batch tag (`== batch`), the UTC day of a cap, empty-book checks. |
 | `missing-zero-check` | 5 | Low. `ChallengeAccount` is created only by `LatencyChallenge.open` with the caller as owner. `PythReference` isn't deployed. |
-| `reentrancy-no-eth` | 4 | No risk: `_clear` calls the reference adapter (a view) and curve sources (a static call, from v2 a bounded low-level one) under the exchange's reentrancy guard. |
+| `reentrancy-no-eth` | 4 | No risk: `_clear` calls the reference adapter (a view) and curve sources (a static call, from v3 a bounded low-level one) under the exchange's reentrancy guard. |
 | `reentrancy-benign` | 2 | No risk: `ChallengeAccount` writes after calling the exchange, which can't call back into it. |
 | `divide-before-multiply` | 2 | Intended. `_band` rounds the reference to a tick first, which defines the band (the web app mirrors it to the tick); the vault's per-tick quote floors before it is compared with its cap, the conservative side. |
 | `weak-prng` | 1 | Not randomness: the pending ring's slot is a block number modulo the ring's size. |

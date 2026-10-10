@@ -310,10 +310,10 @@ contract PhaseATest is Test {
 
     // ------------------------------------------------------------------ gateways come only with an upgrade
 
-    function test_gatewayRole_lockedAfterV2() public {
+    function test_gatewayRole_lockedAfterV3() public {
         address gw = makeAddr("gateway");
         ex.grantRole(ex.GATEWAY_ROLE(), gw); // a fresh deployment grants its gateway first
-        ex.initializeV2();
+        ex.initializeV3();
         assertEq(ex.getRoleAdmin(ex.GATEWAY_ROLE()), ex.LOCKED_ROLE());
         assertEq(ex.getRoleAdmin(ex.LOCKED_ROLE()), ex.LOCKED_ROLE(), "the lock administers itself");
         bytes32 locked = ex.LOCKED_ROLE();
@@ -324,19 +324,19 @@ contract PhaseATest is Test {
         ex.grantRole(locked, address(this)); // nor can the admin grant itself the lock
         assertTrue(ex.hasRole(gateway, gw), "the gateway already granted keeps its role");
         vm.expectRevert(); // once only
-        ex.initializeV2();
+        ex.initializeV3();
     }
 
-    function test_initializeV2_adminOnly() public {
+    function test_initializeV3_adminOnly() public {
         vm.prank(makeAddr("nobody"));
         vm.expectRevert();
-        ex.initializeV2();
+        ex.initializeV3();
     }
 
     function test_revokeGateway_guardianOnly_oneWay() public {
         address gw = makeAddr("gateway");
         ex.grantRole(ex.GATEWAY_ROLE(), gw);
-        ex.initializeV2();
+        ex.initializeV3();
         address nobody = makeAddr("nobody");
         bytes32 guardian = ex.GUARDIAN_ROLE();
         vm.prank(nobody);
@@ -351,7 +351,7 @@ contract PhaseATest is Test {
     }
 
     function test_version() public view {
-        assertEq(ex.version(), 2);
+        assertEq(ex.version(), 3);
     }
 
     // ------------------------------------------------------------------ no curve source can block a clear

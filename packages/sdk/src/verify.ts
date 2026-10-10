@@ -161,7 +161,7 @@ export async function verifyReceipt(client: PublicClient, tx: Hex, opts: { prev?
     | { marketId: bigint; upToBlock: bigint; tick: bigint; price: bigint; volume: bigint; refPrice: bigint; refTimeMs: bigint; status: number; bandLo: bigint; bandHi: bigint; receiptHash: Hex; exchange: Address }
     | undefined;
   let bound: { round: bigint; sealedAt: bigint; observedAt: bigint } | undefined;
-  let returned: number | undefined; // exchange v2: a stopped market's auction, and why it stopped
+  let returned: number | undefined; // exchange v3: a stopped market's auction, and why it stopped
   for (const log of receipt.logs) {
     try {
       const ev = decodeEventLog({ abi: unisonExchangeAbi, data: log.data, topics: log.topics });

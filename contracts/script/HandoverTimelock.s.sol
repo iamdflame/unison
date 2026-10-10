@@ -20,7 +20,7 @@ interface ISafe {
 ///     the price adapters and the eligibility mirror;
 ///   - its delay is 7 days from the first block; proposals come from the admin Safe (outside signers), anyone may
 ///     execute a ready one, and either Safe may cancel one;
-///   - the guardian Safe holds pause, halt and caps, which on exchange v2 stop a market and return its orders but can't
+///   - the guardian Safe holds pause, halt and caps, which on exchange v3 stop a market and return its orders but can't
 ///     move a balance or set a price; the old guardian key holds nothing;
 ///   - the deployer holds nothing.
 ///
@@ -32,7 +32,7 @@ interface ISafe {
 ///   DEPLOYER_PRIVATE_KEY=0x… DEPLOYMENT=../deployments/monad-mainnet.json ADMIN_SAFE=0x… GUARDIAN_SAFE=0x… \
 ///   forge script script/HandoverTimelock.s.sol --rpc-url https://rpc.monad.xyz --broadcast --slow
 ///
-/// It refuses an exchange before v2: the gateway role must be locked first (script/UpgradePhaseA.s.sol), or the
+/// It refuses an exchange before v3: the gateway role must be locked first (script/UpgradePhaseA.s.sol), or the
 /// timelock would inherit an admin that can make itself a gateway without an upgrade.
 /// Output: ../deployments/<label>-timelock.json (or <TIMELOCK_OUT>.json).
 contract HandoverTimelock is Script {
@@ -56,11 +56,11 @@ contract HandoverTimelock is Script {
         require(adminSafe.code.length > 0 && guardianSafe.code.length > 0, "both Safes must already be deployed");
         require(adminSafe != guardianSafe, "two Safes: one proposes, one guards");
         require(ex.hasRole(ex.DEFAULT_ADMIN_ROLE(), me), "the deployer is not the exchange's admin");
-        // an implementation before v2 has no version(): the gateway role must be locked before the keys leave
+        // an implementation before v3 has no version(): the gateway role must be locked before the keys leave
         try ex.version() returns (uint256 v) {
-            require(v >= 2, "upgrade the exchange to v2 first (script/UpgradePhaseA.s.sol)");
+            require(v >= 3, "upgrade the exchange to v3 first (script/UpgradePhaseA.s.sol)");
         } catch {
-            revert("upgrade the exchange to v2 first (script/UpgradePhaseA.s.sol)");
+            revert("upgrade the exchange to v3 first (script/UpgradePhaseA.s.sol)");
         }
         address oldGuardian = vm.parseJsonAddress(dep, ".guardian");
         address[] memory vaults = _vaults();
