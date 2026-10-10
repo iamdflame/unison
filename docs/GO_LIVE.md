@@ -96,6 +96,8 @@ Two runs with the deployer key, in this order, each with the owner's go-ahead. T
   - The admin Safe should propose `setFeed` between **24 October 00:00 and 26 October 01:00 UTC**.
   - It then becomes executable between Friday's close (31 October 00:00 UTC) and Monday's open (2 November 01:00 UTC).
   - Proposed earlier, anyone could execute it while the old window still applies.
+  - `node --conditions=development apps/web/scripts/ops/timelock-calldata.mjs dst winter` prints both Safe transactions, `schedule` and then `execute`, from the adapter's live settings. It reads the chain only.
+  - US daylight time starts again on 14 March 2027: run `dst summer`, proposed in the same way 7 days before it.
 - **New sources** (the v2 vaults) need `addSource`, which waits the same 7 days. Add them before the handover if they are ready.
 - **What the guardian Safe keeps,** at once:
   - pause, halt, daily caps, revoking a gateway, and cancelling a proposal;
