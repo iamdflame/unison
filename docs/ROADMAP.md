@@ -70,11 +70,16 @@ The review's order is right: safety before speed, speed before listings, listing
 
 ### B. A clock as fast as the chain, and a fair way out
 
-- [ ] **A causal pull adapter.** A report is verified, stored, then read by the unchanged exchange. Pyth's unique-update proof first; Chainlink Data Streams behind the same interface, on mainnet when a stream is funded. Target: a median of 3–5 s from seal to clear.
+- [ ] **A causal pull adapter.** Built and tested on Chainlink Data Streams (10 Oct; [evidence](evidence/streams.md)).
+  - A signed report is verified, stored, then read by the unchanged exchange. Contiguous report windows prove it is the first observation after the seal, so nobody chooses the price.
+  - Tested against Chainlink's real verifier on a Monad fork, with reports its DON signed.
+  - Monad's verifier is free to use; the stream is not: $150 a month for NVDA's regular hours.
+  - Pyth, the plan's first choice, has needed a paid plan since 31 July 2026: $5,000 a month for US equities.
+  - It goes live when a stream is funded. Target: a median of 3–5 s from seal to clear.
 - [ ] **The sniper benchmark, re-run at the deployment's real latency,** published beside the old one.
 - [ ] **A deterministic maximum wait.** An order whose first qualifying observation came more than the wait after its seal is returned, never filled. It is decided by timestamps alone, so nobody gets an option on a price in flight.
 - [ ] **Pegged orders for everyone, first as a curve source.** Deposits quote at a fixed offset from the reference, repriced at each observation, with no change to settlement.
-- [ ] **Settle from the ticket.** Anyone can land the auction they are waiting on.
+- [ ] **Settle from the ticket.** Anyone can land the auction they are waiting on. The contract half exists: `ClearRouter` brings the report and clears in one transaction, and pays the keeper reward to whoever sent it.
 
 ### C. List the asset the oracle is about, and open the book
 

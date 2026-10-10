@@ -191,6 +191,7 @@ Every auction can print only inside its band (LULD-like price limits per batch).
 |---|---|
 | `OperatorSignedReference` | EIP-712 `Reference(venue, marketId, batch, price, publishTimeMs, status)`. k-of-n quorum over secp256k1 (`ecrecover`) and P-256 (`0x0100` precompile) signers. Freshness window `maxAgeMs`; no more than 2 s in the future; monotonic per market. Only the venue may consume. Bonded signers, a 7-day unbond delay, and `slash` by `SLASHER_ROLE` (the CRE audit). |
 | `ChainlinkCausalReference` | The mainnet adapter since 6 October 2026 (§7.4). Chainlink read by the observation time inside the report its oracles signed; each auction prices at the first observation after its orders were sealed, proven from the feed's history. aNVDA through wNVDAx-USD (24/5 session window), WMON through MON/USD, both over AUSD/USD. |
+| `StreamsCausalReference` | The same rule on Chainlink Data Streams (§7.4): a signed report is verified by Chainlink's verifier, stored under its observation time, then read by the exchange, and the report whose window holds the second after the seal is the first observation after it. Sessions come from the report's `marketStatus`. Built and tested against the real verifier on a Monad fork; not deployed, because each stream is a paid subscription ([evidence](evidence/streams.md)). |
 | `ChainlinkReference` | Base/USD ÷ quote/USD (separate max ages). OPEN inside the weekly UTC session while fresh, otherwise CLOSED. The reference time is the clear time. Mainnet's markets used it from launch until the causal cutover; it now prices only the old-rule control market (market 2), kept so the standing challenge has a baseline. |
 | `PythReference` | Pull updates passed as the payload (the fee is paid from the adapter; venue-only). Returns Pyth's publish time, so a stale price fails the after-close rule. A confidence gate sets CLOSED. Built and tested, not deployed: Hermes has required a paid key since 26 August 2026. |
 | `ManualReference` | Tests and replays only. |
@@ -209,6 +210,9 @@ A market switched with `setCausal(marketId, adapter, true, skewSec)` prices ever
 - **Quote divisor.** The quote round must be the one in force at `startedAt(r)`: observed at or before it, its successor (if any) after it. If it is older than `quoteMaxAgeSec`, or AUSD is off $1 by more than `depegBps` (50), the status is HALTED and no auction trades.
 - **Nothing waiting.** A clear with no waiting orders uses the latest observation; it exists to give vault requests a reference made after them.
 - **Event.** `CausalReference(marketId, upToBlock, round, sealedAt, observedAt)`, emitted when the job opens.
+- **On a pull oracle** (`StreamsCausalReference`, not deployed). The payload names a stored report by its `observationsTimestamp`, plus the quote round. The adapter requires `observationsTimestamp > T` and `validFromTimestamp ≤ T + 1`: the report's window holds the second after `T`. Chainlink's windows are contiguous, so that report is the first observation after `T`, and `round` in the event is its observation time.
+  - There is no empty-payload path, because a pull oracle can't prove that no report exists.
+  - Closed periods still produce reports, with a closed status. Each one bounds its call auction like any causal observation, so v3 opens it without waiting for the cadence.
 
 ## 8. Compliance (TSV conditions; SEC Release 34-106402)
 
