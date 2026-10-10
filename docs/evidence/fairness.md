@@ -1,6 +1,6 @@
 # Fairness simulation: who pays the latency sniper? (2026-10-03, before the causal cutover)
 
-> **Read this first.** This is a simulation, run on 3 October, three days before mainnet's causal cutover. Its Unison rows model a price published by a relay with zero lag at the batch close, with stylized actors. It is not a measurement of the deployment, which waits for Chainlink's next observation instead: typically 34 s on MON/USD and 1.5 min on wNVDAx-USD in US market hours ([measured](causal.md)). What the deployment does to a real sniper is measured in the standing challenge: our own bot, on a week of real MON prices, earns +17.8 bp a trade on the old rule and loses 23.0 bp a trade on Unison ([challenge evidence](challenge.md)). Read the table for what the venue designs do to each other, not as a promise about live fills.
+> **Read this first.** This is a simulation, run on 3 October, three days before mainnet's causal cutover. Its Unison rows model a price published by a relay with zero lag at the batch close, with stylized actors. It is not a measurement of the deployment, which waits for Chainlink's next observation instead: typically 34 s on MON/USD and 1.5 min on wNVDAx-USD in US market hours ([measured](causal.md)). What the deployment does to a real sniper is measured in the standing challenge: our own bot, on a week of real MON prices, earns +17.8 bp a trade on the old rule and loses 23.0 bp a trade on Unison ([challenge evidence](challenge.md)). Read the table for what the venue designs do to each other, not as a promise about live fills. [The rule as deployed](#the-rule-as-deployed-added-10-october-2026), added on 10 October, runs the deployment's own waiting rule on the same path.
 
 **Benchmark:** `research/sniper-bench` (`pnpm --filter @unison/sniper-bench bench`).
 
@@ -43,13 +43,44 @@ The Unison rows run the **actual clearing engine** (`@unison/engine`, bit-exact 
    - the exchange rejects any reference published before the newest batch closed.
 4. **Passive AMM LPs pay for latency twice.** First as LVR to arbitrageurs, then as the price impact uninformed traders inflict on them.
 
+## The rule as deployed (added 10 October 2026)
+
+The rows above give Unison a reference with zero lag. The deployment instead runs the causal rule ([evidence](causal.md)):
+- an order waits for the first oracle observation made more than 2 s after it was sealed;
+- that auction holds every order sealed more than 2 s before the observation;
+- it clears when the observation lands on chain, and what doesn't fill is returned.
+
+The same benchmark now runs that rule on the same price path and the same flow, with two clocks:
+- the push feed aNVDA uses: a new observation on a 5 bp move or after an hour, landing about 13 s later;
+- a pull stream like [Chainlink Data Streams](streams.md): a report every second, on chain about a second later.
+
+The sniper is unchanged. It sees the true price mid-block and trades whenever that beats the reference already on chain by more than the vault's spread and the fee.
+
+| Venue (vault ±10 bp, fee 3 bp) | Sniper P&L / day | LP P&L / day | Noise-trader cost | Sniper fills / day |
+|---|---:|---:|---:|---:|
+| Unison, zero-lag reference (from the table above) | $0 | $2,858 | 13.0 bp | 0 |
+| **Unison as deployed, push feed** | **−$216** | $2,397 | 11.1 bp | 25 |
+| **Unison as deployed, pull stream** | **$0** | $2,846 | 13.0 bp | 0 |
+
+| Clock | Wait from seal to clear, p50 | p90 | Auctions / day |
+|---|---:|---:|---:|
+| Push feed (5 bp, 1 h heartbeat, lands in 13 s) | 39.6 s | 96.9 s | 927 |
+| Pull stream (a report a second, lands in 1 s) | 3.6 s | 3.9 s | 1,437 |
+
+1. **The deployed clock still beats the sniper.** Its orders price at an observation it couldn't see when it sealed them. It is filled only when the price has already moved against it, and it loses $216 a day on 25 fills.
+2. **The price of a push clock is time.**
+   - In this model an order waits 40 s at the median and 97 s at p90.
+   - Measured on mainnet, wNVDAx-USD's median is 1.5 minutes in US market hours, and longer outside them ([measured](causal.md)).
+   - Waiting moves orders into fewer, bigger auctions where buyers and sellers meet each other, so noise traders pay less (11.1 bp) and the vault earns less ($2,397 a day).
+3. **A pull stream keeps every gain and drops the wait.** A median of 3.6 s matches the zero-lag rows. The rule is unchanged; only the clock is faster.
+
 ## Assumptions and limits (stated, not hidden)
 
 - **Stylized actors:**
   - one sniper with a perfect mid-block feed;
   - CLOB makers refresh with one block of latency, and races are coin flips;
   - push-oracle depth replenishes on each oracle update;
-  - Unison's relay has zero measurement lag at the batch close. That is the testnet's operator-relay design; mainnet runs no relay and prices at Chainlink's next observation, minutes slower at times, which this table does not model.
+  - in the first table, Unison's relay has zero measurement lag at the batch close. That is the testnet's operator-relay design; mainnet runs no relay and prices at Chainlink's next observation, which the "as deployed" rows model. Their push feed is a model, not the measured feed: real waits are longer.
 - **Relay lag.** A relay lagging the true price by δ gives back an edge of order σ·√δ. Over tens of milliseconds that is far below a 2 bp spread, except during news. DISCOVERY bands and LULD bands cap the damage there.
 - **Synthetic flow.** No inventory risk aversion or strategic market makers are modelled. Uninformed flow is i.i.d.
 - **Live data supersedes this.** The standing challenge measures the deployment itself ([challenge evidence](challenge.md), the live board on [/challenge](https://www.unisonfi.com/challenge)). So far only the team's own sniper has entered it.

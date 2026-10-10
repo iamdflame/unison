@@ -298,7 +298,7 @@ export function loadCurves(
   a: CurveQuery & { tickSize: Int; baseUnit: Int },
 ): CurveSlot[] {
   const query: CurveQuery = { refPrice: a.refPrice, status: a.status, refTick: a.refTick, lo: a.lo, hi: a.hi };
-  // while a market is closed its auctions are among traders alone: no source quotes (ExchangeClearing._loadCurves, v2)
+  // while a market is closed its auctions are among traders alone: no source quotes (ExchangeClearing._loadCurves, v3)
   const open = BigInt(a.status) === BigInt(RefStatus.OPEN) || BigInt(a.status) === BigInt(RefStatus.EXTENDED);
   if (!open) return sources.map(() => emptySlot());
   return sources.map((src) => {

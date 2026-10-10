@@ -303,6 +303,147 @@ function unison(vaultHalfSpreadBps: number, feeBps: number, staleRef = false): R
   return { venue: name, sniperPnl: sniper, lpPnl: vault, noiseCostBps: noiseUsd ? (noiseCost / noiseUsd) * 1e4 : 0, noiseUsd, sniperTrades: trades };
 }
 
+// ------------------------------------------------------------------ E. Unison as deployed: the causal clock
+/**
+ * The deployment's rule (docs/evidence/causal.md), not a zero-lag relay. An order waits for the first oracle
+ * observation made more than `skewBlocks` after the oldest waiting order was sealed. That auction holds every order
+ * sealed more than `skewBlocks` before the observation, prices at it with the vault's curve around it, and clears when
+ * the observation lands on chain; orders are auction orders (filled or returned). The clock decides when observations
+ * happen and how long they take to land: a push feed (deviation or heartbeat, about 13 s to land) or a pull stream (a
+ * report every second, brought on chain by whoever clears). The sniper is unchanged: it sees the true price mid-block
+ * and trades whenever it beats the reference already on chain by more than the vault's spread and the fee.
+ */
+interface Clock {
+  name: string;
+  deviation: number; // push: observe once the price has moved this much since the last observation
+  heartbeatBlocks: number; // push: observe at least this often
+  everyBlocks: number; // pull: a report every this many blocks (0 = a push feed)
+  landBlocks: number; // observation → on chain
+}
+type CausalResult = Result & { clock: string; waitP50: number; waitP90: number; auctions: number };
+
+function unisonCausal(vaultHalfSpreadBps: number, feeBps: number, clock: Clock, skewBlocks = 7): CausalResult {
+  const TICK = 0.01;
+  const toTick = (p: number) => Math.round(p / TICK);
+  // the oracle's observations: when, and at what price
+  const obsAt: number[] = [];
+  const obsPx: number[] = [];
+  let last = P0;
+  let lastAt = 0;
+  for (let b = 1; b <= BLOCKS; b++) {
+    const due =
+      clock.everyBlocks > 0
+        ? b % clock.everyBlocks === 0
+        : Math.abs(P[b]! / last - 1) > clock.deviation || b - lastAt >= clock.heartbeatBlocks;
+    if (!due) continue;
+    obsAt.push(b);
+    obsPx.push(P[b]!);
+    last = P[b]!;
+    lastAt = b;
+  }
+  type Order = { who: "sniper" | "noise"; side: 1 | -1; tick: number; q: bigint; sealed: number };
+  const pending: Order[] = [];
+  let sniper = 0;
+  let trades = 0;
+  let vault = 0;
+  let noiseCost = 0;
+  let noiseUsd = 0;
+  let auctions = 0;
+  const waits: number[] = [];
+  let ni = 0;
+  let landed = -1; // the newest observation on chain
+  let first = 0; // the first observation after the oldest waiting order (observations only move forward)
+  const depthPerTickUsd = LIQ_USD * 0.004;
+  const WIDTH = 10;
+  for (let b = 1; b <= BLOCKS; b++) {
+    while (landed + 1 < obsAt.length && obsAt[landed + 1]! + clock.landBlocks <= b) landed++;
+    const onChain = landed >= 0 ? obsPx[landed]! : P0; // the reference everyone can see
+    // orders sealed in this block
+    const t = mid[b]!;
+    if (Math.abs(t / onChain - 1) > (vaultHalfSpreadBps + feeBps) / 1e4) {
+      const side = t > onChain ? 1 : -1;
+      pending.push({ who: "sniper", side, tick: toTick(t), q: BigInt(Math.round((SNIPER_MAX_USD / t) * 1e6)), sealed: b });
+    }
+    for (; ni < noise.length && noise[ni]![0] === b; ni++) {
+      const [, side, usd] = noise[ni]!;
+      // a market order: it takes any price inside the auction's band
+      pending.push({ who: "noise", side: side as 1 | -1, tick: side > 0 ? Infinity : -Infinity, q: BigInt(Math.round((usd / onChain) * 1e6)), sealed: b });
+    }
+    // every auction whose observation has landed by now
+    while (pending.length > 0) {
+      while (first < obsAt.length && obsAt[first]! <= pending[0]!.sealed + skewBlocks) first++;
+      if (first >= obsAt.length || obsAt[first]! + clock.landBlocks > b) break;
+      const cut = obsAt[first]! - skewBlocks; // orders sealed before it belong to this auction
+      let k = 0;
+      while (k < pending.length && pending[k]!.sealed < cut) k++;
+      const batch = pending.splice(0, k);
+      const ref = obsPx[first]!;
+      const refTick = toTick(ref);
+      const hw = Math.max(1, Math.round(refTick * 0.01));
+      const lo = refTick - hw;
+      const hi = refTick + hw;
+      const n = hi - lo + 1;
+      const half = Math.max(1, Math.round((refTick * vaultHalfSpreadBps) / 1e4));
+      const vq = BigInt(Math.round((depthPerTickUsd / ref) * 1e6));
+      const parts: { who: "vault" | "sniper" | "noise"; side: 1 | -1; tick: number; q: bigint; sealed?: number }[] = [];
+      for (let i = 0; i < WIDTH; i++) {
+        parts.push({ who: "vault", side: 1, tick: refTick - half - i, q: vq });
+        parts.push({ who: "vault", side: -1, tick: refTick + half + i, q: vq });
+      }
+      parts.push(...batch);
+      const bids = new Array<bigint>(n).fill(0n);
+      const asks = new Array<bigint>(n).fill(0n);
+      let bidAbove = 0n;
+      let askBelow = 0n;
+      for (const p of parts) {
+        if (p.side > 0) {
+          if (p.tick > hi) bidAbove += p.q;
+          else if (p.tick >= lo) bids[p.tick - lo]! += p.q;
+        } else {
+          if (p.tick < lo) askBelow += p.q;
+          else if (p.tick <= hi) asks[p.tick - lo]! += p.q;
+        }
+      }
+      auctions++;
+      for (const o of batch) if (o.who === "noise") waits.push((b - o.sealed) * BLOCK_S);
+      const r = compute({ lo: BigInt(lo), hi: BigInt(hi), refTick: BigInt(refTick), bidAbove, askBelow, bids, asks });
+      if (!r.traded) continue; // everything waiting is returned
+      const px = Number(r.tick) * TICK;
+      const fills = allocate(parts, r, lo, hi, n);
+      const truth = P[b]!; // marked to the true price when the auction clears on chain
+      for (let i = 0; i < parts.length; i++) {
+        const f = Number(fills[i]!) / 1e6;
+        if (f === 0) continue;
+        const p = parts[i]!;
+        const fee = (f * px * feeBps) / 1e4;
+        const pnl = p.side > 0 ? f * (truth - px) : f * (px - truth);
+        if (p.who === "vault") vault += pnl;
+        else if (p.who === "sniper") {
+          sniper += pnl - fee;
+          trades++;
+        } else {
+          noiseCost += -pnl + fee;
+          noiseUsd += f * px;
+        }
+      }
+    }
+  }
+  waits.sort((a, b) => a - b);
+  const q = (x: number) => (waits.length ? waits[Math.min(waits.length - 1, Math.floor(x * waits.length))]! : 0);
+  return {
+    venue: `Unison as deployed, ${clock.name} (vault ±${vaultHalfSpreadBps} bp, fee ${feeBps} bp)`,
+    clock: clock.name,
+    sniperPnl: sniper,
+    lpPnl: vault,
+    noiseCostBps: noiseUsd ? (noiseCost / noiseUsd) * 1e4 : 0,
+    noiseUsd,
+    sniperTrades: trades,
+    waitP50: q(0.5),
+    waitP90: q(0.9),
+    auctions,
+  };
+}
+
 /** Per-participant fills exactly like the on-chain APPLY phase (full levels, exact apportionment at the margin). */
 function allocate(
   parts: { side: 1 | -1; tick: number; q: bigint }[],
@@ -343,7 +484,16 @@ const results = [
   unison(2, 1), // same 2 bp half-spread as the CLOB makers
   unison(10, 3, true),
 ];
-const fmt = (x: number) => (x >= 0 ? " " : "-") + "$" + Math.abs(Math.round(x * scale)).toLocaleString("en-US");
+// the deployment's clock (wNVDAx-USD-like push feed) and the pull stream it could move to (docs/evidence/streams.md)
+const causal = [
+  unisonCausal(10, 3, { name: "push feed (5 bp, 1 h heartbeat, lands in 13 s)", deviation: 0.0005, heartbeatBlocks: 12_000, everyBlocks: 0, landBlocks: 43 }),
+  unisonCausal(10, 3, { name: "pull stream (a report a second, lands in 1 s)", deviation: 0, heartbeatBlocks: 0, everyBlocks: 3, landBlocks: 3 }),
+];
+results.push(...causal);
+const fmt = (x: number) => {
+  const d = Math.round(x * scale);
+  return (d >= 0 ? " " : "-") + "$" + Math.abs(d).toLocaleString("en-US"); // a loss under $0.50 a day reads $0
+};
 console.log(`\n${BLOCKS.toLocaleString()} blocks (${(BLOCKS * BLOCK_S / 3600).toFixed(1)} h), σ=${SIGMA * 100}%/yr, ${JUMPS_PER_DAY} news jumps/day of ${JUMP_SD * 1e4} bp, LP capital $${LIQ_USD.toLocaleString()}\n`);
 console.log("| Venue | Sniper P&L / day | LP or maker P&L / day | Noise trader cost | Sniper trades / day |");
 console.log("|---|---:|---:|---:|---:|");
@@ -351,4 +501,9 @@ for (const r of results) {
   console.log(
     `| ${r.venue} | ${fmt(r.sniperPnl)} | ${fmt(r.lpPnl)} | ${r.noiseCostBps.toFixed(1)} bp | ${Math.round(r.sniperTrades * scale).toLocaleString()} |`,
   );
+}
+console.log("\n| Unison as deployed: clock | Wait, seal to clear, p50 | p90 | Auctions / day |");
+console.log("|---|---:|---:|---:|");
+for (const r of causal) {
+  console.log(`| ${r.clock} | ${r.waitP50.toFixed(1)} s | ${r.waitP90.toFixed(1)} s | ${Math.round(r.auctions * scale).toLocaleString()} |`);
 }
