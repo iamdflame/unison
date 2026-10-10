@@ -297,6 +297,8 @@ jobs:
           python-version: "3.12"
       - name: Halmos
         working-directory: contracts
+        env:
+          HALMOS_ALLOW_DOWNLOAD: "1" # it fetches Bitwuzla, its assertion solver here, on first use
         # one property at a time, fifteen minutes each: a hard one reports "timed out" instead of holding the job for hours
         run: |
           pip install "halmos>=0.3,<0.4"
