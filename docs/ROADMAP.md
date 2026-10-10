@@ -63,7 +63,7 @@ The review's order is right: safety before speed, speed before listings, listing
   - Rehearsed by upgrading the live exchange on a mainnet fork first.
 - [ ] **A 7-day timelock from the first day,** proposed by a Safe with outside signers, executable by anyone, cancellable by a guardian Safe. Every role and every adapter's ownership moves in one run, with no window in which the deployer still owns an adapter. The signer set will be published here.
 - [ ] **Security within our means.**
-  - Slither, Aderyn and Halmos in CI.
+  - Slither, Aderyn and Halmos in CI. Done (10 Oct): every finding triaged ([static analysis](evidence/static-analysis.md)), and the clearing's properties proven for every input of two shapes ([proofs](evidence/proofs.md)).
   - SEAL's whitehat Safe Harbor.
   - The funds at risk shown live on the status page.
   - Caps frozen until an outside review.
