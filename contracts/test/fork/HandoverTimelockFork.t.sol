@@ -26,10 +26,12 @@ contract StandInSafe {
     }
 }
 
-/// @notice The one-run handover rehearsed on Monad mainnet state (chain 143), after the v3 upgrade it requires:
+/// @notice The one-run handover rehearsed on Monad mainnet state (chain 143), after the v3 upgrade it requires (live
+///         since 10 October 2026, block 112,255,125):
 ///           forge test --fork-url https://rpc.monad.xyz --match-contract HandoverTimelockForkTest -vv
 contract HandoverTimelockForkTest is Test {
     address internal constant EXCHANGE = 0x1696170d40E703F1378989383c21Ec96ED1Adf75;
+    address internal constant V2_IMPL = 0xBcE55ebB12E017a2A1a484375Fa006E32Fb656eF; // live 6 to 10 October 2026
     address internal constant DEPLOYER = 0x55DF8EA97d41b7F487c6Dcc077dFd0B487E3557D;
     address internal constant OLD_GUARDIAN = 0x0562b2b0914b3Bb082A623657729452fc9bf26E4;
     address internal constant CAUSAL_REF = 0xB161400dDfC592fD66b57dDaE46966ED74Ce891d;
@@ -47,13 +49,30 @@ contract HandoverTimelockForkTest is Test {
         guardianSafe = new StandInSafe(o, 1);
     }
 
+    /// @dev v2 had no version().
+    function _liveVersion() internal view returns (uint256) {
+        try ex.version() returns (uint256 v) {
+            return v;
+        } catch {
+            return 2;
+        }
+    }
+
+    /// @dev On a fork from before 10 October, the upgrade the handover requires; after it, today's source over today's
+    ///      state (initializeV3 runs once).
     function _upgradeV3() internal {
         UnisonExchange impl = new UnisonExchange();
+        bytes memory init = _liveVersion() < 3 ? abi.encodeCall(UnisonExchange.initializeV3, ()) : bytes("");
         vm.prank(DEPLOYER);
-        ex.upgradeToAndCall(address(impl), abi.encodeCall(UnisonExchange.initializeV3, ()));
+        ex.upgradeToAndCall(address(impl), init);
     }
 
     function test_fork_refusesBeforeV3() public {
+        if (_liveVersion() >= 3) {
+            // mainnet is past v3: go back to the v2 code it replaced, to show the refusal on live state
+            vm.prank(DEPLOYER);
+            ex.upgradeToAndCall(V2_IMPL, "");
+        }
         HandoverTimelock h = new HandoverTimelock();
         vm.expectRevert(bytes("upgrade the exchange to v3 first (script/UpgradePhaseA.s.sol)"));
         h.handover(DEPLOYER, address(adminSafe), address(guardianSafe));
