@@ -111,6 +111,20 @@ The vault's curve:
 - `inventoryPnl += Δref · inventory`, marked at each auction and each `process()`;
 - `NAV change = spreadPnl + inventoryPnl` (tested exactly).
 
+**v2 (not deployed):** a redemption the token or the exchange refuses is held for its owner, outside the vault's ledger balance, and the queue moves on. The owner can `claim` it later through the exchange.
+
+### 4.2 PegPool (built, not deployed)
+
+A pegged order anyone can join. Each pool has one side and one offset, fixed at deployment, and no owner:
+- **Its curve** is one level. A bid pool holds quote and bids at `refTick − ⌈refTick·offsetBps⌉` for all the base its quote buys there. An ask pool holds base and offers all of it at `refTick + ⌈refTick·offsetBps⌉`.
+  - It quotes only while the reference market trades (OPEN or EXTENDED).
+  - It fills at the auction's uniform price, at or better than its peg, with no fee.
+- **Shares** are pro-rata claims on the pool's ledger balances, so a fill changes what every share holds in the same proportion. Nothing depends on `onAuction`, which may be skipped.
+- **Flows** are asynchronous, as in the vault:
+  - a deposit executes at the first reference after the request, only while the reference market trades, valued at that reference;
+  - a redemption is paid pro rata in kind at the first reference after the request, whatever the session;
+  - a refused redemption is held for its owner.
+
 ## 5. Clearing algorithm (per market, per batch)
 
 **Inputs:**

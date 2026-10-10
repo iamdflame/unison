@@ -24,7 +24,11 @@
 `LiquidityVault.process()` settles the queue of deposit and redemption requests in order, in one loop. A redemption pays the LP by transferring tokens out (`venue.withdraw(token, amount, owner)`). If the token refuses that transfer, because Anchored froze the LP's address on aNVDA or Agora froze it on AUSD after the request was queued, the whole call reverts, the request can't be skipped, and every request behind it waits forever.
 
 - **Who is exposed today:** nobody but the team, which is the only LP in all three vaults.
-- **The fix:** pay redemptions into the LP's balance on the exchange's own ledger (an internal credit, which no token can refuse) and let the LP withdraw it subject to their own eligibility, or park a failed redemption instead of reverting. The vaults are immutable, so this ships as a new vault version, required before any outside LP deposits ([roadmap](../ROADMAP.md), C).
+- **The fix, built (10 October) in `LiquidityVault` v2:**
+  - A redemption the token or the exchange refuses is held for its owner, and the queue moves on. The held amount leaves the vault's ledger balance for the vault contract itself, so it is neither quoted nor counted in NAV.
+  - `claim` retries it later through the exchange, under the same checks as any withdrawal. It pays only the owner, and only once the issuer allows it.
+  - [`LiquidityVaultQueue.t.sol`](../../contracts/test/unit/LiquidityVaultQueue.t.sol) freezes a redeemer with a mock issuer: the LPs behind are paid, the held amount stays out of the curve, and `claim` works only after the freeze lifts.
+  - The deployed vaults are v1 and immutable, so v2 ships as new vaults, before any outside LP deposits ([roadmap](../ROADMAP.md), C).
 
 Reproduce: `pip install "slither-analyzer>=0.11,<0.12"`, then from `contracts/`: `forge build --build-info --skip test script && slither . --ignore-compile --config-file slither.config.json`.
 

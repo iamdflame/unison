@@ -78,7 +78,13 @@ The review's order is right: safety before speed, speed before listings, listing
   - It goes live when a stream is funded. Target: a median of 3–5 s from seal to clear.
 - [ ] **The sniper benchmark, re-run at the deployment's real latency,** published beside the old one.
 - [ ] **A deterministic maximum wait.** An order whose first qualifying observation came more than the wait after its seal is returned, never filled. It is decided by timestamps alone, so nobody gets an option on a price in flight.
-- [ ] **Pegged orders for everyone, first as a curve source.** Deposits quote at a fixed offset from the reference, repriced at each observation, with no change to settlement.
+- [ ] **Pegged orders for everyone, first as a curve source.** Deposits quote at a fixed offset from the reference, repriced at each observation, with no change to settlement. Built (10 Oct) as `PegPool` ([SPEC §4.2](SPEC.md#42-pegpool-built-not-deployed)):
+  - one side and one offset per pool, with no owner;
+  - pro-rata shares, read from its ledger balances;
+  - asynchronous entry at a live reference;
+  - in-kind exit.
+
+  Not deployed: each pool takes one of a market's four curve-source slots, and adding one is an admin action.
 - [ ] **Settle from the ticket.** Anyone can land the auction they are waiting on. The contract half exists: `ClearRouter` brings the report and clears in one transaction, and pays the keeper reward to whoever sent it.
 
 ### C. List the asset the oracle is about, and open the book
@@ -87,7 +93,7 @@ The review's order is right: safety before speed, speed before listings, listing
   - wNVDAx is [`0xa8ddb5cd96b5222afe198316e9a57caa642850d5`](https://monadscan.com/address/0xa8ddb5cd96b5222afe198316e9a57caa642850d5), Backed's ERC-4626 wrapper over NVDAx (`0xc845b2894dBddd03858fd2D643B4eF725fE0849d`). 1 wNVDAx = 1.0017 NVDAx.
   - About 12,996 NVDAx exist on Monad, but no wNVDAx has been wrapped there yet.
   - Inventory has to come from a partner wrapping NVDAx, not from the team.
-- [ ] **A vault whose queue no frozen address can stop.** Redemptions credited on the exchange's ledger instead of transferred out, so a recipient the token refuses can't stop everyone behind it ([static analysis](evidence/static-analysis.md)). Before any outside LP.
+- [ ] **A vault whose queue no frozen address can stop.** Built (10 Oct) as `LiquidityVault` v2: a redemption the token refuses is held for its owner and claimed later through the exchange, so it can't stop everyone behind it ([static analysis](evidence/static-analysis.md)). Deployed as new vaults before any outside LP.
 - [ ] **Permissionless curve sources with a bond,** a cap on quoted width and an inventory ceiling. The house is labelled and capped.
 - [ ] **Partners, in this order, once A and B are done:** xStocks/Backed; one market maker running a vault; Anchored, for an aNVDA feed or an explicit basis market; Agora, for a second quote asset.
 
