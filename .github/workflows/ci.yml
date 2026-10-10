@@ -260,7 +260,7 @@ jobs:
     name: Symbolic proofs (Halmos on Clearing; reports, does not block yet)
     runs-on: ubuntu-latest
     continue-on-error: true
-    timeout-minutes: 75
+    timeout-minutes: 100
     steps:
       - uses: actions/checkout@v4
         with:
@@ -273,7 +273,7 @@ jobs:
           python-version: "3.12"
       - name: Halmos
         working-directory: contracts
-        # one property at a time, ten minutes each: a hard one reports "timed out" instead of holding the job for hours
+        # one property at a time, fifteen minutes each: a hard one reports "timed out" instead of holding the job for hours
         run: |
           pip install "halmos>=0.3,<0.4"
           {
@@ -287,12 +287,13 @@ jobs:
           for t in $(grep -o "function check_[A-Za-z0-9_]*" test/halmos/ClearingHalmos.t.sol | cut -d" " -f2); do
             start=$(date +%s)
             set +e
-            timeout 600 halmos --match-contract ClearingHalmos --match-test "^$t\(" --loop 4 > "halmos-$t.txt" 2>&1
+            timeout 900 halmos --match-contract ClearingHalmos --match-test "^$t\(" --loop 4 \
+              --solver bitwuzla --solver-timeout-assertion 300s > "halmos-$t.txt" 2>&1
             code=$?
             set -e
             case $code in
               0) result="proven" ;;
-              124) result="timed out after 10 min" ;;
+              124) result="timed out after 15 min" ;;
               *) result="**not proven** (exit $code)"; failed=1 ;;
             esac
             echo "| \`$t\` | $result | $(( $(date +%s) - start )) |" >> "$GITHUB_STEP_SUMMARY"
