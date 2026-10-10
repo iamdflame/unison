@@ -78,7 +78,7 @@ The review's order is right: safety before speed, speed before listings, listing
 ### C. List the asset the oracle is about, and open the book
 
 - [ ] **wNVDAx under the existing causal adapter.** Chainlink's wNVDAx-USD already prices it. This needs its Monad token confirmed and inventory from a partner, not from the team.
-- [ ] **A vault whose queue no frozen address can stop.** Redemptions credited on the exchange's ledger instead of transferred out, so a recipient the token refuses can't stop everyone behind it ([static analysis](evidence/static-analysis.md)). Before any outside LP.
+- [ ] **A vault whose queue no frozen address can stop.** Built (10 Oct) as `LiquidityVault` v2: a redemption the token refuses is held for its owner and claimed later through the exchange, so it can't stop everyone behind it ([static analysis](evidence/static-analysis.md)). Deployed as new vaults before any outside LP.
 - [ ] **Permissionless curve sources with a bond,** a cap on quoted width and an inventory ceiling. The house is labelled and capped.
 - [ ] **Partners, in this order, once A and B are done:** xStocks/Backed; one market maker running a vault; Anchored, for an aNVDA feed or an explicit basis market; Agora, for a second quote asset.
 

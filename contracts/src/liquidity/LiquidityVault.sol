@@ -57,6 +57,9 @@ interface IUnisonVenue {
 ///         after it was made, so no LP can trade the vault against a price it already knows (e.g. a Monday gap).
 ///         While the reference market is closed a swing fee applies, paid to the LPs who stay.
 ///         Every fill is attributed on-chain: spread captured vs. inventory marked to the reference.
+///         v2: a redemption the token or the exchange refuses to deliver (an LP the issuer froze after asking) is held
+///         for that LP, outside the vault's ledger balance, and the queue moves on; `claim` retries it through the
+///         exchange under the same checks as any withdrawal. In v1 one refused transfer stopped every request behind it.
 contract LiquidityVault is ERC20, ICurveSource, AccessControl, ReentrancyGuardTransient {
     using SafeERC20 for IERC20;
 
@@ -101,6 +104,11 @@ contract LiquidityVault is ERC20, ICurveSource, AccessControl, ReentrancyGuardTr
     uint256 public tradedBase;
     uint256 public auctionsTraded;
 
+    /// @notice Redemptions held for an LP because the token or the exchange refused to deliver them (owner => token
+    ///         => amount). They sit in this contract, outside the vault's ledger balance, so they are neither quoted
+    ///         nor counted in NAV.
+    mapping(address => mapping(address => uint256)) public held;
+
     event ParamsSet(Params p);
     event DepositRequested(uint256 indexed id, address indexed owner, uint256 assets);
     event RedeemRequested(uint256 indexed id, address indexed owner, uint256 shares);
@@ -109,6 +117,8 @@ contract LiquidityVault is ERC20, ICurveSource, AccessControl, ReentrancyGuardTr
         uint256 indexed id, address indexed owner, uint256 shares, uint256 baseOut, uint256 quoteOut, uint256 swingFee
     );
     event Filled(uint256 indexed batch, uint256 price, uint256 refPrice, uint256 bought, uint256 sold, int256 spreadPnl);
+    event RedemptionHeld(uint256 indexed id, address indexed owner, address indexed token, uint256 amount);
+    event HeldClaimed(address indexed owner, address indexed token, uint256 amount);
 
     error NotVenue();
     error BadParams();
@@ -311,9 +321,38 @@ contract LiquidityVault is ERC20, ICurveSource, AccessControl, ReentrancyGuardTr
         uint256 outB = Math.mulDiv(b, shares * keep, supply * 10_000);
         uint256 outQ = Math.mulDiv(q, shares * keep, supply * 10_000);
         _burn(address(this), shares);
-        if (outB != 0) venue.withdraw(address(base), outB, r.owner);
-        if (outQ != 0) venue.withdraw(address(quote), outQ, r.owner);
+        _deliver(id, r.owner, address(base), outB);
+        _deliver(id, r.owner, address(quote), outQ);
         emit Redeemed(id, r.owner, shares, outB, outQ, swing);
+    }
+
+    /// @dev Pays a redemption out through the exchange. If the token or the exchange refuses this owner, the amount
+    ///      leaves the vault's ledger balance for this contract and is held for them, so the requests behind keep
+    ///      settling. (If the exchange refused the vault itself, nothing could settle anyway: that still reverts.)
+    function _deliver(uint256 id, address owner, address token, uint256 amount) private {
+        if (amount == 0) return;
+        try venue.withdraw(token, amount, owner) {}
+        catch {
+            venue.withdraw(token, amount, address(this));
+            held[owner][token] += amount;
+            emit RedemptionHeld(id, owner, token, amount);
+        }
+    }
+
+    /// @notice Retries a held redemption: deposited back and withdrawn to the owner through the exchange, under the
+    ///         same checks as any withdrawal. Reverts, changing nothing, while it is still refused. Only to the owner.
+    function claim(address token) external nonReentrant {
+        uint256 amount = held[msg.sender][token];
+        if (amount == 0) revert ZeroAmount();
+        held[msg.sender][token] = 0;
+        venue.deposit(token, amount);
+        venue.withdraw(token, amount, msg.sender);
+        emit HeldClaimed(msg.sender, token, amount);
+    }
+
+    /// @notice 2: refused redemptions are held instead of stopping the queue.
+    function version() external pure returns (uint256) {
+        return 2;
     }
 
     function queueLength() external view returns (uint256) {
