@@ -177,6 +177,12 @@ describe("the rule that bound a print (SPEC §7.4)", () => {
     expect(ruleOf(pr(10))).toBe("clear-time");
   });
 
+  it("names an auction that read no oracle because trading was stopped (exchange v3) halted, not the older rule", () => {
+    expect(toPrint(pr(100, { status: 3, volume: "0" }))).toMatchObject({ rule: "halted", causal: false, round: null });
+    // a halted print that did read an observation (exchange v2's halt) keeps the rule its observation proves
+    expect(ruleOf(pr(100, { status: 3, round: "1", boundSealedAt: 90, refTimeMs: 96_000 }))).toBe("causal");
+  });
+
   it("needs more than the skew: an observation 2 s after the seal is not after it", () => {
     expect(ruleOf(pr(100, { round: "1", boundSealedAt: 90, refTimeMs: 92_000 }))).toBe("discovery");
     expect(ruleOf(pr(100, { round: "1", boundSealedAt: 90, refTimeMs: 92_001 }))).toBe("causal");

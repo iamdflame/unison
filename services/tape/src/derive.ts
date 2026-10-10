@@ -103,11 +103,16 @@ export function setCausalSkew(sec: number) {
 /**
  * How a print's price was bound. "causal": an observation made more than the skew after the newest order in it
  * (the first such, which the contract proved). "discovery": a call auction while the market was closed, at the last
- * observation, made before the orders. "clear-time": the older rule. The contract chose the path; the CausalReference
- * it emitted says which: only the causal path puts the observation after the newest seal plus the skew.
+ * observation, made before the orders. "halted": trading was stopped and no oracle was read (exchange v3 returns
+ * every waiting order without one), as the receipt checker names it. "clear-time": the older rule. The contract chose
+ * the path; the CausalReference it emitted says which: only the causal path puts the observation after the newest
+ * seal plus the skew.
  */
-export function ruleOf(r: Pick<PrintRow, "round" | "refTimeMs" | "closeTs" | "boundSealedAt">, skewSec = causalSkewSec): "causal" | "discovery" | "clear-time" {
-  if (!r.round) return "clear-time";
+export function ruleOf(
+  r: Pick<PrintRow, "round" | "refTimeMs" | "closeTs" | "boundSealedAt" | "status">,
+  skewSec = causalSkewSec,
+): "causal" | "discovery" | "halted" | "clear-time" {
+  if (!r.round) return r.status === Status.HALTED ? "halted" : "clear-time";
   const sealed = r.boundSealedAt ?? r.closeTs;
   if (sealed === null || sealed === undefined) return "causal";
   return r.refTimeMs > (sealed + skewSec) * 1000 ? "causal" : "discovery";
