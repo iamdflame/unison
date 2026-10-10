@@ -53,6 +53,7 @@ export function Keys({ net }: { net: NetConfig }) {
         "function getRoleAdmin(bytes32) view returns (bytes32)",
         "function balanceOf(address, address) view returns (uint256)",
         "function version() view returns (uint256)",
+        "function causalOf(uint256) view returns ((bool on, uint8 skewSec))",
         "function market(uint256) view returns ((address base, address quote, address refAdapter, uint8 baseIdx, uint8 quoteIdx, uint8 shards, bool active, bool permissioned, bool strictAfterClose, uint16 bandBps, uint16 feeBps, uint16 maxFeeBps, uint32 minTick, uint32 maxTick, uint32 maxBandTicks, uint64 baseUnit, uint64 tickSize, uint64 lastCleared, uint64 pendingHead, uint64 pendingTail, uint64 auctions, uint64 lastPrintTick, uint64 lastRefTimeMs, uint8 lastStatus, uint256 lastRefPrice, bytes32 receiptHash))",
       ]);
       const ownerAbi = parseAbi(["function owner() view returns (address)"]);
@@ -70,7 +71,11 @@ export function Keys({ net }: { net: NetConfig }) {
         holdersOf("GUARDIAN_ROLE"),
         holdersOf("HALT_ROLE"),
         holdersOf("CAP_ROLE"),
-        c.readContract({ address: ex, abi: exAbi, functionName: "version" }).then(Number).catch(() => 1),
+        // version() arrives with v3; v2 (the causal clock, 6 Oct 2026) answers causalOf, v1 (the launch) neither
+        c
+          .readContract({ address: ex, abi: exAbi, functionName: "version" })
+          .then(Number)
+          .catch(() => c.readContract({ address: ex, abi: exAbi, functionName: "causalOf", args: [0n] }).then(() => 2, () => 1)),
         c.readContract({ address: ex, abi: exAbi, functionName: "getRoleAdmin", args: [role("GATEWAY_ROLE")] }),
         d.gateway ? c.readContract({ address: ex, abi: exAbi, functionName: "hasRole", args: [role("GATEWAY_ROLE"), d.gateway as Address] }) : Promise.resolve(false),
       ]);
@@ -116,8 +121,8 @@ export function Keys({ net }: { net: NetConfig }) {
       const rows: Row[] = [
         { power: "Upgrade the exchange, and administer its roles", holders: admin, note: delay ? `through a ${Math.round(delay / 86_400)}-day public delay` : "at once: no timelock yet" },
         { power: "Change markets, bands, fees, sources, eligibility", holders: operator, note: delay ? "behind the same delay" : "at once" },
-        { power: "Pause the exchange", holders: guardian, note: version >= 2 ? "returns every waiting order" : "holds sealed orders until it ends" },
-        { power: "Halt a market", holders: halt, note: version >= 2 ? "returns every waiting order at once" : "returns them at the next auction" },
+        { power: "Pause the exchange", holders: guardian, note: version >= 3 ? "returns every waiting order" : "holds sealed orders until it ends" },
+        { power: "Halt a market", holders: halt, note: version >= 3 ? "returns every waiting order at once" : "returns them at the next auction" },
         { power: "Set daily caps", holders: cap, note: "" },
         {
           power: "Act for any account (a gateway, withdrawFor included)",
