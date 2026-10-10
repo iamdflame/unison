@@ -293,10 +293,18 @@ jobs:
           if-no-files-found: ignore
 
   halmos:
-    name: Symbolic proofs (Halmos on Clearing; reports, does not block yet)
+    name: Symbolic proof, ${{ matrix.property }} (Halmos; reports, does not block yet)
     runs-on: ubuntu-latest
     continue-on-error: true
-    timeout-minutes: 100
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        # the two-tick properties take minutes; every property, with an hour each, runs in .github/workflows/proofs.yml
+        property:
+          - check_band2_pricesInsideTheBand_andNeverOverfills
+          - check_band2_maximizesVolume
+          - check_band2_marginalFillsAreExact
     steps:
       - uses: actions/checkout@v4
         with:
@@ -311,39 +319,11 @@ jobs:
         working-directory: contracts
         env:
           HALMOS_ALLOW_DOWNLOAD: "1" # it fetches Bitwuzla, its assertion solver here, on first use
-        # one property at a time, fifteen minutes each: a hard one reports "timed out" instead of holding the job for hours
-        run: |
-          pip install "halmos>=0.3,<0.4"
-          {
-            echo "## Halmos: properties of Clearing.compute"
-            echo ""
-            echo "| Property | Result | Seconds |"
-            echo "|---|---|---:|"
-          } >> "$GITHUB_STEP_SUMMARY"
-          failed=0
-          # halmos matches a test against its signature, name(args): anchor the name at the parenthesis
-          for t in $(grep -o "function check_[A-Za-z0-9_]*" test/halmos/ClearingHalmos.t.sol | cut -d" " -f2); do
-            start=$(date +%s)
-            set +e
-            timeout 900 halmos --match-contract ClearingHalmos --match-test "^$t\(" --loop 4 \
-              --solver bitwuzla --solver-timeout-assertion 300s > "halmos-$t.txt" 2>&1
-            code=$?
-            set -e
-            case $code in
-              0) result="proven" ;;
-              124) result="timed out after 15 min" ;;
-              *) result="**not proven** (exit $code)"; failed=1 ;;
-            esac
-            echo "| \`$t\` | $result | $(( $(date +%s) - start )) |" >> "$GITHUB_STEP_SUMMARY"
-            echo "::group::$t: $result"
-            tail -30 "halmos-$t.txt"
-            echo "::endgroup::"
-          done
-          # a counterexample or an error turns the job red; continue-on-error keeps it from blocking the run
-          exit $failed
+          PROPERTY: ${{ matrix.property }}
+        run: bash test/halmos/prove.sh "$PROPERTY" 900 bitwuzla
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: halmos-output
+          name: halmos-${{ matrix.property }}
           path: contracts/halmos-*.txt
           if-no-files-found: ignore
