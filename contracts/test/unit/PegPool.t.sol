@@ -78,9 +78,9 @@ contract PegPoolTest is Test {
 
     /// a reference published after everything so far
     function _clearAt(uint256 px, IReferenceAdapter.Status st) internal returns (uint256 tick, uint256 vol) {
-        vm.roll(block.number + 1);
-        vm.warp(block.timestamp + 1);
-        ref.post(mkt, px, block.timestamp * 1000, st);
+        vm.roll(vm.getBlockNumber() + 1);
+        vm.warp(vm.getBlockTimestamp() + 1);
+        ref.post(mkt, px, vm.getBlockTimestamp() * 1000, st);
         return ex.clear(mkt, "");
     }
 

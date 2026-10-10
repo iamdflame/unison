@@ -96,9 +96,9 @@ contract LiquidityVaultQueueTest is Test {
 
     /// a reference published after every request so far
     function _reference() internal {
-        vm.roll(block.number + 1);
-        vm.warp(block.timestamp + 1);
-        ref.post(mkt, 180e6, block.timestamp * 1000, IReferenceAdapter.Status.OPEN);
+        vm.roll(vm.getBlockNumber() + 1);
+        vm.warp(vm.getBlockTimestamp() + 1);
+        ref.post(mkt, 180e6, vm.getBlockTimestamp() * 1000, IReferenceAdapter.Status.OPEN);
         ex.clear(mkt, "");
     }
 
