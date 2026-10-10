@@ -255,6 +255,12 @@ jobs:
           forge build --build-info --skip test script
           slither . --ignore-compile --config-file slither.config.json --checklist > slither.md || true
           { echo "## Slither"; cat slither.md; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: slither-report
+          path: contracts/slither.md
+          if-no-files-found: ignore
 
   aderyn:
     name: Static analysis (Aderyn; reports, does not block until its findings are triaged)
@@ -279,6 +285,12 @@ jobs:
           aderyn --version
           aderyn . -o aderyn.md
           { echo "## Aderyn"; head -c 900000 aderyn.md; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aderyn-report
+          path: contracts/aderyn.md
+          if-no-files-found: ignore
 
   halmos:
     name: Symbolic proofs (Halmos on Clearing; reports, does not block yet)
@@ -329,3 +341,9 @@ jobs:
           done
           # a counterexample or an error turns the job red; continue-on-error keeps it from blocking the run
           exit $failed
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: halmos-output
+          path: contracts/halmos-*.txt
+          if-no-files-found: ignore
