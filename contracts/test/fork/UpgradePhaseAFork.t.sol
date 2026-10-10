@@ -6,6 +6,11 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 import {UnisonExchange} from "../../src/core/UnisonExchange.sol";
 import {ExchangeBase} from "../../src/core/ExchangeBase.sol";
+import {AggregatorV3Interface} from "../../src/interfaces/external/AggregatorV3Interface.sol";
+
+interface IWMONv3 {
+    function deposit() external payable;
+}
 
 /// @notice Phase A rehearsed on Monad mainnet state (chain 143): the LIVE exchange upgraded in place, then stopped with a
 ///         real sealed order waiting:
@@ -20,7 +25,12 @@ contract UpgradePhaseAForkTest is Test {
     address internal constant GUARDIAN = 0x0562b2b0914b3Bb082A623657729452fc9bf26E4;
     address internal constant GATEWAY = 0xfB246Ac236872534305d7d058B22AdB7Cb58033A;
     address internal constant WMON = 0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A;
+    address internal constant AUSD = 0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a;
+    address internal constant MENTO_AUSD_USDM_POOL = 0xb0a0264Ce6847F101b76ba36A4a3083ba489F501;
+    address internal constant CL_MON_USD = 0xBcD78f76005B7515837af6b50c7C52BCf73822fb;
+    address internal constant CL_AUSD_USD = 0xE20751C7B5867bCBef815ffc1b284c3f412a9e13;
     uint256 internal constant WMON_MARKET = 1;
+    uint256 internal constant SKEW = 2;
 
     UnisonExchange internal ex = UnisonExchange(EXCHANGE);
     address internal alice = makeAddr("alice");
@@ -105,6 +115,56 @@ contract UpgradePhaseAForkTest is Test {
         vm.prank(alice);
         ex.cancelOrder(slot);
         assertEq(ex.balanceOf(alice, WMON), 5e18, "every WMON back");
+    }
+
+    /// The code that runs: on today's state the live v3 bytecode, not upgraded. Two traders cross on WMON/AUSD just
+    /// before Chainlink's latest real MON/USD observation (the fork's clock is set back for them), so that observation is
+    /// the first after their seal, and the clear names it.
+    function test_fork_v3_clearsAtTheNextObservation() public {
+        if (_liveVersion() < 3) _upgrade();
+        AggregatorV3Interface feed = AggregatorV3Interface(CL_MON_USD);
+        (uint80 r,, uint256 obs,,) = feed.latestRoundData();
+        (,, uint256 prevObs,,) = feed.getRoundData(r - 1);
+        // the last clear already used this observation, or the two latest are too close to seal between them
+        if (obs * 1000 <= ex.market(WMON_MARKET).lastRefTimeMs || obs - prevObs < 2) vm.skip(true);
+        uint256 now_ = vm.getBlockTimestamp();
+
+        address bob = makeAddr("bob");
+        vm.deal(alice, 1000 ether);
+        vm.startPrank(alice);
+        IWMONv3(WMON).deposit{value: 1000 ether}();
+        IERC20(WMON).approve(EXCHANGE, 1000e18);
+        ex.deposit(WMON, 1000e18);
+        vm.stopPrank();
+        vm.prank(MENTO_AUSD_USDM_POOL);
+        IERC20(AUSD).transfer(bob, 100e6);
+        vm.startPrank(bob);
+        IERC20(AUSD).approve(EXCHANGE, 100e6);
+        ex.deposit(AUSD, 100e6);
+        vm.stopPrank();
+
+        (, int256 mon,,,) = feed.getRoundData(r);
+        (uint80 q,,,,) = AggregatorV3Interface(CL_AUSD_USD).latestRoundData();
+        while (true) {
+            (,, uint256 qObs,,) = AggregatorV3Interface(CL_AUSD_USD).getRoundData(q);
+            if (qObs <= obs) break; // the AUSD/USD round in force at the observation
+            --q;
+        }
+        (, int256 ausd,,,) = AggregatorV3Interface(CL_AUSD_USD).getRoundData(q);
+        uint256 px = (uint256(mon) * 1e6) / uint256(ausd); // AUSD (6 decimals) per WMON; tick size 1
+
+        vm.warp(obs - SKEW - 1);
+        vm.roll(vm.getBlockNumber() + 1);
+        vm.prank(alice);
+        ex.placeOrder(WMON_MARKET, 1, px - px / 100, 1000e18, 0); // sells at up to 1% under
+        vm.prank(bob);
+        ex.placeOrder(WMON_MARKET, 0, px + px / 100, 1000e18, 0); // buys at up to 1% over
+        vm.warp(now_);
+        vm.roll(vm.getBlockNumber() + 1);
+
+        (, uint256 vol) = ex.clear(WMON_MARKET, abi.encode(r, q));
+        assertEq(vol, 1000e18, "the cross fills");
+        assertEq(ex.market(WMON_MARKET).lastRefTimeMs, obs * 1000, "priced at Chainlink's observation");
     }
 
     function test_fork_beforeTheUpgrade_aPauseHeldTheOrder() public {
