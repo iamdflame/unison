@@ -487,7 +487,9 @@ export class Keeper {
   private async send(p: Promise<Hex>, ctx: Record<string, unknown>) {
     const hash = await p;
     const r = await this.cfg.client.publicClient.waitForTransactionReceipt({ hash });
-    if (ctx.action === "clear.open" || ctx.action === "clear.continue" || ctx.action === "clear.vault") this.stats.clears++;
+    if (ctx.action === "clear.open" || ctx.action === "clear.continue" || ctx.action === "clear.vault" || ctx.action === "clear.return") {
+      this.stats.clears++;
+    }
     this.log({
       ...Object.fromEntries(Object.entries(ctx).map(([k, v]) => [k, typeof v === "bigint" ? v.toString() : v])),
       tx: hash,

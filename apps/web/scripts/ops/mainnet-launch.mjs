@@ -16,7 +16,7 @@
  *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs bot-key                          the adversary's key
  *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs bot-fund <MON> <WMON> <AUSD>     fund it and its accounts
  *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs upgrade-phase-a                  exchange v3 (docs/ROADMAP.md, A)
- *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs timelock <proposer>              the final handover
+ *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs timelock <adminSafe> <guardianSafe>  the handover (A2)
  *
  * `deploy` refuses a chain other than 143 and refuses to overwrite deployments/monad-mainnet.json.
  * `upgrade-causal` runs contracts/script/UpgradeCausal.s.sol (which first checks that no job runs, no order waits and
@@ -245,15 +245,37 @@ if (cmd === "deploy") {
   writeFileSync(OUT, JSON.stringify(sorted(d), null, 2));
   console.log(`${RECORD}: exchange v3, implementation ${p.exchangeImplementation}`);
 } else if (cmd === "timelock") {
-  if (!arg || !isAddress(arg)) throw new Error("usage: timelock <proposer: the owner's wallet>");
+  // A2 (docs/ROADMAP.md): the one-run handover. Both Safes must already exist on Monad: the admin Safe (outside
+  // signers) proposes, the guardian Safe (threshold 1) pauses, halts, sets caps and cancels proposals.
+  const [adminSafe, guardianSafe] = [arg, arg2];
+  if (!adminSafe || !guardianSafe || !isAddress(adminSafe) || !isAddress(guardianSafe) || adminSafe.toLowerCase() === guardianSafe.toLowerCase()) {
+    throw new Error("usage: timelock <adminSafe> <guardianSafe> (two different Safes on Monad)");
+  }
+  if ((await pub.getChainId()) !== 143) throw new Error("not Monad mainnet");
   if (dep().timelock) throw new Error("the deployment already names a timelock");
-  forgeScript("script/HandoverTimelock.s.sol", { TIMELOCK_PROPOSER: arg, TIMELOCK_OUT: `${BASE}-timelock` }, /timelock|operation|executable|written/);
+  if (!(dep().exchangeVersion >= 3)) throw new Error("upgrade the exchange to v3 first: upgrade-phase-a");
+  for (const s of [adminSafe, guardianSafe]) {
+    if ((await pub.getCode({ address: s }))?.length > 2) continue;
+    throw new Error(`${s} has no code on Monad: create the Safe first (app.safe.global)`);
+  }
+  forgeScript("script/HandoverTimelock.s.sol", { ADMIN_SAFE: adminSafe, GUARDIAN_SAFE: guardianSafe, TIMELOCK_OUT: `${BASE}-timelock` }, /timelock|handover|written|Safe/);
   const t = JSON.parse(readFileSync(join(root, `deployments/${BASE}-timelock.json`), "utf8"));
   const d = dep();
-  Object.assign(d, { admin: t.timelock, timelock: t.timelock, timelockProposer: t.proposer, timelockDelaySec: t.delaySec, timelockFinalDelaySec: t.finalDelaySec, timelockOperation: t.operation, timelockExecutableAfter: t.executableAfter });
+  // `guardian` stays the old guardian key, for the record: the script revoked its roles
+  Object.assign(d, {
+    admin: t.timelock,
+    timelock: t.timelock,
+    timelockDelaySec: t.delaySec,
+    adminSafe: t.adminSafe,
+    adminSafeThreshold: t.adminSafeThreshold,
+    adminSafeOwners: t.adminSafeOwners,
+    guardianSafe: t.guardianSafe,
+    guardianSafeThreshold: t.guardianSafeThreshold,
+    guardianSafeOwners: t.guardianSafeOwners,
+  });
   const sorted = (v) => (Array.isArray(v) ? v.map(sorted) : v && typeof v === "object" ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, sorted(v[k])])) : v);
   writeFileSync(OUT, JSON.stringify(sorted(d), null, 2));
-  console.log(`${RECORD}: admin is now the timelock ${t.timelock}`);
+  console.log(`${RECORD}: admin is now the timelock ${t.timelock} (${t.delaySec / 86_400} days), proposed by ${t.adminSafe} (${t.adminSafeThreshold} of ${t.adminSafeOwners.length}), guarded by ${t.guardianSafe}`);
 } else if (cmd === "seed") {
   const m = nvda();
   const amount = parseUnits(arg, 6);
