@@ -256,6 +256,30 @@ jobs:
           slither . --ignore-compile --config-file slither.config.json --checklist > slither.md || true
           { echo "## Slither"; cat slither.md; } >> "$GITHUB_STEP_SUMMARY"
 
+  aderyn:
+    name: Static analysis (Aderyn; reports, does not block until its findings are triaged)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Aderyn
+        working-directory: contracts
+        # it reads foundry.toml, so only src/ is analysed (not tests, scripts or libraries)
+        run: |
+          npm install -g @cyfrin/aderyn
+          aderyn --version
+          aderyn . -o aderyn.md
+          { echo "## Aderyn"; head -c 900000 aderyn.md; } >> "$GITHUB_STEP_SUMMARY"
+
   halmos:
     name: Symbolic proofs (Halmos on Clearing; reports, does not block yet)
     runs-on: ubuntu-latest
