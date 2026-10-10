@@ -11,8 +11,8 @@ import {Clearing} from "../../src/core/Clearing.sol";
 ///             equal-on-every-key case are reachable, with quantities below 2^16. `Clearing.compute` only adds and
 ///             compares quantities, so the small domain keeps every branch while it bounds the solver's work (three
 ///             ticks of uint64 explore about a million paths and did not finish in six hours).
-///         CI runs each property on its own with a time limit and lists which were proven (.github/workflows/ci.yml,
-///         "halmos"). `forge test` skips these (`check_`, not `test_`).
+///         CI runs the two-tick properties on every push; .github/workflows/proofs.yml runs all six, an hour each, under
+///         two solvers. What they proved: docs/evidence/proofs.md. `forge test` skips these (`check_`, not `test_`).
 contract ClearingHalmos is Test {
     function _input(
         uint256 lo,
