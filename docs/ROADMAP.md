@@ -72,7 +72,13 @@ The review's order is right: safety before speed, speed before listings, listing
 - [ ] **A causal pull adapter.** A report is verified, stored, then read by the unchanged exchange. Pyth's unique-update proof first; Chainlink Data Streams behind the same interface, on mainnet when a stream is funded. Target: a median of 3–5 s from seal to clear.
 - [ ] **The sniper benchmark, re-run at the deployment's real latency,** published beside the old one.
 - [ ] **A deterministic maximum wait.** An order whose first qualifying observation came more than the wait after its seal is returned, never filled. It is decided by timestamps alone, so nobody gets an option on a price in flight.
-- [ ] **Pegged orders for everyone, first as a curve source.** Deposits quote at a fixed offset from the reference, repriced at each observation, with no change to settlement.
+- [ ] **Pegged orders for everyone, first as a curve source.** Deposits quote at a fixed offset from the reference, repriced at each observation, with no change to settlement. Built (10 Oct) as `PegPool` ([SPEC §4.2](SPEC.md#42-pegpool-built-not-deployed)):
+  - one side and one offset per pool, with no owner;
+  - pro-rata shares, read from its ledger balances;
+  - asynchronous entry at a live reference;
+  - in-kind exit.
+
+  Not deployed: each pool takes one of a market's four curve-source slots, and adding one is an admin action.
 - [ ] **Settle from the ticket.** Anyone can land the auction they are waiting on.
 
 ### C. List the asset the oracle is about, and open the book
