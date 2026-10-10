@@ -61,7 +61,7 @@ contract DevNet is Script {
         d.gateway = new OrderGateway(IGatewayVenue(address(d.ex)));
         d.ex.grantRole(d.ex.GATEWAY_ROLE(), address(d.gateway));
         // the gateway is granted: from now on only an upgrade can add one
-        d.ex.initializeV2();
+        d.ex.initializeV3();
 
         d.ex.listToken(address(d.ausd), false);
         d.ex.listToken(address(d.nvda), false);

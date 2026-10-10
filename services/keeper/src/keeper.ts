@@ -330,9 +330,9 @@ export class Keeper {
   }
 
   /**
-   * A stopped market clears in return-only mode (exchange v2): no reference is read, nothing trades, and every waiting
+   * A stopped market clears in return-only mode (exchange v3): no reference is read, nothing trades, and every waiting
    * order goes back. Its owners shouldn't wait for an observation that no longer prices anything, so the keeper clears
-   * at once. Null when the exchange can't (an implementation before v2): the market is then served as before.
+   * at once. Null when the exchange can't (an implementation before v3): the market is then served as before.
    */
   private async returnOrders(marketId: bigint, head: bigint): Promise<number | null> {
     const c = this.cfg.client;

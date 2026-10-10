@@ -15,15 +15,15 @@
  *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs team-sell-wmon <wmon|control> <WMON> a labelled team trade
  *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs bot-key                          the adversary's key
  *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs bot-fund <MON> <WMON> <AUSD>     fund it and its accounts
- *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs upgrade-phase-a                  exchange v2 (docs/ROADMAP.md, A)
+ *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs upgrade-phase-a                  exchange v3 (docs/ROADMAP.md, A)
  *   node --conditions=development apps/web/scripts/ops/mainnet-launch.mjs timelock <proposer>              the final handover
  *
  * `deploy` refuses a chain other than 143 and refuses to overwrite deployments/monad-mainnet.json.
  * `upgrade-causal` runs contracts/script/UpgradeCausal.s.sol (which first checks that no job runs, no order waits and
  * no order rests), then folds its record into deployments/monad-mainnet.json. It refuses a deployment that is already
  * causal.
- * `upgrade-phase-a` runs contracts/script/UpgradePhaseA.s.sol: the exchange upgraded in place to v2 with GATEWAY_ROLE
- * locked in the same transaction, then verified on Sourcify and recorded. It refuses a deployment already at v2.
+ * `upgrade-phase-a` runs contracts/script/UpgradePhaseA.s.sol: the exchange upgraded in place to v3 with GATEWAY_ROLE
+ * locked in the same transaction, then verified on Sourcify and recorded. It refuses a deployment already at v3.
  */
 import { spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -229,7 +229,7 @@ if (cmd === "deploy") {
   console.log(`${RECORD}: adversary ${bot.address}, accounts ${accounts.join(", ")}`);
 } else if (cmd === "upgrade-phase-a") {
   if ((await pub.getChainId()) !== 143) throw new Error("not Monad mainnet");
-  if (dep().exchangeVersion >= 2) throw new Error(`${RECORD} is already at exchange v2`);
+  if (dep().exchangeVersion >= 3) throw new Error(`${RECORD} is already at exchange v3`);
   forgeScript("script/UpgradePhaseA.s.sol", { PHASE_A_OUT: `${BASE}-phase-a` }, /implementation|written/);
   const p = JSON.parse(readFileSync(join(root, `deployments/${BASE}-phase-a.json`), "utf8"));
   // the new implementation's source, public before anyone has to trust it
@@ -240,10 +240,10 @@ if (cmd === "deploy") {
   });
   console.log(`${v.stdout}\n${v.stderr}`.split("\n").filter((l) => /verified|Verified|match|error|Error/.test(l)).join("\n"));
   const d = dep();
-  Object.assign(d, { exchangeImplementation: p.exchangeImplementation, exchangeVersion: 2 });
+  Object.assign(d, { exchangeImplementation: p.exchangeImplementation, exchangeVersion: 3 });
   const sorted = (x) => (Array.isArray(x) ? x.map(sorted) : x && typeof x === "object" ? Object.fromEntries(Object.keys(x).sort().map((k) => [k, sorted(x[k])])) : x);
   writeFileSync(OUT, JSON.stringify(sorted(d), null, 2));
-  console.log(`${RECORD}: exchange v2, implementation ${p.exchangeImplementation}`);
+  console.log(`${RECORD}: exchange v3, implementation ${p.exchangeImplementation}`);
 } else if (cmd === "timelock") {
   if (!arg || !isAddress(arg)) throw new Error("usage: timelock <proposer: the owner's wallet>");
   if (dep().timelock) throw new Error("the deployment already names a timelock");

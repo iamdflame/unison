@@ -9,7 +9,7 @@ export const unisonExchangeAbi = [
   },
   {
     "type": "function",
-    "name": "initializeV2",
+    "name": "initializeV3",
     "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"

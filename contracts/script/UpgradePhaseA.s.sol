@@ -4,8 +4,8 @@ pragma solidity ^0.8.30;
 import {Script, console} from "forge-std/Script.sol";
 import {UnisonExchange} from "../src/core/UnisonExchange.sol";
 
-/// @notice Phase A on a live deployment (docs/ROADMAP.md): the exchange upgraded in place to v2 and, in the same
-///         transaction, GATEWAY_ROLE locked (initializeV2). No market state moves, so nothing has to be drained first:
+/// @notice Phase A on a live deployment (docs/ROADMAP.md): the exchange upgraded in place to v3 and, in the same
+///         transaction, GATEWAY_ROLE locked (initializeV3). No market state moves, so nothing has to be drained first:
 ///         orders, books and vault queues carry over, and a job already running finishes as it was bound. From the
 ///         next job on, a stopped market returns its orders, no curve source quotes a closed market, and a malformed
 ///         source is skipped.
@@ -28,17 +28,17 @@ contract UpgradePhaseA is Script {
 
         vm.startBroadcast(pk);
         UnisonExchange impl = new UnisonExchange();
-        ex.upgradeToAndCall(address(impl), abi.encodeCall(UnisonExchange.initializeV2, ()));
+        ex.upgradeToAndCall(address(impl), abi.encodeCall(UnisonExchange.initializeV3, ()));
         vm.stopBroadcast();
 
-        require(ex.version() == 2, "not upgraded");
+        require(ex.version() == 3, "not upgraded");
         require(ex.getRoleAdmin(ex.GATEWAY_ROLE()) == ex.LOCKED_ROLE(), "gateway role not locked");
         require(ex.getRoleAdmin(ex.LOCKED_ROLE()) == ex.LOCKED_ROLE(), "the lock does not administer itself");
         require(ex.hasRole(ex.GATEWAY_ROLE(), gateway), "the gateway lost its role");
 
         string memory o = "phaseA";
         vm.serializeUint(o, "startBlock", startBlock);
-        vm.serializeUint(o, "version", 2);
+        vm.serializeUint(o, "version", 3);
         string memory out = vm.serializeAddress(o, "exchangeImplementation", address(impl));
         string memory path = string.concat(
             "../deployments/", vm.envOr("PHASE_A_OUT", string.concat(vm.parseJsonString(dep, ".label"), "-phase-a")), ".json"

@@ -26,7 +26,7 @@ contract StandInSafe {
     }
 }
 
-/// @notice The one-run handover rehearsed on Monad mainnet state (chain 143), after the v2 upgrade it requires:
+/// @notice The one-run handover rehearsed on Monad mainnet state (chain 143), after the v3 upgrade it requires:
 ///           forge test --fork-url https://rpc.monad.xyz --match-contract HandoverTimelockForkTest -vv
 contract HandoverTimelockForkTest is Test {
     address internal constant EXCHANGE = 0x1696170d40E703F1378989383c21Ec96ED1Adf75;
@@ -47,20 +47,20 @@ contract HandoverTimelockForkTest is Test {
         guardianSafe = new StandInSafe(o, 1);
     }
 
-    function _upgradeV2() internal {
+    function _upgradeV3() internal {
         UnisonExchange impl = new UnisonExchange();
         vm.prank(DEPLOYER);
-        ex.upgradeToAndCall(address(impl), abi.encodeCall(UnisonExchange.initializeV2, ()));
+        ex.upgradeToAndCall(address(impl), abi.encodeCall(UnisonExchange.initializeV3, ()));
     }
 
-    function test_fork_refusesBeforeV2() public {
+    function test_fork_refusesBeforeV3() public {
         HandoverTimelock h = new HandoverTimelock();
-        vm.expectRevert(bytes("upgrade the exchange to v2 first (script/UpgradePhaseA.s.sol)"));
+        vm.expectRevert(bytes("upgrade the exchange to v3 first (script/UpgradePhaseA.s.sol)"));
         h.handover(DEPLOYER, address(adminSafe), address(guardianSafe));
     }
 
     function test_fork_oneRunHandover() public {
-        _upgradeV2();
+        _upgradeV3();
         TimelockController tl = new HandoverTimelock().handover(DEPLOYER, address(adminSafe), address(guardianSafe));
 
         // no window: the delay is a week from the first block, and every ownership has already moved

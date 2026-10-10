@@ -42,7 +42,7 @@ contract UnisonExchange is
     /// @notice Writes daily TSV volume caps (percent of ADV), e.g. the CRE ADV workflow.
     bytes32 public constant CAP_ROLE = keccak256("CAP_ROLE");
     /// @notice A role nobody holds or can ever be granted (it administers itself): GATEWAY_ROLE's admin after
-    ///         initializeV2, so a new gateway can only come with an upgrade, behind the timelock.
+    ///         initializeV3, so a new gateway can only come with an upgrade, behind the timelock.
     bytes32 public constant LOCKED_ROLE = keccak256("unison.locked");
 
     // ------------------------------------------------------------------ init / admin
@@ -62,18 +62,19 @@ contract UnisonExchange is
         _grantRole(CAP_ROLE, admin);
     }
 
-    /// @notice v2: no key may grant GATEWAY_ROLE (a gateway can move an account's funds), so a new gateway needs an
+    /// @notice v3: no key may grant GATEWAY_ROLE (a gateway can move an account's funds), so a new gateway needs an
     ///         upgrade. Called once, atomically with the upgrade that introduces it, or right after a fresh deployment
     ///         has granted its gateway.
-    function initializeV2() external reinitializer(2) onlyRole(DEFAULT_ADMIN_ROLE) {
+    function initializeV3() external reinitializer(3) onlyRole(DEFAULT_ADMIN_ROLE) {
         _setRoleAdmin(LOCKED_ROLE, LOCKED_ROLE);
         _setRoleAdmin(GATEWAY_ROLE, LOCKED_ROLE);
     }
 
-    /// @notice The implementation's version: 2 adds return-only clears for stopped markets, the locked gateway role,
+    /// @notice The implementation's version. v1 launched on 5 October 2026 and v2 added the causal clock on 6 October
+    ///         (neither has this function); 3 adds return-only clears for stopped markets, the locked gateway role,
     ///         sources that can't block a clear, and no curve quotes outside an open session.
     function version() external pure returns (uint256) {
-        return 2;
+        return 3;
     }
 
     function _authorizeUpgrade(address) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}

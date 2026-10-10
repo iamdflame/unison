@@ -26,7 +26,7 @@ interface FakeState {
   paused?: boolean;
   halted?: boolean;
   inactive?: boolean;
-  /** an exchange before v2: a stopped market can't clear without a reference */
+  /** an exchange before v3: a stopped market can't clear without a reference */
   preV2?: boolean;
 }
 
@@ -131,7 +131,7 @@ const base: FakeState = {
   lastDiscoveryBatch: 0n,
 };
 
-describe("a stopped market (exchange v2)", () => {
+describe("a stopped market (exchange v3)", () => {
   it("returns the waiting orders at once, reading no reference", async () => {
     for (const stop of [{ paused: true }, { halted: true }, { inactive: true }]) {
       const { client, sent, payloads } = fakeClient({ ...base, ...stop, pending: true, simVolume: 0n, lastCleared: 196n });
@@ -147,7 +147,7 @@ describe("a stopped market (exchange v2)", () => {
     expect(sent).toEqual([]);
   });
 
-  it("before v2, serves the market as it always did", async () => {
+  it("before v3, serves the market as it always did", async () => {
     // the return-only clear is refused, so the keeper falls back to the reference and the cost policy
     const { client, sent, payloads } = fakeClient({ ...base, halted: true, preV2: true, pending: true, simVolume: 5n, lastCleared: 196n });
     await keeper(client).tick(200n);
