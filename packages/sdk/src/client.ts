@@ -12,6 +12,7 @@ import type { Curve } from "@unison/engine";
 import { unisonExchangeAbi } from "./abis/UnisonExchange.ts";
 import { liquidityVaultAbi } from "./abis/LiquidityVault.ts";
 import { orderGatewayAbi } from "./abis/OrderGateway.ts";
+import { streamsCausalReferenceAbi } from "./streams.ts";
 import type {
   Deployment,
   MarketState,
@@ -491,6 +492,11 @@ export class UnisonClient {
 
   processVault(vault: Address): Promise<Hex> {
     return this.write(vault, liquidityVaultAbi, "process", []);
+  }
+
+  /** Brings a Data Streams report on chain: Chainlink's verifier checks it, the adapter stores it (permissionless). */
+  submitStreamsReport(adapter: Address, fullReport: Hex): Promise<Hex> {
+    return this.write(adapter, streamsCausalReferenceAbi, "submit", [fullReport]);
   }
 
   // ------------------------------------------------------------------ events

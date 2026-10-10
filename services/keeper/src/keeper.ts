@@ -24,14 +24,18 @@ import {
   causalFeed,
   causalPayload,
   closedAt,
+  isStreamsAdapter,
   JobPhase,
   latestObservation,
+  latestStreamsReport,
   liquidityVaultAbi,
   Status,
+  streamsPayload,
   unisonExchangeAbi,
   type CausalFeed,
   type MarketState,
   type Observation,
+  type StreamsApi,
   type UnisonClient,
 } from "@unison/sdk";
 
@@ -66,8 +70,28 @@ export interface CausalHistory {
   latest(feed: Address): Promise<Observation>;
 }
 
+/**
+ * Chainlink Data Streams, for markets priced by StreamsCausalReference (docs/evidence/streams.md): the report that
+ * prices an auction, and the newest report for a vault's queue. Each comes with whether it is already on chain; the
+ * keeper submits it first when it is not. Injectable, so the policy can be tested without the API.
+ */
+export interface StreamsSource {
+  isStreams(adapter: Address): Promise<boolean>;
+  /** the auction sealed by `afterSec`: null until the first report after it is out (or with no API credentials) */
+  payload(
+    adapter: Address,
+    marketId: bigint,
+    afterSec: bigint,
+  ): Promise<{ payload: Hex; fullReport: Hex; stored: boolean; observedAt: bigint } | null>;
+  latest(adapter: Address, marketId: bigint): Promise<{ fullReport: Hex; stored: boolean; observedAt: bigint } | null>;
+}
+
 export interface KeeperConfig {
   client: UnisonClient;
+  /** Data Streams API credentials (server only), for markets on StreamsCausalReference */
+  streamsApi?: StreamsApi;
+  /** Data Streams access (default: built from `streamsApi` and the client's public client) */
+  streams?: StreamsSource;
   relayUrl: string;
   marketIds: bigint[];
   /** explicit gas limit for clear calls, or "auto" = estimateGas × 1.2 within [minClearGas, maxClearGas] */
@@ -106,9 +130,12 @@ export class Keeper {
   private readonly processTriedAt = new Map<bigint, bigint>();
   readonly stats = { clears: 0, jobsDone: 0, vaultProcesses: 0, claims: 0, errors: 0 };
   private readonly history: CausalHistory;
+  private readonly streams: StreamsSource;
   /** causal mode per market, re-read every minute */
   private readonly modes = new Map<bigint, { on: boolean; skewSec: number; at: number }>();
   private readonly feeds = new Map<bigint, CausalFeed>();
+  /** whether each causal adapter reads Data Streams (an adapter never changes kind) */
+  private readonly streamsAdapters = new Map<Address, boolean>();
 
   constructor(cfg: KeeperConfig) {
     this.cfg = cfg;
@@ -118,6 +145,31 @@ export class Keeper {
       feed: (adapter, marketId) => causalFeed(pc, adapter, marketId),
       latest: (feed) => latestObservation(pc, feed),
     };
+    const api = cfg.streamsApi;
+    this.streams = cfg.streams ?? {
+      isStreams: (adapter) => isStreamsAdapter(pc, adapter),
+      payload: async (adapter, marketId, afterSec) => {
+        if (!api) return null;
+        const p = await streamsPayload(pc, api, adapter, marketId, afterSec);
+        return p && { payload: p.payload, fullReport: p.report.fullReport, stored: p.stored, observedAt: p.observedAt };
+      },
+      latest: async (adapter, marketId) => {
+        if (!api) return null;
+        const r = await latestStreamsReport(pc, api, adapter, marketId);
+        return r && { fullReport: r.report.fullReport, stored: r.stored, observedAt: r.observedAt };
+      },
+    };
+  }
+
+  private async isStreams(adapter: Address): Promise<boolean> {
+    const hit = this.streamsAdapters.get(adapter);
+    if (hit !== undefined) return hit;
+    const yes = await this.streams.isStreams(adapter);
+    this.streamsAdapters.set(adapter, yes);
+    if (yes && !this.cfg.streamsApi && !this.cfg.streams) {
+      this.log({ level: "warn", action: "streams", adapter, error: "no Data Streams credentials (STREAMS_API_KEY, STREAMS_API_SECRET)" });
+    }
+    return yes;
   }
 
   private nowSec(): bigint {
@@ -359,6 +411,7 @@ export class Keeper {
     const c = this.cfg.client;
     const { skewSec } = await this.causalMode(marketId);
     const m = await c.market(marketId);
+    if (await this.isStreams(m.refAdapter)) return this.serveStreams(marketId, m, skewSec);
     let payload: Hex = "0x";
     const ctx: Record<string, unknown> = { marketId, action: "clear.open", causal: true };
     if (m.pendingTail > m.pendingHead) {
@@ -392,6 +445,53 @@ export class Keeper {
       ctx.action = "clear.vault";
     }
     // Monad charges the gas limit even for a revert: never send what a simulation refuses
+    try {
+      await c.simulateClear(marketId, payload);
+    } catch (e) {
+      this.log({ level: "warn", ...ctx, ...why(e) });
+      return 0;
+    }
+    const gas = await this.clearGasFor("clear", [marketId, payload], marketId, true);
+    await this.sendClear(marketId, c.clear(marketId, payload, gas), ctx);
+    return 1;
+  }
+
+  /**
+   * A causal market on Chainlink Data Streams. The auction for the oldest waiting order is cleared with the report
+   * whose window holds the second after it (plus the skew), brought on chain first if nobody has yet. Reports come
+   * every second, closed sessions included, so there is no DISCOVERY-without-a-report path: until the report is out,
+   * the keeper waits. With nothing waiting, a vault request gets the newest report once it is newer than the last
+   * reference and later than the request.
+   */
+  private async serveStreams(marketId: bigint, m: MarketState, skewSec: number): Promise<number> {
+    const c = this.cfg.client;
+    let payload: Hex = "0x";
+    const ctx: Record<string, unknown> = { marketId, action: "clear.open", causal: true, streams: true };
+    let report: { fullReport: Hex; stored: boolean; observedAt: bigint } | null;
+    if (m.pendingTail > m.pendingHead) {
+      const [oldest] = await c.pendingTimes(marketId, 1n);
+      if (!oldest) return 0;
+      const afterSec = oldest.time + BigInt(skewSec);
+      const p = await this.streams.payload(m.refAdapter, marketId, afterSec);
+      if (!p) return 0;
+      payload = p.payload;
+      report = p;
+      Object.assign(ctx, { observedAt: p.observedAt, sealedBefore: afterSec });
+    } else {
+      const queue = await this.vaultQueue(marketId, m.lastRefTimeMs);
+      if (queue.processable) return this.processVault(marketId, queue.pending);
+      if (queue.pending === 0n) return 0;
+      report = await this.streams.latest(m.refAdapter, marketId);
+      if (!report || report.observedAt * 1000n <= m.lastRefTimeMs || report.observedAt <= queue.oldestTime) return 0;
+      ctx.action = "clear.vault";
+    }
+    if (!report.stored) {
+      await this.send(c.submitStreamsReport(m.refAdapter, report.fullReport), {
+        marketId,
+        action: "streams.submit",
+        observedAt: report.observedAt,
+      });
+    }
     try {
       await c.simulateClear(marketId, payload);
     } catch (e) {

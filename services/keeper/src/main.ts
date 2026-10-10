@@ -2,11 +2,12 @@
  * Keeper process. Env: RPC_URL, DEPLOYMENT, KEEPER_PRIVATE_KEY, RELAY_URL (http://127.0.0.1:8787),
  * CLEAR_GAS (8000000, or "auto" = estimateGas × 1.2 for an opening clear), MIN_CLEAR_GAS (2000000) and MAX_CLEAR_GAS
  * (25000000: auto mode's continuations and retries), REPRICE_EVERY (5 blocks), AUTO_CLAIM (1), POLL_MS (250),
- * RPC_TIMEOUT_MS (10000)
+ * RPC_TIMEOUT_MS (10000). Markets on Chainlink Data Streams also need STREAMS_API_KEY and STREAMS_API_SECRET (and
+ * STREAMS_API_URL for the testnet API); without them the keeper leaves those markets alone and says so.
  */
 import { createPublicClient, createWalletClient, http, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { chainById, loadDeploymentFile, UnisonClient } from "@unison/sdk";
+import { chainById, loadDeploymentFile, streamsApi, UnisonClient } from "@unison/sdk";
 import { Keeper } from "./keeper.ts";
 
 const env = (k: string, d?: string): string => {
@@ -26,8 +27,12 @@ export async function startKeeper() {
   const publicClient = createPublicClient({ chain, transport, pollingInterval: Number(env("POLL_MS", "250")) });
   const walletClient = createWalletClient({ chain, transport, account });
   const client = new UnisonClient({ publicClient, walletClient, deployment });
+  const key = process.env.STREAMS_API_KEY;
+  const secret = process.env.STREAMS_API_SECRET;
+  const url = process.env.STREAMS_API_URL;
   const keeper = new Keeper({
     client,
+    ...(key && secret ? { streamsApi: streamsApi({ key, secret, ...(url ? { url } : {}) }) } : {}),
     relayUrl: env("RELAY_URL", "http://127.0.0.1:8787"),
     marketIds: Object.values(deployment.markets).map((m) => BigInt(m.id)),
     clearGas: parseClearGas(env("CLEAR_GAS", "8000000")),

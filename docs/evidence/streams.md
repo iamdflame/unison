@@ -79,9 +79,9 @@ Tests: [`StreamsCausalReference.t.sol`](../../contracts/test/unit/StreamsCausalR
 
 - **No proof of absence.** A pull oracle can't prove that no report exists, so there is no "feed silent, so the market is closed" path. If reports stop, orders wait until the guardian halts the market, which returns them.
 - **Fees.** If Chainlink adds a fee manager on Monad, `submit` reverts until a funded adapter replaces this one.
-- **Not wired end to end yet:**
-  - the keeper's API client (signed requests to `api.dataengine.chain.link`);
-  - the receipt checker and the tape, which read push-feed rounds today.
-
-  They come with a subscription.
+- **The keeper is wired; the receipt checker and the tape are not yet.**
+  - The keeper signs its requests to the Data Streams API as Chainlink documents.
+  - It fetches the first report after each auction's orders, submits the report if nobody has, then clears ([`streams.ts`](../../packages/sdk/src/streams.ts), the keeper's `serveStreams`).
+  - Without credentials (`STREAMS_API_KEY`, `STREAMS_API_SECRET`), it leaves such markets alone and says so.
+  - The receipt checker and the tape still read push-feed rounds. They follow once a stream is funded.
 - **Latency target, stated honestly:** the first report after `seal + 2 s` arrives about 3 s after the seal, plus fetching and landing it. A p50 of 3–5 s, against 34 s to 15 min today.
