@@ -1,0 +1,59 @@
+name: Proofs
+
+# Every Halmos property of the clearing (contracts/test/halmos), with longer limits than CI's per-push job: nightly
+# on main, or by hand on any branch. One runner per property and solver, in parallel; each job's summary says whether
+# its property was proven, and its output is kept as an artifact.
+on:
+  schedule:
+    - cron: "41 2 * * *"
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: "time limit per property, in minutes"
+        default: "60"
+
+concurrency:
+  group: proofs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  halmos:
+    name: ${{ matrix.property }} (${{ matrix.solver }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    strategy:
+      fail-fast: false
+      matrix:
+        property:
+          - check_band2_pricesInsideTheBand_andNeverOverfills
+          - check_band2_maximizesVolume
+          - check_band2_marginalFillsAreExact
+          - check_band3_pricesInsideTheBand_andNeverOverfills
+          - check_band3_maximizesVolume
+          - check_band3_marginalFillsAreExact
+        # bitwuzla-abs abstracts nonlinear arithmetic (a fill ratio's division) and refines it only when it must
+        solver: [bitwuzla, bitwuzla-abs]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Halmos
+        working-directory: contracts
+        env:
+          HALMOS_ALLOW_DOWNLOAD: "1" # it fetches the solver on first use
+          PROPERTY: ${{ matrix.property }}
+          SOLVER: ${{ matrix.solver }}
+          MINUTES: ${{ inputs.minutes || '60' }}
+        run: bash test/halmos/prove.sh "$PROPERTY" "$((MINUTES * 60))" "$SOLVER"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: halmos-${{ matrix.property }}-${{ matrix.solver }}
+          path: contracts/halmos-*.txt
+          if-no-files-found: ignore
