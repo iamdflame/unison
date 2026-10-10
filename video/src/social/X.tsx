@@ -121,6 +121,36 @@ export const XHow = () => {
   );
 };
 
+/** A post card: the two powers exchange v3 took from the team (Monad mainnet, 10 October 2026). */
+export const XPowers = () => {
+  const powers = [
+    { gone: "Trap your orders", now: "Pause, halt or delist a market, and every waiting order goes back at once. No oracle needed." },
+    { gone: "Let someone new act for your account", now: "That now takes an upgrade. Next, every upgrade waits 7 days in public." },
+  ];
+  return (
+    <Ground light={C.champagne} x={50} y={24} strength={0.14}>
+      <Img src={staticFile("brand/unison-lockup-porcelain.svg")} style={{ position: "absolute", left: 70, top: 62, height: 40 }} />
+      <div style={{ position: "absolute", right: 70, top: 68, fontFamily: F.mono, fontSize: 24, color: C.ink3 }}>unisonfi.com</div>
+      <div style={{ position: "absolute", left: 70, right: 70, top: 150 }}>
+        <div style={{ fontFamily: F.text, fontWeight: 600, fontSize: 26, letterSpacing: "0.16em", textTransform: "uppercase", color: C.champagne }}>Exchange v3 · live on Monad mainnet</div>
+        <div style={{ fontFamily: F.display, fontSize: 104, lineHeight: 1.02, marginTop: 12 }}>Two powers we gave up today.</div>
+      </div>
+      <div style={{ position: "absolute", left: 70, right: 70, top: 398, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40 }}>
+        {powers.map((p) => (
+          <div key={p.gone} style={{ borderRadius: 28, padding: "34px 40px", background: `linear-gradient(150deg, color-mix(in oklch, ${C.sell} 9%, ${C.raised}), ${C.sunken})`, border: `1.5px solid color-mix(in oklch, ${C.sell} 42%, transparent)`, minHeight: 340, display: "flex", flexDirection: "column" }}>
+            <div style={{ fontFamily: F.text, fontWeight: 600, fontSize: 22, letterSpacing: "0.16em", textTransform: "uppercase", color: C.sell }}>Gone</div>
+            <div style={{ fontFamily: F.text, fontWeight: 500, fontSize: 48, lineHeight: 1.2, marginTop: 12, color: C.ink2, textDecorationLine: "line-through", textDecorationColor: C.sell, textDecorationThickness: 4 }}>{p.gone}</div>
+            <div style={{ fontFamily: F.text, fontSize: 28, lineHeight: 1.38, color: C.ink, marginTop: "auto", paddingTop: 22 }}>{p.now}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ position: "absolute", left: 70, bottom: 54, fontFamily: F.text, fontSize: 24, color: C.ink3 }}>
+        Block 112,255,125 · rehearsed on a fork of live mainnet first · verified on Sourcify · the record: github.com/iamdflame/unison
+      </div>
+    </Ground>
+  );
+};
+
 /** A post card: the week of real prices, replayed under both rules. */
 export const XWeek = () => {
   const r = CHALLENGE.replay;
