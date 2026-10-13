@@ -4,7 +4,7 @@ Unison's standing challenge pays its pot to anyone whose fills, marked to Chainl
 
 ## The live result
 
-**On 8 October 2026 at 02:52 UTC our own sniper claimed the old-rule control's pot.** The contract scored its 30 fills against Chainlink's history at +14.35 bp of their notional (an edge of 0.003520 AUSD on 2.452306 AUSD), over the +2 bp the terms require, and paid the pot, 1 AUSD, in transaction [`0x042dae76…ed3e02`](https://monadvision.com/tx/0x042dae768917a9730eaa2cf3a06106f308af6868255fca1f816bb9becded3e02) (block 111,492,259). It came 37 hours after the account opened; the replay below predicted about 33.
+**On 8 October 2026 at 02:35 UTC our own sniper claimed the old-rule control's pot.** The contract scored its 30 fills against Chainlink's history at +14.35 bp of their notional (an edge of 0.003520 AUSD on 2.452306 AUSD), over the +2 bp the terms require, and paid the pot, 1 AUSD, in transaction [`0x042dae76…ed3e02`](https://monadvision.com/tx/0x042dae768917a9730eaa2cf3a06106f308af6868255fca1f816bb9becded3e02) (block 111,492,259). It came 37 hours after the account opened; the replay below predicted about 33.
 
 The same sniper, with the same signal, on Unison's causal market: −21.1 bp a trade over 53 fills (9 October, 14:15 UTC). Its pot, 18 AUSD, stands. Having been paid, the sniper no longer trades the control.
 
