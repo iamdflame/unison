@@ -98,6 +98,14 @@ export const CHALLENGE = {
   terms: { minFills: 30, epsilonBps: 2, horizonSec: 60 },
 };
 
+/** The two challenges as the contracts judged them (Envio's table, fully synced, 14 October 2026 19:00 UTC). The control paid
+ * our sniper on 8 October (block 111,492,259, docs/evidence/challenge.md); the Unison pot stands until 27 October. */
+export const CHALLENGE_RESULT = {
+  asOf: "14 October 2026",
+  control: { fills: 30, bps: 14.35, paidOn: "8 October", pot: "1 AUSD", tx: "0x042dae768917a9730eaa2cf3a06106f308af6868255fca1f816bb9becded3e02" },
+  unison: { fills: 93, bps: -19.75, pot: "18 AUSD", until: "27 October" },
+};
+
 /** Monad: apps/web/lib/content/facts.ts. */
 export const MONAD = { blockMs: 300, clearUsd: "0.02", orderUsd: "0.0005", gasSavedPct: 41 };
 

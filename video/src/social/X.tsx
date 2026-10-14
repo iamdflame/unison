@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { AbsoluteFill, Img, staticFile } from "remotion";
 import { C, F } from "../brand";
-import { CHALLENGE, PHOTO_FINISH } from "../data/chain";
+import { CHALLENGE, CHALLENGE_RESULT, PHOTO_FINISH } from "../data/chain";
+import waits from "../data/causal-waits.json";
 import rounds from "../data/mon-rounds.json";
 import { glow } from "../kit/Fx";
 import { Grain } from "../kit/Grain";
@@ -146,6 +147,102 @@ export const XPowers = () => {
       </div>
       <div style={{ position: "absolute", left: 70, bottom: 54, fontFamily: F.text, fontSize: 24, color: C.ink3 }}>
         Block 112,255,125 · rehearsed on a fork of live mainnet first · verified on Sourcify · the record: github.com/iamdflame/unison
+      </div>
+    </Ground>
+  );
+};
+
+/** A post card: the same sniper judged by both challenge contracts. The old rule paid it; Unison's pot stands. */
+export const XPaid = () => {
+  const r = CHALLENGE_RESULT;
+  const sides = [
+    { rule: "Old rule · the control", sign: "+", v: `${r.control.bps.toFixed(2)} bp`, fills: r.control.fills, verdict: "Paid out", when: `on ${r.control.paidOn}`, color: C.sell },
+    { rule: "Unison", sign: "−", v: `${Math.abs(r.unison.bps).toFixed(2)} bp`, fills: r.unison.fills, verdict: `${r.unison.pot} pot stands`, when: `open until ${r.unison.until}`, color: C.accent },
+  ];
+  return (
+    <Ground light={C.sell} x={28} y={44} strength={0.1}>
+      <Img src={staticFile("brand/unison-lockup-porcelain.svg")} style={{ position: "absolute", left: 70, top: 62, height: 40 }} />
+      <div style={{ position: "absolute", right: 70, top: 68, fontFamily: F.mono, fontSize: 24, color: C.ink3 }}>unisonfi.com</div>
+      <div style={{ position: "absolute", left: 70, right: 70, top: 150 }}>
+        <div style={{ fontFamily: F.text, fontWeight: 600, fontSize: 26, letterSpacing: "0.16em", textTransform: "uppercase", color: C.champagne }}>Same bot · same signal · same Chainlink feed</div>
+        <div style={{ fontFamily: F.display, fontSize: 96, lineHeight: 1.04, marginTop: 12, whiteSpace: "nowrap" }}>The contract paid our own sniper.</div>
+      </div>
+      <div style={{ position: "absolute", left: 70, right: 70, top: 392, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40 }}>
+        {sides.map((x) => (
+          <div key={x.rule} style={{ borderRadius: 28, padding: "30px 40px", background: `linear-gradient(150deg, color-mix(in oklch, ${x.color} 13%, ${C.raised}), ${C.sunken})`, border: `1.5px solid color-mix(in oklch, ${x.color} 55%, transparent)` }}>
+            <div style={{ fontFamily: F.text, fontWeight: 600, fontSize: 24, letterSpacing: "0.16em", textTransform: "uppercase", color: x.color }}>{x.rule}</div>
+            <div style={{ fontFamily: F.display, fontSize: 132, lineHeight: 1, marginTop: 14, color: x.color, textShadow: glow(x.color, 0.8) }}>
+              <span style={{ fontFamily: F.text, fontWeight: 500, fontSize: 112, marginRight: 6 }}>{x.sign}</span>
+              {x.v}
+            </div>
+            <div style={{ fontFamily: F.text, fontSize: 28, color: C.ink2, marginTop: 10 }}>its edge over {x.fills} fills, after fees</div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 14, marginTop: 24, paddingTop: 20, borderTop: `1px solid color-mix(in oklch, ${x.color} 30%, transparent)` }}>
+              <span style={{ fontFamily: F.text, fontWeight: 600, fontSize: 32, color: C.ink }}>{x.verdict}</span>
+              <span style={{ fontFamily: F.text, fontSize: 26, color: C.ink3 }}>{x.when}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ position: "absolute", left: 70, bottom: 54, fontFamily: F.text, fontSize: 24, color: C.ink3 }}>
+        WMON/AUSD on Monad mainnet. Each contract marks every fill to Chainlink's price a minute later and pays above +2 bp over 30 fills.
+      </div>
+    </Ground>
+  );
+};
+
+/** A post card: how long each mainnet auction waited for its price, from the public tape (src/data/causal-waits.json). */
+export const XWait = () => {
+  const BIN = 4;
+  const LAST = 40; // one column gathers everything from 40 s up
+  const n = LAST / BIN + 1;
+  const counts = Array.from({ length: n }, () => 0);
+  for (const w of waits.waits) counts[Math.min(Math.floor(w / BIN), n - 1)]++;
+  const top = Math.max(...counts);
+  const ceil = Math.ceil(top / 10) * 10;
+  // the plot: columns grow from one baseline; capped thickness, the rest of each slot is air
+  const x0 = 150, x1 = 1530, base = 752, h = 280;
+  const slot = (x1 - x0) / n;
+  const barW = 60;
+  const xAt = (sec: number) => x0 + (sec / BIN) * slot; // a bin edge, in seconds
+  const yAt = (count: number) => base - (count / ceil) * h;
+  const BAR = "oklch(0.66 0.14 266)"; // the accent's hue at a data-mark step: passes the palette checks on this surface
+  const median = waits.observedAfterSeal.p50;
+  return (
+    <Ground light={C.accent} x={50} y={30} strength={0.12}>
+      <Img src={staticFile("brand/unison-lockup-porcelain.svg")} style={{ position: "absolute", left: 70, top: 62, height: 40 }} />
+      <div style={{ position: "absolute", right: 70, top: 68, fontFamily: F.mono, fontSize: 24, color: C.ink3 }}>unisonfi.com</div>
+      <div style={{ position: "absolute", left: 70, right: 70, top: 150 }}>
+        <div style={{ fontFamily: F.text, fontWeight: 600, fontSize: 26, letterSpacing: "0.16em", textTransform: "uppercase", color: C.champagne }}>{waits.auctions} auctions on Monad mainnet · 6 to 14 October</div>
+        <div style={{ fontFamily: F.display, fontSize: 96, lineHeight: 1.04, marginTop: 12 }}>Sealed first. Priced {median} s later.</div>
+        <div style={{ fontFamily: F.text, fontSize: 30, color: C.ink2, marginTop: 12 }}>Seconds from each auction's seal to Chainlink's first observation after it.</div>
+      </div>
+      <svg width={1600} height={900} style={{ position: "absolute", inset: 0 }}>
+        {[10, 20, 30].filter((g) => g <= ceil).map((g) => (
+          <g key={g}>
+            <line x1={x0} x2={x1} y1={yAt(g)} y2={yAt(g)} stroke={C.ink3} strokeOpacity={0.18} strokeWidth={1.5} />
+            <text x={x0 - 18} y={yAt(g) + 8} textAnchor="end" fontFamily="Mona Sans" fontSize={22} fill={C.ink3}>{g}</text>
+          </g>
+        ))}
+        <text x={x0 - 18} y={yAt(ceil) - 26} textAnchor="end" fontFamily="Mona Sans" fontSize={20} fill={C.ink3}>auctions</text>
+        {counts.map((c, i) => {
+          const cx = x0 + slot * (i + 0.5);
+          const y = yAt(c);
+          const r = Math.min(8, base - y);
+          return c ? <path key={i} d={`M${cx - barW / 2},${base} V${y + r} Q${cx - barW / 2},${y} ${cx - barW / 2 + r},${y} H${cx + barW / 2 - r} Q${cx + barW / 2},${y} ${cx + barW / 2},${y + r} V${base} Z`} fill={BAR} /> : null;
+        })}
+        <line x1={x0} x2={x1} y1={base} y2={base} stroke={C.ink3} strokeOpacity={0.5} strokeWidth={1.5} />
+        {counts.slice(0, -1).map((_, i) => (
+          <text key={i} x={x0 + slot * i} y={base + 34} textAnchor="middle" fontFamily="Mona Sans" fontSize={22} fill={C.ink3}>{i * BIN}</text>
+        ))}
+        <text x={x0 + slot * (n - 0.5)} y={base + 34} textAnchor="middle" fontFamily="Mona Sans" fontSize={22} fill={C.ink3}>40+</text>
+        {/* the median, labelled; nothing else is */}
+        <line x1={xAt(median)} x2={xAt(median)} y1={base} y2={yAt(ceil) - 10} stroke={C.ink} strokeWidth={2} />
+        <line x1={xAt(median)} x2={1060} y1={yAt(ceil) - 10} y2={yAt(ceil) - 10} stroke={C.ink} strokeOpacity={0.5} strokeWidth={1.5} />
+        <text x={1076} y={yAt(ceil) - 2} fontFamily="Mona Sans" fontWeight={600} fontSize={30} fill={C.ink}>Median {median} s</text>
+        <text x={1076} y={yAt(ceil) + 34} fontFamily="Mona Sans" fontSize={24} fill={C.ink2}>fastest {waits.observedAfterSeal.min} s · 9 in 10 within {Math.round(waits.observedAfterSeal.p90)} s</text>
+      </svg>
+      <div style={{ position: "absolute", left: 70, bottom: 44, fontFamily: F.text, fontSize: 24, color: C.ink3 }}>
+        Every WMON/AUSD auction since the causal cutover, from the public tape. Each then cleared on chain a median {Math.round(waits.clearedAfterSeal.p50)} s after its seal.
       </div>
     </Ground>
   );
