@@ -85,6 +85,9 @@ export function WaxSeal({
   seed = 5,
   broken = false,
   crackAngle = -1.05,
+  crackDraw = 1,
+  split = 1,
+  fly = 1,
 }: {
   /** the seal's centre on the card */
   x: number;
@@ -95,6 +98,10 @@ export function WaxSeal({
   broken?: boolean;
   /** the crack's direction, radians */
   crackAngle?: number;
+  /** for a film: how much of the crack is drawn (0 to 1), how far the halves have parted, how far the chips have flown */
+  crackDraw?: number;
+  split?: number;
+  fly?: number;
 }) {
   const id = useId().replace(/:/g, "");
   const box = (style: React.CSSProperties, child: React.ReactNode, key: string) => (
@@ -120,6 +127,28 @@ export function WaxSeal({
   const line = pts.map((p) => p.join(",")).join(" ");
   const sideA = [...pts, [pts[pts.length - 1]![0] + nx, pts[pts.length - 1]![1] + ny], [pts[0]![0] + nx, pts[0]![1] + ny]].map((p) => p.join(",")).join(" ");
   const sideB = [...pts, [pts[pts.length - 1]![0] - nx, pts[pts.length - 1]![1] - ny], [pts[0]![0] - nx, pts[0]![1] - ny]].map((p) => p.join(",")).join(" ");
+  if (split <= 0) {
+    const len = pts.reduce((a, p, i) => (i ? a + Math.hypot(p[0] - pts[i - 1]![0], p[1] - pts[i - 1]![1]) : 0), 0);
+    return box(
+      { transform: `rotate(${rotate}deg)`, filter: SHADOW },
+      <>
+        <Defs id={id} seed={seed} />
+        <clipPath id={`wax-${id}`}>
+          <circle r={84} />
+        </clipPath>
+        <g filter={`url(#lit-${id})`}>
+          <HeightMap id={id} seed={seed} />
+        </g>
+        {crackDraw > 0 ? (
+          <g clipPath={`url(#wax-${id})`} fill="none" strokeLinejoin="round" strokeDasharray={len} strokeDashoffset={len * (1 - crackDraw)}>
+            <polyline points={line} stroke="rgba(30,3,6,0.9)" strokeWidth={3.2} />
+            <polyline points={line} stroke="rgba(255,205,195,0.55)" strokeWidth={1.2} transform="translate(-1.6 -1.2)" />
+          </g>
+        ) : null}
+      </>,
+      "cracking",
+    );
+  }
   const half = (side: string, key: string, style: React.CSSProperties, edge: string) =>
     box(
       style,
@@ -161,9 +190,13 @@ export function WaxSeal({
   return (
     <>
       {/* the halves part along the crack's normal: side A (the +normal side) one way, side B the other */}
-      {half(sideA, "a", { transform: `translate(${(gap * nx) / 400}px, ${(gap * ny) / 400}px) rotate(${rotate + 5}deg)`, filter: SHADOW }, "rgba(255,200,190,0.8)")}
-      {half(sideB, "b", { transform: `translate(${(-gap * 1.3 * nx) / 400}px, ${(-gap * 1.3 * ny) / 400}px) rotate(${rotate - 9}deg)`, filter: LIFTED }, "rgba(36,4,8,0.75)")}
-      {chips.map((c, i) => (
+      {half(sideA, "a", { transform: `translate(${(gap * split * nx) / 400}px, ${(gap * split * ny) / 400}px) rotate(${rotate + 5 * split}deg)`, filter: SHADOW }, "rgba(255,200,190,0.8)")}
+      {half(sideB, "b", { transform: `translate(${(-gap * 1.3 * split * nx) / 400}px, ${(-gap * 1.3 * split * ny) / 400}px) rotate(${rotate - 9 * split}deg)`, filter: LIFTED }, "rgba(36,4,8,0.75)")}
+      {fly > 0 && chips.map((c0, i) => {
+        // from the crack's middle, up and out along a parabola, landing where the still shows them
+        const p = Math.min(1, fly);
+        const c = { ...c0, x: x + (c0.x - x) * p, y: y + (c0.y - y) * p - size * 0.45 * 4 * p * (1 - p), r: c0.r + 300 * p };
+        return (
         <div
           key={i}
           style={{
@@ -178,7 +211,8 @@ export function WaxSeal({
             filter: "drop-shadow(1px 2px 1.5px rgba(60,18,10,0.45))",
           }}
         />
-      ))}
+        );
+      })}
     </>
   );
 }

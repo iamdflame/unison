@@ -84,13 +84,6 @@ export const CardPaid = () => {
  *  Chainlink's first observation after it, stacked inward; the blued hand stands at the median. */
 export const CardWait = () => {
   const median = waits.observedAfterSeal.p50;
-  const stacks = new Map<number, number>();
-  const dots = waits.waits.map((w) => {
-    const s = Math.min(w, 60); // the two past a minute are shown at 60, marked 60+
-    const n = stacks.get(s) ?? 0;
-    stacks.set(s, n + 1);
-    return at(s, 380 - n * 15);
-  });
   return (
     <Studio finish="porcelain" keyX={22} keyY={12}>
       <Masthead finish="porcelain" />
@@ -107,36 +100,51 @@ export const CardWait = () => {
         <span style={{ width: 12, height: 12, borderRadius: "50%", background: MAT.print }} />
         Each dot is one auction.
       </div>
-      <Watch cx={1148} cy={462} size={800} finish="porcelain" pushers>
-        <Rosette r={150} color={MAT.print} opacity={0.22} />
-        <circle r={210} fill="none" stroke={MAT.print} strokeOpacity={0.5} strokeWidth={1.4} />
-        <circle r={392} fill="none" stroke={MAT.print} strokeOpacity={0.35} strokeWidth={1} />
-        {Array.from({ length: 12 }, (_, i) => {
-          const sec = (i + 1) * 5;
-          const p = at(sec, 250);
-          return (
-            <DialText key={sec} x={p.x} y={p.y} size={46} color={MAT.print}>
-              {sec === 60 ? "60+" : sec}
-            </DialText>
-          );
-        })}
-        {dots.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r={6.2} fill={MAT.print} />
-        ))}
-        <DialText x={0} y={-178} size={28} color={MAT.print} spacing="0.32em">
-          UNISON
-        </DialText>
-        <Subdial x={0} y={128} r={70} finish="porcelain">
-          <DialText x={0} y={-8} size={58} color={day.ink}>
-            {waits.auctions}
-          </DialText>
-          <DialText x={0} y={38} size={22} color={day.ink2} face="text">
-            auctions
-          </DialText>
-        </Subdial>
-        <Hand deg={(median / 60) * 360} kind="lance" length={372} tail={96} width={13} material="blued" />
-        <Arbor finish="porcelain" />
-      </Watch>
+      <WaitDial cx={1148} cy={462} size={800} handSec={median} />
     </Studio>
   );
 };
+
+/** The stopwatch of CardWait: its seconds ring is the data (one printed dot per auction, at the seconds from its seal
+ *  to Chainlink's first observation after it, stacked inward), and the blued hand stands at `handSec`. */
+export function WaitDial({ cx, cy, size, handSec }: { cx: number; cy: number; size: number; handSec: number }) {
+  const stacks = new Map<number, number>();
+  const dots = waits.waits.map((w) => {
+    const s = Math.min(w, 60); // the two past a minute are shown at 60, marked 60+
+    const n = stacks.get(s) ?? 0;
+    stacks.set(s, n + 1);
+    return at(s, 380 - n * 15);
+  });
+  return (
+    <Watch cx={cx} cy={cy} size={size} finish="porcelain" pushers>
+      <Rosette r={150} color={MAT.print} opacity={0.22} />
+      <circle r={210} fill="none" stroke={MAT.print} strokeOpacity={0.5} strokeWidth={1.4} />
+      <circle r={392} fill="none" stroke={MAT.print} strokeOpacity={0.35} strokeWidth={1} />
+      {Array.from({ length: 12 }, (_, i) => {
+        const sec = (i + 1) * 5;
+        const p = at(sec, 250);
+        return (
+          <DialText key={sec} x={p.x} y={p.y} size={46} color={MAT.print}>
+            {sec === 60 ? "60+" : sec}
+          </DialText>
+        );
+      })}
+      {dots.map((p, i) => (
+        <circle key={i} cx={p.x} cy={p.y} r={6.2} fill={MAT.print} />
+      ))}
+      <DialText x={0} y={-178} size={28} color={MAT.print} spacing="0.32em">
+        UNISON
+      </DialText>
+      <Subdial x={0} y={128} r={70} finish="porcelain">
+        <DialText x={0} y={-8} size={58} color={day.ink}>
+          {waits.auctions}
+        </DialText>
+        <DialText x={0} y={38} size={22} color={day.ink2} face="text">
+          auctions
+        </DialText>
+      </Subdial>
+      <Hand deg={(handSec / 60) * 360} kind="lance" length={372} tail={96} width={13} material="blued" />
+      <Arbor finish="porcelain" />
+    </Watch>
+  );
+}

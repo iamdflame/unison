@@ -19,6 +19,7 @@ import { Thirteen } from "./scenes/Thirteen";
 import { Verify } from "./scenes/Verify";
 import { XAvatar, XHeader, XHow, XPaid, XPowers, XWait, XWeek } from "./social/X";
 import { CardPaid, CardWait } from "./social/cards";
+import { SEAL_FILM, SealFilm } from "./social/film/SealFilm";
 import { TH, ThumbAd, ThumbCre, ThumbDemo, ThumbEnvio, ThumbMetaMask, ThumbPitch, TW } from "./thumbs/Thumbs";
 
 loadFonts();
@@ -131,6 +132,7 @@ export const Root = () => (
     <Still id="XWait" component={XWait} width={1600} height={900} />
     <Still id="CardPaid" component={CardPaid} width={1600} height={900} />
     <Still id="CardWait" component={CardWait} width={1600} height={900} />
+    <Composition id="SealFilm" component={SealFilm} fps={SEAL_FILM.fps} width={SEAL_FILM.width} height={SEAL_FILM.height} durationInFrames={SEAL_FILM.seconds * SEAL_FILM.fps} />
     {scene("Verify", Verify, 12)}
     {scene("PhotoFinish", PhotoFinish, 13)}
     {scene("Challenge", Challenge, 8)}

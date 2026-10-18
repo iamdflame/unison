@@ -1,6 +1,8 @@
 /**
  * Every number the film shows, with where it comes from. Nothing here is made up for the screen.
  */
+import challengeLive from "./challenge-live.json";
+
 
 /** The 13 seconds: apps/web/lib/content/facts.ts (causal), measured from Chainlink's MON/USD history on Monad. */
 export const CAUSAL = {
@@ -98,12 +100,13 @@ export const CHALLENGE = {
   terms: { minFills: 30, epsilonBps: 2, horizonSec: 60 },
 };
 
-/** The two challenges as the contracts judged them (Envio's table, fully synced, 14 October 2026 19:00 UTC). The control paid
- * our sniper on 8 October (block 111,492,259, docs/evidence/challenge.md); the Unison pot stands until 27 October. */
+/** The two challenges as the contracts judge them, read at render by scripts/challenge-score.mjs (Envio's table and the
+ * chain). The control paid our sniper on 8 October (block 111,492,259, docs/evidence/challenge.md); the Unison pot stands
+ * until 27 October. */
 export const CHALLENGE_RESULT = {
-  asOf: "14 October 2026",
-  control: { fills: 30, bps: 14.35, paidOn: "8 October", pot: "1 AUSD", tx: "0x042dae768917a9730eaa2cf3a06106f308af6868255fca1f816bb9becded3e02" },
-  unison: { fills: 93, bps: -19.75, pot: "18 AUSD", until: "27 October" },
+  asOf: new Date(challengeLive.asOf).toLocaleDateString("en-GB", { day: "numeric", month: "long", timeZone: "UTC" }),
+  control: { fills: challengeLive.control.fills, bps: challengeLive.control.bps, paidOn: "8 October", pot: "1 AUSD", tx: challengeLive.control.claimTx },
+  unison: { fills: challengeLive.unison.fills, bps: challengeLive.unison.bps, pot: `${challengeLive.unison.pot} AUSD`, until: "27 October" },
 };
 
 /** Monad: apps/web/lib/content/facts.ts. */

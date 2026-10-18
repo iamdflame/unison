@@ -1,0 +1,17 @@
+{
+  "asOf": "2026-10-18T23:20:14.761Z",
+  "block": 114599048,
+  "unison": {
+    "fills": 117,
+    "bps": -20.04,
+    "paid": false,
+    "claimTx": null,
+    "pot": 18
+  },
+  "control": {
+    "fills": 30,
+    "bps": 14.35,
+    "paid": true,
+    "claimTx": "0x042dae768917a9730eaa2cf3a06106f308af6868255fca1f816bb9becded3e02"
+  }
+}
