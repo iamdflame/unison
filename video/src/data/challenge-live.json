@@ -1,9 +1,10 @@
 {
-  "asOf": "2026-10-18T23:20:14.761Z",
-  "block": 114599048,
+  "asOf": "2026-11-09T01:39:06.133Z",
+  "block": null,
+  "source": "adversary scoreboard",
   "unison": {
-    "fills": 117,
-    "bps": -20.04,
+    "fills": 173,
+    "bps": -21.49,
     "paid": false,
     "claimTx": null,
     "pot": 18

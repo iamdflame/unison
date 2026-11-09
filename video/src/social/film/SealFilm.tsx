@@ -24,6 +24,9 @@ const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const useT = () => useCurrentFrame() / FPS;
 const HEAD = { fontFamily: F.display, color: day.ink, lineHeight: 1.02, letterSpacing: "-0.01em", whiteSpace: "nowrap" } as const;
 
+/** The challenge window closed at 27 Oct 2026 23:59:59 UTC (the contract's end()); scores read after it are final. */
+const CLOSED = Date.parse(live.asOf) / 1000 > 1793145599;
+
 /** the beats, in seconds of the film */
 const B = { two: 3, old: 4, unison: 9, why: 15.5, end: 21, done: 26 };
 
@@ -248,10 +251,10 @@ function End() {
           <Words text={`${live.unison.pot} AUSD.`} at={0.2} dur={0.4} />
         </div>
         <div style={{ fontSize: 120 }}>
-          <Words text="Still sealed." at={0.7} />
+          <Words text={CLOSED ? "Never claimed." : "Still sealed."} at={0.7} />
         </div>
-        <div style={{ fontSize: 150, marginTop: 10 }}>
-          <Words text="Snipe us." at={1.5} dur={0.4} />
+        <div style={{ fontSize: CLOSED ? 112 : 150, marginTop: 10 }}>
+          <Words text={CLOSED ? "Nobody sniped us." : "Snipe us."} at={1.5} dur={0.4} />
         </div>
       </div>
       <div style={{ position: "absolute", right: 64, top: 74, fontFamily: F.text, fontSize: 22, color: day.ink3, opacity: info }}>

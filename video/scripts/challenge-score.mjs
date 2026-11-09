@@ -15,6 +15,19 @@ const AUSD = "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a";
 const UNISON = "0xdcd3e86518db6a40c4feba576efff598ca3b90d1";
 const CONTROL = "0x5ce9d9f491e2d16c94f56ed09bea23e7109976e9";
 
+const SCORE = "https://unison-adversary-mainnet-production.up.railway.app/v1/score";
+
+/** Envio's table; when the indexer is down, the house adversary's scoreboard, which scores both legs the same way. */
+async function fromScoreboard() {
+  const b = await fetch(SCORE).then((r) => r.json());
+  const leg = (name) => {
+    const l = b.legs.find((x) => x.name === name);
+    return { fills: Number(l.counted), bps: l.edgeBps, paid: l.paid, claimTx: l.claimTx };
+  };
+  return { block: null, unison: leg("unison"), control: leg("control"), source: "adversary scoreboard" };
+}
+
+async function fromEnvio() {
 const gql = await fetch(GRAPHQL, {
   method: "POST",
   headers: { "content-type": "application/json" },
@@ -33,6 +46,14 @@ const side = (id) => {
   return { fills: a.fills, bps: Number(a.edgeBps), paid: c.paid, claimTx: c.claimTx };
 };
 
+return { block: meta.block_height, unison: side(UNISON), control: side(CONTROL), source: "Envio HyperIndex" };
+}
+
+const scores = await fromEnvio().catch((e) => {
+  console.log(`Envio: ${e.message.slice(0, 80)}; using the adversary scoreboard`);
+  return fromScoreboard();
+});
+
 // balanceOf(UNISON) on AUSD (6 decimals), from the chain
 const call = await fetch(RPC, {
   method: "POST",
@@ -48,9 +69,10 @@ const pot = Number(BigInt(call.result)) / 1e6;
 
 const out = {
   asOf: new Date().toISOString(),
-  block: meta.block_height,
-  unison: { ...side(UNISON), pot },
-  control: side(CONTROL),
+  block: scores.block,
+  source: scores.source,
+  unison: { ...scores.unison, pot },
+  control: scores.control,
 };
 writeFileSync(fileURLToPath(new URL("../src/data/challenge-live.json", import.meta.url)), JSON.stringify(out, null, 2) + "\n");
 console.log(JSON.stringify(out));

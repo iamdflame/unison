@@ -2,7 +2,23 @@
 
 Unison's standing challenge pays its pot to anyone whose fills, marked to Chainlink 60 seconds later, beat the venue by more than 2 bp of their notional over 30 fills or more ([the terms](../../deploy/monad-mainnet-challenge.json), [the contract](../../contracts/src/challenge/LatencyChallenge.sol)). Our own bot enters it on two markets at once: Unison's causal WMON market, and a WMON market kept on the old rule as a control.
 
-## The live result
+## The final result (the window closed 27 October 2026, 23:59 UTC)
+
+**Nobody beat Unison's rule.** For the challenge's whole window, 6 to 27 October, its pot was open to anyone; the window closed with the pot unclaimed, and it still holds 18 AUSD.
+
+| | Unison (causal) | The old rule (control) |
+|---|---|---|
+| Our sniper's counted fills | 173 | 30 |
+| Its edge after fees, as the contract scores it | −21.49 bp (−0.026836 AUSD on 12.485507 AUSD) | +14.35 bp (0.003520 AUSD on 2.452306 AUSD) |
+| The pot | 18 AUSD, never claimed | 1 AUSD, paid to the sniper on 8 October |
+
+Check it from the chain alone:
+- `cast call 0xDcD3E86518db6A40C4feBa576efff598cA3B90d1 "paid()(bool)" --rpc-url https://rpc.monad.xyz` returns `false`;
+- `cast call 0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a "balanceOf(address)(uint256)" 0xDcD3E86518db6A40C4feBa576efff598cA3B90d1 --rpc-url https://rpc.monad.xyz` returns `18000000`.
+
+The scores are the house adversary's scoreboard, read 9 November 2026 (`GET https://unison-adversary-mainnet-production.up.railway.app/v1/score`), which marks every fill to Chainlink exactly as `LatencyChallenge.edgeOf` does.
+
+## The live result, as it happened
 
 **On 8 October 2026 at 02:35 UTC our own sniper claimed the old-rule control's pot.** The contract scored its 30 fills against Chainlink's history at +14.35 bp of their notional (an edge of 0.003520 AUSD on 2.452306 AUSD), over the +2 bp the terms require, and paid the pot, 1 AUSD, in transaction [`0x042dae76…ed3e02`](https://monadvision.com/tx/0x042dae768917a9730eaa2cf3a06106f308af6868255fca1f816bb9becded3e02) (block 111,492,259). It came 37 hours after the account opened; the replay below predicted about 33.
 

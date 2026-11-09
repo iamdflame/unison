@@ -26,16 +26,26 @@ interface Leg {
   edgeBps: number;
   ready: boolean;
   claimTx: string | null;
+  /** the pot (AUSD units) and whether it paid, as the score service read them from the chain */
+  pot?: string;
+  paid?: boolean;
 }
 
 async function load() {
   const net = netConfig("mainnet");
   const ch = net?.deployment.challenge as { unison: Address; control: Address; start: number; end: number } | undefined;
   if (!net || !ch) return null;
-  const client = createPublicClient({ transport: http(net.rpcUrl) });
-  // the pots and whether they were paid, from the chain itself
+  const client = createPublicClient({ transport: http(net.rpcUrl, { retryCount: 2, retryDelay: 400 }) });
+  const url = process.env.NEXT_PUBLIC_MAINNET_ADVERSARY_URL;
+  const board = url
+    ? ((await fetch(`${url}/v1/score`, { next: { revalidate } })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null)) as { adversary: Address; thresholdBps: number; minGapSec?: number; updatedAt: string | null; legs: Leg[] } | null)
+    : null;
+  // the pots and whether they were paid, from the chain itself; if the public RPC won't answer this server, from the
+  // score service, which reads the same two contracts. Never a zero the chain didn't say.
   let terms: Awaited<ReturnType<typeof challengeTerms>> | null = null;
-  let pots = { unison: 0n, control: 0n };
+  let pots: { unison: bigint | null; control: bigint | null } = { unison: null, control: null };
   let paid = { unison: false, control: false };
   try {
     const [tU, tC] = await Promise.all([challengeTerms(client, ch.unison), challengeTerms(client, ch.control)]);
@@ -47,19 +57,22 @@ async function load() {
     pots = { unison: pU, control: pC };
     paid = { unison: tU.paid, control: tC.paid };
   } catch {
-    /* the RPC didn't answer: the page still states the rules */
+    for (const name of ["unison", "control"] as const) {
+      const l = board?.legs.find((x) => x.name === name);
+      if (l?.pot !== undefined) pots[name] = BigInt(l.pot);
+      if (l?.paid !== undefined) paid[name] = l.paid;
+    }
   }
-  const url = process.env.NEXT_PUBLIC_MAINNET_ADVERSARY_URL;
-  const board = url
-    ? ((await fetch(`${url}/v1/score`, { next: { revalidate } })
-        .then((r) => (r.ok ? r.json() : null))
-        .catch(() => null)) as { adversary: Address; thresholdBps: number; minGapSec?: number; updatedAt: string | null; legs: Leg[] } | null)
-    : null;
   const challengers = await loadChallengers(revalidate);
-  return { net, ch, terms, pots, paid, board, challengers };
+  // read once per revalidation, with the data, so the page renders purely from what load() saw
+  const now = Math.floor(Date.now() / 1000);
+  return { net, ch, terms, pots, paid, board, challengers, now };
 }
 
-const ausd = (units: bigint) => `${(Number(units) / 1e6).toLocaleString("en-US", { maximumFractionDigits: 2 })} AUSD`;
+const ausd = (units: bigint | null) =>
+  units === null ? "Unavailable right now" : `${(Number(units) / 1e6).toLocaleString("en-US", { maximumFractionDigits: 2 })} AUSD`;
+/** quote units for a table cell that is always read */
+const ausdOf = (units: bigint) => ausd(units);
 const date = (sec: number | bigint) =>
   new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(
     new Date(Number(sec) * 1000),
@@ -100,16 +113,34 @@ export default async function ChallengePage() {
       <span className="figures">{label ?? addr}</span>
     );
   const leg = (name: "unison" | "control") => r?.board?.legs.find((l) => l.name === name);
+  // after the window the page reports the verdict; the definition and the scores stay as the record
+  const end = r ? Number(r.terms?.end ?? r.ch.end) : 0;
+  const closed = r ? r.now > end : false;
+  const u = leg("unison");
+  const c0 = leg("control");
 
   return (
     <article className="mx-auto max-w-[1100px] px-5 pt-36 pb-28 sm:px-8 lg:px-12 lg:pt-44">
-      <p className="text-sm font-medium text-ink-3">The standing challenge · Monad mainnet</p>
-      <h1 className="text-display-xl mt-3 max-w-3xl text-ink">Snipe us.</h1>
-      <p className="text-lede mt-6 max-w-2xl text-ink-2">
-        Anyone who makes money from being faster than Unison&apos;s price can take this pot. Our own sniper, open source,
-        trades Unison and a market kept on the old rule side by side: the same signal, the same size, the same vault. The
-        definition is in the contract, and the contract pays.
+      <p className="text-sm font-medium text-ink-3">
+        The standing challenge · Monad mainnet{closed ? ` · closed ${date(end)}` : ""}
       </p>
+      <h1 className="text-display-xl mt-3 max-w-3xl text-ink">{closed && r && !r.paid.unison ? "Nobody sniped us." : "Snipe us."}</h1>
+      {closed && r ? (
+        <p className="text-lede mt-6 max-w-2xl text-ink-2">
+          For three weeks a contract on Monad mainnet offered its pot to anyone who could profit from being faster than
+          Unison&apos;s price.{" "}
+          {r.paid.unison
+            ? "Unison's pot was claimed."
+            : `Nobody could: Unison's pot was never claimed${u ? `, and our own open-source sniper ended ${Math.abs(u.edgeBps).toFixed(2)} bp a trade down over ${u.counted} fills` : ""}.`}{" "}
+          {r.paid.control ? `On the market kept on the old rule, the same bot did profit, and that contract paid it${c0 ? ` (+${c0.edgeBps.toFixed(2)} bp over ${c0.counted} fills)` : ""}.` : ""}
+        </p>
+      ) : (
+        <p className="text-lede mt-6 max-w-2xl text-ink-2">
+          Anyone who makes money from being faster than Unison&apos;s price can take this pot. Our own sniper, open source,
+          trades Unison and a market kept on the old rule side by side: the same signal, the same size, the same vault. The
+          definition is in the contract, and the contract pays.
+        </p>
+      )}
 
       {r ? (
         <>
@@ -131,7 +162,7 @@ export default async function ChallengePage() {
                   <dl className="mt-5 space-y-3 text-sm">
                     <div className="flex justify-between gap-4">
                       <dt className="text-ink-3">Pot</dt>
-                      <dd className="figures font-semibold text-ink">{paid ? "Paid out" : ausd(r.pots[name])}</dd>
+                      <dd className="figures font-semibold text-ink">{paid ? "Paid out" : closed && r.pots[name] !== null ? `${ausd(r.pots[name])}, never claimed` : ausd(r.pots[name])}</dd>
                     </div>
                     <div className="flex justify-between gap-4">
                       <dt className="text-ink-3">Our sniper&apos;s fills</dt>
@@ -140,7 +171,7 @@ export default async function ChallengePage() {
                     <div className="flex justify-between gap-4">
                       <dt className="text-ink-3">Its edge, after fees</dt>
                       <dd className={`figures font-semibold ${l && l.edgeBps > 0 ? "text-buy" : "text-ink"}`}>
-                        {l && Number(l.counted) > 0 ? `${l.edgeBps > 0 ? "+" : ""}${l.edgeBps.toFixed(2)} bp a trade` : "None yet"}
+                        {l && Number(l.counted) > 0 ? `${l.edgeBps > 0 ? "+" : l.edgeBps < 0 ? "−" : ""}${Math.abs(l.edgeBps).toFixed(2)} bp a trade` : "None yet"}
                       </dd>
                     </div>
                     <div className="flex justify-between gap-4">
@@ -209,13 +240,13 @@ export default async function ChallengePage() {
                             </span>
                           </td>
                           <td className={`figures whitespace-nowrap px-4 py-3 text-right font-semibold sm:px-5 ${c.edgeBps > 0 ? "text-buy" : "text-ink"}`}>
-                            {c.counted ? `${c.edgeBps > 0 ? "+" : ""}${c.edgeBps.toFixed(2)} bp` : "—"}
+                            {c.counted ? `${c.edgeBps > 0 ? "+" : c.edgeBps < 0 ? "−" : ""}${Math.abs(c.edgeBps).toFixed(2)} bp` : "—"}
                           </td>
                           <td className="figures whitespace-nowrap px-4 py-3 text-right text-ink sm:px-5">
                             {c.counted} of {String(r.terms?.minFills ?? 30)}
                             {c.pendingMarks ? <span className="block text-xs text-ink-3">+{c.pendingMarks} awaiting markout</span> : null}
                           </td>
-                          <td className="figures hidden whitespace-nowrap px-5 py-3 text-right text-ink sm:table-cell">{ausd(c.notional)}</td>
+                          <td className="figures hidden whitespace-nowrap px-5 py-3 text-right text-ink sm:table-cell">{ausdOf(c.notional)}</td>
                         </tr>
                       );
                     })}
@@ -252,6 +283,24 @@ export default async function ChallengePage() {
             </dl>
           </section>
 
+          {closed ? (
+            <section aria-labelledby="result-title" className="mt-16">
+              <h2 id="result-title" className="text-display-s text-ink">
+                The result
+              </h2>
+              <p className="mt-3 max-w-2xl text-ink-2">
+                The window closed on {date(end)}. Every fill was judged by the contract against Chainlink&apos;s own history, as
+                above.{" "}
+                {r.paid.unison ? "Unison's pot paid out." : `Unison's pot of ${ausd(r.pots.unison)} was never claimed: the rule held, in public, with money on it.`}{" "}
+                {r.paid.control ? "On the old rule, the same bot met the definition and the contract paid it, 37 hours after its account opened." : ""} The
+                contracts, every fill and the claim are on Monad mainnet:{" "}
+                <a href={`${site.repo}/blob/main/docs/evidence/challenge.md`} className="text-ink underline decoration-line-strong underline-offset-4">
+                  the record
+                </a>
+                .
+              </p>
+            </section>
+          ) : (
           <section aria-labelledby="enter-title" className="mt-16">
             <h2 id="enter-title" className="text-display-s text-ink">
               Take it
@@ -274,6 +323,7 @@ export default async function ChallengePage() {
               .
             </p>
           </section>
+          )}
 
           <section aria-labelledby="bot-title" className="mt-16">
             <h2 id="bot-title" className="text-display-s text-ink">
