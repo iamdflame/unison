@@ -31,7 +31,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { createPublicClient, createWalletClient, erc20Abi, formatEther, formatUnits, http, isAddress, parseAbi, parseEther, parseUnits } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { challengeAccountAbi, latencyChallengeAbi, monad } from "@unison/sdk";
+import { challengeAccountAbi, latencyChallengeAbi, liquidityVaultAbi, monad, unisonExchangeAbi } from "@unison/sdk";
 
 const root = process.cwd();
 const env = Object.fromEntries(
@@ -327,6 +327,106 @@ if (cmd === "deploy") {
     console.log(`send ${formatEther(value)} MON to ${to}: ${r.status} ${hash}`);
   }
   console.log(`deployer keeps ${formatEther(await pub.getBalance({ address: deployer.address }))} MON for admin transactions`);
+} else if (cmd === "recover-redeem") {
+  // winding down, 1: every share the deployer holds in every vault, asked back. A vault pays a redemption at the first
+  // auction of its market after the request (LiquidityVault.process), so recover-poke follows.
+  const d = dep();
+  for (const [name, m] of Object.entries(d.markets)) {
+    const shares = await pub.readContract({ address: m.vault, abi: vaultAbi, functionName: "balanceOf", args: [deployer.address] });
+    if (shares === 0n) console.log(`${name}: the deployer holds no shares`);
+    else await send(`requestRedeem all ${shares} shares of the ${name} vault`, { address: m.vault, abi: vaultAbi, functionName: "requestRedeem", args: [shares] });
+  }
+} else if (cmd === "recover-poke") {
+  // winding down, 2: nobody trades now, so each market gets one bid of one unit at its lowest tick. Nothing crosses,
+  // but the auction runs and prints, and the vault can pay at that print. Costs at most 0.01 AUSD, which comes back.
+  const d = dep();
+  for (const [name, m] of Object.entries(d.markets)) {
+    const mk = await pub.readContract({ address: d.exchange, abi: unisonExchangeAbi, functionName: "market", args: [BigInt(m.id)] });
+    await send(`poke ${name}: bid 1 unit at tick ${mk.minTick}`, { address: d.exchange, abi: unisonExchangeAbi, functionName: "placeOrder", args: [BigInt(m.id), 0n, BigInt(mk.minTick), BigInt(mk.baseUnit), 0n] });
+  }
+  console.log("now the keeper clears each market at its next observation; then run recover-process");
+} else if (cmd === "recover-process") {
+  // winding down, 3: the vaults pay the redemptions (into the deployer's wallet), the deployer's own orders settle, and
+  // what it and the protocol hold on the exchange's ledger comes out to the deployer's wallet. Safe to run again.
+  const d = dep();
+  for (const [name, m] of Object.entries(d.markets)) {
+    try {
+      const { result } = await pub.simulateContract({ account: deployer, address: m.vault, abi: liquidityVaultAbi, functionName: "process" });
+      if (result > 0n) await send(`${name} vault: process ${result} request(s)`, { address: m.vault, abi: liquidityVaultAbi, functionName: "process" });
+      else console.log(`${name} vault: nothing to pay yet (its market hasn't printed since the request)`);
+    } catch (e) {
+      console.log(`${name} vault: not now (${e.shortMessage ?? e.message})`);
+    }
+  }
+  const bm = await pub.readContract({ address: d.exchange, abi: unisonExchangeAbi, functionName: "openOrderBitmap", args: [deployer.address] });
+  for (let i = 0n; i < 256n; i++) {
+    if (!(bm & (1n << i))) continue;
+    try {
+      await pub.simulateContract({ account: deployer, address: d.exchange, abi: unisonExchangeAbi, functionName: "cancelOrder", args: [i] });
+      await send(`settle the deployer's order in slot ${i}`, { address: d.exchange, abi: unisonExchangeAbi, functionName: "cancelOrder", args: [i] });
+    } catch (e) {
+      console.log(`slot ${i}: still waiting for its auction (${e.shortMessage ?? e.message})`);
+    }
+  }
+  for (const [sym, t] of Object.entries(d.tokens)) {
+    const mine = await pub.readContract({ address: d.exchange, abi: venueAbi, functionName: "balanceOf", args: [deployer.address, t.address] });
+    if (mine > 0n) await send(`withdraw the deployer's ${mine} ${sym} units from the ledger`, { address: d.exchange, abi: venueAbi, functionName: "withdraw", args: [t.address, mine, deployer.address] });
+    const fees = await pub.readContract({ address: d.exchange, abi: venueAbi, functionName: "balanceOf", args: [d.exchange, t.address] });
+    if (fees > 0n) await send(`withdraw ${fees} ${sym} units of protocol fees`, { address: d.exchange, abi: unisonExchangeAbi, functionName: "withdrawProtocol", args: [t.address, fees, deployer.address] });
+  }
+  for (const [name, m] of Object.entries(d.markets)) {
+    const left = await pub.readContract({ address: m.vault, abi: vaultAbi, functionName: "totalSupply" });
+    console.log(`${name} vault: ${left} shares left`);
+  }
+} else if (cmd === "recover-bot") {
+  // winding down, 4: the house adversary's two challenge accounts empty into its wallet, then everything it holds goes
+  // to the deployer (its MON last, less the fee)
+  if (!env.ADVERSARY_PRIVATE_KEY) throw new Error("no ADVERSARY_PRIVATE_KEY");
+  const d = dep();
+  const bot = privateKeyToAccount(env.ADVERSARY_PRIVATE_KEY);
+  const botWallet = createWalletClient({ chain: monad, transport: http(RPC), account: bot });
+  const as = async (what, req) => {
+    const gas = ((await pub.estimateContractGas({ account: bot, ...req })) * 125n) / 100n;
+    const r = await pub.waitForTransactionReceipt({ hash: await botWallet.writeContract({ ...req, gas }) });
+    console.log(`${what}: ${r.status} ${r.transactionHash}`);
+    if (r.status !== "success") throw new Error(`${what} reverted`);
+  };
+  for (const acct of d.adversary.accounts) {
+    for (const [sym, t] of Object.entries(d.tokens)) {
+      const bal = await pub.readContract({ address: d.exchange, abi: venueAbi, functionName: "balanceOf", args: [acct, t.address] });
+      if (bal === 0n) continue;
+      try {
+        await as(`account ${acct.slice(0, 8)}: withdraw ${bal} ${sym} units`, { address: acct, abi: challengeAccountAbi, functionName: "withdraw", args: [t.address, bal] });
+      } catch {
+        // an order still open in the account: put its fill on the record first, then withdraw
+        await as(`account ${acct.slice(0, 8)}: settle`, { address: acct, abi: challengeAccountAbi, functionName: "settle" });
+        await as(`account ${acct.slice(0, 8)}: withdraw ${bal} ${sym} units`, { address: acct, abi: challengeAccountAbi, functionName: "withdraw", args: [t.address, bal] });
+      }
+    }
+  }
+  for (const [sym, t] of Object.entries(d.tokens)) {
+    const bal = await pub.readContract({ address: t.address, abi: erc20Abi, functionName: "balanceOf", args: [bot.address] });
+    if (bal > 0n) await as(`bot: send ${bal} ${sym} units to the deployer`, { address: t.address, abi: erc20Abi, functionName: "transfer", args: [deployer.address, bal] });
+  }
+  const gasPrice = await pub.getGasPrice();
+  const value = (await pub.getBalance({ address: bot.address })) - 21_000n * gasPrice * 2n;
+  if (value > 0n) {
+    const r = await pub.waitForTransactionReceipt({ hash: await botWallet.sendTransaction({ to: deployer.address, value, gas: 21_000n, gasPrice: gasPrice * 2n }) });
+    console.log(`bot: send ${formatEther(value)} MON to the deployer: ${r.status} ${r.transactionHash}`);
+  }
+} else if (cmd === "recover-mon") {
+  // winding down, 5: an operator key's MON back to the deployer, less the fee. The keeper last, once its service is off.
+  const which = (arg ?? "").toUpperCase();
+  if (!["KEEPER", "RELAYER", "GUARDIAN"].includes(which) || !env[`${which}_PRIVATE_KEY`]) throw new Error("usage: recover-mon <keeper|relayer|guardian>");
+  const k = privateKeyToAccount(env[`${which}_PRIVATE_KEY`]);
+  const w = createWalletClient({ chain: monad, transport: http(RPC), account: k });
+  const gasPrice = await pub.getGasPrice();
+  const value = (await pub.getBalance({ address: k.address })) - 21_000n * gasPrice * 2n;
+  if (value <= 0n) console.log(`${which.toLowerCase()}: nothing to send`);
+  else {
+    const r = await pub.waitForTransactionReceipt({ hash: await w.sendTransaction({ to: deployer.address, value, gas: 21_000n, gasPrice: gasPrice * 2n }) });
+    console.log(`${which.toLowerCase()}: send ${formatEther(value)} MON to the deployer: ${r.status} ${r.transactionHash}`);
+  }
 } else if (cmd === "status") {
   const [mon] = await Promise.all([pub.getBalance({ address: deployer.address })]);
   console.log(`deployer ${deployer.address}: ${formatEther(mon)} MON`);
