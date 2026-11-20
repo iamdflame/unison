@@ -83,7 +83,8 @@ export const XHeader = () => (
       </g>
     </svg>
     <div style={{ position: "absolute", left: 0, right: 0, top: 92, textAlign: "center" }}>
-      <div style={{ fontFamily: F.text, fontWeight: 600, fontSize: 22, letterSpacing: "0.32em", color: C.champagne }}>● LIVE ON MONAD MAINNET</div>
+      {/* the mainnet beta concluded on 18 November 2026: the header names where it is built, not that it is live */}
+      <div style={{ fontFamily: F.text, fontWeight: 600, fontSize: 22, letterSpacing: "0.32em", color: C.champagne }}>BUILT ON MONAD · PRICED BY CHAINLINK</div>
       <div style={{ fontFamily: F.display, fontSize: 96, lineHeight: 1.05, marginTop: 14, color: C.ink, textShadow: glow(C.champagne, 0.45) }}>Prices nobody saw first.</div>
       <div style={{ fontFamily: F.text, fontSize: 29, color: C.ink2, marginTop: 14 }}>An exchange for tokenized stocks where every order is sealed before its price exists.</div>
     </div>

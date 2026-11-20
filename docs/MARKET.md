@@ -94,7 +94,7 @@ The partners we'll approach first:
 
 ## Why this team
 
-Unison is built by a founder who has traded both crypto and stocks for a year, and who builds products. Crypto never closes, stocks do, and on-chain the gap is paid to whoever is fastest. This is the venue the founder wanted to trade on.
+Unison is built by a founder who has been building in web3 for three years and trading stocks for two. Crypto never closes, stocks do, and on-chain the gap is paid to whoever is fastest. This is the venue the founder wanted to trade on.
 
 ## Appendix: a simulation of other designs
 
