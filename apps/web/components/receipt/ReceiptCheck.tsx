@@ -23,27 +23,26 @@ type State =
 
 const sentence = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-/** The fields the tape and the chain both state, and where they differ. */
-function disagreements(v: ReceiptVerification, tape: TapeSays): string[] {
+/** The fields the page's source (`by`: the tape, or the page's own record) and the chain both state, and where they differ. */
+function disagreements(v: ReceiptVerification, tape: TapeSays, by: string): string[] {
   const out: string[] = [];
-  if (v.marketId !== BigInt(tape.marketId)) out.push(`market: the tape says ${tape.marketId}, the chain ${v.marketId}`);
-  if (v.upToBlock !== BigInt(tape.upTo))
-    out.push(`auction block: the tape says ${tape.upTo}, the chain ${v.upToBlock}`);
-  if (v.price !== BigInt(tape.price)) out.push(`price: the tape says ${tape.price}, the chain ${v.price}`);
-  if (v.volume !== BigInt(tape.volume)) out.push(`volume: the tape says ${tape.volume}, the chain ${v.volume}`);
+  if (v.marketId !== BigInt(tape.marketId)) out.push(`market: ${by} says ${tape.marketId}, the chain ${v.marketId}`);
+  if (v.upToBlock !== BigInt(tape.upTo)) out.push(`auction block: ${by} says ${tape.upTo}, the chain ${v.upToBlock}`);
+  if (v.price !== BigInt(tape.price)) out.push(`price: ${by} says ${tape.price}, the chain ${v.price}`);
+  if (v.volume !== BigInt(tape.volume)) out.push(`volume: ${by} says ${tape.volume}, the chain ${v.volume}`);
   if (v.receiptHash.toLowerCase() !== tape.receiptHash.toLowerCase())
-    out.push(`receipt hash: the tape says ${tape.receiptHash}, the chain ${v.receiptHash}`);
+    out.push(`receipt hash: ${by} says ${tape.receiptHash}, the chain ${v.receiptHash}`);
   const sameRule = !tape.rule || v.rule === tape.rule || (v.rule === "halted" && tape.rule !== "causal");
-  if (!sameRule) out.push(`rule: the tape says ${tape.rule}, the chain ${v.rule}`);
+  if (!sameRule) out.push(`rule: ${by} says ${tape.rule}, the chain ${v.rule}`);
   return out;
 }
 
 /**
  * The receipt, checked again by the reader's own browser against Monad's RPC: the same verifyReceipt that
- * verify-receipt.mjs runs, so the page's numbers are the tape's claim and this panel is the chain's answer. Key it by
- * the transaction: it checks once per mount.
+ * verify-receipt.mjs runs, so the page's numbers are a claim (the tape's, or on the archived site the page's own
+ * record, named by `by`) and this panel is the chain's answer. Key it by the transaction: it checks once per mount.
  */
-export function ReceiptCheck({ rpcUrl, tx, tape }: { rpcUrl: string; tx: Hex; tape: TapeSays }) {
+export function ReceiptCheck({ rpcUrl, tx, tape, by = "the tape" }: { rpcUrl: string; tx: Hex; tape: TapeSays; by?: string }) {
   const [state, setState] = useState<State>({ phase: "checking" });
   const host = (() => {
     try {
@@ -73,7 +72,7 @@ export function ReceiptCheck({ rpcUrl, tx, tape }: { rpcUrl: string; tx: Hex; ta
   }, [rpcUrl, tx]);
 
   const v = state.phase === "done" ? state.v : null;
-  const differ = v ? disagreements(v, tape) : [];
+  const differ = v ? disagreements(v, tape, by) : [];
   const shown = v ? v.steps.filter((s) => s.kind !== "info") : [];
 
   return (
@@ -90,7 +89,7 @@ export function ReceiptCheck({ rpcUrl, tx, tape }: { rpcUrl: string; tx: Hex; ta
       ) : state.phase === "missing" ? (
         <div role="alert" className="mt-3 rounded-[var(--radius-lg)] bg-sell-soft p-3 text-sm text-ink">
           <p className="font-semibold">
-            The chain has no auction at the transaction the tape names. The chain is the record.
+            The chain has no auction at the transaction {by} names. The chain is the record.
           </p>
           <p className="mt-1 break-all text-ink-2">{tx}</p>
         </div>
@@ -115,7 +114,7 @@ export function ReceiptCheck({ rpcUrl, tx, tape }: { rpcUrl: string; tx: Hex; ta
           </p>
           {differ.length > 0 ? (
             <div role="alert" className="mt-3 rounded-[var(--radius-lg)] bg-sell-soft p-3 text-sm text-ink">
-              <p className="font-semibold">The tape and the chain disagree. The chain is the record.</p>
+              <p className="font-semibold">{sentence(by)} and the chain disagree. The chain is the record.</p>
               <ul className="mt-1 list-disc pl-5 text-ink-2">
                 {differ.map((d) => (
                   <li key={d} className="break-words">

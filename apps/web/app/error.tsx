@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { lazy, Suspense, useEffect, type ComponentType } from "react";
+import { archived } from "@/lib/venue/archive";
 
 // This boundary is part of every route, so its drawings are fetched only when a page actually fails, and skipped if
 // that fetch fails too (it may be the network that broke): the words and the two ways out stand on their own.
@@ -30,10 +31,12 @@ export default function RouteError({ error, reset }: { error: Error & { digest?:
           <h1 className="text-display-xl text-ink">
             Something stopped.
             <br />
-            <span className="text-ink-3">Not the market. This page.</span>
+            <span className="text-ink-3">{archived ? "Only this page." : "Not the market. This page."}</span>
           </h1>
           <p className="text-lede mt-7 max-w-md text-ink-2">
-            Your funds and orders live on-chain and aren&apos;t affected. Try again, or check the venue&apos;s status.
+            {archived
+              ? "Nothing on this site is on a chain: the simulation runs in your browser. Try again."
+              : "Your funds and orders live on-chain and aren't affected. Try again, or check the venue's status."}
           </p>
           <div className="mt-10 flex flex-wrap gap-3">
             <button type="button" onClick={reset} className="press rounded-[var(--radius-sm)] bg-ink px-6 py-3.5 text-[15px] font-semibold text-bg">

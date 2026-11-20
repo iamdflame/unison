@@ -6,7 +6,9 @@ import type { Print } from "@unison/sdk/tape";
 import { LightReader } from "@unison/sdk/light";
 import { Code } from "@/components/code/Code";
 import { ReceiptCheck } from "@/components/receipt/ReceiptCheck";
-import { netConfig, networkName, type Network } from "@/lib/venue/config";
+import { ARCHIVED_ON, ARCHIVED_RECEIPTS } from "@/lib/content/receipts.generated";
+import { archived } from "@/lib/venue/archive";
+import { chainConfig, netConfig, networkName, type Network } from "@/lib/venue/config";
 
 /**
  * One auction's receipt, as a plain page: no wallet. The three times in order (the newest order sealed, Chainlink
@@ -14,6 +16,9 @@ import { netConfig, networkName, type Network } from "@/lib/venue/config";
  * the chain by the reader's own browser (ReceiptCheck), and the commands that run them from a terminal. The numbers
  * on the page are the tape's; the browser's check is the chain's, and says so when they differ. A receipt never
  * changes once its auction is final, so the page is cached.
+ *
+ * On the archived site there is no tape. The receipts the beta's record links to were rebuilt from the chain
+ * (scripts/archive-receipts.mjs, every check passing) and are served from that file; the browser's check is unchanged.
  */
 export const revalidate = 3600;
 
@@ -30,6 +35,26 @@ async function load(params: Params) {
   const marketId = Number(params.market);
   const upTo = Number(params.upTo);
   if (!network || !Number.isSafeInteger(marketId) || !Number.isSafeInteger(upTo) || marketId < 0 || upTo < 0) return null;
+  if (archived) {
+    const chain = chainConfig(network);
+    const record = network === "mainnet" ? ARCHIVED_RECEIPTS.find((r) => r.marketId === marketId && r.upTo === upTo) : undefined;
+    if (!chain || !record) return null;
+    const market = Object.values(chain.deployment.markets).find((m) => m.id === marketId);
+    const decimalsOf = (addr: string | undefined) =>
+      Object.values(chain.deployment.tokens ?? {}).find((t) => t.address.toLowerCase() === addr?.toLowerCase())?.decimals;
+    const p: Print = record;
+    return {
+      net: chain,
+      p,
+      symbol: market?.symbol ?? `market ${marketId}`,
+      control: !!market?.control,
+      baseDecimals: decimalsOf(market?.base) ?? 18,
+      quoteDecimals: decimalsOf(market?.quote) ?? 6,
+      feed: record.feed ? { base: record.feed as Address } : null,
+      tapeUrl: null,
+      record: { on: ARCHIVED_ON, checks: record.checks },
+    };
+  }
   const net = netConfig(network);
   if (!net) return null;
   const res = await fetch(`${net.tapeUrl}/v1/markets/${marketId}/prints?before=${upTo + 1}&limit=1`, { next: { revalidate } }).catch(() => null);
@@ -55,8 +80,12 @@ async function load(params: Params) {
     baseDecimals: decimalsOf(market?.base) ?? 18,
     quoteDecimals: decimalsOf(market?.quote) ?? 6,
     feed,
+    tapeUrl: net.tapeUrl as string | null,
+    record: null as { on: string; checks: { passed: number; of: number } } | null,
   };
 }
+
+const dayOf = (iso: string) => new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" }).format(new Date(iso));
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const r = await load(await params);
@@ -179,7 +208,7 @@ export default async function ReceiptPage({ params }: { params: Promise<Params> 
           [
             ["Price", traded ? price(p.price) : "No trade"],
             ["Reference", price(p.refPrice)],
-            ["Against the reference", p.deviationBps === null ? "No trade" : `${p.deviationBps > 0 ? "+" : ""}${p.deviationBps.toFixed(2)} bp`],
+            ["Against the reference", p.deviationBps === null ? "No trade" : `${p.deviationBps > 0 ? "+" : p.deviationBps < 0 ? "−" : ""}${Math.abs(p.deviationBps).toFixed(2)} bp`],
             ["Volume", `${volume} ${base}`],
             ["Regime", p.regime],
             [
@@ -237,6 +266,7 @@ export default async function ReceiptPage({ params }: { params: Promise<Params> 
             rpcUrl={net.rpcUrl}
             tx={p.tx as Hex}
             tape={{ marketId: p.marketId, upTo: p.upTo, price: p.price, volume: p.volume, receiptHash: p.receiptHash, rule: p.rule }}
+            by={r.record ? "this page" : "the tape"}
           />
           <Code
             lang="bash"
@@ -250,13 +280,18 @@ export default async function ReceiptPage({ params }: { params: Promise<Params> 
               code={`cast call ${feed.base} "getRoundData(uint80)(uint80,int256,uint256,uint256,uint80)" ${p.round} --rpc-url https://rpc.monad.xyz`}
             />
           ) : null}
-          <Code
-            lang="bash"
-            title="the tape's record"
-            code={`curl "${net.tapeUrl}/v1/markets/${p.marketId}/prints?before=${p.upTo + 1}&limit=1"`}
-          />
+          {r.tapeUrl ? (
+            <Code
+              lang="bash"
+              title="the tape's record"
+              code={`curl "${r.tapeUrl}/v1/markets/${p.marketId}/prints?before=${p.upTo + 1}&limit=1"`}
+            />
+          ) : null}
         </div>
         <p className="mt-6 text-sm text-ink-3">
+          {r.record
+            ? `The mainnet beta has concluded and its tape is off, so the numbers on this page were read from the chain on ${dayOf(r.record.on)}, when ${r.record.checks.passed} of ${r.record.checks.of} checks passed. Your browser runs them again above. `
+            : ""}
           How the rule works, and what it costs:{" "}
           <Link href="/fairness" className="text-ink underline decoration-line-strong underline-offset-4">
             the record

@@ -4,6 +4,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { archived } from "@/lib/venue/archive";
 import { MENU_TRIGGER, MenuGlyph, menuHandoff } from "./MobileMenu";
 
 const LINKS = [
@@ -55,7 +56,7 @@ export function MobileMenuSheet() {
             </ul>
           </nav>
           <Link href="/trade/aNVDA" onClick={() => setOpen(false)} className="press mt-auto rounded-[var(--radius-sm)] bg-ink py-4 text-center text-[16px] font-semibold text-bg">
-            Start trading
+            {archived ? "Try the demo" : "Start trading"}
           </Link>
         </Dialog.Popup>
       </Dialog.Portal>

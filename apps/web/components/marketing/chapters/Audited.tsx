@@ -1,5 +1,6 @@
 import { facts } from "@/lib/content/facts";
 import { site } from "@/lib/content/site";
+import { archived } from "@/lib/venue/archive";
 import { AuditedFigure } from "./AuditedFigure";
 
 /**
@@ -23,8 +24,9 @@ export function Audited() {
             is in flight, the feed trails the market by design.
           </p>
           <p className="mt-6 text-sm text-ink-3">
-            It runs in Chainlink&apos;s CRE simulator today, reading Monad mainnet, and moves to a live network once access
-            is granted. Halts on the primary market are mirrored within a minute.{" "}
+            {archived
+              ? "During the beta it ran in Chainlink's CRE simulator, reading Monad mainnet; it never held a role on a live network. Halts on the primary market are mirrored within a minute."
+              : "It runs in Chainlink's CRE simulator today, reading Monad mainnet, and moves to a live network once access is granted. Halts on the primary market are mirrored within a minute."}{" "}
             <a className="underline decoration-line-strong underline-offset-4 hover-fine:text-ink" href={`${site.repo}/tree/main/cre/unison`}>
               The workflows
             </a>

@@ -2,6 +2,18 @@
 
 The live setup runs the web app on **Vercel** and the services on **Railway**, both driven from their CLIs. It serves two networks from one site. A Fly.io recipe for the same services is kept at the end, as an alternative.
 
+## The archived site
+
+**The beta concluded on 18 November 2026 and every Railway service below is off.** The web app is built archived, which is its default (`apps/web/lib/venue/archive.ts`):
+- **No network to trade on.** The venue switch is gone and every market runs as the labelled simulation in the browser, at once, with no health probe.
+- **`/challenge` shows the final verdict** from `facts.challenge.final`, with no scoreboard, indexer or RPC behind it.
+- **The beta's linked receipts** are served from `apps/web/lib/content/receipts.generated.ts`, rebuilt from the chain by `node apps/web/scripts/archive-receipts.mjs`. The reader's browser still checks each against `rpc.monad.xyz`.
+- **To deploy it:** `vercel deploy --prod` from the repository root. No variable has to change.
+- **To bring the networks back:** start the services, set `NEXT_PUBLIC_ARCHIVE=0` in Vercel and redeploy. A build for a local devnet (`NEXT_PUBLIC_NETWORK=devnet` or chain 31337) is never archived; a rehearsal on a mainnet fork needs `NEXT_PUBLIC_ARCHIVE=0`.
+- **Stopping a Railway service for good:** delete its volume first, then `railway down`. Removing a volume redeploys the service it was attached to. Check `railway service list` and each `/health` afterwards.
+
+The rest of this guide describes the setup as it ran.
+
 ## What runs where
 
 | Piece | Where | Network | Address |

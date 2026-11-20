@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { ThemeMenu } from "@/components/ui/ThemeMenu";
 import { site } from "@/lib/content/site";
+import { archived } from "@/lib/venue/archive";
 import { Hallmark } from "@/components/ui/Hallmark";
 import { MobileMenu } from "./MobileMenu";
 
@@ -56,7 +57,7 @@ export function Nav({ brand }: { brand: ReactNode }) {
             // phones carry one primary action per screen: the hero's, and the menu sheet's
             className="press tap hidden rounded-[var(--radius-sm)] bg-ink px-3.5 py-2 text-[13.5px] font-semibold text-bg hover-fine:opacity-90 sm:inline-flex"
           >
-            Start trading
+            {archived ? "Try the demo" : "Start trading"}
           </Link>
         </div>
       </nav>

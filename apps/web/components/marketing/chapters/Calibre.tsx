@@ -1,5 +1,7 @@
 import { MARK_BOX, MARK_PARTS } from "@/components/brand/geometry";
 import { facts } from "@/lib/content/facts";
+import { site } from "@/lib/content/site";
+import { archived } from "@/lib/venue/archive";
 
 /**
  * Chapter 6: Calibre U-300. The venue's specification, set like a watch catalogue's calibre page, beside a
@@ -14,7 +16,13 @@ const SPECS: [string, string, string?][] = [
   ["Fairness", "One price per auction", "In session, against a reference observed after its orders were sealed; while closed, around the last price"],
   ["Gas per clear", `${(facts.gas.clearMonad / 1e6).toFixed(2)}M`, `${facts.gas.savingPct}% less than under Ethereum's rules`],
   ["Cost", `≈ $${facts.gas.batch200Usd} per batch`, `200 orders; about $${facts.gas.orderUsd} per order`],
-  ["Case", "Monad", "Mainnet beta: real assets, small vaults, daily caps. An external audit comes before it grows. Open source, MIT"],
+  [
+    "Case",
+    "Monad",
+    archived
+      ? `Mainnet beta, ${site.beta}: real assets, small vaults, daily caps. Concluded; an external audit comes before real money returns. Open source, MIT`
+      : "Mainnet beta: real assets, small vaults, daily caps. An external audit comes before it grows. Open source, MIT",
+  ],
 ];
 
 export function Calibre() {

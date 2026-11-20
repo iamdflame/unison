@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { site } from "@/lib/content/site";
+import { archived } from "@/lib/venue/archive";
 
 export interface LegalSection {
   id: string;
@@ -35,9 +37,10 @@ export function LegalPage({ path, title, updated, intro, sections }: { path: str
       <h1 className="text-display-xl mt-10 text-ink">{title}</h1>
       <p className="mt-4 text-sm text-ink-3">Updated {updated}</p>
       <p role="note" className="mt-8 max-w-3xl rounded-2xl border border-halt/40 bg-sell-soft/40 px-5 py-4 text-sm leading-relaxed text-ink">
-        <span className="font-semibold">A draft, not yet reviewed by counsel.</span> Unison runs a small beta on Monad
-        mainnet with real assets, capped by small vaults and daily volume limits, and a testnet with mock assets. These
-        pages say plainly how it works and what can go wrong. Counsel reviews them before the beta grows.
+        <span className="font-semibold">A draft, not yet reviewed by counsel.</span>{" "}
+        {archived
+          ? `Unison ran a small beta on Monad mainnet from ${site.beta}, with real assets capped by small vaults and daily volume limits, and a testnet with mock assets. Both have concluded, and this site now runs a simulation. These pages are kept as they stood during the beta: how it worked, and what could go wrong.`
+          : "Unison runs a small beta on Monad mainnet with real assets, capped by small vaults and daily volume limits, and a testnet with mock assets. These pages say plainly how it works and what can go wrong. Counsel reviews them before the beta grows."}
       </p>
       <div className="text-lede mt-10 max-w-[68ch] text-ink-2">{intro}</div>
 

@@ -86,7 +86,23 @@ export const facts = {
     gapMin: 30,
     oldRule: { edgeBps: 17.8, winsPct: 72, qualifiesH: 33.1 },
     causal: { edgeBps: -23.0, bestPrefixBps: -15.8 },
+    /**
+     * The live result, final: the window closed on 27 Oct 2026. The same sniper on both markets, as the contract scores
+     * it (the house adversary's scoreboard, read 9 Nov 2026); the pots as the chain holds them.
+     * docs/evidence/challenge.md, "The final result".
+     */
+    final: {
+      scoredAt: "2026-11-09",
+      unison: { fills: 173, edgeBps: -21.49, potAusd: 18, paid: false },
+      control: { fills: 30, edgeBps: 14.35, potAusd: 1, paid: true, claimTx: "0x042dae768917a9730eaa2cf3a06106f308af6868255fca1f816bb9becded3e02" },
+    },
   },
+
+  /**
+   * The mainnet beta, start to finish: launched 5 Oct 2026, concluded 18 Nov 2026. The fills are the tape's own count
+   * (GET /v1/stats, 20 Nov 2026). docs/evidence/mainnet.md, "The beta's conclusion".
+   */
+  beta: { from: "5 October", to: "18 November 2026", fills: 221, outsideTraders: 0 },
 } as const;
 
 /**

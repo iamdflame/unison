@@ -94,7 +94,7 @@ export default function RiskPage() {
             <p>
               Unison depends on Monad, on RPC providers, and on its own keeper, relayer and tape. Any of them can be slow or
               stop. Your funds stay in the contracts when they do, and the contracts let you act without our services,
-              directly from a wallet. <Link href="/status">Status</Link> shows them live.
+              directly from a wallet. During the beta, <Link href="/status">Status</Link> showed them live.
             </p>
           ),
         },

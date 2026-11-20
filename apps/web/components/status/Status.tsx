@@ -6,8 +6,10 @@ import type { Address } from "viem";
 import { RegimeBadge } from "@/components/app/RegimeBadge";
 import { causalWait } from "@/lib/content/facts";
 import { MARKETS, marketName, priceFormat, specOfSymbol, type MarketSpec } from "@/lib/content/markets";
+import { site } from "@/lib/content/site";
 import { shallowEqual } from "@/lib/store/createStore";
 import { useMarket, useVenue } from "@/lib/venue";
+import { archived } from "@/lib/venue/archive";
 import { chooseNetwork, networks, type NetConfig } from "@/lib/venue/config";
 import { liveClients } from "@/lib/venue/live";
 import { Keys } from "./Keys";
@@ -262,15 +264,18 @@ function SimulatedStatus() {
   const rows: [string, string, string, string, string][] = [
     ["Clearing engine", "The contracts' auction, bit-exact, in your browser", "every block in session, every 10 overnight", "Running", "bg-buy"],
     ["Reference prices", "A simulated feed for each market", "labelled on every screen", "Simulated", "bg-champagne"],
-    ["Network", "No chain, tape or relayer connected to this copy of the site", "—", "Not connected", "bg-ink-3"],
+    archived
+      ? ["Mainnet beta", `Ran from ${site.beta}. Its keeper, relayer and tape are off; its contracts stay on Monad`, "the record is public", "Concluded", "bg-ink-3"]
+      : ["Network", "No chain, tape or relayer connected to this copy of the site", "—", "Not connected", "bg-ink-3"],
   ];
   return (
     <>
       <section className="mx-auto max-w-[1440px] px-5 pt-36 pb-10 sm:px-8 lg:px-12 lg:pt-44">
         <h1 className="text-display-xl max-w-4xl text-ink">Running the simulation.</h1>
         <p className="text-lede mt-7 max-w-2xl text-ink-2">
-          This copy of the site isn&apos;t connected to a Unison network, so every market here clears on the real clearing
-          engine in your browser, on the venue&apos;s own schedule. Live status appears when the site is pointed at a network.
+          {archived
+            ? "The mainnet beta has concluded and its services are off, so every market here clears on the real clearing engine in your browser, on the venue's own schedule."
+            : "This copy of the site isn't connected to a Unison network, so every market here clears on the real clearing engine in your browser, on the venue's own schedule. Live status appears when the site is pointed at a network."}
         </p>
       </section>
 

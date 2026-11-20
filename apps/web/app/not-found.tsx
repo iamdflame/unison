@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Lockup } from "@/components/brand/Lockup";
 import { LazyWatchFace } from "@/components/brand/LazyWatchFace";
+import { archived } from "@/lib/venue/archive";
 
 export const metadata: Metadata = { title: "Closed", robots: { index: false } };
 
@@ -19,15 +20,16 @@ export default function NotFound() {
           <h1 className="text-display-xl text-ink">
             This page is closed.
             <br />
-            <span className="text-ink-3">The market isn&apos;t.</span>
+            <span className="text-ink-3">{archived ? "The demo is open." : "The market isn't."}</span>
           </h1>
           <p className="text-lede mt-7 max-w-md text-ink-2">
-            Every Unison market keeps clearing, nights and weekends included. This address just doesn&apos;t lead
-            to one.
+            {archived
+              ? "This address doesn't lead anywhere. The mainnet beta has concluded; every market still clears in the simulation, in your browser."
+              : "Every Unison market keeps clearing, nights and weekends included. This address just doesn't lead to one."}
           </p>
           <div className="mt-10 flex flex-wrap gap-3">
             <Link href="/trade/aNVDA" className="press rounded-[var(--radius-sm)] bg-ink px-6 py-3.5 text-[15px] font-semibold text-bg">
-              Open the terminal
+              {archived ? "Try the demo" : "Open the terminal"}
             </Link>
             <Link href="/" className="press rounded-[var(--radius-sm)] px-6 py-3.5 text-[15px] font-semibold text-ink hairline">
               Home

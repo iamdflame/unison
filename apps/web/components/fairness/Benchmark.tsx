@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { facts, shipped } from "@/lib/content/facts";
 import { site } from "@/lib/content/site";
+import { archived } from "@/lib/venue/archive";
 
 const usd = (n: number) => `$${n.toLocaleString("en-US")}`;
 
@@ -95,7 +97,21 @@ export function Benchmark() {
             <li>Stylized actors: one sniper with a perfect mid-block feed; order-book makers refresh with one block of latency and races are coin flips.</li>
             <li>The reference relay is modelled with no lag at the batch close. A relay lagging by δ gives back an edge of order σ·√δ, far below a 2 bp spread over tens of milliseconds except during news, where discovery and halt bands cap it.</li>
             <li>Synthetic, independent uninformed flow; no strategic market makers or inventory aversion.</li>
-            <li>Live data supersedes this: the tape above is the venue&apos;s real record, and replaces the simulation as it accumulates.</li>
+            <li>
+              {archived ? (
+                <>
+                  The mainnet beta then measured it with real money. The same bot, with the same signal, made{" "}
+                  {facts.challenge.final.control.edgeBps.toFixed(2)} bp a trade on a market kept on the old rule, and lost{" "}
+                  {Math.abs(facts.challenge.final.unison.edgeBps).toFixed(2)} bp a trade on Unison.{" "}
+                  <Link className="text-ink underline decoration-line-strong underline-offset-4" href="/challenge">
+                    The result
+                  </Link>
+                  .
+                </>
+              ) : (
+                "Live data supersedes this: the tape above is the venue's real record, and replaces the simulation as it accumulates."
+              )}
+            </li>
           </ul>
           <a className="mt-5 inline-block text-sm font-semibold text-ink underline decoration-line-strong underline-offset-4" href={`${site.repo}/blob/main/docs/evidence/fairness.md`}>
             The full method

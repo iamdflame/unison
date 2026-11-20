@@ -1,5 +1,6 @@
 import { chainById, type Deployment } from "@unison/sdk";
 import type { Chain } from "viem";
+import { archived } from "./archive.ts";
 import { DEPLOYMENTS } from "./deployments.generated.ts";
 
 /**
@@ -7,7 +8,8 @@ import { DEPLOYMENTS } from "./deployments.generated.ts";
  * NEXT_PUBLIC_CHAIN_ID, with NEXT_PUBLIC_TAPE_URL and friends) and, beside it, Monad mainnet or the public testnet
  * (NEXT_PUBLIC_MAINNET_* / NEXT_PUBLIC_TESTNET_*). The visitor picks one with the venue switch (`?network=` or
  * the stored choice). Live mode needs a deployment plus a tape and a relayer; without them (or when they don't
- * answer) the app runs the in-browser simulation and says so.
+ * answer) the app runs the in-browser simulation and says so. An archived build (archive.ts) has no network to trade
+ * on at all: it runs the simulation at once, and its record pages read the chain through `chainConfig`.
  */
 export type Network = "devnet" | "testnet" | "mainnet";
 
@@ -72,8 +74,9 @@ const envFor = (network: Network): NetEnv | undefined => {
   return network === defaultNetwork() ? DEFAULT_ENV : undefined;
 };
 
-/** The networks this build can trade on, the default first. */
+/** The networks this build can trade on, the default first. An archived build has none. */
 export function networks(): Network[] {
+  if (archived) return [];
   const d = defaultNetwork();
   const all: Network[] = ["mainnet", "testnet", "devnet"];
   return (d ? [d, ...all.filter((n) => n !== d)] : all).filter((n) => {
@@ -128,6 +131,27 @@ export function netConfig(network: Network | undefined = selectedNetwork()): Net
     faucet: network !== "mainnet" && process.env.NEXT_PUBLIC_FAUCET !== "0",
     explorer: chain.blockExplorers?.default.url,
   };
+}
+
+/** What reading a network's chain takes: no tape, no relayer. */
+export interface ChainConfig {
+  network: Network;
+  chain: Chain;
+  rpcUrl: string;
+  deployment: Deployment;
+  explorer: string | undefined;
+}
+
+/**
+ * A network's chain alone, for the pages that are a record (a receipt, the challenge): they read the deployment and
+ * the chain, so they outlive the services.
+ */
+export function chainConfig(network: Network): ChainConfig | null {
+  const deployment = DEPLOYMENTS[network];
+  if (!deployment) return null;
+  const chain = chainById(deployment.chainId);
+  const rpc = NAMED_ENV[network]?.rpc ?? (network === defaultNetwork() ? DEFAULT_ENV.rpc : undefined);
+  return { network, chain, rpcUrl: rpc ?? chain.rpcUrls.default.http[0]!, deployment, explorer: chain.blockExplorers?.default.url };
 }
 
 /** How a network is named to people. */

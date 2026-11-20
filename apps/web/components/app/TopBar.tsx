@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { Hallmark } from "@/components/ui/Hallmark";
 import { ThemeMenu } from "@/components/ui/ThemeMenu";
+import { site } from "@/lib/content/site";
+import { archived } from "@/lib/venue/archive";
 import dynamic from "next/dynamic";
 import { AccountButton } from "./AccountButton";
 import { MarketSwitcher } from "./MarketSwitcher";
@@ -28,6 +31,12 @@ export function TopBar({ mark }: { mark: ReactNode }) {
         <Link href="/" aria-label="Unison home" className="rounded-full p-1">
           {mark}
         </Link>
+        {/* a visitor who lands here first reads where they are: the beta is over, and its results are one tap away */}
+        {archived ? (
+          <Link href="/challenge" title="The mainnet beta's results" className="hidden rounded-[3px] outline-offset-2 lg:inline-flex">
+            <Hallmark>{site.stage}</Hallmark>
+          </Link>
+        ) : null}
         <nav aria-label="App" className="ml-2 hidden items-center gap-0.5 sm:flex">
           {NAV.map((n) => {
             const on = path.startsWith(n.match);

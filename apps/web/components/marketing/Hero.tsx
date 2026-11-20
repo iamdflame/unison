@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ResonanceDial } from "@/components/brand/ResonanceDial";
 import { marketByTicker } from "@/lib/content/markets";
 import { site } from "@/lib/content/site";
+import { archived } from "@/lib/venue/archive";
 import { HeroSession } from "./HeroSession";
 
 /**
@@ -24,8 +25,8 @@ export function Hero() {
           <div className="order-2 lg:order-none">
             <p className="text-lede max-w-xl text-ink-2 lg:mt-7">
               {/* one idea a sentence; how the price is found belongs to the chapters below and to Developers */}
-              Tokenized stocks on Monad, traded day and night. Every order in a batch clears at one price. No one in
-              your batch gets a better price than you.
+              Tokenized stocks on Monad, {archived ? "built to trade" : "traded"} day and night. Every order in a batch clears at one
+              price. No one in your batch gets a better price than you.
             </p>
             <HeroSession />
             {/* what the venue is today, before anyone presses a button */}

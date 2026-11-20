@@ -6,12 +6,14 @@ import { Code } from "@/components/code/Code";
 import { facts } from "@/lib/content/facts";
 import { site } from "@/lib/content/site";
 import { loadChallengers } from "@/lib/challenge/envio";
-import { netConfig } from "@/lib/venue/config";
+import { archived } from "@/lib/venue/archive";
+import { chainConfig } from "@/lib/venue/config";
 
 export const metadata: Metadata = {
   title: "The standing challenge",
-  description:
-    "A pot anyone can take who profits from being faster than Unison's price. The same open-source bot trades Unison and a market kept on the old rule, side by side; the contract pays whoever meets the definition.",
+  description: archived
+    ? "For three weeks a contract on Monad mainnet offered its pot to anyone who could profit from being faster than Unison's price. Nobody could. On a market kept on the old rule, the same open-source bot did, and its contract paid it."
+    : "A pot anyone can take who profits from being faster than Unison's price. The same open-source bot trades Unison and a market kept on the old rule, side by side; the contract pays whoever meets the definition.",
 };
 
 /** The pots and the scores move slowly: a minute is fresh enough, and it keeps the public RPC unbothered. */
@@ -31,20 +33,62 @@ interface Leg {
   paid?: boolean;
 }
 
+interface Board {
+  adversary: Address;
+  thresholdBps: number;
+  minGapSec?: number;
+  updatedAt: string | null;
+  legs: Leg[];
+}
+type Terms = Awaited<ReturnType<typeof challengeTerms>>;
+type Challengers = Awaited<ReturnType<typeof loadChallengers>>;
+
+const AUSD_UNIT = 1_000_000n;
+
+/**
+ * The final result as the scoreboard last gave it (facts.challenge.final, tied to docs/evidence/challenge.md by
+ * test/facts.test.ts). The archived page renders from this alone: it waits on no scoreboard, indexer or RPC, and it
+ * reads the same after the unclaimed pot has gone back to its sponsor.
+ */
+function finalRecord(ch: { unison: Address; control: Address }, adversary: { address: Address; accounts: Address[] } | undefined) {
+  const f = facts.challenge.final;
+  const leg = (name: "unison" | "control", i: number): Leg => ({
+    name,
+    challenge: ch[name],
+    account: adversary?.accounts[i] ?? ch[name],
+    counted: String(f[name].fills),
+    fills: f[name].fills,
+    edgeBps: f[name].edgeBps,
+    ready: false,
+    claimTx: name === "control" ? f.control.claimTx : null,
+  });
+  const board: Board | null = adversary
+    ? { adversary: adversary.address, thresholdBps: facts.challenge.thresholdBps, minGapSec: facts.challenge.gapMin * 60, updatedAt: f.scoredAt, legs: [leg("unison", 0), leg("control", 1)] }
+    : null;
+  const pots: { unison: bigint | null; control: bigint | null } = { unison: BigInt(f.unison.potAusd) * AUSD_UNIT, control: BigInt(f.control.potAusd) * AUSD_UNIT };
+  const paid: { unison: boolean; control: boolean } = { unison: f.unison.paid, control: f.control.paid };
+  return { board, pots, paid };
+}
+
 async function load() {
-  const net = netConfig("mainnet");
+  const net = chainConfig("mainnet");
   const ch = net?.deployment.challenge as { unison: Address; control: Address; start: number; end: number } | undefined;
   if (!net || !ch) return null;
+  if (archived) {
+    const terms: Terms | null = null;
+    const challengers: Challengers = null;
+    return { net, ch, terms, challengers, now: Math.floor(Date.now() / 1000), ...finalRecord(ch, net.deployment.adversary) };
+  }
   const client = createPublicClient({ transport: http(net.rpcUrl, { retryCount: 2, retryDelay: 400 }) });
   const url = process.env.NEXT_PUBLIC_MAINNET_ADVERSARY_URL;
   const board = url
     ? ((await fetch(`${url}/v1/score`, { next: { revalidate } })
         .then((r) => (r.ok ? r.json() : null))
-        .catch(() => null)) as { adversary: Address; thresholdBps: number; minGapSec?: number; updatedAt: string | null; legs: Leg[] } | null)
+        .catch(() => null)) as Board | null)
     : null;
   // the pots and whether they were paid, from the chain itself; if the public RPC won't answer this server, from the
   // score service, which reads the same two contracts. Never a zero the chain didn't say.
-  let terms: Awaited<ReturnType<typeof challengeTerms>> | null = null;
+  let terms: Terms | null = null;
   let pots: { unison: bigint | null; control: bigint | null } = { unison: null, control: null };
   let paid = { unison: false, control: false };
   try {
@@ -77,6 +121,9 @@ const date = (sec: number | bigint) =>
   new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(
     new Date(Number(sec) * 1000),
   ) + " UTC";
+
+/** a day alone, for a score read on a date */
+const day = (iso: string) => new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" }).format(new Date(iso));
 
 const ENTER = `import { latencyChallengeAbi, challengeAccountAbi, scoreAccount } from "@unison/sdk";
 
@@ -199,7 +246,7 @@ export default async function ChallengePage() {
           </div>
           <p className="mt-4 text-sm text-ink-3">
             Each edge is every fill marked to the first Chainlink observation at least {String(r.terms?.horizonSec ?? 60)} s after its order.
-            {r.board?.updatedAt ? ` Scored ${date(Math.floor(Date.parse(r.board.updatedAt) / 1000))}.` : ""}
+            {r.board?.updatedAt ? ` Scored ${archived ? day(r.board.updatedAt) : date(Math.floor(Date.parse(r.board.updatedAt) / 1000))}.` : ""}
           </p>
 
           {r.challengers?.length ? (
@@ -291,7 +338,7 @@ export default async function ChallengePage() {
               <p className="mt-3 max-w-2xl text-ink-2">
                 The window closed on {date(end)}. Every fill was judged by the contract against Chainlink&apos;s own history, as
                 above.{" "}
-                {r.paid.unison ? "Unison's pot paid out." : `Unison's pot of ${ausd(r.pots.unison)} was never claimed: the rule held, in public, with money on it.`}{" "}
+                {r.paid.unison ? "Unison's pot paid out." : `Unison's pot${r.pots.unison !== null ? ` of ${ausd(r.pots.unison)}` : ""} was never claimed: the rule held, in public, with money on it.`}{" "}
                 {r.paid.control ? "On the old rule, the same bot met the definition and the contract paid it, 37 hours after its account opened." : ""} The
                 contracts, every fill and the claim are on Monad mainnet:{" "}
                 <a href={`${site.repo}/blob/main/docs/evidence/challenge.md`} className="text-ink underline decoration-line-strong underline-offset-4">
@@ -330,12 +377,25 @@ export default async function ChallengePage() {
               Our sniper
             </h2>
             <p className="mt-3 max-w-2xl text-ink-2">
-              It watches MON on Coinbase and Kraken. When the price has moved more than{" "}
-              {r.board?.thresholdBps ?? 40} bp from Chainlink&apos;s last landed round (the vaults&apos; spread and fee, and a
-              margin), it trades toward the move on both markets at once
-              {r.board?.minGapSec ? `, at most once every ${Math.round(r.board.minGapSec / 60)} minutes (each trade pays the keeper for a clear on each market)` : ""}. It
-              counts as the team&apos;s in every tally of outside demand, and it may claim, so the definition is shown to pay
-              where there is an edge. Once a challenge has paid out, it stops trading that market.
+              {closed ? (
+                <>
+                  It watched MON on Coinbase and Kraken. When the price had moved more than {r.board?.thresholdBps ?? 40} bp
+                  from Chainlink&apos;s last landed round (the vaults&apos; spread and fee, and a margin), it traded toward the
+                  move on both markets at once
+                  {r.board?.minGapSec ? `, at most once every ${Math.round(r.board.minGapSec / 60)} minutes (each trade paid the keeper for a clear on each market)` : ""}. It counted as the team&apos;s in every tally of outside demand, and it could claim, so the
+                  definition was shown to pay where there is an edge. Once a challenge had paid out, it stopped trading
+                  that market.
+                </>
+              ) : (
+                <>
+                  It watches MON on Coinbase and Kraken. When the price has moved more than {r.board?.thresholdBps ?? 40} bp
+                  from Chainlink&apos;s last landed round (the vaults&apos; spread and fee, and a margin), it trades toward the
+                  move on both markets at once
+                  {r.board?.minGapSec ? `, at most once every ${Math.round(r.board.minGapSec / 60)} minutes (each trade pays the keeper for a clear on each market)` : ""}. It counts as the team&apos;s in every tally of outside demand, and it may claim, so the
+                  definition is shown to pay where there is an edge. Once a challenge has paid out, it stops trading that
+                  market.
+                </>
+              )}
               {r.board?.adversary ? <> Its address is {link(r.board.adversary)}.</> : null}{" "}
               <a href={`${site.repo}/tree/main/services/adversary`} className="text-ink underline decoration-line-strong underline-offset-4">
                 Its source
@@ -367,7 +427,7 @@ export default async function ChallengePage() {
 
       <section aria-labelledby="replay-title" className="mt-16">
         <h2 id="replay-title" className="text-display-s text-ink">
-          Our sniper, against last week
+          {closed ? "Our sniper, against a week of real prices" : "Our sniper, against last week"}
         </h2>
         <p className="mt-3 max-w-2xl text-ink-2">
           Before funding either pot, we replayed the bot over a week of real prices: {replay.trades.toLocaleString("en-US")}{" "}

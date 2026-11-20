@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { BandDial } from "@/components/app/BandDial";
 import { MARKETS, type MarketSpec } from "@/lib/content/markets";
 import { bandLabel, REGIME_LABEL, regimeNow, type RegimeNow } from "@/lib/unison/regimeNow";
+import { archived } from "@/lib/venue/archive";
 
 /**
  * Chapter 9: the markets. Each is a small dial: the band it would clear under right now (from the bit-exact engine
@@ -62,9 +63,9 @@ export function Markets() {
         ))}
       </div>
       <p className="mt-4 max-w-3xl text-sm text-ink-3">
-        On mainnet, every auction prices at a Chainlink observation made after its orders were sealed. On the testnet,
-        the venue&apos;s relay signs a reference after each batch. Markets not listed on a network run as a labelled
-        simulation.
+        {archived
+          ? "In the mainnet beta, every auction priced at a Chainlink observation made after its orders were sealed. On this site every market runs as a labelled simulation."
+          : "On mainnet, every auction prices at a Chainlink observation made after its orders were sealed. On the testnet, the venue's relay signs a reference after each batch. Markets not listed on a network run as a labelled simulation."}
       </p>
     </section>
   );

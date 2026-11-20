@@ -4,10 +4,11 @@
 
 Unison is a venue for tokenized assets on Monad: US equities (Anchored aStocks), FX (Mento GBPm), gold and MON, quoted in AUSD.
 
-**Live at https://www.unisonfi.com** · on X: [@unison_fi](https://x.com/unison_fi).
-- **Monad mainnet:** a small beta with real assets (Anchored's aNVDA and wrapped MON against AUSD), priced by Chainlink at the first observation made after each auction's orders were sealed. Every contract is verified on Sourcify, and the fills are on-chain ([evidence](docs/evidence/mainnet.md)).
-- **Monad testnet:** for practice, with free test funds.
-- **The switch:** the venue pill picks the network.
+**https://www.unisonfi.com** · on X: [@unison_fi](https://x.com/unison_fi).
+- **The mainnet beta has concluded.** It ran on Monad mainnet from 5 October to 18 November 2026 with real assets (Anchored's aNVDA and wrapped MON against AUSD), priced by Chainlink at the first observation made after each auction's orders were sealed. Every contract is verified on Sourcify and stays on chain ([evidence](docs/evidence/mainnet.md#the-betas-conclusion-18-november-2026)). All 221 fills were the team's own: no outside trader used it.
+- **The standing challenge's verdict: nobody beat the rule.** The same sniper, with the same signal, lost 21.49 bp a trade over 173 fills on Unison, and made 14.35 bp a trade over 30 fills on a market kept on the old rule, whose contract paid it. Unison's 18 AUSD pot was never claimed ([the result](docs/evidence/challenge.md)).
+- **The site serves the record:** the simulation in your browser (the real clearing engine, with a paper account), the challenge's verdict, and the beta's linked receipts, each checked against the chain by your own browser. The keeper, relayer and tape are off.
+- **MetaMask's bounty, 1st place,** at Monad's Metropolis hackathon, for the Agent Wallet plugin ([`mm-plugin-unison`](https://www.npmjs.com/package/mm-plugin-unison)).
 
 - **The oracle is the clock.** Every 300 ms block seals a batch of orders. On mainnet, the auction for the oldest waiting order prices at **the first Chainlink observation made after it was sealed**, and takes every batch sealed before that observation and nothing later. The contract checks this on chain:
   - it reads the observation time inside the report Chainlink's quorum signed;
@@ -16,9 +17,11 @@ Unison is a venue for tokenized assets on Monad: US equities (Anchored aStocks),
 
   So the price didn't exist when anyone in the auction placed their order. Waiting orders can't be cancelled, and the keeper chooses nothing: not the price, not the batch, not the moment ([how, and what it costs](docs/evidence/causal.md)).
 - **One price for everyone.** All of an auction's orders execute at one uniform price, so arriving first buys no better price.
-- **Snipe us.** A standing challenge pays a pot to anyone whose fills beat Unison's price by more than 2 bp, marked to Chainlink a minute later and judged by a contract. A control market kept on the old rule runs beside it. We replayed our own sniper over a week of real prices:
+- **Snipe us.** From 6 to 27 October 2026 a standing challenge offered a pot to anyone whose fills beat Unison's price by more than 2 bp, marked to Chainlink a minute later and judged by a contract, with a control market kept on the old rule beside it. Before it opened, we replayed our own sniper over a week of real prices:
   - on the old rule it earns +17.8 bp a trade;
   - on Unison it loses 23.0 bp a trade ([evidence](docs/evidence/challenge.md)).
+
+  Live, with money on it, the result was the same: +14.35 bp on the old rule, −21.49 bp on Unison.
 - **Weekends are priced, not frozen.** When the home market closes, Unison keeps pricing the asset with call auctions inside a band that widens with √time. When the home market reopens, its first auction is a reopening cross.
 - **Liquidity from block one.** An LP vault quotes around the reference in every auction, and anyone can buy into it. On mainnet it stops quoting while the reference is closed, so nobody trades it against a stale price.
 - **Built for regulated securities.** SEC tokenized-securities-venue conditions (volume caps, tiers, eligibility, halts, public tape) are part of the contracts.
@@ -26,6 +29,13 @@ Unison is a venue for tokenized assets on Monad: US equities (Anchored aStocks),
 > Track 01 — Onchain Finance & Trading · Monad Metropolis Hackathon
 
 ## For judges
+
+**Since 18 November 2026 the beta's services are off**, so this section reads differently from when it was written:
+- **Step 1 works as written.** The receipt page serves the record, and your browser checks it against the chain.
+- **Steps 2 and 3 open the simulation:** the real clearing engine in your browser, with a paper account. There is no live market or testnet to trade.
+- **Step 4 shows the final verdict.**
+- **Step 5:** the status page says what is off; `?demo=1` is now the whole site.
+- **Step 6:** `receipt` and `challenge score` still read the chain. Don't send `mm unison order`: no keeper runs, so a mainnet order would wait until someone calls the permissionless `clear`.
 
 **Watch first:** [the demo](https://youtu.be/9sgKJ1fDbDY) (2:32, the live product on mainnet: a real sealed trade and its receipt checked from the chain), [the pitch](https://youtu.be/cSYTdJGW_rw) (1:38) and [the ad](https://youtu.be/8zQgZbBkVyQ) (0:21). For the sponsor bounties: [the MetaMask Agent Wallet plugin](https://youtu.be/hFVbVkGmwoI) (1:16), [the Chainlink CRE sentinel](https://youtu.be/ZWlRxmRgO0A) (1:04) and [the Envio HyperIndex scoreboard](https://youtu.be/xIbjZLhRq2A) (0:48).
 
@@ -246,7 +256,7 @@ Quality gates, run from `apps/web`:
 ## Status
 
 - **Built:** the full engine and every component listed above.
-- **Mainnet beta, live since 5 October 2026.** Exchange `0x1696170d40E703F1378989383c21Ec96ED1Adf75` on chain 143. Since 6 October, aNVDA/AUSD and WMON/AUSD price every auction at the first Chainlink observation made after its orders were sealed ([`deploy/monad-mainnet-causal.json`](deploy/monad-mainnet-causal.json)).
+- **Mainnet beta: 5 October to 18 November 2026, concluded** ([what it ended with](docs/evidence/mainnet.md#the-betas-conclusion-18-november-2026)). Exchange `0x1696170d40E703F1378989383c21Ec96ED1Adf75` on chain 143. From 6 October, aNVDA/AUSD and WMON/AUSD priced every auction at the first Chainlink observation made after its orders were sealed ([`deploy/monad-mainnet-causal.json`](deploy/monad-mainnet-causal.json)). The lines below describe the beta as it ran.
   - WMON/AUSD (old rule) is the standing challenge's control.
   - No Unison key signs a mainnet price.
   - The vaults are small, each market has a daily cap, and Anchored's denylist is mirrored.
@@ -255,12 +265,12 @@ Quality gates, run from `apps/web`:
   - Pausing, halting or deactivating a market returns every waiting order at once.
   - The gateway role is locked: no key can grant it without an upgrade.
   - The deployer key still holds the other admin roles, upgrades included. The [threat model](docs/THREAT_MODEL.md#what-the-admin-can-do) lists each power.
-  - Next is a 7-day timelock from the first day, proposed by a Safe with outside signers. It was promised "before judging"; it waits on the signers, and this line will say when it's done ([roadmap](docs/ROADMAP.md)).
-- **Live evidence:** the first weekend DISCOVERY cycle (aNVDA closed from Fri 9 October 20:00 ET, reopening on Chainlink's first observation after Sun 11 October 20:00 ET) will be published in `docs/evidence/`.
+  - A 7-day timelock from the first day, proposed by a Safe with outside signers, was promised "before judging". It was not done before the beta concluded: it waited on the signers ([roadmap](docs/ROADMAP.md)).
+- **The first weekend DISCOVERY cycle** (aNVDA closed from Fri 9 October 20:00 ET) printed nothing: nobody traded aNVDA that weekend, so there is no record of it to publish.
 - **Equity references:** on testnet the relay signs prices from market data (Yahoo Finance's public quotes; Alpaca IEX with a key, or a labelled simulation). On mainnet they are Chainlink's tokenized-equity feeds. (A second-by-second clock is built on Chainlink Data Streams and waits for a funded stream; Pyth's data has been paid-only since 31 July 2026 ([evidence](docs/evidence/streams.md)).)
 - **Other venues on Monad:** Monday Trade has offered permissionless 24/5 trading of Anchored aStocks since April 2026, continuously, spot and perpetuals. Unison's difference is the auction: one price per auction, at a Chainlink observation made after its orders were sealed, liquidity that isn't picked off, and price discovery through the weekend.
-- **Public testnet: live.** https://www.unisonfi.com, on Monad testnet (chain 10143), lists aNVDA, aSPY and aQQQ; the other markets run as a labelled browser simulation. Passkey accounts, a faucet, gasless orders and certificates work end to end. Addresses: `deployments/monad-testnet.json`.
-- **Hosting.** The web app runs on Vercel. The services run on Railway: relay, keeper, relayer and tape for the testnet, and keeper, relayer, tape and the house adversary for mainnet, which needs no relay ([DEPLOY](docs/DEPLOY.md)).
+- **Public testnet: concluded with the beta.** On Monad testnet (chain 10143) it listed aNVDA, aSPY and aQQQ, with passkey accounts, a faucet, gasless orders and certificates working end to end. Its services are off; the contracts are in `deployments/monad-testnet.json`.
+- **Hosting.** The web app runs on Vercel, archived: it needs no service ([DEPLOY](docs/DEPLOY.md#the-archived-site)). During the beta the services ran on Railway: relay, keeper, relayer and tape for the testnet, and keeper, relayer, tape and the house adversary for mainnet, which needs no relay.
 - **Frontend:** reviewed over ten rounds by fresh-context AI review panels with design, luxury and trading personas.
 
 ## Acknowledgements and pre-existing code

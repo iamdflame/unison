@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { marketByTicker, marketName } from "@/lib/content/markets";
 import { demoMarket } from "@/lib/demo/engine";
 import { useVenue } from "@/lib/venue";
+import { archived } from "@/lib/venue/archive";
+import { chainConfig, networkName } from "@/lib/venue/config";
 import { liveClients } from "@/lib/venue/live";
 import { Hallmark } from "@/components/ui/Hallmark";
 
@@ -199,12 +201,16 @@ export function TapeConsole() {
   );
 }
 
-/** The active network's contracts, with a copy button each. */
+/**
+ * The active network's contracts, with a copy button each. The archived site keeps the beta's on the page: they are
+ * still on Monad, and they are what its receipts are checked against.
+ */
 export function Contracts() {
   const v = useVenue();
   if (!v.ready) return null;
-  if (v.mode !== "live" || !v.net) return null;
-  const d = v.net.deployment;
+  const net = v.mode === "live" && v.net ? v.net : archived ? chainConfig("mainnet") : null;
+  if (!net) return null;
+  const d = net.deployment;
   const rows: [string, string][] = [
     ["Exchange", d.exchange],
     ...(d.gateway ? ([["Order gateway", d.gateway]] as [string, string][]) : []),
@@ -227,17 +233,17 @@ export function Contracts() {
       <h2 className="text-display-m mt-20 text-ink">Contracts</h2>
       <div className="mt-6 max-w-3xl overflow-hidden rounded-[var(--radius-xl)] bg-raised shadow-panel">
         <p className="border-b border-line px-6 py-3 text-xs text-ink-3">
-          {v.net.network === "mainnet" ? "Monad mainnet" : v.net.network === "testnet" ? "Monad testnet" : "Local devnet"} ·
-          chain {d.chainId}
+          {networkName(net.network)} · chain {d.chainId}
+          {archived ? " · the concluded beta's contracts" : ""}
         </p>
         <ul className="divide-y divide-line">
           {rows.map(([label, address]) => (
             <li key={label} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-6 py-3 text-sm">
               <span className="min-w-0">
                 <span className="block text-ink">{label}</span>
-                {v.net!.explorer ? (
+                {net.explorer ? (
                   <a
-                    href={`${v.net!.explorer}/address/${address}`}
+                    href={`${net.explorer}/address/${address}`}
                     target="_blank"
                     rel="noreferrer"
                     className="block truncate font-mono text-xs text-ink-3 hover-fine:text-ink"

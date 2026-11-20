@@ -175,10 +175,28 @@ The receipt page shows the three times in order: https://www.unisonfi.com/receip
 
 The adversary's matching sale on the old-rule control filled four seconds earlier, at $0.029059 (tx `0xa16a661d3d200629a1bf09de7348f1cf4702dec8302a680a90445cc85a33b180`). That price came off the round already on chain, $0.02912, observed before the move. For the same 3 WMON, the old rule paid the sniper 40 bp more than Unison did. That gap is what the challenge measures.
 
-## What is still to come
+## What was still to come when the beta concluded
+
+Written during the beta. None of it happened before [the beta concluded](#the-betas-conclusion-18-november-2026); it is what a relaunch would start with.
 
 - **Outside traders.** The proof that matters is fills by accounts that aren't ours. Their certificates and transactions will be added here as they happen, with `GET /v1/stats` as the running count.
 - **The first live weekend (Fri Oct 9 → Sun Oct 11).** aNVDA trades in DISCOVERY call auctions while its feed is closed, then reopens on the first Chainlink update. It will be written up in `weekend-2026-10-09.md`.
 - **Admin handover.** Half done. The exchange upgrade is [live](#phase-a-exchange-v3-10-october-2026) (10 October).
   - Next is a 7-day timelock from the first day: proposed by a Safe with outside signers, cancellable by a guardian Safe, and taking every role and every adapter's ownership in one run ([roadmap](../ROADMAP.md), [threat model](../THREAT_MODEL.md#what-the-admin-can-do)).
   - It waits for the two Safes.
+
+## The beta's conclusion (18 November 2026)
+
+The mainnet beta ran from 5 October to 18 November 2026. It was wound down to stop its running costs: the keeper, relayer, tape and sniper are off, and the contracts stay on Monad, verified, with nothing of the team's left in them.
+
+| | At the conclusion |
+|---|---|
+| Fills | 221, all the team's: the vaults, five team accounts and our own sniper |
+| Outside traders | 0 |
+| Traded | 626 WMON on the causal market, 90 WMON on the old-rule control, 0.035 aNVDA |
+| Vaults | Every share redeemed through the vaults' own redemption queue; each vault now holds nothing |
+| The Unison challenge's pot | 18 AUSD, never claimed; it returns to its sponsor |
+
+The fills and volumes are the tape's own count (`GET /v1/stats`, read on 20 November 2026, before the tape was switched off). The balances can be read from the chain: `node --conditions=development apps/web/scripts/ops/inventory.mjs`.
+
+The standing challenge's final result is in [challenge.md](challenge.md#the-final-result-the-window-closed-27-october-2026-2359-utc). The site now serves the record: the simulation in the browser, the challenge's verdict, and the linked receipts, each still checked against the chain by the reader's own browser.

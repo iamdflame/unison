@@ -96,6 +96,34 @@ describe("every site number is backed by the evidence files", () => {
     expect(cfg.skewSec).toBe(k.skewSec);
   });
 
+  it("the challenge's final result, as the record states it", () => {
+    const doc = repo("docs/evidence/challenge.md");
+    const f = facts.challenge.final;
+    const bp = (x: number) => `${x < 0 ? "−" : "+"}${Math.abs(x).toFixed(2)} bp`;
+    expect(doc).toContain(`| Our sniper's counted fills | ${f.unison.fills} | ${f.control.fills} |`);
+    // the edges' row: Unison's cell, then the control's
+    const edges = doc.split("\n").find((l) => l.startsWith("| Its edge after fees"))?.split("|").map((c) => c.trim());
+    expect(edges?.[2]?.startsWith(`${bp(f.unison.edgeBps)} (`)).toBe(true);
+    expect(edges?.[3]?.startsWith(`${bp(f.control.edgeBps)} (`)).toBe(true);
+    expect(doc).toContain(`| The pot | ${f.unison.potAusd} AUSD, never claimed | ${f.control.potAusd} AUSD, paid to the sniper`);
+    expect(f.unison.paid).toBe(false);
+    expect(f.control.paid).toBe(true);
+    expect(doc).toContain(f.control.claimTx);
+    // the film and the cards read the same result
+    const live = JSON.parse(repo("video/src/data/challenge-live.json"));
+    expect(live.unison).toMatchObject({ fills: f.unison.fills, bps: f.unison.edgeBps, paid: false, pot: f.unison.potAusd });
+    expect(live.control).toMatchObject({ fills: f.control.fills, bps: f.control.edgeBps, paid: true, claimTx: f.control.claimTx });
+    expect(live.asOf.slice(0, 10)).toBe(f.scoredAt);
+  });
+
+  it("the beta, start to finish", () => {
+    const doc = repo("docs/evidence/mainnet.md");
+    const b = facts.beta;
+    expect(doc).toContain(`The mainnet beta ran from ${b.from} to ${b.to}.`);
+    expect(doc).toContain(`| Fills | ${b.fills}, all the team's`);
+    expect(doc).toContain(`| Outside traders | ${b.outsideTraders} |`);
+  });
+
   it("calendar arithmetic", () => {
     expect((3_600_000 / facts.beatMs)).toBe(facts.batchesPerHour);
     expect(facts.hours.regularPerWeek).toBe(6.5 * 5);

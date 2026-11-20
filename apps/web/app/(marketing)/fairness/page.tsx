@@ -3,6 +3,7 @@ import Link from "next/link";
 import { FairnessLiveClient } from "@/components/app/pages";
 import { VenueBoot } from "@/components/app/VenueBoot";
 import { Benchmark } from "@/components/fairness/Benchmark";
+import { archived } from "@/lib/venue/archive";
 
 export const metadata: Metadata = {
   title: "Fairness",
@@ -16,8 +17,8 @@ export default function FairnessPage() {
         <h1 className="text-display-xl max-w-4xl text-ink">Proof, batch by batch.</h1>
         <p className="text-lede mt-7 max-w-2xl text-ink-2">
           Every batch clears at one price, inside a band. In session the band is centred on a reference published after
-          the batch closed; while the market is closed, on the last close. This page is the record as it happens, and the
-          research behind the rule.
+          the batch closed; while the market is closed, on the last close.{" "}
+          {archived ? "This page shows the rule at work in the simulation, and the research behind it." : "This page is the record as it happens, and the research behind the rule."}
         </p>
       </section>
       <FairnessLiveClient />

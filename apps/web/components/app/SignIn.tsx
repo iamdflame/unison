@@ -11,6 +11,7 @@ import { MARKETS } from "@/lib/content/markets";
 import { useStore } from "@/lib/store/createStore";
 import { createPasskey, identity, session, signInWithPasskey, signOut, startSession, warmSigner } from "@/lib/venue/identity";
 import { useVenue, useVenueAccount } from "@/lib/venue";
+import { archived } from "@/lib/venue/archive";
 import { networkName } from "@/lib/venue/config";
 import { legacyRpIds } from "@/lib/venue/passkeyDomain";
 import { refreshAccount } from "@/lib/venue/live";
@@ -61,8 +62,10 @@ export function SignIn({ open, onOpenChange }: { open: boolean; onOpenChange: (o
             <>
               <Dialog.Title className="text-display-m mt-5 text-ink">You&apos;re in the simulation.</Dialog.Title>
               <Dialog.Description className="mt-3 text-sm leading-relaxed text-ink-2">
-                Every batch here clears on the real engine in your browser, with a paper account. Live trading signs in
-                with a passkey and needs a Unison network to talk to.
+                Every batch here clears on the real engine in your browser, with a paper account.{" "}
+                {archived
+                  ? "The mainnet beta has concluded, so there is no live venue to sign in to."
+                  : "Live trading signs in with a passkey and needs a Unison network to talk to."}
               </Dialog.Description>
             </>
           ) : !id ? (
