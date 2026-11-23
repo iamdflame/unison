@@ -50,7 +50,7 @@ function UnisonSheet({ sh, jitter = { x: 0, y: 0 } }: { sh: Sheet; jitter?: { x:
       <div style={{ position: "absolute", left: 78, top: 66, fontFamily: F.displaySmall, fontWeight: 550, fontSize: 50, color: day.ink }}>Unison</div>
       {/* where to take the pot, engraved on the certificate: on screen in every Unison shot */}
       <div style={{ position: "absolute", left: 80, top: 146, fontFamily: F.text, fontWeight: 600, fontSize: 30, color: day.ink }}>unisonfi.com/challenge</div>
-      <div style={{ position: "absolute", left: 80, top: 188, fontFamily: F.text, fontSize: 25, color: day.ink2 }}>Live on Monad · priced by Chainlink</div>
+      <div style={{ position: "absolute", left: 80, top: 188, fontFamily: F.text, fontSize: 25, color: day.ink2 }}>{CLOSED ? "Built on Monad · priced by Chainlink" : "Live on Monad · priced by Chainlink"}</div>
       <Ribbon x={SEAL_U.x} y={SEAL_U.y - 14} length={300} width={64} spread={[24, -18]} />
       <WaxSeal x={SEAL_U.x + jitter.x} y={SEAL_U.y + jitter.y} size={300} rotate={-6} seed={4} />
     </Paper>
